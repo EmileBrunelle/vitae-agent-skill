@@ -1,0 +1,6 @@
+*.pdf
+*.png
+!assets/*.png
+__pycache__/
+*.pyc
+.venv/
