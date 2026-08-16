@@ -16,6 +16,10 @@ You are building a résumé that will be read twice: once by a parser, once by a
 human giving it 30 seconds. Every decision below serves one of those two readers.
 Work from facts only — a résumé is a legal-adjacent document about a real person.
 
+**This skill's repo may be public.** Never commit candidate data: no names,
+employers, facts, or anecdotes traceable to a person — every lesson gets
+generalized before it lands in these files.
+
 **Field-agnostic.** The method applies to any profession; software development is
 the reference case. If `references/field-<target>.md` exists for the candidate's
 field (e.g. `field-software-dev.md`), load it in step 4 — it layers market depth
@@ -80,7 +84,19 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    fact sheet: identity, links, jobs (title, org, dates month+year, mode,
    bullets), education, skills, languages. Ask for gaps; never fill them
    yourself. If only a year is known, ask for months; keep year-only and flag
-   it if the candidate cannot supply them.
+   it if the candidate cannot supply them — but first try the institution's
+   known academic calendar to bound the months, confirmed by the user (the
+   regional file lists known cases). LinkedIn PDF exports are unreliable
+   artifacts (mixed languages, mojibake in place names, page markers):
+   verify on the live profile before flagging "profile errors" to the user.
+   Verify organizations' official name spelling on their own site — clubs
+   and events especially. Application history needs precise verbs (applied ≠
+   was offered ≠ received). **Track provenance per fact**, one tag per line
+   (`- <fact> — src: original-cv|linkedin|user|verified-in-work`): a fact
+   relayed by the person commissioning the CV is not a fact confirmed by the
+   candidate. When the candidate has verifiable public work product (code
+   repos, publications, a case log), check claims against it directly —
+   strongest anchor available; the field pack gives the specifics.
 2. **Pick region and language.** Infer a default from the source material —
    city/country in the header, phone country code, language and spelling
    variant, posting URLs — state it and confirm; never silently decide. The
@@ -100,6 +116,13 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    France: 1 page; UK: 1 page early-career). When the regional standard asks
    for more pages than the honest content fills, scale typography and margins
    up rather than inventing content, and say so in your final message.
+   Versions are living: if the same posting type blocks two or more reviewed
+   applications on framing alone (title, ordering) — not a one-off — build
+   that dedicated variant once instead of prescribing repeated manual
+   retailoring. Keep ONE canonical source tree; delivered copies are
+   regenerated from it (companion-guide.md, Delivery package) — a
+   hand-maintained working copy plus a hand-maintained delivery copy WILL
+   drift.
 4. **Draft from the template.** Copy `templates/resume.typ`, load the field
    pack if one exists, keep the design system's invariants
    (`references/design.md`) but give the candidate their own look: pick a
@@ -154,13 +177,19 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    (`model: haiku` or `sonnet`) — a fan-out inheriting an expensive main-loop
    model burns quota fast. Give them rendered PNGs *and* sources. Apply only findings that
    survive cross-examination; findings demanding invented facts become
-   questions for the user.
+   questions for the user. After the final PASS, write
+   `sha256sum *.typ > .vitae-manifest` — the trigger for the external-edit
+   trap below.
 8. **Deliver.** PDFs plus `.typ` sources (one-minute retailoring per
-   application is a selling point). Optional companions — build them with
+   application is a selling point). For a hand-off to the candidate, build
+   the self-contained archive per `references/companion-guide.md`'s Delivery
+   package section (rebuild/package scripts, README, final fact-sheet
+   validation step). Optional companions — build them with
    `references/companion-guide.md`: job-search guide, cover-letter templates,
    LinkedIn alignment checklist. Rule 1 applies to companions too: no salary
    range or market statistic without web verification, and label them
    indicative.
+
 
 ## Known traps (each verified empirically; details live in the references)
 
@@ -184,3 +213,12 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
 - One accent color doing six jobs stops signaling → titles + org names only.
 - Full-width rule under every heading reads as 1997 → short accent bar +
   hairline.
+- The example palettes in `design.md` are illustrative — reusing one across
+  candidates makes two people's CVs look like clones (see design.md).
+- Hyphenated compounds that wrap ("motion-capture") extract fused; the
+  orphan-date trap is position-dependent and moves when content shifts
+  (see ats.md — re-grep dates after every layout change).
+- A `.vitae-manifest` mismatch at session start (or any known edit by another
+  tool/session) voids every previous PASS → re-run the verify gate on every
+  version and the cross-file consistency audit (`references/reviews.md`)
+  before re-delivering.

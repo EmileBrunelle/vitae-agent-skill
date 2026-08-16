@@ -61,3 +61,21 @@ arguing against them.
   listed explicitly in your final message — never silently invented.
 - Verify reviewer claims before acting: reviewers eyeball; you measure. (A
   reviewer once reported a half-empty page that measurement showed 95% full.)
+- Reviewers hallucinate — especially cheap-model ones. Cross-examine EVERY
+  finding against the fact sheet and the CURRENT files before applying;
+  entire reviews are sometimes rejected wholesale (verified: a reviewer
+  "quoted" typos that did not exist and proposed rewrites that invented
+  facts, including an engine name the fact sheet marked unknown).
+- Reviews run against a snapshot: if files changed while reviewers ran,
+  re-check each finding against the current state — half of a late review's
+  findings may already be fixed (or newly true).
+- **Re-run the whole gate after ANY edit made outside this workflow**
+  (another tool, agent, or session): verify every version's pagination/fill,
+  and run a cross-file consistency audit — grep the shared elements (same
+  employer's bullets, education lines, languages line, date formats) across
+  all versions and treat any variant beyond deliberate per-target tailoring
+  as a bug. Verified failure: an external session edited content without
+  re-verifying, breaking 9 of 12 versions and drifting the fact sheet
+  itself; the audit caught inflations ("technical documentation" silently
+  upgraded to "specifications and deployment criteria") that no single-file
+  read would spot.

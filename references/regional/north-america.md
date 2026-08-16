@@ -6,8 +6,14 @@ Paper: us-letter. Photo on CV: never. Age/marital status: never.
 - English: past-tense bullets, current role in present. 1 page for juniors,
   2 pages max overall (US established firms expect 1 page well past 10 years).
 - Québec French: infinitive action verbs (« Concevoir… », « Livrer… ») —
-  Québec university convention; months lowercase (janv., août);
+  a convention taught by university career services, not a
+  provincial norm; noun-phrase style is equally accepted — don't present it
+  to the user as "the Québec convention". Months lowercase (janv., août);
   « Juin 2026 – présent », never « Depuis juin 2026 » (not ATS-parseable).
+- Québec academic calendars (for bounding year-only education dates, with
+  user confirmation): fall session — cégep starts late August, university
+  early September; winter session — university starts early January, cégep
+  late January; both end in May.
 
 ## Protected titles
 - "Engineer" / « ingénieur » and designations ("P.Eng.", « ing. ») are

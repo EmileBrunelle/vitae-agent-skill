@@ -35,7 +35,15 @@ same extracted text.
   bullet list under it, followed by a paragraph-style section, can emit its
   date orphaned at the very end of the extraction. Detect with the grep
   below; fix by rendering bullet-less entries (education, short jobs) as a
-  linear one-line block instead of the grid helper.
+  linear one-line block instead of the grid helper. The trap is
+  POSITION-DEPENDENT (verified): it can also hit a normal grid entry that
+  lands last before a page break, and it moves when content shifts — re-run
+  the date grep after every layout change, and fix the affected entry with an
+  inline role+date variant (no right-flush grid).
+- **Hyphenated compounds that wrap fuse in extraction** (verified):
+  "motion-capture" breaking at the hyphen extracts as "motioncapture", which
+  a keyword filter will not match. Write the unhyphenated form or wrap the
+  token in `#box[...]`.
 - No `tracking`/letterspacing on any text an ATS must read — it extracts as
   "S O F T WA R E" and breaks section classification.
 - Decorative vector icons are safe (no text emitted), but never encode
@@ -60,7 +68,9 @@ same extracted text.
   SKILL.md rule 1 outranks any layout guideline. 8+ near-empty rows read as
   padding.
 - A keyword in skills but absent from every experience bullet is a liability
-  (SKILL.md rule 2): anchor, demote, or drop.
+  (SKILL.md rule 2): anchor, demote, or drop. Mechanical check: grep each
+  skill item against the extracted bullet text — every 0-hit item must map
+  to a deliberate demote/anchor decision, not an oversight.
 
 ## Verification commands
 
