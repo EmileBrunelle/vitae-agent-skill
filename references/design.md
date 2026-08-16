@@ -47,6 +47,10 @@ never the default.
 - One accent color, dark enough to survive B&W photocopy (contrast ≥ 4.5:1 on
   white; e.g. deep teal `#0e6862`, deep bordeaux `#7d2231`). Used ONLY for:
   section titles, organization names, bullet markers, header subtitle.
+  **The example colors above are illustrative, not a default — never reuse
+  them across candidates** (verified: a second candidate shipped with the
+  example teal and read as a clone of the first). Confirm the fresh palette
+  with the user early — a color rejected after the build is wasted work.
 - `muted` gray for metadata — keep it dark enough (`luma(90)`, ≥5:1) because
   dates/notes are the first thing lost in a bad photocopy.
 - Fonts: a humanist/geometric sans pair — body + display for name/titles.
@@ -77,6 +81,11 @@ never the default.
   with a non-breaking space before `:` in French.
 - Soft skills only with evidence: `Label — evidence drawn from the CV itself`.
   Bare adjective lists get skipped by every reviewer.
+- Icons: local SVG files via `image()` are ATS-safe (vector images emit no
+  text). Official brand marks (LinkedIn "in", GitHub octocat) read far better
+  than hand-drawn shapes — store them in an `assets/` dir with the fill color
+  hardcoded (changing the accent means editing the SVGs too). Never use emoji
+  or font glyphs as icons: they leak characters into the extraction.
 
 ## Page-fill tuning loop
 
@@ -92,6 +101,18 @@ priority: SKILL.md rules 5 and step 3. Measure, never eyeball:
 typst compile cv.typ p{p}.png --format png --ppi 90
 python3 scripts/measure_fill.py p*.png     # prints "ink from X% to Y%"
 ```
+
+A decorative full-width band at the top of the page (page `background`) makes
+ink start at 0% — normal; the fill target applies to the LAST ink row only.
+The fill measurement does NOT catch internal holes — two checks users
+actually demanded:
+- **Internal-gap scan**: flag any all-white run taller than ~3.5% of page
+  height inside the content area. Runnable check (per rendered PNG):
+  `python3 -c "from PIL import Image;im=Image.open('p1.png').convert('L');w,h=im.size;px=im.load();rows=[any(px[x,y]<150 for x in range(int(w*.06),int(w*.94),4)) for y in range(int(h*.02),int(h*.97))];import itertools;print([sum(1 for _ in g) for k,g in itertools.groupby(rows) if not k])"`
+  — any number > 0.035*h is a hole to fix.
+- **Uniform section spacing**: one `above:` value for all sections of a
+  document (`airy` only on sparse pages of multi-page versions); distribute
+  extra space through global leading/spacing, never one oversized gap.
 
 Tuning knobs, in order of preference (avoid `v(1fr)` stretchers — they create
 visible canyons):
