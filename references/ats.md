@@ -177,8 +177,8 @@ same extracted text.
   information only in an icon. Same for the platform marks (LinkedIn, GitHub,
   mail, globe) inlined as SVG path data: verified in all fourteen families'
   extraction, they emit nothing — the readable URL beside them is what the
-  parser reads. An icon FONT (Font Awesome as a typeface) is the unsafe
-  version: it leaks private-use codepoints into the extraction.
+  parser reads. An icon FONT is the unsafe version: it leaks private-use
+  codepoints into the extraction — never ship one, inline path data only.
 - Links: visible text is the readable URL (`linkedin.com/in/x`); the `#link`
   target carries the full URL.
 - **Never hide text**: no white-on-white, off-page, zero/micro-font, or

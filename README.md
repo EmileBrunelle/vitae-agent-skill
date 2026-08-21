@@ -140,10 +140,14 @@ this skill's culture is "measured, not eyeballed".
 
 MIT — see [LICENSE](LICENSE).
 
-**Third-party.** The platform marks (email, LinkedIn, GitHub, website) in
-`templates/lib.typ` are inlined path data derived from
-[Font Awesome Free](https://fontawesome.com) 6.7.2 — icons licensed
-**CC BY 4.0**. Only the path data is used; no Font Awesome font file, CSS or
+**Third-party.** The brand marks (LinkedIn, GitHub) in `templates/lib.typ` are
+inlined path data from [Simple Icons](https://github.com/simple-icons/simple-icons)
+— **CC0 1.0**, no attribution required (the LinkedIn path is from tag 13.19.0,
+the last one Simple Icons published before withdrawing the mark under
+LinkedIn's own brand guidelines — a policy change, not a licence one). The
+generic marks (email, phone, pin, website) are inlined path data from
+[Tabler Icons](https://github.com/tabler/tabler-icons)' filled set —
+**MIT**. Only path data is used in both cases; no font file, CSS or
 JavaScript is redistributed. No font binaries ship with this skill either: the
 pools name faces packaged by common Linux distributions or available from
 Google Fonts under the SIL Open Font License 1.1 — see
