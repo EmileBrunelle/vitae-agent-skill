@@ -5,7 +5,7 @@ in [Typst](https://typst.app) that pass **both** filters: automated screening
 (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
 scan.
 
-**Status: beta (0.1)** — the method is battle-tested, but the skill's file
+**Status: beta (0.2)** — the method is battle-tested, but the skill's file
 layout and script interfaces may still change before 1.0.
 
 Battle-tested method distilled from a real end-to-end résumé project that went
@@ -39,6 +39,18 @@ open-source, recruiting-expert) and cross-field integration simulations
 - **Field packs**: the generic method plus per-field depth;
   `references/field-software-dev.md` ships first — contributions welcome for
   other fields.
+- **Anti-clone design system**: fourteen design families across four
+  registers (modern, neutral, classic, creative) anchored in real design
+  currents, drawn deterministically per candidate (`scripts/pick_design.py`);
+  generative palettes validated for contrast (`scripts/gen_palette.py`); font
+  pairs drawn from open-license pools — so the tool never converges on one
+  recognizable look. The creative register is never in the default draw pool
+  — unlocked by a creative target field or an explicit request, and capped
+  back out by a conservative market. One family (`gutter-rail`) carries a
+  second lock on top of that one: its ruled gutter is a code gutter, so it
+  also requires a technical target field, and the creative unlock alone never
+  draws it for a non-technical trade. Reference implementations of all
+  fourteen families live in `templates/families/`.
 - Optional companion deliverables (job-search guide, cover letters, LinkedIn
   checklist) via `references/companion-guide.md`.
 
@@ -67,23 +79,21 @@ adversarial review pass before delivering PDFs + editable `.typ` sources.
 
 ## Requirements
 
-`typst` (0.13+), `pdfinfo`/`pdftotext` (poppler-utils), Python 3 with Pillow
-for the fill measurement. Run `scripts/check_env.sh` (any POSIX shell — Linux, macOS, WSL/Git Bash) or
-`scripts\check_env.ps1` (Windows) to diagnose — the doctors are read-only and
-print the right install command per platform; the opt-in `--install`/`-Install`
-flag fetches only the typst binary to `~/.local/bin` (no root/admin), over
-HTTPS from the official releases, **without checksum verification** — prefer
-a package manager if that matters to you.
+`typst` (0.13+) and Python 3 with Pillow for the fill measurement.
+`pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdf`
+automatically when only that is installed. Run `python3 scripts/verify.py
+--doctor` (any platform) to diagnose — read-only, prints the right install
+command per platform, official repos first. LibreOffice/soffice is optional,
+only needed to generate editable copies (.docx/.odt) derived from the
+compiled PDF.
 
 Platform notes:
 - **Linux / macOS**: works as-is (Apple Silicon handled).
-- **Windows** (baseline: Windows 11+, up to date): PowerShell doctor runs on
-  the preinstalled 5.1; typst via `winget install --id Typst.Typst`; poppler
-  via `choco install poppler` or `scoop install poppler` — or use WSL/Git
-  Bash and follow the POSIX path instead. If PowerShell
-  refuses to run the doctor ("running scripts is disabled"), run
-  `Unblock-File .\check_env.ps1` then
-  `powershell -ExecutionPolicy Bypass -File .\check_env.ps1`.
+- **Windows** (baseline: Windows 11+, up to date): `python scripts\verify.py
+  --doctor` runs directly, no PowerShell doctor involved; typst via
+  `winget install --id Typst.Typst`; poppler via `choco install poppler` or
+  `scoop install poppler` — or use WSL/Git Bash and follow the POSIX path
+  (`scripts/verify.sh`, a wrapper around `verify.py`) instead.
 - **pip-only environments** (no package manager, no admin rights):
   `pip install typst pypdf Pillow` covers everything — `typst` compiles PDF
   and PNG through its Python API (no CLI), `pypdf` counts pages and gives an
@@ -102,11 +112,20 @@ references/reviews.md            # adversarial review protocol
 references/field-software-dev.md # field pack: software development
 references/typst-primer.md       # minimal Typst syntax for agents that don't know it
 references/companion-guide.md    # optional job-search guide recipe
+references/fonts.md              # font provenance: Google Fonts URLs, licences, both install routes
 templates/resume.typ             # annotated starting template
+templates/lib.typ                # shared verified mechanics (devices stay per-family); hand-off is these two files
+templates/families/<family>/     # REFERENCE IMPLEMENTATIONS of all fourteen design families
+  resume.typ                     #   font pair A — the family's primary draw
+  resume-pair-b.typ              #   font pair B — the SAME family on its second font pair, to prove
+                                 #   the recipe survives a different pair (not a page 2)
+  lib.typ                        #   symlink to ../../lib.typ — one source of truth, no copies
+templates/families/swiss-grid/resume-2page.typ   # the worked 2-page sample (runhead, deliberate break, both pages measured)
+scripts/pick_design.py           # deterministic design draw: family, fonts, section labels, list markers; --emit-typ prints the ready-to-paste Typst preamble for the drawn recipe
+scripts/gen_palette.py           # generative, contrast-validated palettes (duotone included)
 scripts/measure_fill.py          # ink-coverage measurement
-scripts/verify.sh                # one-command gate: compile + pages + fill + extraction (POSIX shell)
-scripts/check_env.sh             # environment doctor, POSIX shell (read-only)
-scripts/check_env.ps1            # environment doctor, Windows PowerShell
+scripts/verify.py                # gate + doctor: compile + pages + fill + extraction, any platform; --tune bisects #set par(leading:, spacing:) to the fill target (does not replace the gate — run it after)
+scripts/verify.sh                # POSIX wrapper around verify.py (2 lines)
 assets/example-1page.png         # rendered template example
 ```
 
@@ -120,3 +139,12 @@ this skill's culture is "measured, not eyeballed".
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+**Third-party.** The platform marks (email, LinkedIn, GitHub, website) in
+`templates/lib.typ` are inlined path data derived from
+[Font Awesome Free](https://fontawesome.com) 6.7.2 — icons licensed
+**CC BY 4.0**. Only the path data is used; no Font Awesome font file, CSS or
+JavaScript is redistributed. No font binaries ship with this skill either: the
+pools name faces packaged by common Linux distributions or available from
+Google Fonts under the SIL Open Font License 1.1 — see
+[`references/fonts.md`](references/fonts.md) for provenance and installation.

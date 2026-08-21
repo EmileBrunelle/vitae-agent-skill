@@ -19,3 +19,23 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+--------------------------------------------------------------------------------
+Third-party notices
+--------------------------------------------------------------------------------
+
+Font Awesome Free 6.7.2 — icon path data
+    The platform marks (email, LinkedIn, GitHub, website) in templates/lib.typ
+    are inlined SVG path data derived from Font Awesome Free 6.7.2.
+    Icons: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+    Source: https://fontawesome.com  ·  https://github.com/FortAwesome/Font-Awesome
+    Only the path data is used; no Font Awesome font file, CSS or JavaScript is
+    redistributed here.
+
+Typefaces
+    No font binaries are distributed with this skill. The font pools in
+    scripts/pick_design.py name faces that are either packaged by common Linux
+    distributions or available from Google Fonts under the SIL Open Font
+    License 1.1. See references/fonts.md for provenance, licences and
+    installation. Each face remains under its own licence.

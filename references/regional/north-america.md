@@ -24,11 +24,15 @@ Paper: us-letter. Photo on CV: never. Age/marital status: never.
   d'ingénieur (CPI) »; same logic for other regulated orders (CPA, arch.…).
 - "Software engineer" as a job title: enforcement varies by province, mostly
   regulator cease-and-desist letters (e.g. a publicized 2024 case), rarely
-  court-tested. Safest default: "software developer" unless the employer's
-  own posting uses the engineer title.
+  court-tested. Safest default: "software developer" (« développeur
+  logiciel » in French) unless the employer's own posting uses the engineer
+  title.
 - USA: "engineer" generally unregulated for software; PE licensure applies in
   traditional engineering fields.
 
 ## Gloss for readers outside Québec
 « Cégep » → "(Québec technical college)"; DEC → "College Diploma (DEC)";
-DEP → "Vocational Diploma (DEP/DVS — Diploma of Vocational Studies)".
+DEP → "Vocational Diploma (DEP/DVS — Diploma of Vocational Studies)". This
+applies to every credential name, not only the examples listed here — never
+expand an unfamiliar acronym from memory; verify with the institution or the
+candidate (rule 1).

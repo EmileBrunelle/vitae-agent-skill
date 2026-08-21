@@ -32,7 +32,7 @@ reject — sympathy produces useless reviews.
    up. Finally, confirm the extraction contains **no text invisible on the
    rendered page** (see the hide-nothing rule in `ats.md`).
 
-## Market-segment panel (when positioning matters)
+## Market-segment panel (always — part of the first pass)
 
 One reviewer per target segment; each *invents a complete realistic job
 posting* for a fictional employer in that segment, then judges the CV against
@@ -47,9 +47,33 @@ confirm the CV doesn't oversell.
 A design-focused reviewer that *looks at the PNGs* (not just the source):
 visual hierarchy 5-second test, spacing inconsistencies, micro-typography
 (mixed apostrophes, ugly breaks), color contrast incl. grayscale printing,
-local density problems. Instruct it that fill/page-integrity targets are
-project constraints, not up for debate — otherwise it wastes its report
-arguing against them.
+local density problems. On top of the standard reviewer contract, this one
+also needs `references/design.md` and the compiled values of the `.typ`'s
+`#set page`/`#set text` (margins, font sizes) — without them it has nothing
+to measure against the thresholds below. Instruct it that fill/page-integrity
+targets are project constraints, not up for debate — otherwise it wastes its
+report arguing against them. Require measured values, not impressions,
+against design.md's thresholds: body text size, heading-to-body ratio, the
+accent's recomputed contrast, margin widths. Any value under threshold is a
+FAIL, not a stylistic preference.
+
+On top of the measurements, this reviewer owns the **non-recognition bar**
+(`references/design.md` § Design families): given the rendered pages of *two
+other* CVs produced by this skill (any two families — keep a couple of
+reference PNGs for this), it must answer two pass/fail questions and quote the
+evidence from the images:
+
+1. **Same-tool test** — could a recruiter who has seen those two identify this
+   third one as coming from the same tool? What gives it away: heading device,
+   skills-block shape, accent placement, header order, section labels? Any
+   shared signature across all three is a FAIL, and it names the marker.
+2. **Consumer-default test** — could this page pass for the default template of
+   a popular consumer tool (the most-used word-processor CV template, a résumé
+   site's first theme)? If yes, FAIL, with the symptom named from design.md's
+   "too much like Word 97" list.
+
+Both are pass/fail, not stylistic preferences, and a FAIL means the recipe (not
+the content) gets changed.
 
 ## Synthesizing findings
 
