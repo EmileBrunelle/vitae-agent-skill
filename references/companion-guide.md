@@ -103,6 +103,21 @@ are final; it reuses their design tokens so the package reads as one system.
   merged or reordered — grep every "chapitre/chapter N" against the real
   heading list, including in the delivery README.
 
+## Derived editable formats
+
+If the candidate needs an editable copy, GENERATE it from the Typst source —
+never hand-maintain a second copy; a hand-maintained editable file and the
+canonical `.typ` source will drift. Pandoc has no Typst reader, so route
+through a direct conversion of the compiled PDF (`soffice --convert-to docx
+cv.pdf`). This is lossy (layout, fonts, spacing shift) — the derived copy
+needs an eyeball pass against the PDF before it ships.
+Default to `.docx`: the format with real compatibility across mobile,
+Google Docs, and WPS. Offer `.odt` only when the candidate's own tooling is
+known and specifically calls for it. Never deliver both at once — if the
+candidate edits one and sends the other, the two silently diverge. Warn the
+candidate that the derived copy does not repass the full verification grid
+(step 6/7) — treat it as a one-way export, not a parallel deliverable.
+
 ## Delivery package (when the user hands the dossier to the candidate)
 
 - Ship a self-contained archive: ready-to-send PDFs (each pre-named to the

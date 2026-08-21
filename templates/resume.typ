@@ -2,18 +2,43 @@
 // Design rules: references/design.md · ATS rules: references/ats.md
 // Verify after EVERY edit: scripts/verify.sh resume.typ 1 94 96
 
+// ---------- Shared mechanics (templates/lib.typ) ----------
+// The verified MECHANICS live in lib.typ and are imported, never re-typed:
+// the entry emission order that keeps a date from floating to the end of the
+// extraction, the one-paragraph skills row, the unbreakable mark+value box,
+// the platform marks as inline SVG, the single-ROW alignment grid, the palette
+// derivation. Each one is a verified answer to a trap in references/ats.md, and
+// re-implementing one per CV is how a fixed trap comes back.
+//
+// The DEVICES below — the heading device, the header composition, the skills
+// shape, the accent role — are deliberately NOT in the lib: they belong to the
+// design FAMILY the recipe draws (references/design.md § Design families).
+// What this template ships is a placeholder that belongs to no family, and
+// shipping it as-is is the defect the whole system exists to prevent.
+//
+// HAND-OFF IS TWO FILES: this .typ and lib.typ beside it. Typst has no bundler.
+#import "lib.typ": *
+
 // ---------- Tokens ----------
 #let accent = rgb("#7d2231")        // one accent, ≥4.5:1 on white, survives B&W
-#let muted = luma(90)
-#let dark = luma(30)
+// The harmonised mini-palette: an accent never travels alone, and the grays are
+// biased toward its hue (a pure neutral gray beside a warm accent reads as a
+// mismatch). `soft` is decorative only — never set text in it.
+#let pal = derive(accent)
+#let soft = pal.soft
+#let muted = pal.ink
+#let dark = pal.dark
+
+#let ic-col = muted        // the family decides this colour (design.md)
+#let mk = marks(ic-col)    // email · LinkedIn · GitHub · site, in every family
 
 // Paper: "us-letter" (Canada/USA) or "a4" (most of the rest) — see regional.md
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 // lang drives hyphenation/smart quotes: "en", "fr", "de"…
-#set text(font: ("Carlito", "Noto Sans", "Liberation Sans"), size: 10pt,
+#set text(font: ("Carlito", "Noto Sans", "Liberation Sans"), size: 10.5pt,
   lang: "en", fill: dark, hyphenate: false)
 // Primary fill-tuning knobs ↓ (±0.01-0.03em steps)
-#set par(justify: false, leading: 0.65em, spacing: 0.74em)
+#set par(justify: false, leading: 0.62em, spacing: 0.70em)
 
 // ---------- Primitives ----------
 // One unbreakable block per section: never split across pages.
@@ -23,7 +48,7 @@
   #grid(columns: (auto, auto), column-gutter: 7pt, align: horizon,
     box(width: 4pt, height: 9pt, fill: accent),   // accent tick (vector: emits no text)
     text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
-      size: 10.5pt, weight: "bold", fill: accent)[#upper(t)],
+      size: 12.5pt, weight: "bold", fill: accent)[#upper(t)],
   )
   #v(3pt)
   #line(length: 100%, stroke: 0.7pt + luma(180))  // single thin hairline
@@ -31,26 +56,29 @@
   #body
 ]
 
-// Bold role + bold dark dates right; accent org + muted descriptor below.
-#let job(role, org, dates, note) = block(above: 9pt, below: 4pt, sticky: true)[
-  #grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
-    text(size: 11pt, weight: "bold")[#role],
-    text(size: 9pt, fill: muted, weight: "bold")[#dates],
-  )
-  #v(1.5pt)
-  #text(size: 9pt)[#text(fill: accent, weight: "semibold")[#org]#if note != none [#text(fill: muted)[ — #note]]]
-]
+// Bold role + bold muted dates right; accent org + muted descriptor below.
+// The MECHANIC (grid, emission order role -> date -> org line, sticky) is
+// lib.typ's `entry`; the styling passed in is what a family owns. Whether the
+// organization, the dates or neither carries the accent is the family's call.
+// EDUCATION USES THIS SAME HELPER — one date convention per document.
+#let job(role, org, dates, note) = entry(role, org, dates, note,
+  org-st: it => text(fill: accent, weight: "semibold", it),
+  date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
+  note-st: it => text(fill: muted, it),
+  above: 9pt, below: 4pt)
 
 // Linear skill line — NEVER a data grid (ATS extracts grids column-by-column).
 // French: use [#cat~:] for the non-breaking space before the colon.
 // Markup (*bold*, #box) inside items only works if you pass [content],
 // e.g. #skill("Languages", [Python, *TypeScript*]) — a "string" renders it literally.
-#let skill(cat, items) = par[#text(weight: "semibold")[#cat:] #items]
+#let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
 #set list(marker: text(fill: accent, weight: "bold")[–], indent: 10pt,
   spacing: 0.5em, body-indent: 6pt)
 
-// ---------- Header (centered, no icons — parses clean everywhere) ----------
+// ---------- Header (centered; platform marks only, no generic icons) ----------
+// The marks are vector and emit no text; the readable URL beside each one is
+// what an ATS reads. Colour them per the chosen family (design.md § Contact icons).
 #align(center)[
   #text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
     size: 23pt, weight: "bold")[Firstname Lastname]
@@ -61,9 +89,9 @@
   #text(size: 9.5pt, fill: muted)[
     City, Region
     #h(5pt)•#h(5pt) #link("tel:+15555550100")[(555) 555-0100]
-    #h(5pt)•#h(5pt) #link("mailto:me@example.com")[me\@example.com] \
-    #link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]
-    #h(5pt)•#h(5pt) #link("https://github.com/handle")[github.com/handle]
+    #h(5pt)•#h(5pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
+    #h(5pt)•#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 
@@ -100,12 +128,18 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 - Keep 1-2 transferable bullets; the section label does the explaining.
 ]
 
-// ---------- Education ----------
-// Bullet-less entries followed by a paragraph section can orphan their date
-// in pdftotext (verified). Run the date grep from references/ats.md; if a
-// year floats loose, replace job() with a linear one-line entry for it.
+// ---------- Education: the SAME entry shape as the jobs (dates right-flush) ----------
+// One date convention per document. TWO verified conditions keep this
+// bullet-less entry's date from floating to the end of the extraction, and
+// both are needed (references/ats.md): (1) a line of text AFTER the date in
+// the emission order — the institution + descriptor line below; (2) a date
+// run about as WIDE as the other right-flushed dates: "2015 – 2019" and
+// "Graduated 2019" extract in place, a bare "2019" or "Jun 2019" is narrow
+// enough to fall out of the date column and gets emitted last (verified both
+// ways). Never un-align the date to fix that trap. Re-run the date grep after
+// any layout change.
 #section("Education")[
-#job("Degree Name (Abbrev.)", "Institution", "2019",
+#job("Degree Name (Abbrev.)", "Institution", "2015 – 2019",
   "City · anchor unproven-but-real skills here (e.g. statistics-heavy coursework) · gloss local institutions for foreign readers")
 ]
 

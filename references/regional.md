@@ -56,6 +56,15 @@ the deliverable — and consider contributing the file.
   adversarial loop for any translated version.
 - Set `lang:` on `#set text(...)` per document — it drives hyphenation and
   smart-quote behavior.
+- **The target market caps the visual audacity dial, never raises it.** A
+  conservative target market forces `sober` (`references/design.md` § colour;
+  `scripts/pick_design.py --conservative`), whatever the candidate's field or
+  the design family. Whether a market is conservative for this purpose is
+  established the same way as everything else in this file — the market's own
+  file, current sources, or the user — never assumed from training data, and
+  the assumption gets labelled in the deliverable when it cannot be verified.
+  A market may also cap it *below* the candidate's request; the dial is only
+  ever raised by the explicit request of the candidate or user.
 
 ## Section names per language
 
@@ -73,3 +82,17 @@ Derive the target-field section name with the same pattern for any field
 ("Expérience en soins infirmiers", "Nursing Experience"). Keep names close to
 conventional stems — a qualifier after a conventional stem is safe; fully
 exotic names risk ATS misclassification.
+
+**Accepted variants** (the lexical skeleton is part of the anti-clone system —
+`references/design.md` § Section labels; each design family carries its own
+defaults and `scripts/pick_design.py` draws a variant per candidate):
+
+| | FR | EN |
+|---|---|---|
+| Profile | Profil · Sommaire | Profile · Summary · Professional Summary |
+| Skills | Compétences techniques · Compétences et outils · Expertise | Technical Skills · Skills & Tools · Skills · Expertise · Technical Stack |
+| Soft skills | Compétences générales · Forces · *(omise)* | Core Strengths · Strengths · Working Style · *(dropped)* |
+
+**Education**, **Languages** and the experience sections do NOT vary: their
+stems are what ATS section classifiers key on. Where a market file names one
+convention explicitly, that wins over the draw.
