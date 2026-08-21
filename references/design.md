@@ -625,8 +625,9 @@ marks stay legible. Where a generic icon would have to be that small, use
 *Platform marks* (email, LinkedIn, GitHub, a personal site) are in **every
 family, including those four**: a platform logo is a functional identifier
 of a contact channel, not ornament, and a recruiter scans for it. They are
-real brand marks — Font Awesome Free 6.x path data, Icons under CC BY 4.0,
-attribution kept in a comment in the `.typ` — inlined as an SVG string via
+real brand marks — LinkedIn and GitHub from Simple Icons (CC0 1.0, no
+attribution required), email/phone/pin/website from Tabler Icons' filled set
+(MIT) — provenance kept in a comment in the `.typ` — inlined as an SVG string via
 `image(bytes(…), format: "svg")`, so the document stays ONE self-contained
 file, the mark is vector (it emits no text — verified at the gate in every
 family) and its colour is a parameter rather than baked into a file:
@@ -652,8 +653,14 @@ at a line end. A mark at `h: 7pt` inside a 9pt line adds ~1pt of line height:
 on a page already at 96% fill that is enough to push the last unbreakable
 section over (measured on `swiss-grid` and `margin-index`) — re-run the
 tuning loop after adding them. Never emoji, never clipart, never a font glyph
-(a Font Awesome *font* would leak private-use characters into the
-extraction — the path data does not).
+(an icon *font* would leak private-use characters into the extraction — the
+path data does not).
+
+**Sourcing a new icon later**: same recipe as above — inline path data from
+Simple Icons (brand/platform logos, CC0) or Lucide/Tabler (generic icons,
+ISC/MIT) via Iconify, pasted as a `d`/`viewBox` pair into `lib.typ` exactly
+like `pmark`'s existing entries. Never an icon font: private-use codepoints
+leak into the extraction (`references/ats.md`).
 
 Shared to all families (deltas vs the template, applied once): the palette
 block above, and note that the template's *body* hardcodes the accent in two
@@ -679,7 +686,7 @@ by rules and size steps, never by colour on text.
   half-iconified line was found worse than either extreme: platform marks
   present but city/phone bare): every contact item carries a mark, city and
   phone included (`mk.pin` / `mk.phone`, added to `lib.typ` alongside the
-  platform marks, same Font Awesome Free provenance), all in the body ink,
+  platform marks, same Tabler Icons provenance), all in the body ink,
   never in colour. No generic icon FONT and no colour on marks — that part of
   the original purism holds; only the "no mark on city/phone" half was the
   inconsistency.

@@ -25,12 +25,25 @@ SOFTWARE.
 Third-party notices
 --------------------------------------------------------------------------------
 
-Font Awesome Free 6.7.2 — icon path data
-    The platform marks (email, LinkedIn, GitHub, website) in templates/lib.typ
-    are inlined SVG path data derived from Font Awesome Free 6.7.2.
-    Icons: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-    Source: https://fontawesome.com  ·  https://github.com/FortAwesome/Font-Awesome
-    Only the path data is used; no Font Awesome font file, CSS or JavaScript is
+Simple Icons — brand mark path data (CC0 1.0)
+    The LinkedIn and GitHub marks in templates/lib.typ are inlined SVG path
+    data from the Simple Icons project.
+    Licence: CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+      — no attribution required; credited here anyway.
+    Source: https://github.com/simple-icons/simple-icons
+    The LinkedIn path is from tag 13.19.0: LinkedIn's mark was withdrawn from
+    Simple Icons afterwards under LinkedIn's own brand-guideline enforcement,
+    not a licence change — the path used here is the last one the project
+    published under CC0.
+    Only the path data is used; no font file, CSS or JavaScript is
+    redistributed here.
+
+Tabler Icons — generic mark path data (MIT)
+    The email, phone, pin and website marks in templates/lib.typ are inlined
+    SVG path data from the Tabler Icons "filled" set.
+    Licence: MIT — Copyright (c) 2020-2026 Paweł Kuna
+    Source: https://github.com/tabler/tabler-icons
+    Only the path data is used; no font file, CSS or JavaScript is
     redistributed here.
 
 Typefaces

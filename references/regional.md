@@ -12,23 +12,44 @@ file for the target market:
 - `regional/france.md`
 - `regional/uk-ireland.md`
 - `regional/dach.md` — Germany, Austria, Switzerland
+- `regional/southeast-asia.md` — Indonesia, Malaysia, Singapore,
+  Philippines, Vietnam, Thailand (one file, six *non-interchangeable*
+  markets — read the country section, never the file average)
 
 **If the target market has no file, do not infer from training data** —
-markets outside this set (Middle East, Asia, Latin America…) do not form a
-bloc: conventions vary more inside that group than between Europe and North
+markets outside this set (Middle East, East Asia, Latin America…) do not form
+a bloc: conventions vary more inside that group than between Europe and North
 America (Japan's rirekisho is a rigid form with photo and age; China expects
 photos for domestic employers but not multinationals; Brazil/Mexico track US
 norms). Verify with a current local source or ask, label the assumption in
-the deliverable — and consider contributing the file.
+the deliverable — and consider contributing the file. The same warning applies
+*inside* a multi-market file: Singapore and Thailand share one and disagree on
+nearly every axis of the matrix below.
 
 ## Quick matrix (orientation only — details in the market files)
 
-| Region | Paper | Photo on CV | Verb form | Length norm |
-|---|---|---|---|---|
-| Canada / Québec / USA | us-letter | Never | EN past tense / FR-QC infinitive | 1 p. junior, 2 p. max |
-| France | a4 | Declining, often advised against | Noun phrases / past participle | 1 p. strongly preferred |
-| UK / Ireland | a4 | Never | Past tense | 1 p. early-career, 2 p. beyond |
-| Germany / Austria / CH | a4 | Still expected by ~2/3 outside tech | Noun phrases (Lebenslauf) | 1-2 p. + attachments |
+The market files carry only their deltas from this table.
+
+| Market | Paper | Photo on CV | CV language | Personal data | Formality / verb style | Length norm |
+|---|---|---|---|---|---|---|
+| Canada / Québec / USA | us-letter | Never | EN, or FR for Québec | None (no age, no marital status) | Verb-first bullets; EN past tense / FR-QC infinitive | 1 p. junior, 2 p. max |
+| France | a4 | Declining, often advised against | FR | Omit by default; hobbies are a plus | Formal; noun phrases / past participle | 1 p. strongly preferred |
+| UK / Ireland | a4 | Never | EN, British spelling | None | Verb-first bullets, past tense | 1 p. early-career, 2 p. beyond |
+| Germany / Austria / CH | a4 | Still expected by ~2/3 outside tech | DE (EN for intl. roles) | Birth date still common | Very formal, tabular Lebenslauf, noun phrases | 1-2 p. + attachments (Zeugnisse) |
+| Indonesia | a4 | Expected (« pas foto », print-sized); optional in private tech | ID; EN for multinationals/startups | Traditional biodata now discouraged (UU PDP); hobbies normal | Formal; separate « surat lamaran » expected | 1-2 p. + scanned attachments |
+| Malaysia | a4 | Contested — check the posting | EN by default; BM for government/GLC | Drop DOB / marital / IC; CGPA expected | Moderately formal; summary + skills block first | 1 p. fresh grad, 2-3 p. experienced |
+| Singapore | a4 | Discouraged (TAFEP; WFA 2025) | EN, British spelling | None (no NRIC — PDPC advisory) | Anglo-Saxon baseline, verb-first bullets | 1 p., 2 p. senior |
+| Philippines | us-letter ("short bond"); a4 accepted digitally | Expected (2×2 in ID photo) | EN, American spelling | Rich by custom and contracting; Character References still normal | Formal; local sections (Seminars and Trainings, Eligibility) | 1 p. fresh grad, 2 p. at 5+ yrs |
+| Vietnam | a4 | Optional on the modern CV | VI; EN for FDI; VI+EN bilingual is real | Off the CV — those fields belong to the notarised sơ yếu lý lịch | Formal; state sector also wants the stamped form | 1-2 p. |
+| Thailand | a4 (LOW confidence — verify) | Expected, formal studio headshot | TH; EN for multinationals | Customary (incl. military status) though PDPA tells employers not to ask | Formal; expected-salary field is standard | 1-2 p. |
+
+Cautions the matrix compresses: **paper is us-letter in exactly two places**
+(North America, and Philippines print); **a national ID number never belongs
+on a CV in any market listed**; a **Thai** document's Buddhist-Era year
+(B.E. = CE + 543) must be converted before it reaches a foreign reader; and
+where a photo is expected, the DACH mechanics apply (formal, front-facing,
+plain background) — Indonesia and the Philippines additionally fix a print
+size.
 
 ## Universal rules (every market)
 
