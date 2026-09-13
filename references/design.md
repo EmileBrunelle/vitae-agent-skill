@@ -23,10 +23,17 @@ and the devices start).
 
 **Section separation is an invariant, not a preference.** A CV whose sections
 do not detach from the intra-section rhythm fails, exactly like a CV with two
-text columns. `scripts/verify.py` measures it on every rendered page: the
-tallest internal white run must be **≥ 2.0× the median** internal white run
-(`BOUNDARY_RATIO`), and a run taller than 3.5% of page height is a hole
-unless it is a boundary (boundaries may reach 5%).
+text columns. `scripts/verify.py` measures it on every rendered page, and what
+it FAILs on is **ink at the boundary** and **holes** — a run taller than 3.5%
+of page height is a hole unless it is a boundary (boundaries may reach 5%).
+The white-run ratio (tallest internal run ÷ median internal run) is
+**reported, never failed**: measured 2026-09-13 over all 30 rendered pages it
+runs 1.89 → 5.14 with no void anywhere, and a synthetic page whose section gap
+equals its line gap scores 2.69 — above 10 real pages that do separate. It
+ranks nothing. `BOUNDARY_RATIO` (2.0) survives only as the LOCATOR that says
+which white run is a boundary; `SEPARATION_CEILING` (6.0) is a smoke alarm
+placed above the whole roster, not a grade. See the comment block in
+verify.py.
 
 **Boundaries carry ink by default (added 2026-08).** The white-run ratio can
 pass on whitespace alone, but a human scanning the page looks for a *mark*
@@ -42,8 +49,10 @@ overrides this default.
 
 **When a boundary does not read, whitespace is the LAST lever, not the first.**
 The observed failure mode is an agent that sees a weak boundary and answers with
-vertical space, page after page, until the CV is a ladder of empty bands. The gate now warns over `SEPARATION_CEILING` (5.0×) for
-exactly that. Fixed order, stop at the first that works:
+vertical space, page after page, until the CV is a ladder of empty bands. The
+gate warns over `SEPARATION_CEILING` (6.0×) for exactly that, and FAILs only
+when the page also carries no device at any boundary. Fixed order, stop at the
+first that works:
 
 1. **Add ink.** The family's own boundary device, or the thin `soft` hairline
    above the section (§ Boundaries carry ink by default). One 0.5pt line beats
@@ -54,22 +63,29 @@ exactly that. Fixed order, stop at the first that works:
 3. **Only then**, widen the section gap — and only within the family's measured
    `above`, never past a 5% run and never with `v(1fr)`.
 
-A ratio above 5.0 on a family that *has* a device means step 3 was used to paper
+A high ratio on a family that *has* a device means step 3 was used to paper
 over step 1. The empty band is not separation, it is an unanswered question.
 
-**The ratio is a FLOOR, not a target, and passing it is not the test.** The
-floor is calibrated just under the families whose separation reads best —
-measured at 90 ppi: `color-band` 2.33, `hard-edge` 3.12, `swiss-grid` 3.40,
-`bold-display` 3.60. The counter-intuitive part is worth stating: those are
-among the *lowest* white ratios of the roster, because their boundary is
-carried by **ink** (a filled bar, a knocked-out black slab, a 2.5pt
-rule, a heavy underline). White space is therefore a floor, never a score — a
-family with no device needs far more than the floor (`humanist-quiet` 6.60,
-`margin-index` 6.73-7.40). So every family clears the measurement **and** is
-looked at: the boundary has to be obvious to the eye. A recipe that sits at
-2.00 has no margin left — one content edit fails it — and a recipe at 6.00
-with an ink device is over-separated; both were measured on `hard-edge` while
-tuning it, and 3.00 is where it landed.
+**The ratio is a THERMOMETER, not a grade — it is reported, never failed
+(re-measured 2026-09-13).** The counter-intuitive part is the one that
+survives: the families whose separation reads best are among the *lowest*
+white ratios of the roster, because their boundary is carried by **ink**
+(a filled bar, a knocked-out black slab, a 2.5pt rule) — `editorial-serif`
+2.00, `swiss-grid` 2.12-3.00, `color-band` 2.31, `hard-edge` 2.40. The
+device-less families sit highest by design (`humanist-quiet` 4.17-5.00,
+`margin-index` 5.14). White space is therefore never a score.
+
+It is not a floor either, and that is the change. The old floor (2.0×) was a
+curve fitted to the corpus under a sampling that had since changed: all 30
+rendered pages run 1.89 → 5.14 in one continuum, the widest step in it is 0.83,
+and a synthetic page whose section gap *equals* its line gap scores 2.69 — it
+outranks 10 real pages that genuinely separate. The statistic does not measure
+what its name says, so no floor value is defensible; excluding the header block
+(tested at 8/10/12/15% of the text span) shuffles families across any line you
+draw instead of stabilising it. What does separate, cleanly, is where the ink
+is: devices AT a boundary count 0-1 on the device-less families and 4-13 on
+every other — the same conclusion d7f67da reached for page-wide ink. Read the
+ratio, look at the page, and judge the boundary by its device.
 
 **The gate now measures the ink, not only the white (added 2026-09-13).**
 `measure_fill.bands()` reports candidate DEVICES alongside white runs: a row
@@ -93,8 +109,12 @@ The floor was 25% at first, on the reasoning that the clusters were an order
 of magnitude apart and the number therefore needed no tuning. That was wrong:
 it FAILed `margin-index`, whose rule is real but deliberately shorter than
 the text column. A device does not have to span the measure — it has to be
-unmistakably longer than any run text can produce, and text tops out near
-2.8%. Hence 8%, with room on both sides.
+unmistakably longer than any run text can produce. 8% was the next try and
+also wrong: it false-failed `editorial-serif` (7.61%) and `avant-poster`
+(7.29%). Text tops out at 3.66% across the corpus and the thinnest real device
+is `quiet-luxury`'s 5.65% tick, so `RULE_FLOOR` is **4%**, with room on both
+sides — and it is a prefilter, not the verdict: the verdict is location
+(`boundary_ink`).
 
 Two measurement traps, both walked into while building this, both worth not
 repeating: (1) the *fraction* of dark pixels in a row cannot separate a filled
@@ -267,17 +287,37 @@ break at arm's length. Two requirements, both verified per family:
   margin column, so its whole boundary budget is the 30pt section gap plus
   the short accent rule above the title (11.5% of page width — real ink, and
   the reason `RULE_FLOOR` sits below that), with the white-run ratio below
-  governing the rest (7.40, the highest of the roster).
+  governing the rest (5.14, the highest of the roster).
 - **Measured, in the gate**: `scripts/verify.py` scans every rendered PNG
-  (`measure_fill.gaps`) and FAILs when the tallest internal white run is
-  under **2.0× the median** run, when any run exceeds **5% of page height**,
+  (`measure_fill.gaps`) and FAILs when any run exceeds **5% of page height**,
   or when a run over **3.5%** is not a boundary. That last clause is the
   pre-heading exemption: the white immediately above a section title is
-  allowed to run to 5%, a hole in the middle of a section is not. Measured at
-  90 ppi (max run / median run, max run as % of page height): `color-band`
-  2.33 / 1.4%, `swiss-grid` 3.40 / 1.7%, `editorial-serif` 3.40 / 1.7%,
-  `bold-display` 3.60 / 1.8%, `quiet-luxury` 3.85 / 2.5%, `mono-technical`
-  4.00 / 2.4%, `humanist-quiet` 6.60 / 3.3%, `margin-index` 7.40 / 3.7%.
+  allowed to run to 5%, a hole in the middle of a section is not. The white-run
+  ratio is reported, not failed (§ Invariants). Re-measured 2026-09-13 at 90
+  ppi on `resume.typ` page 1, all 14 families (max run / median run, max run as
+  % of page height, devices found AT a boundary):
+
+  | family | ratio | max run | boundary devices |
+  |---|---|---|---|
+  | `editorial-serif` | 2.00 | 1.4% | 8 |
+  | `engraved-card` | 2.21 | 2.1% | 1 |
+  | `swiss-grid` | 2.27 | 1.7% | 7 |
+  | `color-band` | 2.31 | 1.5% | 8 |
+  | `clause-index` | 2.38 | 2.5% | 0 |
+  | `hard-edge` | 2.40 | 2.4% | 11 |
+  | `mono-technical` | 2.56 | 2.3% | 0 |
+  | `keyline-corporate` | 2.62 | 2.1% | 7 |
+  | `gutter-rail` | 2.73 | 3.0% | 1 |
+  | `avant-poster` | 2.86 | 2.0% | 0 |
+  | `quiet-luxury` | 3.29 | 2.3% | 0 |
+  | `bold-display` | 3.60 | 1.8% | 7 |
+  | `humanist-quiet` | 5.00 | 3.0% | 0 |
+  | `margin-index` | 5.14 | 3.6% | 7 |
+
+  The ratios in the left column are ~2.5× lower than the ones this table used
+  to carry: the sampling in `measure_fill.gaps` changed at commit 42049f6
+  (every 4th column → every column) and nothing downstream was re-measured for
+  three commits. The right column is the one that separates.
   `keyline-corporate` measured 7.25 here until it was given the rule it was
   named for: its vertical keyline marks the title but is invisible to a
   horizontal boundary scan, so empty space was doing the whole separating.
@@ -870,9 +910,10 @@ below is plain black-on-white.
   `#0f4c5c` petrol → `#2c1a66` (14.5).
 - **Verified**: leading `0.583em`, spacing `0.643em`, section `above` 7pt
   (12pt airy), 5pt after the title (1.4:1 — the *filled-device* exemption:
-  the reversed bar is the boundary) → 1 page, fill 94%, white-run ratio 2.33
-  (1.4% of page height), the lowest of the roster and still the boundary that
-  reads best. Knife-edge on the template's content: +1pt of `above` spills to
+  the reversed bar is the boundary) → 1 page, fill 94%, white-run ratio 2.31
+  (1.5% of page height, re-measured 2026-09-13; 2.33 under the pre-42049f6
+  sampling), among the lowest of the roster and still the boundary that
+  reads best — it carries 8 devices. Knife-edge on the template's content: +1pt of `above` spills to
   2 pages. Budget a re-tune.
 - Markets: tech, startups, creative-adjacent, marketing. Not for
   conservative markets. Photo: yes.
@@ -906,8 +947,9 @@ whitespace and one size step do all the delimiting.
   rust.
 - **Verified**: leading `0.545em`, spacing `0.645em`, section `above` 26pt
   (31pt airy), 4pt after the title (6.5:1) → 1 page, fill 96%, white-run
-  ratio 6.60, tallest gap 3.3% of page height — over the 3.5% hole limit only
-  a *boundary* may exceed, which is exactly what it is. With no device at all,
+  ratio 5.00, tallest gap 3.0% of page height (re-measured 2026-09-13; 6.60
+  under the pre-42049f6 sampling) — the highest device-less ratio of the
+  roster, which is exactly what a device-less family owes. With no device at all,
   this family buys its boundary in white and nothing else.
 - Markets: any; safe for conservative. Photo: no.
 
@@ -1014,8 +1056,9 @@ of sitting over it. There is no rule, bar or panel anywhere in the document.
   plum.
 - **Verified**: body **11pt** (the measure is narrow — 15.5cm — so the type
   goes up, not down), leading `0.80em`, spacing `1.00em`, section `above` 30pt
-  (35pt airy) → 1 page, fill 96%, white-run ratio 7.40, tallest gap 3.7% of
-  page height (a boundary, so under the 5% ceiling and not a hole). No
+  (35pt airy) → 1 page, fill 96%, white-run ratio 5.14, tallest gap 3.6% of
+  page height (re-measured 2026-09-13; 7.40 under the pre-42049f6 sampling —
+  a boundary, so under the 5% ceiling and not a hole). No
   heading→body gap exists here — title and body share the grid row — so the
   2:1 ratio does not apply and the section gap plus the margin rule carry the
   whole boundary. Widest gaps of the roster: re-scan this family first after any
@@ -1272,9 +1315,10 @@ that a flat one, in that specific combination, was a brand tell.
   · `#3b3486` indigo → `#8c3b00` rust.
 - **Gabarit**: dense, hard — 1.6cm x, 1.3cm y, body 10.5pt, fill **94-96%**.
 - **Verified**: leading `0.786em`, spacing `0.876em`, section `above` 20pt
-  (25pt airy), 6pt after the title → 1 page, fill 95%, white-run ratio 3.12.
-  Tuning it is what produced the floor-is-not-a-target note in § Invariants:
-  17pt of section gap measured 2.00 (at the floor, no margin left), 25pt
+  (25pt airy), 6pt after the title → 1 page, fill 95%, white-run ratio 2.40
+  (re-measured 2026-09-13; 3.12 under the pre-42049f6 sampling), 11 devices.
+  Tuning it is what produced the ratio-is-not-a-grade note in § Invariants:
+  17pt of section gap measured 2.00 (at the then-floor, no margin left), 25pt
   measured 6.00 (over-separated for an ink device), 20pt landed at 3.00.
 - Markets: design, product, creative-adjacent tech, startups. Never for
   conservative markets; not in the default pool. Photo: no.
