@@ -23,7 +23,12 @@ generalized before it lands in these files.
 **Field-agnostic.** The method applies to any profession; software development is
 the reference case. If `references/field-<target>.md` exists for the candidate's
 field (e.g. `field-software-dev.md`), load it in step 4 — it layers market depth
-on the generic method. Otherwise substitute the field everywhere, building the
+on the generic method. One entry replaces rather than layers: an academic CV is
+a different genre, not a field — a register that attests, where this method
+builds a pitch that selects. For one, load `references/field-academic.md`; it
+overrides the page-count, fill and section-boundary rules with its own, and
+stacks on top of the candidate's field file when both apply. Otherwise
+substitute the field everywhere, building the
 substitutions from four questions: (a) what is this field's portfolio
 equivalent (GitHub, licenses, publications, a case log)? (b) where do its real
 keywords live — read 3-5 current postings on the target market's dominant job
