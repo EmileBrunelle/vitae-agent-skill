@@ -206,14 +206,52 @@ BOUNDARY_RATIO = 2.0
 # ratio over 5.0 is not a failure, it is a question: if the boundary already
 # carries ink, the gap is compensating for nothing and belongs back in the body.
 SEPARATION_CEILING = 5.0
+# …and a device is a REPEATED element: one mark on the page is an ornament,
+# typically the flourish under the name. Two families passed the ink check on
+# exactly that — `gutter-rail` on its header bar, `engraved-card` on the 56pt
+# rule under the name — with nothing at any section boundary below.
+# ponytail: a flat count, not a per-boundary tally; a page carrying a single
+# section boundary (the tail of a 2-pager) would read as ornament-only. No such
+# page exists in the corpus — the thinnest is page 2 of swiss-grid's 2-pager
+# with 5 — so a per-boundary pairing is not worth its code yet.
+DEVICE_QUORUM = 2
 CANYON = 0.035          # a hole this tall (fraction of page height) is a defect
 BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run this tall
+
+
+def boundary_ink(white, ink, med):
+    """The ink bands that sit AT a section boundary, not just anywhere.
+
+    "Longest dark run on the page" cannot tell a rule from an underline: a
+    `#show link: underline` on the contact line scores 21.8% of page width and
+    a two-column table rule 86.4%, both wider than three of the corpus's real
+    devices, while those devices sit at 5.65-7.61%. The clusters overlap
+    INVERTED, so no threshold can separate them. Location can: there is no text
+    inside a boundary, so ink found there is furniture by construction.
+
+    A device at a boundary shows up four ways, all covered by the same sum:
+    it caps the gap (white above it, text below), it sits under the gap, it
+    SPLITS the gap in two, or it lies WHOLLY INSIDE it — the last one because
+    the two scans read different thresholds: `keyline-corporate`'s 0.6pt `soft`
+    hairline is too pale to count as dark for the white scan, so its rows stay
+    inside the white run while still spanning 100% of the measure. So walk out
+    from the band through whatever white touches or contains it, and ask whether
+    that span reads as a boundary by the BOUNDARY_RATIO the white scan already
+    uses. A thick band clears it on its own thickness, which is right: a
+    knockout slab IS the boundary.
+    """
+    def span(a, b):
+        up = next((a - x for x, y in white if x <= a <= y), 0)
+        dn = next((y - b for x, y in white if x <= b <= y), 0)
+        return up + (b - a) + dn
+
+    return [(a, b) for a, b in ink if span(a, b) >= BOUNDARY_RATIO * med]
 
 
 def check_whitespace(path):
     """Yield (is_fail, message) for one rendered page."""
     import statistics
-    h, white, ink = measure_fill.bands(path)
+    h, white, all_ink = measure_fill.bands(path)
     runs = [b - a for a, b in white]
     if len(runs) < 6:
         return                              # not a text page: nothing to judge
@@ -222,20 +260,22 @@ def check_whitespace(path):
     if med <= 0:
         return
     ratio = top / med
+    ink = boundary_ink(white, all_ink, med)
     if ratio < BOUNDARY_RATIO:
         yield True, (f"section separation: biggest internal gap {top}px is only "
                      f"{ratio:.2f}x the median {med}px (need >= {BOUNDARY_RATIO}) — "
                      f"sections do not detach from the intra-section rhythm")
     # The half of the invariant the white scan alone could never check. A
     # boundary is supposed to carry INK by default (design.md § Invariants);
-    # with no device anywhere on the page, whitespace is the whole separator,
+    # with no device AT A BOUNDARY, whitespace is the whole separator,
     # and a WIDE boundary on top of that is the failure this gate exists to
     # catch: separators are wanted, not empty space.
-    if not ink:
+    if len(ink) < DEVICE_QUORUM:
         yield ratio > SEPARATION_CEILING, (
-            f"boundaries carry no ink: no rule, bar or slab anywhere on the "
-            f"page (longest unbroken dark run stays under "
-            f"{measure_fill.RULE_FLOOR * 100:.0f}% of page width)"
+            f"boundaries carry no ink: {len(ink)} rule/bar/slab AT a section "
+            f"boundary, need {DEVICE_QUORUM} ({len(all_ink)} wide dark run(s) "
+            f"on the page — an underline, a table rule or a single flourish "
+            f"under the name is not a boundary system)"
             + (f", and the boundary gap is {ratio:.2f}x the median — empty "
                f"space is doing the whole job. Add the family's device, or a "
                f"thin `soft` hairline above each section, and give the gap "
@@ -244,7 +284,8 @@ def check_whitespace(path):
                " — legitimate only for a deliberately device-less family, "
                "which then needs a HIGH white ratio to compensate"))
     else:
-        yield False, (f"boundary devices: {len(ink)} ink band(s) "
+        yield False, (f"boundary devices: {len(ink)} ink band(s) at a section "
+                      f"boundary, of {len(all_ink)} on the page "
                       f"({', '.join(str(b - a) + 'px' for a, b in ink[:6])})")
     if ratio > SEPARATION_CEILING:
         yield False, (f"section separation: biggest gap {top}px = {ratio:.2f}x "
@@ -478,39 +519,62 @@ def main():
         # Two synthetic pages, drawn with PIL so the check needs no Typst.
         from PIL import Image, ImageDraw
 
-        def _page(rule_luma=None, gap=45):
+        def _page(rule_luma=None, gap=45, rule_len=975, underline=False, rules=4):
             im = Image.new("L", (1275, 1650), 255)
             d = ImageDraw.Draw(im)
             y = 200
-            for _ in range(4):
-                if rule_luma is not None:      # a pale full-measure hairline
-                    d.line([(150, y), (1125, y)], fill=rule_luma, width=2)
+            for s in range(4):
+                if rule_luma is not None and s < rules:  # a hairline AT the boundary
+                    d.line([(150, y), (150 + rule_len, y)], fill=rule_luma, width=2)
                 y += gap                        # …or nothing but empty space
-                for _ in range(6):              # body text: short dark runs
+                for i in range(6):              # body text: short dark runs
                     for x in range(150, 1100, 60):
                         d.rectangle([x, y, x + 44, y + 8], fill=30)
                     y += 22
+                    if underline and s == 1 and i == 2:
+                        # an underlined link mid-section: a 24%-of-width
+                        # unbroken run, wider than any real device on the
+                        # roster, but nowhere near a boundary
+                        d.line([(150, y - 6), (450, y - 6)], fill=30, width=2)
             f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             im.save(f.name)
             return f.name
 
-        # inked: a tight page whose boundaries are pale hairlines. bare: the
-        # defect — no device, and the gap widened to compensate (90px here is
-        # also over the canyon ceiling, which is the point: that is what the
-        # compensating gap looks like).
+        # inked: a tight page whose boundaries are pale full-measure hairlines.
+        # thin: the same, with a device deliberately SHORTER than the text
+        # column (5.5% of page width — `quiet-luxury`'s tick is 5.65%); it must
+        # still pass, which is what breaks if RULE_FLOOR is raised back to 0.08.
+        # linked: the false positive the old page-wide scan could not see — no
+        # device at all, but an underlined link supplying a wide dark run. bare:
+        # the same defect without even that.
         inked, bare = _page(rule_luma=180), _page(rule_luma=None, gap=90)
+        # gap=75 puts this page's white ratio OVER SEPARATION_CEILING, so it
+        # passes only while the short rule is seen: miss the device and the
+        # same page is the "empty space is doing the whole job" failure.
+        thin = _page(rule_luma=30, rule_len=70, gap=75)
+        linked = _page(rule_luma=None, gap=90, underline=True)
+        # one rule at the top and nothing below it: the `engraved-card` /
+        # `gutter-rail` case, a flourish under the name and bare space after
+        lone = _page(rule_luma=30, gap=75, rules=1)
         assert measure_fill.bands(inked)[2], "a pale hairline must read as ink"
         assert not measure_fill.bands(bare)[2], "body text must not read as ink"
-        assert not any(f for f, _ in check_whitespace(inked)), \
-            "a page whose boundaries carry a hairline must not FAIL"
-        assert any(f and "no ink" in m for f, m in check_whitespace(bare)), \
-            "a page separated by empty space alone must FAIL on the ink check"
-        for f in (inked, bare):
+        assert measure_fill.bands(linked)[2], \
+            "the underline must register as a wide dark run (else the next " \
+            "assert passes for the wrong reason)"
+        for p in (inked, thin):
+            assert not any(f for f, _ in check_whitespace(p)), \
+                "a page whose boundaries carry a hairline must not FAIL"
+        for p in (bare, linked, lone):
+            assert any(f and "no ink" in m for f, m in check_whitespace(p)), \
+                "empty-space-only separation must FAIL on the ink check, " \
+                "whatever ink the page carries away from its boundaries"
+        for f in (inked, bare, thin, linked, lone):
             os.unlink(f)
         print("selftest OK — tuner regex reads, writes and round-trips; "
               "an unrecognised par declaration is reported, not guessed; "
-              "a pale hairline reads as a boundary device and empty-space-only "
-              "separation FAILs")
+              "a pale or short hairline AT a boundary reads as a device, while "
+              "an underlined link away from one does not — empty-space-only "
+              "separation FAILs either way")
         sys.exit(0)
 
     if argv and argv[0] == "--tune":

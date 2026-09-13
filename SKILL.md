@@ -476,8 +476,9 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
   more empty space. Order is ink → tighten the intra-section rhythm → widen the
   gap, and step 3 is the last resort (design.md § Invariants, « whitespace is
   the LAST lever »). Both halves are now MEASURED, not just written: the gate
-  reports the boundary devices it finds (`measure_fill.bands()`) and FAILs a
-  page that carries no device at all while leaning on a wide gap. See
+  reports the devices it finds AT a section boundary (`verify.boundary_ink()`
+  — ink anywhere else, an underline or a table rule, does not count) and FAILs
+  a page that carries none while leaning on a wide gap. See
   design.md § Invariants and § Rules common to every family.
 - Two named anti-references, both pass/fail against the rendered page
   (design.md § Anti-references — there are exactly two, no third gets
