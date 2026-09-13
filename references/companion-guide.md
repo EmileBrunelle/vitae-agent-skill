@@ -54,9 +54,11 @@ are final; it reuses their design tokens so the package reads as one system.
    likelihood, the AI-tools question, salary negotiation basics, questions
    to ask, what never to say, before/during/after logistics, salary ranges
    (web-verified, explicitly qualified as indicative), follow-up etiquette.
-   Same depth expectation applies to cover letters: several targeted
-   templates beat one generic one, plus a 10-minute personalization
-   checklist and the classic fatal errors.
+   Same depth expectation applies to cover letters: one letter per posting,
+   never a generic one, built from `templates/letter.typ` (imports `lib.typ`
+   like the CV) and gated by `scripts/verify_letter.py EMPLOYER "JOB TITLE"` —
+   see SKILL.md's targeting section for the doctrine and the three-paragraph
+   shape.
 7. **Professional-title question** if relevant (licensing pathways: worth it
    or not, what is legal to write) — see regional.md.
 
