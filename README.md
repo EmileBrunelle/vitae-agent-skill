@@ -195,15 +195,21 @@ this skill's culture is "measured, not eyeballed".
 
 MIT — see [LICENSE](LICENSE).
 
-**Third-party.** The brand marks (LinkedIn, GitHub) in `templates/lib.typ` are
-inlined path data from [Simple Icons](https://github.com/simple-icons/simple-icons)
-— **CC0 1.0**, no attribution required (the LinkedIn path is from tag 13.19.0,
-the last one Simple Icons published before withdrawing the mark under
-LinkedIn's own brand guidelines — a policy change, not a licence one). The
-generic marks (email, phone, pin, website) are inlined path data from
-[Tabler Icons](https://github.com/tabler/tabler-icons)' filled set —
-**MIT**. Only path data is used in both cases; no font file, CSS or
-JavaScript is redistributed. No font binaries ship with this skill either: the
+**Third-party.** Every inlined mark in `templates/lib.typ` is path data under
+**MIT**: the brand marks (LinkedIn, GitHub) from
+[Bootstrap Icons](https://github.com/twbs/icons), the generic marks (email,
+phone, pin, website) from [Tabler Icons](https://github.com/tabler/tabler-icons)'
+filled set. Only path data is used; no font file, CSS or JavaScript is
+redistributed. Refresh any of them with
+`scripts/harvest_icons.py <set> <var>=<icon> --update templates/lib.typ`.
+
+The brand marks were previously Simple Icons (CC0). Bootstrap Icons was
+preferred not for the licence — CC0 is more permissive than MIT and imposes
+nothing — but because Simple Icons withdrew the LinkedIn mark under LinkedIn's
+own brand guidelines, freezing that path at tag 13.19.0 where no refresh can
+reach it. Note that a licence covers the drawing, never the trademark: using
+either logo on a CV is nominative use, which is a separate question from
+redistributing the path. No font binaries ship with this skill either: the
 pools name faces packaged by common Linux distributions or available from
 Google Fonts under the SIL Open Font License 1.1 — see
 [`references/fonts.md`](references/fonts.md) for provenance and installation.

@@ -74,14 +74,21 @@ tuning it, and 3.00 is where it landed.
 
 **The gate now measures the ink, not only the white (added 2026-09-13).**
 `measure_fill.bands()` reports boundary DEVICES alongside white runs: a row
-whose longest *unbroken* dark run spans ≥25% of the page width
+whose longest *unbroken* dark run spans ≥8% of the page width
 (`RULE_FLOOR`), measured against the page's modal luma rather than absolute
 black (`RULE_CONTRAST`, 20 levels) so a pale `soft` hairline and a tinted
 ground both read correctly. Measured at 150 ppi, longest run as a share of
-page width: `humanist-quiet` (device-less by design) 2.8%, `hard-edge` (short
-accent rule) 35.7%, `swiss-grid` (full-measure hairline) 86.0%, `color-band`
-(bleed bar) 100%. The floor sits in an order-of-magnitude gap, so it is not a
-tuned number.
+page width: `humanist-quiet` (device-less by design) 2.8%, `margin-index`
+(accent rule inside a 2.5cm margin column) 11.5%, `hard-edge` (short accent
+rule) 35.7%, `swiss-grid` (full-measure hairline) 86.0%, `color-band` (bleed
+bar) 100%.
+
+The floor was 25% at first, on the reasoning that the clusters were an order
+of magnitude apart and the number therefore needed no tuning. That was wrong:
+it FAILed `margin-index`, whose rule is real but deliberately shorter than
+the text column. A device does not have to span the measure — it has to be
+unmistakably longer than any run text can produce, and text tops out near
+2.8%. Hence 8%, with room on both sides.
 
 Two measurement traps, both walked into while building this, both worth not
 repeating: (1) the *fraction* of dark pixels in a row cannot separate a filled
@@ -252,8 +259,9 @@ break at arm's length. Two requirements, both verified per family:
   A family whose heading sits *beside* its body has no heading→body gap at
   all and the ratio does not apply: `margin-index` puts the title in a 2.5cm
   margin column, so its whole boundary budget is the 30pt section gap plus
-  the short accent rule above the title, and the white-run ratio below is the
-  only measurement that governs it (7.40, the highest of the roster).
+  the short accent rule above the title (11.5% of page width — real ink, and
+  the reason `RULE_FLOOR` sits at 8%), with the white-run ratio below
+  governing the rest (7.40, the highest of the roster).
 - **Measured, in the gate**: `scripts/verify.py` scans every rendered PNG
   (`measure_fill.gaps`) and FAILs when the tallest internal white run is
   under **2.0× the median** run, when any run exceeds **5% of page height**,
@@ -263,8 +271,12 @@ break at arm's length. Two requirements, both verified per family:
   90 ppi (max run / median run, max run as % of page height): `color-band`
   2.33 / 1.4%, `swiss-grid` 3.40 / 1.7%, `editorial-serif` 3.40 / 1.7%,
   `bold-display` 3.60 / 1.8%, `quiet-luxury` 3.85 / 2.5%, `mono-technical`
-  4.00 / 2.4%, `humanist-quiet` 6.60 / 3.3%, `keyline-corporate` 7.25 / 2.9%,
-  `margin-index` 7.40 / 3.7%. If the gap you want would overflow the page or
+  4.00 / 2.4%, `humanist-quiet` 6.60 / 3.3%, `margin-index` 7.40 / 3.7%.
+  `keyline-corporate` measured 7.25 here until it was given the rule it was
+  named for: its vertical keyline marks the title but is invisible to a
+  horizontal boundary scan, so empty space was doing the whole separating.
+  A `soft` rule across the boundary plus the reclaimed gap (leading 0.540 →
+  0.756em) put it at 2.93. If the gap you want would overflow the page or
   open a canyon, take the space from the *intra*-section rhythm instead of
   adding to the gap — raising the contrast between the two is what makes the
   boundary read, not the absolute size of the gap.
