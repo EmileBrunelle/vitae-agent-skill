@@ -57,54 +57,10 @@ open-source, recruiting-expert) and cross-field integration simulations
 ## Design families
 
 Fourteen reference implementations, one per family, live under
-`templates/families/<name>/`. Full recipes (heading device, header
-composition, fonts, boundary treatment) are in `references/design.md`; this
-is the one-line summary of each, rendered.
-
-<table>
-<tr>
-<td align="center"><img src="assets/families/swiss-grid.png" width="200" alt="swiss-grid"><br><sub><b>swiss-grid</b> · neutral</sub></td>
-<td>International Typographic Style: flush-left grid, accent rule above the title, no colour on text.</td>
-<td align="center"><img src="assets/families/editorial-serif.png" width="200" alt="editorial-serif"><br><sub><b>editorial-serif</b> · classic</sub></td>
-<td>Contemporary editorial: serif display over a humanist sans body, short accent bar above the title.</td>
-</tr>
-<tr>
-<td align="center"><img src="assets/families/color-band.png" width="200" alt="color-band"><br><sub><b>color-band</b> · modern</sub></td>
-<td>Reversed-out masthead: the heading is knocked out white on a solid accent band.</td>
-<td align="center"><img src="assets/families/humanist-quiet.png" width="200" alt="humanist-quiet"><br><sub><b>humanist-quiet</b> · neutral</sub></td>
-<td>Restraint, no rules at all: one humanist sans, no heading device, whitespace alone carries the boundary.</td>
-</tr>
-<tr>
-<td align="center"><img src="assets/families/keyline-corporate.png" width="200" alt="keyline-corporate"><br><sub><b>keyline-corporate</b> · modern</sub></td>
-<td>Contemporary corporate report: an accent keyline runs down the left of each title, with a soft rule across each section boundary.</td>
-<td align="center"><img src="assets/families/bold-display.png" width="200" alt="bold-display"><br><sub><b>bold-display</b> · modern</sub></td>
-<td>Geometric display, heavy contrast: UPPERCASE display title over a heavy rule.</td>
-</tr>
-<tr>
-<td align="center"><img src="assets/families/margin-index.png" width="200" alt="margin-index"><br><sub><b>margin-index</b> · classic</sub></td>
-<td>Classic marginalia: titles live in a wide left-margin column, serif with old-style figures.</td>
-<td align="center"><img src="assets/families/quiet-luxury.png" width="200" alt="quiet-luxury"><br><sub><b>quiet-luxury</b> · neutral</sub></td>
-<td>Warm restrained minimalism: warm humanist sans, a short accent tick beside the title.</td>
-</tr>
-<tr>
-<td align="center"><img src="assets/families/mono-technical.png" width="200" alt="mono-technical"><br><sub><b>mono-technical</b> · modern</sub></td>
-<td>Technical-documentation aesthetic: filled hue-A/hue-B marker glyphs, monospace throughout.</td>
-<td align="center"><img src="assets/families/engraved-card.png" width="200" alt="engraved-card"><br><sub><b>engraved-card</b> · classic</sub></td>
-<td>Engraved stationery: a rotated accent lozenge, quiet serif, airy margins.</td>
-</tr>
-<tr>
-<td align="center"><img src="assets/families/clause-index.png" width="200" alt="clause-index"><br><sub><b>clause-index</b> · neutral</sub></td>
-<td>Numbered-clause standard document: outdented clause numbers, institutional grotesque with tabular figures.</td>
-<td align="center"><img src="assets/families/hard-edge.png" width="200" alt="hard-edge"><br><sub><b>hard-edge</b> · creative</sub></td>
-<td>Neo-brutalist: the title is knocked out of a hard black slab; heavy grotesque + document mono.</td>
-</tr>
-<tr>
-<td align="center"><img src="assets/families/avant-poster.png" width="200" alt="avant-poster"><br><sub><b>avant-poster</b> · creative</sub></td>
-<td>Constructivist poster: a heavy accent bar bleeds off the page edge, condensed grotesque display.</td>
-<td align="center"><img src="assets/families/gutter-rail.png" width="200" alt="gutter-rail"><br><sub><b>gutter-rail</b> · creative</sub></td>
-<td>Themed developer environment: a gutter rail runs down the margin, UI grotesque + mono chrome.</td>
-</tr>
-</table>
+`templates/families/<name>/`, across four categories (neutral, classic,
+modern, creative). Full recipes (heading device, header composition, fonts,
+boundary treatment) are in `references/design.md`; full-page renders of all
+fourteen are in [GALLERY.md](GALLERY.md).
 
 The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never
 drawn by default — see § Design families in `references/design.md`.
