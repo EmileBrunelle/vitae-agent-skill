@@ -38,7 +38,15 @@ def measure(path):
     return f"ink from {lo / h * 100:.0f}% to {hi / h * 100:.0f}%"
 
 
-RULE_FLOOR = 0.25   # a dark run this wide (share of page width) is a DEVICE
+# A dark run this wide (share of page width) is a DEVICE. 0.25 was the first
+# guess and it produced a FALSE FAIL on `margin-index`, whose accent rule is
+# real but lives in a 2.5cm margin column: measured at 150 ppi it spans 11.5%,
+# and no text row on that page comes close. The corpus separates cleanly —
+# text tops out near 2.8% (`humanist-quiet`, genuinely device-less), a short
+# margin rule lands at 11.5%, a full-measure rule at 35.7% and up. 0.08 sits
+# between the two clusters with room on both sides. Raising it back will fail
+# any family whose device is deliberately shorter than the text column.
+RULE_FLOOR = 0.08
 RULE_CONTRAST = 20  # …and "dark" for a DEVICE means this much below the paper
 
 

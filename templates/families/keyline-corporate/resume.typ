@@ -24,11 +24,15 @@
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.540em, spacing: 0.620em)
+#set par(justify: false, leading: 0.756em, spacing: 0.836em)
 
-// device: accent keyline down the left of the title (box stroke hugs its height)
+// device: a `soft` rule ACROSS the boundary, plus the accent keyline down the
+// left of the title. The rule is what separates sections — the vertical
+// keyline marks the title and is invisible to a horizontal boundary scan,
+// which is why this family used to buy separation with empty space alone.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 28pt } else { 23pt }, below: 0pt)[
+  above: if airy { 18pt } else { 14pt }, below: 0pt)[
+  #block(above: 0pt, below: 5pt)[#line(length: 100%, stroke: 0.6pt + soft)]
   #box(inset: (left: 11pt), stroke: (left: 4pt + accent))[
     #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
   ]

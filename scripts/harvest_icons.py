@@ -109,6 +109,13 @@ def one_path(body):
     tags = set(re.findall(r"<(\w+)", body))
     if tags - {"path"}:
         return None, f"body is not path-only ({', '.join(sorted(tags))})"
+    # A stroke icon is path-only too, but `pmark` FILLS the path: harvesting
+    # tabler:brand-github (one path, fill="none" stroke-width="2") renders a
+    # blob, not a logo. Reject it here rather than leaving it to the eye.
+    if 'fill="none"' in body or re.search(r'\bstroke="(?!none)', body):
+        return None, ("body is stroke-based, not fill-based — pmark fills the "
+                      "path, so a stroke icon renders as a solid blob; use the "
+                      "set's filled variant (ph:*-fill, bi:*-fill, tabler *-filled)")
     ds = re.findall(r'\bd="([^"]+)"', body)
     return ("".join(ds), None) if ds else (None, "no path data")
 
