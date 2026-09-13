@@ -76,7 +76,7 @@ is the one-line summary of each, rendered.
 </tr>
 <tr>
 <td align="center"><img src="assets/families/keyline-corporate.png" width="200" alt="keyline-corporate"><br><sub><b>keyline-corporate</b> · modern</sub></td>
-<td>Contemporary corporate report: an accent keyline runs down the left of each title.</td>
+<td>Contemporary corporate report: an accent keyline runs down the left of each title, with a soft rule across each section boundary.</td>
 <td align="center"><img src="assets/families/bold-display.png" width="200" alt="bold-display"><br><sub><b>bold-display</b> · modern</sub></td>
 <td>Geometric display, heavy contrast: UPPERCASE display title over a heavy rule.</td>
 </tr>
@@ -206,7 +206,7 @@ redistributed. Refresh any of them with
 The brand marks were previously Simple Icons (CC0). Bootstrap Icons was
 preferred not for the licence — CC0 is more permissive than MIT and imposes
 nothing — but because Simple Icons withdrew the LinkedIn mark under LinkedIn's
-own brand guidelines, freezing that path at tag 13.19.0 where no refresh can
+own brand guidelines, freezing that path at tag 13.21.0 where no refresh can
 reach it. Note that a licence covers the drawing, never the trademark: using
 either logo on a CV is nominative use, which is a separate question from
 redistributing the path. No font binaries ship with this skill either: the

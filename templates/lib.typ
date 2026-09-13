@@ -228,16 +228,16 @@
 // Real brand/platform marks, as inline SVG path data sourced via Iconify from
 // their upstream icon sets (paths taken verbatim from each project's GitHub
 // repo, not from memory):
-//   li (LinkedIn), gh (GitHub): Simple Icons 16.31.0 — CC0 1.0, no
-//     attribution required (github.com/simple-icons/simple-icons).
+//   li (LinkedIn), gh (GitHub): Bootstrap Icons 13.21.0 — MIT, no
+//     attribution required (github.com/twbs/icons).
 //     LinkedIn's mark is served but flagged `hidden` upstream: it was
 //     withdrawn over brand-guideline enforcement, NOT a licence change, so
-//     the CC0 grant on the published path is irrevocable. Consequence:
+//     the MIT grant on the published path is irrevocable. Consequence:
 //     that one mark no longer tracks LinkedIn's logo and may be purged from
 //     the set — the refresh below prints a NOTE when it happens.
 // Refreshing these is a COMMAND, not an edit to this file: when a brand
 // changes its mark, run
-//     python3 scripts/harvest_icons.py simple-icons li=linkedin,gh=github \
+//     python3 scripts/harvest_icons.py bi li=linkedin,gh=github \
 //         --update templates/lib.typ
 // which rewrites the pairs below in place from the live Iconify API, then
 // look at the render — a new path can shift the mark's optical weight at 7pt
@@ -285,7 +285,7 @@
 
 // ---- Alternative mark sets for mail/web/phone/pin (drawn per candidate by
 // scripts/pick_design.py so the small glyphs stop being a shared fingerprint;
-// LinkedIn/GitHub stay Simple Icons in every set — a brand logo is a
+// LinkedIn/GitHub stay Bootstrap Icons in every set — a brand logo is a
 // functional identifier, not a style). Harvested at authoring time with
 // scripts/harvest_icons.py from the Iconify API — the same data the npm icon
 // packages publish. Inline is the preferred form (keeps the hand-off at two

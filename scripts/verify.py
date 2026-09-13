@@ -229,8 +229,8 @@ def check_whitespace(path):
     # The half of the invariant the white scan alone could never check. A
     # boundary is supposed to carry INK by default (design.md § Invariants);
     # with no device anywhere on the page, whitespace is the whole separator,
-    # and a WIDE boundary on top of that is the failure Émile named on
-    # 2026-08-27: « Je veux des séparateurs, pas des espaces vides ».
+    # and a WIDE boundary on top of that is the failure this gate exists to
+    # catch: separators are wanted, not empty space.
     if not ink:
         yield ratio > SEPARATION_CEILING, (
             f"boundaries carry no ink: no rule, bar or slab anywhere on the "

@@ -16,7 +16,7 @@ Run it AT AUTHORING TIME (adding a set to lib.typ), never at CV-build time.
 `#let <var>-vb` pairs in lib.typ in place from the live API, so refreshing a
 brand mark whose logo changed is one command and NOT an edit to the skill:
 
-    python3 harvest_icons.py simple-icons li=linkedin,gh=github \
+    python3 harvest_icons.py bi li=linkedin,gh=github \
         --update ../templates/lib.typ
 
 Why the data still has to be inlined rather than fetched: Typst makes no

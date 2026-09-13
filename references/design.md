@@ -41,9 +41,8 @@ marker #1 stays banned). An explicit request for a whitespace-only look
 overrides this default.
 
 **When a boundary does not read, whitespace is the LAST lever, not the first.**
-Recâdrage (Émile, 2026-09-13): the observed failure mode is an agent that sees a
-weak boundary and answers with vertical space, page after page, until the CV is
-a ladder of empty bands. The gate now warns over `SEPARATION_CEILING` (5.0×) for
+The observed failure mode is an agent that sees a weak boundary and answers with
+vertical space, page after page, until the CV is a ladder of empty bands. The gate now warns over `SEPARATION_CEILING` (5.0×) for
 exactly that. Fixed order, stop at the first that works:
 
 1. **Add ink.** The family's own boundary device, or the thin `soft` hairline
@@ -81,7 +80,8 @@ ground both read correctly. Measured at 150 ppi, longest run as a share of
 page width: `humanist-quiet` (device-less by design) 2.8%, `margin-index`
 (accent rule inside a 2.5cm margin column) 11.5%, `hard-edge` (short accent
 rule) 35.7%, `swiss-grid` (full-measure hairline) 86.0%, `color-band` (bleed
-bar) 100%.
+bar) 88.0% — `bands()` crops to 6-94% of the width before measuring but
+divides by the FULL width, so 88% is the ceiling, not 100%.
 
 The floor was 25% at first, on the reasoning that the clusters were an order
 of magnitude apart and the number therefore needed no tuning. That was wrong:
@@ -699,7 +699,7 @@ selects the kit, and new kits are added with `scripts/harvest_icons.py`, which
 pulls any set's path data from the Iconify API (the same data the npm icon
 packages publish) with licence and version auto-documented. The same script
 also **refreshes** marks already in `lib.typ` in place
-(`harvest_icons.py simple-icons li=linkedin,gh=github --update
+(`harvest_icons.py bi li=linkedin,gh=github --update
 templates/lib.typ`), so a brand redrawing its logo is one command and not an
 edit to the skill — with two things it will not do silently: it refuses a body
 that is not path-only (a `<circle>` would vanish through `pmark`'s single `d`)
@@ -893,13 +893,15 @@ whitespace and one size step do all the delimiting.
 
 *(Formerly `smallcaps-sober`, whose serif small caps read dated.)* The sober
 family for professional services, rebuilt in a current register: an accent
-keyline as the only device, an accent-labelled skills block, and a clean
-grotesque throughout.
+keyline plus a soft section rule as the devices, an accent-labelled skills
+block, and a clean grotesque throughout.
 
 - **Heading device**: an accent **keyline down the left of the title** —
   `box(inset: (left: 11pt), stroke: (left: 4pt + accent))[…]`, which hugs
-  the title's own height exactly. Title case 13pt bold `dark`. No rules
-  anywhere in the document.
+  the title's own height exactly, PLUS a `soft` horizontal rule across each
+  section boundary (`line(length: 100%, stroke: 0.6pt + soft)`). The rule is
+  what separates sections; the keyline marks the title and is invisible to a
+  horizontal boundary scan. Title case 13pt bold `dark`.
 - **Skills block**: the **label itself carries the accent** (bold accent
   label, then the items in `dark`) — no colon, no separator glyph, no rule.
   Nobody else colours the skills label.
@@ -914,9 +916,9 @@ grotesque throughout.
 - **Accents** (analogous harmony): `#33475b` slate · `#1f3a5f` navy ·
   `#0f4c5c` petrol · `#5b2a5e` plum (bronze `#6e4a1f` dropped — muddy-hue
   veto).
-- **Verified**: leading `0.54em`, spacing `0.62em`, section `above` 23pt
-  (28pt airy), 5pt after the title (4.6:1) → 1 page, fill 95%, white-run
-  ratio 7.25 (2.9% of page height).
+- **Verified**: leading `0.756em`, spacing `0.62em`, section `above` 23pt
+  (28pt airy), 5pt after the title (4.6:1) → 1 page, fill 96%, white-run
+  ratio 2.93 (resume.typ) / 3.25 (resume-pair-b.typ).
 - Markets: law, finance, consulting, public sector, DACH. Safe for
   conservative. Photo: yes.
 
