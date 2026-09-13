@@ -137,6 +137,29 @@ def preflight():
 
 # ---------- compile / page-count / extraction, native or fallback ----------
 
+def ensure_icons(typ):
+    """Guarantee an `icons.typ` beside the file being compiled.
+
+    `lib.typ` does `#import "icons.typ": *`, and Typst resolves that against
+    the importing file, so the deliverable folder needs one. Step 4 of
+    SKILL.md copies the repo's EMPTY fallback there along with `lib.typ`, and
+    `harvest_icons.py <folder>` overwrites it with the fetched path data. This
+    covers the one case those two miss: a folder where the copy was forgotten
+    — copy the empty fallback instead of failing the compile with a Typst
+    import error. No network here; fetching stays harvest_icons.py's job.
+    """
+    d = os.path.dirname(os.path.abspath(typ))
+    dst = os.path.join(d, "icons.typ")
+    if not os.path.exists(dst):        # a broken symlink counts as missing
+        src = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "templates", "icons.typ")
+        if not os.path.exists(src):    # no repo fallback (nothing to copy)
+            return
+        shutil.copyfile(src, dst)
+        print(f"NOTE  copied the empty fallback icons.typ into {d} — run "
+              f"scripts/harvest_icons.py there for the real marks")
+
+
 def compile_pdf(typ, pdf, use_cli):
     """Returns (ok, stderr_text)."""
     if use_cli:
@@ -605,6 +628,7 @@ def main():
     if not deps_ok:
         sys.exit(1)
 
+    ensure_icons(typ)
     ok, err = compile_pdf(typ, pdf, use_cli)
     if not ok:
         print("FAIL  compile")

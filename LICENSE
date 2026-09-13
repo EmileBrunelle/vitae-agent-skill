@@ -25,21 +25,14 @@ SOFTWARE.
 Third-party notices
 --------------------------------------------------------------------------------
 
-Bootstrap Icons — brand mark path data (MIT)
-    The LinkedIn and GitHub marks in templates/lib.typ are inlined SVG path
-    data from the Bootstrap Icons project, tag 13.21.0.
-    Licence: MIT — Copyright (c) 2019-2026 The Bootstrap Authors
-    Source: https://github.com/twbs/icons
-    Only the path data is used; no font file, CSS or JavaScript is
-    redistributed here.
-
-Tabler Icons — generic mark path data (MIT)
-    The email, phone, pin and website marks in templates/lib.typ are inlined
-    SVG path data from the Tabler Icons "filled" set.
-    Licence: MIT — Copyright (c) 2020-2026 Paweł Kuna
-    Source: https://github.com/tabler/tabler-icons
-    Only the path data is used; no font file, CSS or JavaScript is
-    redistributed here.
+Icon path data — none redistributed
+    This repository contains no third-party icon artwork. The contact and
+    platform marks are fetched from the Iconify API (https://iconify.design)
+    into a generated templates/icons.typ at the moment a CV is built, by
+    scripts/harvest_icons.py; that file is not committed. The sets drawn from
+    (Bootstrap Icons, Tabler Icons, Phosphor) are MIT and each remains under
+    its own licence, restated in the header of the generated file. A licence
+    covers the drawing, not the trademark.
 
 Typefaces
     No font binaries are distributed with this skill. The font pools in

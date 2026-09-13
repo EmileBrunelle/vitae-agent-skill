@@ -170,11 +170,13 @@ references/companion-guide.md    # optional job-search guide recipe
 references/fonts.md              # font provenance: Google Fonts URLs, licences, both install routes
 templates/resume.typ             # annotated starting template
 templates/lib.typ                # shared verified mechanics (devices stay per-family); hand-off is these two files
+templates/icons.typ              # EMPTY fallback marks (committed); a harvest writes the CV folder's copy, never this one
 templates/families/<family>/     # REFERENCE IMPLEMENTATIONS of all fourteen design families
   resume.typ                     #   font pair A — the family's primary draw
   resume-pair-b.typ              #   font pair B — the SAME family on its second font pair, to prove
                                  #   the recipe survives a different pair (not a page 2)
   lib.typ                        #   symlink to ../../lib.typ — one source of truth, no copies
+  icons.typ                      #   symlink to ../../icons.typ — the empty fallback, so every family compiles offline
 templates/families/swiss-grid/resume-2page.typ   # the worked 2-page sample (runhead, deliberate break, both pages measured)
 scripts/pick_design.py           # deterministic design draw: family, fonts, section labels, list markers; --emit-typ prints the ready-to-paste Typst preamble for the drawn recipe
 scripts/gen_palette.py           # generative, contrast-validated palettes (duotone included)
@@ -195,21 +197,23 @@ this skill's culture is "measured, not eyeballed".
 
 MIT — see [LICENSE](LICENSE).
 
-**Third-party.** Every inlined mark in `templates/lib.typ` is path data under
-**MIT**: the brand marks (LinkedIn, GitHub) from
-[Bootstrap Icons](https://github.com/twbs/icons), the generic marks (email,
-phone, pin, website) from [Tabler Icons](https://github.com/tabler/tabler-icons)'
-filled set. Only path data is used; no font file, CSS or JavaScript is
-redistributed. Refresh any of them with
-`scripts/harvest_icons.py <set> <var>=<icon> --update templates/lib.typ`.
-
-The brand marks were previously Simple Icons (CC0). Bootstrap Icons was
-preferred not for the licence — CC0 is more permissive than MIT and imposes
-nothing — but because Simple Icons withdrew the LinkedIn mark under LinkedIn's
-own brand guidelines, freezing that path at tag 13.21.0 where no refresh can
-reach it. Note that a licence covers the drawing, never the trademark: using
-either logo on a CV is nominative use, which is a separate question from
-redistributing the path. No font binaries ship with this skill either: the
-pools name faces packaged by common Linux distributions or available from
+**Third-party.** None ships here. The contact and platform marks (LinkedIn,
+GitHub, email, phone, pin, website) are path data owned by their icon
+projects — [Bootstrap Icons](https://github.com/twbs/icons),
+[Tabler Icons](https://github.com/tabler/tabler-icons),
+[Phosphor](https://github.com/phosphor-icons/core), all MIT — so this repo
+stores the address, not the drawing: `scripts/harvest_icons.py <cv folder>`
+fetches them from the [Iconify API](https://iconify.design) into an
+`icons.typ` **in the deliverable folder**, beside the `lib.typ` copied there,
+at the moment a CV is built. The `templates/icons.typ` in this repo is the
+committed fallback with every mark EMPTY, so `#import "icons.typ": *` always
+resolves — a clone with no network and no script run still compiles. Nothing
+to vendor, nothing to keep in sync with upstream, and no tag to track. When
+the API is unreachable the script says so on stderr and writes empty marks:
+the CV compiles with no icons and its contact URLs in plain text — still
+valid, still ATS-readable. Note that a licence covers the
+drawing, never the trademark: using a logo on a CV is nominative use, a
+separate question from redistributing the path. No font binaries ship either:
+the pools name faces packaged by common Linux distributions or available from
 Google Fonts under the SIL Open Font License 1.1 — see
 [`references/fonts.md`](references/fonts.md) for provenance and installation.

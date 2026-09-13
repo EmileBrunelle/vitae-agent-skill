@@ -5,7 +5,8 @@
 //   MECHANICS live here — the constructs whose *correctness* was verified once
 //   and must never be re-derived: the emission order that keeps a date from
 //   floating to the end of the extraction, the one-paragraph skills row, the
-//   unbreakable mark+value box, the platform marks as inline SVG, the
+//   unbreakable mark+value box, the platform marks (fetched into
+//   `icons.typ` at build time by scripts/harvest_icons.py), the
 //   single-ROW alignment grid. Each one is a verified answer to a trap in
 //   references/ats.md. Re-implementing one per family is how a fixed trap
 //   comes back.
@@ -39,7 +40,9 @@
 // nb — an unbreakable mark+value pair. The `~` is the non-breaking space: the
 // mark can never be orphaned at a line end, and the box keeps the pair from
 // being split. Every icon/logo beside a contact value goes through this.
-#let nb(mark, value) = box[#mark~#value]
+// A mark of `none` (its data could not be fetched) drops the mark AND the
+// nbsp, leaving the value alone — no stray leading space.
+#let nb(mark, value) = if mark == none { box[#value] } else { box[#mark~#value] }
 
 // ---------------------------------------------------------------- entries
 // entry — the ONE experience/education entry mechanic, and the only place the
@@ -225,119 +228,71 @@
 )
 
 // ------------------------------------------------------- platform marks
-// Real brand/platform marks, as inline SVG path data sourced via Iconify from
-// their upstream icon sets (paths taken verbatim from each project's GitHub
-// repo, not from memory):
-//   li (LinkedIn), gh (GitHub): Bootstrap Icons 13.21.0 — MIT, no
-//     attribution required (github.com/twbs/icons).
-//     LinkedIn's mark is served but flagged `hidden` upstream: it was
-//     withdrawn over brand-guideline enforcement, NOT a licence change, so
-//     the MIT grant on the published path is irrevocable. Consequence:
-//     that one mark no longer tracks LinkedIn's logo and may be purged from
-//     the set — the refresh below prints a NOTE when it happens.
-// Refreshing these is a COMMAND, not an edit to this file: when a brand
-// changes its mark, run
-//     python3 scripts/harvest_icons.py bi li=linkedin,gh=github \
-//         --update templates/lib.typ
-// which rewrites the pairs below in place from the live Iconify API, then
-// look at the render — a new path can shift the mark's optical weight at 7pt
-// even when the licence and the gate are unchanged. The data stays INLINE
-// because Typst makes no network request at compile time and the deliverable
-// must build on typst.app with no assets directory.
-//   mail, web, phone, pin: Tabler Icons, "filled" set — MIT, © Paweł Kuna
-//     (github.com/tabler/tabler-icons). mail and web are multiple non-
-//     overlapping filled subpaths concatenated into one `d` (same visual
-//     result as the separate `<path>` elements upstream, one `image` call).
-// The path data is INLINED as an SVG string, so the document needs no assets
-// dir, the mark is vector (it emits NO text — verified at the gate in every
-// family) and its colour stays a PARAMETER instead of being baked into a
-// file. A platform logo is a functional identifier of a contact channel, not
-// ornament, so EVERY family carries these — including the three that carry no
-// generic pin/phone icon by principle.
+// Real brand/platform marks. THE PATH DATA IS NOT IN THIS REPO: it is
+// third-party artwork, so the skill ships the address, not the drawing.
+// `scripts/harvest_icons.py <folder>` fetches it from the Iconify API into a
+// generated `icons.typ` beside this file, at the moment a CV is built — run it
+// before `typst compile`. A Typst import resolves against the importing file,
+// so `icons.typ` must sit next to THIS file wherever it was copied; nothing
+// else has to know where the CV folder lives, and moving that folder is safe.
+//
+// The generator always writes the file, even when the network fails — then
+// with empty strings. Empty body => `pmark` draws nothing => the contact line
+// keeps the URL it already carries in plain text (linkedin.com/in/handle,
+// github.com/handle), and the CV stays valid and ATS-readable. Typst has no
+// "if this file exists", which is exactly why the file is unconditional.
+//
+// The marks are vector and emit NO text (verified at the gate in every family)
+// and the colour stays a PARAMETER rather than baked into a file. A platform
+// logo is a functional identifier of a contact channel, not ornament, so EVERY
+// family carries these — including the three that carry no generic pin/phone
+// icon by principle.
 //
 // Never an icon FONT: an icon typeface leaks private-use codepoints into the
 // extraction. Never emoji, never clipart.
 //
-// Every mark below shares a 24x24 viewBox; `pmark` scales by `height` only,
-// so each renders at the same height regardless of its own aspect ratio — no
-// per-family rescaling needed when swapping icon sets.
+// `pmark` scales by `height` only, so every mark renders at the same height
+// regardless of its own viewBox — no per-family rescaling when swapping kits.
 //
 // A mark at h: 7pt inside a 9pt line adds ~1pt of line height. On a page
 // already at 96% fill that is enough to push the last unbreakable section over
 // (measured) — re-run the fill loop after adding or resizing them.
-#let pmark(d, vb, c, h: 7pt) = box(baseline: 0.5pt, image(
-  bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
-    + "\"><path fill=\"" + c.to-hex() + "\" d=\"" + d + "\"/></svg>"),
-  format: "svg", height: h))
+#import "icons.typ": *
 
-#let li-path = "M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zm4.943 12.248V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248c-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586c.173-.431.568-.878 1.232-.878c.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252c-1.274 0-1.845.7-2.165 1.193v.025h-.016l.016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225z"
-#let li-vb = "0 0 16 16"
-#let gh-path = "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59c.4.07.55-.17.55-.38c0-.19-.01-.82-.01-1.49c-2.01.37-2.53-.49-2.69-.94c-.09-.23-.48-.94-.82-1.13c-.28-.15-.68-.52-.01-.53c.63-.01 1.08.58 1.23.82c.72 1.21 1.87.87 2.33.66c.07-.52.28-.87.51-1.07c-1.78-.2-3.64-.89-3.64-3.95c0-.87.31-1.59.82-2.15c-.08-.2-.36-1.02.08-2.12c0 0 .67-.21 2.2.82c.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82c.44 1.1.16 1.92.08 2.12c.51.56.82 1.27.82 2.15c0 3.07-1.87 3.75-3.65 3.95c.29.25.54.73.54 1.48c0 1.07-.01 1.93-.01 2.2c0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"
-#let gh-vb = "0 0 16 16"
-#let mail-path = "M22 7.535v9.465a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-9.465l9.445 6.297l.116 .066a1 1 0 0 0 .878 0l.116 -.066l9.445 -6.297z M19 4c1.08 0 2.027 .57 2.555 1.427l-9.555 6.37l-9.555 -6.37a2.999 2.999 0 0 1 2.354 -1.42l.201 -.007h14z"
-#let mail-vb = "0 0 24 24"
-#let web-path = "M21.165 16a10 10 0 0 1 -8.434 5.973a1 1 0 0 0 .617 -.444a18 18 0 0 0 2.28 -5.528z M8.372 16a18 18 0 0 0 2.28 5.53a1 1 0 0 0 .616 .443a10 10 0 0 1 -8.433 -5.973z M13.57 16a16 16 0 0 1 -1.57 3.884a16 16 0 0 1 -1.57 -3.884 M8.034 10a18 18 0 0 0 0 4h-5.832a10 10 0 0 1 -.002 -4z M13.952 10a16 16 0 0 1 0 4h-3.904a16 16 0 0 1 0 -4z M21.8 10a10.05 10.05 0 0 1 -.002 4h-5.832c.149 -1.329 .149 -2.67 0 -4z M11.267 2.027a1 1 0 0 0 -.615 .444a18 18 0 0 0 -2.28 5.529h-5.54a10.01 10.01 0 0 1 8.334 -5.967z M12 4.116a16 16 0 0 1 1.57 3.885h-3.14c.34 -1.317 .85 -2.6 1.53 -3.817z M12.733 2.026a10.01 10.01 0 0 1 8.435 5.974h-5.54a18 18 0 0 0 -2.28 -5.53a1 1 0 0 0 -.517 -.414z"
-#let web-vb = "0 0 24 24"
-#let phone-path = "M9 3a1 1 0 0 1 .877 .519l.051 .11l2 5a1 1 0 0 1 -.313 1.16l-.1 .068l-1.674 1.004l.063 .103a10 10 0 0 0 3.132 3.132l.102 .062l1.005 -1.672a1 1 0 0 1 1.113 -.453l.115 .039l5 2a1 1 0 0 1 .622 .807l.007 .121v4c0 1.657 -1.343 3 -3.06 2.998c-8.579 -.521 -15.418 -7.36 -15.94 -15.998a3 3 0 0 1 2.824 -2.995l.176 -.005h4z"
-#let phone-vb = "0 0 24 24"
-#let pin-path = "M18.364 4.636a9 9 0 0 1 .203 12.519l-.203 .21l-4.243 4.242a3 3 0 0 1 -4.097 .135l-.144 -.135l-4.244 -4.243a9 9 0 0 1 12.728 -12.728zm-6.364 3.364a3 3 0 1 0 0 6a3 3 0 0 0 0 -6"
-#let pin-vb = "0 0 24 24"
-
-// ---- Alternative mark sets for mail/web/phone/pin (drawn per candidate by
-// scripts/pick_design.py so the small glyphs stop being a shared fingerprint;
-// LinkedIn/GitHub stay Bootstrap Icons in every set — a brand logo is a
-// functional identifier, not a style). Harvested at authoring time with
-// scripts/harvest_icons.py from the Iconify API — the same data the npm icon
-// packages publish. Inline is the preferred form (keeps the hand-off at two
-// files); an assets dir shipped alongside is an acceptable alternative.
-// Phosphor — MIT (https://github.com/phosphor-icons/core/blob/main/LICENSE)
-// harvested via Iconify API (https://api.iconify.design), set version 2.1.1 — same data as the npm package
-#let ph-envelope_simple_fill-body = "<path fill=\"currentColor\" d=\"M224 48H32a8 8 0 0 0-8 8v136a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a8 8 0 0 0-8-8m-8 144H40V74.19l82.59 75.71a8 8 0 0 0 10.82 0L216 74.19z\"/>"
-#let ph-envelope_simple_fill-vb = "0 0 256 256"
-#let ph-globe_fill-body = "<path fill=\"currentColor\" d=\"M128 24a104 104 0 1 0 104 104A104.12 104.12 0 0 0 128 24m78.36 64h-35.65a135.3 135.3 0 0 0-22.3-45.6A88.29 88.29 0 0 1 206.37 88Zm9.64 40a87.6 87.6 0 0 1-3.33 24h-38.51a157.4 157.4 0 0 0 0-48h38.51a87.6 87.6 0 0 1 3.33 24m-88-85a115.3 115.3 0 0 1 26 45h-52a115.1 115.1 0 0 1 26-45m-26 125h52a115.1 115.1 0 0 1-26 45a115.3 115.3 0 0 1-26-45m-3.9-16a140.8 140.8 0 0 1 0-48h59.88a140.8 140.8 0 0 1 0 48Zm50.35 61.6a135.3 135.3 0 0 0 22.3-45.6h35.66a88.29 88.29 0 0 1-58 45.6Z\"/>"
-#let ph-globe_fill-vb = "0 0 256 256"
-#let ph-phone_fill-body = "<path fill=\"currentColor\" d=\"M231.88 175.08A56.26 56.26 0 0 1 176 224C96.6 224 32 159.4 32 80a56.26 56.26 0 0 1 48.92-55.88a16 16 0 0 1 16.62 9.52l21.12 47.15v.12A16 16 0 0 1 117.39 96c-.18.27-.37.52-.57.77L96 121.45c7.49 15.22 23.41 31 38.83 38.51l24.34-20.71a8 8 0 0 1 .75-.56a16 16 0 0 1 15.17-1.4l.13.06l47.11 21.11a16 16 0 0 1 9.55 16.62\"/>"
-#let ph-phone_fill-vb = "0 0 256 256"
-#let ph-map_pin_fill-body = "<path fill=\"currentColor\" d=\"M128 16a88.1 88.1 0 0 0-88 88c0 75.3 80 132.17 83.41 134.55a8 8 0 0 0 9.18 0C136 236.17 216 179.3 216 104a88.1 88.1 0 0 0-88-88m0 56a32 32 0 1 1-32 32a32 32 0 0 1 32-32\"/>"
-#let ph-map_pin_fill-vb = "0 0 256 256"
-// Bootstrap Icons — MIT (https://github.com/twbs/icons/blob/main/LICENSE.md)
-// harvested via Iconify API (https://api.iconify.design), set version 1.13.1 — same data as the npm package
-#let bi-envelope_fill-body = "<path fill=\"currentColor\" d=\"M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z\"/>"
-#let bi-envelope_fill-vb = "0 0 16 16"
-#let bi-globe-body = "<path fill=\"currentColor\" d=\"M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539a7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.182 2.472a7 7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.072 2.472M3.82 11a13.7 13.7 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5zm6.853 3.472A7 7 0 0 0 13.745 12H11.91a9.3 9.3 0 0 1-.64 1.539a7 7 0 0 1-.597.933M8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855q.26-.487.468-1.068zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.7 13.7 0 0 1-.312 2.5m2.802-3.5a7 7 0 0 0-.656-2.5H12.18c.174.782.282 1.623.312 2.5zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7 7 0 0 0-3.072-2.472c.218.284.418.598.597.933M10.855 4a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4z\"/>"
-#let bi-globe-vb = "0 0 16 16"
-#let bi-telephone_fill-body = "<path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.68.68 0 0 0 .178.643l2.457 2.457a.68.68 0 0 0 .644.178l2.189-.547a1.75 1.75 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.6 18.6 0 0 1-7.01-4.42a18.6 18.6 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877z\"/>"
-#let bi-telephone_fill-vb = "0 0 16 16"
-#let bi-geo_alt_fill-body = "<path fill=\"currentColor\" d=\"M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6a3 3 0 0 1 0 6\"/>"
-#let bi-geo_alt_fill-vb = "0 0 16 16"
-
-// pmarkb — like pmark, but for a harvested INNER SVG body (may hold several
-// elements); colours it by substituting currentColor. Emits no text.
-#let pmarkb(body, vb, c, h: 7pt) = box(baseline: 0.5pt, image(
-  bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
-    + "\">" + body.replace("currentColor", c.to-hex()) + "</svg>"),
-  format: "svg", height: h))
+// pmark — wraps a harvested INNER SVG body (may hold several elements) in an
+// SVG of its viewBox and colours it by substituting currentColor.
+#let pmark(body, vb, c, h: 7pt) = if body == "" { none } else {
+  box(baseline: 0.5pt, image(
+    bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
+      + "\">" + body.replace("currentColor", c.to-hex()) + "</svg>"),
+    format: "svg", height: h))
+}
 
 // One call per family: `#let mk = marks(ic-col)` then `nb(mk.li, [..])`.
+// The email/phone/pin/website glyphs come in three kits so the small marks
+// stop being a shared fingerprint of the tool; pick_design.py draws one per
+// candidate. LinkedIn/GitHub stay the same in every kit — a brand logo is a
+// functional identifier, not a style.
 #let marks(c, h: 7pt, kit: "tabler") = {
-  let brand = (li: pmark(li-path, li-vb, c, h: h), gh: pmark(gh-path, gh-vb, c, h: h))
+  let brand = (li: pmark(li-body, li-vb, c, h: h),
+               gh: pmark(gh-body, gh-vb, c, h: h))
   if kit == "phosphor" {
-    (mail: pmarkb(ph-envelope_simple_fill-body, ph-envelope_simple_fill-vb, c, h: h),
-     web: pmarkb(ph-globe_fill-body, ph-globe_fill-vb, c, h: h),
-     phone: pmarkb(ph-phone_fill-body, ph-phone_fill-vb, c, h: h),
-     pin: pmarkb(ph-map_pin_fill-body, ph-map_pin_fill-vb, c, h: h),
+    (mail: pmark(ph-envelope_simple_fill-body, ph-envelope_simple_fill-vb, c, h: h),
+     web: pmark(ph-globe_fill-body, ph-globe_fill-vb, c, h: h),
+     phone: pmark(ph-phone_fill-body, ph-phone_fill-vb, c, h: h),
+     pin: pmark(ph-map_pin_fill-body, ph-map_pin_fill-vb, c, h: h),
      ..brand)
   } else if kit == "bootstrap" {
-    (mail: pmarkb(bi-envelope_fill-body, bi-envelope_fill-vb, c, h: h),
-     web: pmarkb(bi-globe-body, bi-globe-vb, c, h: h),
-     phone: pmarkb(bi-telephone_fill-body, bi-telephone_fill-vb, c, h: h),
-     pin: pmarkb(bi-geo_alt_fill-body, bi-geo_alt_fill-vb, c, h: h),
+    (mail: pmark(bi-envelope_fill-body, bi-envelope_fill-vb, c, h: h),
+     web: pmark(bi-globe-body, bi-globe-vb, c, h: h),
+     phone: pmark(bi-telephone_fill-body, bi-telephone_fill-vb, c, h: h),
+     pin: pmark(bi-geo_alt_fill-body, bi-geo_alt_fill-vb, c, h: h),
      ..brand)
   } else {
-    (mail: pmark(mail-path, mail-vb, c, h: h),
-     web: pmark(web-path, web-vb, c, h: h),
-     phone: pmark(phone-path, phone-vb, c, h: h),
-     pin: pmark(pin-path, pin-vb, c, h: h),
+    (mail: pmark(mail-body, mail-vb, c, h: h),
+     web: pmark(web-body, web-vb, c, h: h),
+     phone: pmark(phone-body, phone-vb, c, h: h),
+     pin: pmark(pin-body, pin-vb, c, h: h),
      ..brand)
   }
 }
