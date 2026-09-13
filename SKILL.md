@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires typst 0.13+ and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) recommended, falls back to pypdf. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.2"
+  version: "0.3"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -154,6 +154,21 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    regenerated from it (companion-guide.md, Delivery package) — a
    hand-maintained working copy plus a hand-maintained delivery copy WILL
    drift.
+   **A cover letter follows the identical doctrine — one per posting, never a
+   generic one.** The gabarit (`templates/letter.typ`, importing `lib.typ`
+   exactly like the CV) lives in the canonical tree; what ships is one
+   instance per posting, in that posting's delivery folder next to the
+   `cv.typ` targeted for the same posting, with the CV's accent, font and
+   name/contact line copied in — never re-derived. Three paragraphs: (1) why
+   this employer specifically, not a line that would survive being
+   copy-pasted onto another posting; (2) the two or three proofs from
+   `FAITS.md` that answer the requirements the posting actually names; (3)
+   availability and a close. Rule 1 applies with no exception: nothing in the
+   letter that is not already in `FAITS.md`. Gate it with `python3
+   scripts/verify_letter.py letter.typ EMPLOYER "JOB TITLE"` — one page, and
+   the employer and exact job title both present in the extracted text; it
+   shares none of `verify.py`'s fill/separation/ink thresholds, which are
+   calibrated for a CV's density and mean nothing on prose.
    **The target language governs the WHOLE package, not just the CV.** The
    companion guide, the read-me, every requested format (the .docx included),
    and the folder and file NAMES are in the candidate's language. No language
@@ -405,7 +420,8 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
      change its content.
 
    Optional companions — build them with `references/companion-guide.md`:
-   job-search guide, cover-letter templates, LinkedIn alignment checklist.
+   job-search guide, a cover letter per posting (`templates/letter.typ`,
+   gated by `scripts/verify_letter.py`), LinkedIn alignment checklist.
    Rule 1 applies to companions too: no salary range or market statistic
    without web verification, and label them indicative.
 
