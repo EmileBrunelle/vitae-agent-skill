@@ -130,6 +130,19 @@ def gaps(path, thr=150):
 
     Thin wrapper over `bands` — kept because the canyon scan and the
     section-boundary check read only the lengths.
+
+    THE INSTRUMENT CHANGED ON 2026-09-13, commit 42049f6 ("Measure section
+    separation instead of only describing it"). Before it, this function
+    sampled every 4th column (`range(x0, x1, 4)`); `bands` samples EVERY
+    column, so a row carrying one thin dark pixel now reads as ink where it
+    used to read as white. White runs shrank, medians shrank, and every ratio
+    in the repo moved — that commit presented the rewrite as behaviour-
+    preserving and it was not. Everything downstream was recalibrated on
+    2026-09-13 against the 30 rendered pages of the 29-deliverable corpus.
+    Any future change to the sampling step, the crop (6-94% x 2-97%) or `thr`
+    invalidates every number in verify.py's separation block and in
+    references/design.md § Invariants: re-measure the corpus before trusting
+    them, and record the date and commit here as this note does.
     """
     h, white, _ = bands(path, thr)
     return h, [b - a for a, b in white]

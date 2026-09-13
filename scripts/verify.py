@@ -25,7 +25,10 @@ manifest to keep in sync with the files:
 
     // vitae: pages=1 fill=94-96
 
-Files without that line are listed as unchecked rather than guessed at.
+A file without that line is still checked: its page count comes from its name
+(`*-2page.typ` is two pages, anything else is one) and its fill is reported
+instead of gated. Not one .typ in this repo carries the header, so demanding
+it made `--all` return 30 UNCHECKED and exit 1 on its own corpus.
 
 --tune runs the page-fill loop BY BISECTION instead of by hand: it moves the
 `#set par(leading:, spacing:)` declaration (keeping the family's own delta
@@ -208,27 +211,56 @@ def extract_text(pdf, use_poppler):
 
 # ---------- whitespace structure: section boundaries + canyons ----------
 
-# The section boundary must read as a break at arm's length, and that is
-# measurable: the boundary gaps are the tallest white runs on the page and they
-# stand clear of the intra-section rhythm. Calibrated on the four families
-# whose separation reads best (measured max-gap / median-gap at 90 ppi:
-# color-band 2.33, hard-edge 3.12, swiss-grid 3.40, bold-display 3.60 — the
-# same Verified figures as references/design.md § Invariants, which is the one
-# source of truth for them) — the floor sits just under the lowest of them.
-# NOTE the counter-intuitive measured fact: the two
-# families with the LOWEST white ratio are among the best-separated, because
-# their boundary is carried by INK (a 2.5pt rule, a filled bar). White alone is
-# therefore a floor, not a quality score; a device-less family needs far more
-# than the floor (references/design.md § Rules common to every family).
+# BOUNDARY_RATIO is a LOCATOR, not a grade. It answers "is this white run tall
+# enough to be a section boundary rather than a line gap", which is all that
+# `boundary_ink` and the hole check need from it, and it is the only job the
+# number survives.
+#
+# It used to also FAIL a page whose tallest run fell under it. That is gone,
+# measured out on 2026-09-13 over the 30 rendered pages of the 29-deliverable
+# corpus, under the CURRENT instrument (see measure_fill.gaps — the sampling
+# changed at 42049f6 and nothing downstream was re-measured until now):
+#
+#   max-gap / median-gap, all 30 pages, sorted:
+#     1.89 2.00 2.00 2.12 2.15 2.21 2.27 2.31 2.38 2.40 2.56 2.62 2.73 2.78
+#     2.86 2.86 2.90 3.00 3.25 3.29 3.50 3.57 3.60 3.60 3.86 4.00 4.17 5.00
+#     5.14 5.14
+#
+# One continuum, no void anywhere: the widest step in the whole range is 0.83
+# (4.17 → 5.00) and the rest are 0.01-0.4. A floor placed in it is a curve
+# fitted to the corpus, which is exactly what 2.0 was — it sat one hundredth
+# under two deliverables and failed a third at 1.89.
+#
+# Two further measurements say the statistic is not measuring separation at
+# all, so no value would have worked:
+#   * A synthetic page whose section gap EQUALS its line gap — no section
+#     separation whatsoever — scores 2.69, above 10 of the 30 real pages,
+#     which do separate. The ranking is inverted, not merely noisy.
+#   * `max` is one run and `median` is a small set of quantized small
+#     integers, so the ratio is noise at ±0.3: excluding the header block at
+#     8 / 10 / 12 / 15% of the text span moves swiss-grid/resume through
+#     1.70, 1.89, 2.00, 1.78 non-monotonically, and the 12% cut stacks five
+#     deliverables on exactly 2.00. Taking the mean of the top 5 runs instead
+#     of the max smooths it and still yields a continuum (1.64 … 4.91).
+# Same conclusion as d7f67da reached for page-wide ink: the number is a
+# prefilter, the verdict comes from LOCATION (boundary_ink) — and the white
+# ratio is now reported, never failed.
 BOUNDARY_RATIO = 2.0
-# …and the ceiling, which is the other half of the same invariant. Whitespace is
+# …and the ceiling, which is a SMOKE ALARM, not a grade either. Whitespace is
 # the WEAK separator: piling it on is what an agent does when the boundary does
-# not read and it has no device to reach for. Measured on the roster (page 1):
-# editorial-serif 2.18 … keyline-corporate 6.29, and the two device-LESS
-# families sit highest by design (humanist-quiet 6.60, margin-index 7.40). So a
-# ratio over 5.0 is not a failure, it is a question: if the boundary already
-# carries ink, the gap is compensating for nothing and belongs back in the body.
-SEPARATION_CEILING = 5.0
+# not read and it has no device to reach for, and the page that carries no
+# device at all AND a gap unlike anything the roster produces is the
+# « séparateurs, pas des espaces vides » defect this catches.
+# It cannot be calibrated between populations, because there is only one: the
+# device-less pages run 2.38 2.56 2.86 2.86 3.29 3.57 3.86 4.00 4.17 5.00,
+# continuously, and the roster's highest page of any kind is margin-index at
+# 5.14 (a deliberately device-less family, which design.md says legitimately
+# owes a HIGH ratio — failing it for that would contradict the rule it serves).
+# So the ceiling is placed ABOVE the entire roster and BELOW the no-boundary-
+# system pages the selftest draws (6.77 for one lone flourish, 7.92 for none at
+# all). 5.0 kept the corpus green only by an exact tie (humanist-quiet/resume
+# measures 5.00), which is not a calibration.
+SEPARATION_CEILING = 6.0
 # …and a device is a REPEATED element: one mark on the page is an ornament,
 # typically the flourish under the name. Two families passed the ink check on
 # exactly that — `gutter-rail` on its header bar, `engraved-card` on the 56pt
@@ -285,9 +317,12 @@ def check_whitespace(path):
     ratio = top / med
     ink = boundary_ink(white, all_ink, med)
     if ratio < BOUNDARY_RATIO:
-        yield True, (f"section separation: biggest internal gap {top}px is only "
-                     f"{ratio:.2f}x the median {med}px (need >= {BOUNDARY_RATIO}) — "
-                     f"sections do not detach from the intra-section rhythm")
+        yield False, (f"section separation: biggest internal gap {top}px is "
+                      f"{ratio:.2f}x the median {med}px — under the "
+                      f"{BOUNDARY_RATIO}x a boundary is located by, so the ink "
+                      f"check below may see fewer devices than the page "
+                      f"carries. REPORTED, NOT FAILED: the ratio does not rank "
+                      f"separation (see BOUNDARY_RATIO). Look at the page")
     # The half of the invariant the white scan alone could never check. A
     # boundary is supposed to carry INK by default (design.md § Invariants);
     # with no device AT A BOUNDARY, whitespace is the whole separator,
@@ -471,8 +506,13 @@ HEADER_RE = re.compile(r"^//\s*vitae:\s*pages=(\d+)(?:\s+fill=(\d+)-(\d+))?",
                        re.M)
 
 
+def pages_from_name(typ):
+    """The page count a headerless deliverable declares in its own file name."""
+    return "2" if re.search(r"-2\s*page", os.path.basename(typ), re.I) else "1"
+
+
 def check_all(directory):
-    """Run the single-file gate over every declared .typ under `directory`.
+    """Run the single-file gate over every .typ under `directory`.
 
     Re-invokes this script per file rather than refactoring main() apart: the
     point is that each deliverable gets EXACTLY the check it would get alone,
@@ -480,7 +520,7 @@ def check_all(directory):
     """
     typs = sorted(f for f in glob.glob(os.path.join(directory, "**", "*.typ"),
                                        recursive=True)
-                  if not os.path.basename(f).startswith("lib"))
+                  if not os.path.basename(f).startswith(("lib", "icons")))
     if not typs:
         print(f"no .typ found under {directory}")
         return 1
@@ -488,21 +528,34 @@ def check_all(directory):
     for typ in typs:
         with open(typ, encoding="utf-8") as fh:
             m = HEADER_RE.search(fh.read(4096))
-        if not m:
+        if m:
+            args = [m.group(1)] + ([m.group(2), m.group(3)] if m.group(2) else [])
+        else:
+            # No header: take the page count from the FILE NAME, which is the
+            # one expectation this repo already states out loud — `*-2page.typ`
+            # is two pages, every other deliverable is one (SKILL.md step 4,
+            # and the reference sweep in the read-me is written exactly that
+            # way). This is the smallest thing that makes --all useful: not one
+            # of the repo's own 30 .typ files carries the header, so the
+            # command returned 30 UNCHECKED and exit 1 on the very corpus it
+            # exists to guard. Fill stays undeclared and is reported, not
+            # failed — a page count is inferable from a name, a fill target is
+            # not, and inventing one would be the fitted-curve mistake again.
+            # Add the header to a deliverable whose fill matters; it wins.
+            args = [pages_from_name(typ)]
             unchecked.append(typ)
-            continue
-        args = [m.group(1)] + ([m.group(2), m.group(3)] if m.group(2) else [])
-        print(f"\n=== {typ}  (expects {' '.join(args)})")
+        print(f"\n=== {typ}  (expects {' '.join(args)}"
+              f"{'' if m else ' — inferred from the file name, no header'})")
         r = subprocess.run([sys.executable, os.path.abspath(__file__), typ]
                            + args)
         fail |= bool(r.returncode)
     if unchecked:
-        print(f"\nUNCHECKED — no `// vitae: pages=N fill=A-B` header:")
+        print(f"\nNOTE — page count inferred from the file name, fill not "
+              f"checked (add `// vitae: pages=N fill=A-B` to pin either):")
         for t in unchecked:
             print(f"  {t}")
-        fail = 1
     print("\n" + ("FAIL — see above" if fail else
-                  f"PASS — {len(typs) - len(unchecked)} deliverable(s), "
+                  f"PASS — {len(typs)} deliverable(s), "
                   f"all siblings checked together"))
     return fail
 
@@ -536,6 +589,13 @@ def main():
         # silently in a way that swaps the two values
         alt = "#set par(spacing: 0.7em, leading: 0.6em)\n"
         assert _read_par(alt) is None, "would write the two values swapped"
+        # --all's headerless fallback: the page count read off the name. Wrong
+        # here and every 2-page deliverable is silently gated as a 1-pager.
+        assert pages_from_name("a/resume-2page.typ") == "2"
+        assert pages_from_name("a/resume.typ") == "1"
+        assert pages_from_name("a/resume-pair-b.typ") == "1"
+        assert pages_from_name("a/CV-2 page.typ") == "2"  # a space still counts
+        assert pages_from_name("2page/resume.typ") == "1", "directory, not file"
         # The other piece that can break silently: the ink-band detector. If
         # it stopped seeing devices, every CV would pass the "carries ink"
         # check by accident, which is the exact rule that kept regressing.
@@ -585,19 +645,51 @@ def main():
             "the underline must register as a wide dark run (else the next " \
             "assert passes for the wrong reason)"
         for p in (inked, thin):
-            assert not any(f for f, _ in check_whitespace(p)), \
+            msgs = list(check_whitespace(p))
+            assert not any(f for f, _ in msgs), \
                 "a page whose boundaries carry a hairline must not FAIL"
+            # …and POSITIVELY, that the device was seen. Asserting only "does
+            # not FAIL" stopped proving that once SEPARATION_CEILING rose
+            # above `thin`'s 5.62x ratio: miss the short rule and the page
+            # merely reports "carries no ink" and still passes. This is the
+            # assertion RULE_FLOOR = 0.08 has to break (a 5.5%-of-width rule
+            # falls under an 8% floor), and the ceiling can no longer stand in
+            # for it.
+            assert any("boundary devices:" in m for _, m in msgs), \
+                "a pale or short hairline AT a boundary must be COUNTED as a " \
+                "device, not merely fail to trigger a failure"
         for p in (bare, linked, lone):
             assert any(f and "no ink" in m for f, m in check_whitespace(p)), \
                 "empty-space-only separation must FAIL on the ink check, " \
                 "whatever ink the page carries away from its boundaries"
-        for f in (inked, bare, thin, linked, lone):
+        # --- the 2026-09-13 recalibration, pinned from both sides ---
+        # tight: boundaries carry a hairline but the gap is only 1.77x the
+        # median — BELOW the old 2.0 floor, which failed it. The corpus says
+        # that ratio does not rank separation (a page with NO section gap at
+        # all scores 2.69), so an inked page must pass at any ratio. This is
+        # the `engraved-card/resume-pair-b` case, which measured 1.89.
+        tight = _page(rule_luma=30, gap=10)
+        assert not any(f for f, _ in check_whitespace(tight)), \
+            "the white ratio must no longer FAIL a page whose boundaries " \
+            "carry ink, however tight the gap"
+        # airy: no device anywhere and a ratio of ~5.1 — the top of the real
+        # roster (margin-index 5.14, a legitimately device-less family). It
+        # must NOT fail: SEPARATION_CEILING sits above the whole corpus, and
+        # dropping it back under 5.2 turns this into a failure.
+        airy = _page(rule_luma=None, gap=53)
+        assert not any(f for f, _ in check_whitespace(airy)), \
+            "SEPARATION_CEILING must sit above the roster's highest page " \
+            f"(5.14x); at {SEPARATION_CEILING} a device-less family that " \
+            "compensates with white — which design.md requires of it — fails"
+        for f in (inked, bare, thin, linked, lone, tight, airy):
             os.unlink(f)
         print("selftest OK — tuner regex reads, writes and round-trips; "
               "an unrecognised par declaration is reported, not guessed; "
               "a pale or short hairline AT a boundary reads as a device, while "
               "an underlined link away from one does not — empty-space-only "
-              "separation FAILs either way")
+              "separation FAILs either way; and the white ratio fails nothing "
+              "on its own, at either end (tight-but-inked passes, and the "
+              "ceiling clears the roster's highest page)")
         sys.exit(0)
 
     if argv and argv[0] == "--tune":
