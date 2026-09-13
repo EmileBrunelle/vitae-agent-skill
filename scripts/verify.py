@@ -7,11 +7,25 @@ against the fact sheet.
 
 Usage:
     verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]
+    verify.py --all DIR
     verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LEADING_LO LEADING_HI]
     verify.py --doctor
 
     e.g. verify.py cv.typ 1 94 96
          verify.py --tune cv.typ 1 94 96
+
+--all checks EVERY deliverable in a directory instead of the one file just
+edited. This exists because of a real regression: a padding tweak was verified
+on the 2-page CV while it silently pushed the 1-page CV onto two pages
+("T'as fait ça en voulant modifier le padding"). The deliverables share
+lib.typ, so touching it invalidates the whole family, not the file in hand.
+
+Each .typ declares its own expectations in a header comment, so there is no
+manifest to keep in sync with the files:
+
+    // vitae: pages=1 fill=94-96
+
+Files without that line are listed as unchecked rather than guessed at.
 
 --tune runs the page-fill loop BY BISECTION instead of by hand: it moves the
 `#set par(leading:, spacing:)` declaration (keeping the family's own delta
@@ -184,6 +198,14 @@ def extract_text(pdf, use_poppler):
 # therefore a floor, not a quality score; a device-less family needs far more
 # than the floor (references/design.md § Rules common to every family).
 BOUNDARY_RATIO = 2.0
+# …and the ceiling, which is the other half of the same invariant. Whitespace is
+# the WEAK separator: piling it on is what an agent does when the boundary does
+# not read and it has no device to reach for. Measured on the roster (page 1):
+# editorial-serif 2.18 … keyline-corporate 6.29, and the two device-LESS
+# families sit highest by design (humanist-quiet 6.60, margin-index 7.40). So a
+# ratio over 5.0 is not a failure, it is a question: if the boundary already
+# carries ink, the gap is compensating for nothing and belongs back in the body.
+SEPARATION_CEILING = 5.0
 CANYON = 0.035          # a hole this tall (fraction of page height) is a defect
 BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run this tall
 
@@ -191,7 +213,8 @@ BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run thi
 def check_whitespace(path):
     """Yield (is_fail, message) for one rendered page."""
     import statistics
-    h, runs = measure_fill.gaps(path)
+    h, white, ink = measure_fill.bands(path)
+    runs = [b - a for a, b in white]
     if len(runs) < 6:
         return                              # not a text page: nothing to judge
     med = statistics.median(runs)
@@ -203,6 +226,33 @@ def check_whitespace(path):
         yield True, (f"section separation: biggest internal gap {top}px is only "
                      f"{ratio:.2f}x the median {med}px (need >= {BOUNDARY_RATIO}) — "
                      f"sections do not detach from the intra-section rhythm")
+    # The half of the invariant the white scan alone could never check. A
+    # boundary is supposed to carry INK by default (design.md § Invariants);
+    # with no device anywhere on the page, whitespace is the whole separator,
+    # and a WIDE boundary on top of that is the failure Émile named on
+    # 2026-08-27: « Je veux des séparateurs, pas des espaces vides ».
+    if not ink:
+        yield ratio > SEPARATION_CEILING, (
+            f"boundaries carry no ink: no rule, bar or slab anywhere on the "
+            f"page (longest unbroken dark run stays under "
+            f"{measure_fill.RULE_FLOOR * 100:.0f}% of page width)"
+            + (f", and the boundary gap is {ratio:.2f}x the median — empty "
+               f"space is doing the whole job. Add the family's device, or a "
+               f"thin `soft` hairline above each section, and give the gap "
+               f"back to body leading"
+               if ratio > SEPARATION_CEILING else
+               " — legitimate only for a deliberately device-less family, "
+               "which then needs a HIGH white ratio to compensate"))
+    else:
+        yield False, (f"boundary devices: {len(ink)} ink band(s) "
+                      f"({', '.join(str(b - a) + 'px' for a, b in ink[:6])})")
+    if ratio > SEPARATION_CEILING:
+        yield False, (f"section separation: biggest gap {top}px = {ratio:.2f}x "
+                      f"median {med}px — OVER {SEPARATION_CEILING}x. Legitimate "
+                      f"only for a device-less family (whitespace is then the "
+                      f"whole boundary). If the boundary carries ink, the gap is "
+                      f"compensating for nothing: cut it and give the space back "
+                      f"to body leading")
     else:
         yield False, (f"section separation: biggest gap {top}px = {ratio:.2f}x "
                       f"median {med}px")
@@ -353,9 +403,53 @@ def tune(typ, expected, fmin, fmax, lo=None, hi=None, step=0.005):
 
 # ---------- main gate ----------
 
+HEADER_RE = re.compile(r"^//\s*vitae:\s*pages=(\d+)(?:\s+fill=(\d+)-(\d+))?",
+                       re.M)
+
+
+def check_all(directory):
+    """Run the single-file gate over every declared .typ under `directory`.
+
+    Re-invokes this script per file rather than refactoring main() apart: the
+    point is that each deliverable gets EXACTLY the check it would get alone,
+    and a subprocess guarantees that for free.
+    """
+    typs = sorted(f for f in glob.glob(os.path.join(directory, "**", "*.typ"),
+                                       recursive=True)
+                  if not os.path.basename(f).startswith("lib"))
+    if not typs:
+        print(f"no .typ found under {directory}")
+        return 1
+    fail, unchecked = 0, []
+    for typ in typs:
+        with open(typ, encoding="utf-8") as fh:
+            m = HEADER_RE.search(fh.read(4096))
+        if not m:
+            unchecked.append(typ)
+            continue
+        args = [m.group(1)] + ([m.group(2), m.group(3)] if m.group(2) else [])
+        print(f"\n=== {typ}  (expects {' '.join(args)})")
+        r = subprocess.run([sys.executable, os.path.abspath(__file__), typ]
+                           + args)
+        fail |= bool(r.returncode)
+    if unchecked:
+        print(f"\nUNCHECKED — no `// vitae: pages=N fill=A-B` header:")
+        for t in unchecked:
+            print(f"  {t}")
+        fail = 1
+    print("\n" + ("FAIL — see above" if fail else
+                  f"PASS — {len(typs) - len(unchecked)} deliverable(s), "
+                  f"all siblings checked together"))
+    return fail
+
+
 def main():
     argv = sys.argv[1:]
 
+    if argv and argv[0] == "--all":
+        if len(argv) < 2:
+            sys.exit("usage: verify.py --all DIR")
+        sys.exit(check_all(argv[1]))
     if argv and argv[0] == "--doctor":
         ok, _, _ = preflight()
         sys.exit(0 if ok else 1)
@@ -378,8 +472,45 @@ def main():
         # silently in a way that swaps the two values
         alt = "#set par(spacing: 0.7em, leading: 0.6em)\n"
         assert _read_par(alt) is None, "would write the two values swapped"
+        # The other piece that can break silently: the ink-band detector. If
+        # it stopped seeing devices, every CV would pass the "carries ink"
+        # check by accident, which is the exact rule that kept regressing.
+        # Two synthetic pages, drawn with PIL so the check needs no Typst.
+        from PIL import Image, ImageDraw
+
+        def _page(rule_luma=None, gap=45):
+            im = Image.new("L", (1275, 1650), 255)
+            d = ImageDraw.Draw(im)
+            y = 200
+            for _ in range(4):
+                if rule_luma is not None:      # a pale full-measure hairline
+                    d.line([(150, y), (1125, y)], fill=rule_luma, width=2)
+                y += gap                        # …or nothing but empty space
+                for _ in range(6):              # body text: short dark runs
+                    for x in range(150, 1100, 60):
+                        d.rectangle([x, y, x + 44, y + 8], fill=30)
+                    y += 22
+            f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            im.save(f.name)
+            return f.name
+
+        # inked: a tight page whose boundaries are pale hairlines. bare: the
+        # defect — no device, and the gap widened to compensate (90px here is
+        # also over the canyon ceiling, which is the point: that is what the
+        # compensating gap looks like).
+        inked, bare = _page(rule_luma=180), _page(rule_luma=None, gap=90)
+        assert measure_fill.bands(inked)[2], "a pale hairline must read as ink"
+        assert not measure_fill.bands(bare)[2], "body text must not read as ink"
+        assert not any(f for f, _ in check_whitespace(inked)), \
+            "a page whose boundaries carry a hairline must not FAIL"
+        assert any(f and "no ink" in m for f, m in check_whitespace(bare)), \
+            "a page separated by empty space alone must FAIL on the ink check"
+        for f in (inked, bare):
+            os.unlink(f)
         print("selftest OK — tuner regex reads, writes and round-trips; "
-              "an unrecognised par declaration is reported, not guessed")
+              "an unrecognised par declaration is reported, not guessed; "
+              "a pale hairline reads as a boundary device and empty-space-only "
+              "separation FAILs")
         sys.exit(0)
 
     if argv and argv[0] == "--tune":
@@ -395,6 +526,7 @@ def main():
     if len(argv) < 2:
         print(f"usage: {os.path.basename(sys.argv[0])} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]\n"
               f"       {os.path.basename(sys.argv[0])} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]\n"
+              f"       {os.path.basename(sys.argv[0])} --all DIR\n"
               f"       {os.path.basename(sys.argv[0])} --doctor\n"
               f"       {os.path.basename(sys.argv[0])} --selftest", file=sys.stderr)
         sys.exit(2)

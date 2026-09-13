@@ -228,13 +228,22 @@
 // Real brand/platform marks, as inline SVG path data sourced via Iconify from
 // their upstream icon sets (paths taken verbatim from each project's GitHub
 // repo, not from memory):
-//   li (LinkedIn): Simple Icons v13.19.0 path — CC0 1.0, no attribution
-//     required. LinkedIn's mark was withdrawn from Simple Icons afterwards
-//     over brand-guideline enforcement, not a licence change; the path used
-//     here is the last one the project published under CC0
-//     (github.com/simple-icons/simple-icons, tag 13.19.0).
-//   gh (GitHub): Simple Icons, current — CC0 1.0, no attribution required
-//     (github.com/simple-icons/simple-icons).
+//   li (LinkedIn), gh (GitHub): Simple Icons 16.31.0 — CC0 1.0, no
+//     attribution required (github.com/simple-icons/simple-icons).
+//     LinkedIn's mark is served but flagged `hidden` upstream: it was
+//     withdrawn over brand-guideline enforcement, NOT a licence change, so
+//     the CC0 grant on the published path is irrevocable. Consequence:
+//     that one mark no longer tracks LinkedIn's logo and may be purged from
+//     the set — the refresh below prints a NOTE when it happens.
+// Refreshing these is a COMMAND, not an edit to this file: when a brand
+// changes its mark, run
+//     python3 scripts/harvest_icons.py simple-icons li=linkedin,gh=github \
+//         --update templates/lib.typ
+// which rewrites the pairs below in place from the live Iconify API, then
+// look at the render — a new path can shift the mark's optical weight at 7pt
+// even when the licence and the gate are unchanged. The data stays INLINE
+// because Typst makes no network request at compile time and the deliverable
+// must build on typst.app with no assets directory.
 //   mail, web, phone, pin: Tabler Icons, "filled" set — MIT, © Paweł Kuna
 //     (github.com/tabler/tabler-icons). mail and web are multiple non-
 //     overlapping filled subpaths concatenated into one `d` (same visual
@@ -261,9 +270,9 @@
     + "\"><path fill=\"" + c.to-hex() + "\" d=\"" + d + "\"/></svg>"),
   format: "svg", height: h))
 
-#let li-path = "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+#let li-path = "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037c-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85c3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.06 2.06 0 0 1-2.063-2.065a2.064 2.064 0 1 1 2.063 2.065m1.782 13.019H3.555V9h3.564zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"
 #let li-vb = "0 0 24 24"
-#let gh-path = "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+#let gh-path = "M12 .297c-6.63 0-12 5.373-12 12c0 5.303 3.438 9.8 8.205 11.385c.6.113.82-.258.82-.577c0-.285-.01-1.04-.015-2.04c-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729c1.205.084 1.838 1.236 1.838 1.236c1.07 1.835 2.809 1.305 3.495.998c.108-.776.417-1.305.76-1.605c-2.665-.3-5.466-1.332-5.466-5.93c0-1.31.465-2.38 1.235-3.22c-.135-.303-.54-1.523.105-3.176c0 0 1.005-.322 3.3 1.23c.96-.267 1.98-.399 3-.405c1.02.006 2.04.138 3 .405c2.28-1.552 3.285-1.23 3.285-1.23c.645 1.653.24 2.873.12 3.176c.765.84 1.23 1.91 1.23 3.22c0 4.61-2.805 5.625-5.475 5.92c.42.36.81 1.096.81 2.22c0 1.606-.015 2.896-.015 3.286c0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
 #let gh-vb = "0 0 24 24"
 #let mail-path = "M22 7.535v9.465a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-9.465l9.445 6.297l.116 .066a1 1 0 0 0 .878 0l.116 -.066l9.445 -6.297z M19 4c1.08 0 2.027 .57 2.555 1.427l-9.555 6.37l-9.555 -6.37a2.999 2.999 0 0 1 2.354 -1.42l.201 -.007h14z"
 #let mail-vb = "0 0 24 24"
@@ -274,15 +283,64 @@
 #let pin-path = "M18.364 4.636a9 9 0 0 1 .203 12.519l-.203 .21l-4.243 4.242a3 3 0 0 1 -4.097 .135l-.144 -.135l-4.244 -4.243a9 9 0 0 1 12.728 -12.728zm-6.364 3.364a3 3 0 1 0 0 6a3 3 0 0 0 0 -6"
 #let pin-vb = "0 0 24 24"
 
+// ---- Alternative mark sets for mail/web/phone/pin (drawn per candidate by
+// scripts/pick_design.py so the small glyphs stop being a shared fingerprint;
+// LinkedIn/GitHub stay Simple Icons in every set — a brand logo is a
+// functional identifier, not a style). Harvested at authoring time with
+// scripts/harvest_icons.py from the Iconify API — the same data the npm icon
+// packages publish. Inline is the preferred form (keeps the hand-off at two
+// files); an assets dir shipped alongside is an acceptable alternative.
+// Phosphor — MIT (https://github.com/phosphor-icons/core/blob/main/LICENSE)
+// harvested via Iconify API (https://api.iconify.design), set version 2.1.1 — same data as the npm package
+#let ph-envelope_simple_fill-body = "<path fill=\"currentColor\" d=\"M224 48H32a8 8 0 0 0-8 8v136a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a8 8 0 0 0-8-8m-8 144H40V74.19l82.59 75.71a8 8 0 0 0 10.82 0L216 74.19z\"/>"
+#let ph-envelope_simple_fill-vb = "0 0 256 256"
+#let ph-globe_fill-body = "<path fill=\"currentColor\" d=\"M128 24a104 104 0 1 0 104 104A104.12 104.12 0 0 0 128 24m78.36 64h-35.65a135.3 135.3 0 0 0-22.3-45.6A88.29 88.29 0 0 1 206.37 88Zm9.64 40a87.6 87.6 0 0 1-3.33 24h-38.51a157.4 157.4 0 0 0 0-48h38.51a87.6 87.6 0 0 1 3.33 24m-88-85a115.3 115.3 0 0 1 26 45h-52a115.1 115.1 0 0 1 26-45m-26 125h52a115.1 115.1 0 0 1-26 45a115.3 115.3 0 0 1-26-45m-3.9-16a140.8 140.8 0 0 1 0-48h59.88a140.8 140.8 0 0 1 0 48Zm50.35 61.6a135.3 135.3 0 0 0 22.3-45.6h35.66a88.29 88.29 0 0 1-58 45.6Z\"/>"
+#let ph-globe_fill-vb = "0 0 256 256"
+#let ph-phone_fill-body = "<path fill=\"currentColor\" d=\"M231.88 175.08A56.26 56.26 0 0 1 176 224C96.6 224 32 159.4 32 80a56.26 56.26 0 0 1 48.92-55.88a16 16 0 0 1 16.62 9.52l21.12 47.15v.12A16 16 0 0 1 117.39 96c-.18.27-.37.52-.57.77L96 121.45c7.49 15.22 23.41 31 38.83 38.51l24.34-20.71a8 8 0 0 1 .75-.56a16 16 0 0 1 15.17-1.4l.13.06l47.11 21.11a16 16 0 0 1 9.55 16.62\"/>"
+#let ph-phone_fill-vb = "0 0 256 256"
+#let ph-map_pin_fill-body = "<path fill=\"currentColor\" d=\"M128 16a88.1 88.1 0 0 0-88 88c0 75.3 80 132.17 83.41 134.55a8 8 0 0 0 9.18 0C136 236.17 216 179.3 216 104a88.1 88.1 0 0 0-88-88m0 56a32 32 0 1 1-32 32a32 32 0 0 1 32-32\"/>"
+#let ph-map_pin_fill-vb = "0 0 256 256"
+// Bootstrap Icons — MIT (https://github.com/twbs/icons/blob/main/LICENSE.md)
+// harvested via Iconify API (https://api.iconify.design), set version 1.13.1 — same data as the npm package
+#let bi-envelope_fill-body = "<path fill=\"currentColor\" d=\"M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z\"/>"
+#let bi-envelope_fill-vb = "0 0 16 16"
+#let bi-globe-body = "<path fill=\"currentColor\" d=\"M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539a7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.182 2.472a7 7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.072 2.472M3.82 11a13.7 13.7 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5zm6.853 3.472A7 7 0 0 0 13.745 12H11.91a9.3 9.3 0 0 1-.64 1.539a7 7 0 0 1-.597.933M8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855q.26-.487.468-1.068zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.7 13.7 0 0 1-.312 2.5m2.802-3.5a7 7 0 0 0-.656-2.5H12.18c.174.782.282 1.623.312 2.5zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7 7 0 0 0-3.072-2.472c.218.284.418.598.597.933M10.855 4a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4z\"/>"
+#let bi-globe-vb = "0 0 16 16"
+#let bi-telephone_fill-body = "<path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.68.68 0 0 0 .178.643l2.457 2.457a.68.68 0 0 0 .644.178l2.189-.547a1.75 1.75 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.6 18.6 0 0 1-7.01-4.42a18.6 18.6 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877z\"/>"
+#let bi-telephone_fill-vb = "0 0 16 16"
+#let bi-geo_alt_fill-body = "<path fill=\"currentColor\" d=\"M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6a3 3 0 0 1 0 6\"/>"
+#let bi-geo_alt_fill-vb = "0 0 16 16"
+
+// pmarkb — like pmark, but for a harvested INNER SVG body (may hold several
+// elements); colours it by substituting currentColor. Emits no text.
+#let pmarkb(body, vb, c, h: 7pt) = box(baseline: 0.5pt, image(
+  bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
+    + "\">" + body.replace("currentColor", c.to-hex()) + "</svg>"),
+  format: "svg", height: h))
+
 // One call per family: `#let mk = marks(ic-col)` then `nb(mk.li, [..])`.
-#let marks(c, h: 7pt) = (
-  mail: pmark(mail-path, mail-vb, c, h: h),
-  li: pmark(li-path, li-vb, c, h: h),
-  gh: pmark(gh-path, gh-vb, c, h: h),
-  web: pmark(web-path, web-vb, c, h: h),
-  phone: pmark(phone-path, phone-vb, c, h: h),
-  pin: pmark(pin-path, pin-vb, c, h: h),
-)
+#let marks(c, h: 7pt, kit: "tabler") = {
+  let brand = (li: pmark(li-path, li-vb, c, h: h), gh: pmark(gh-path, gh-vb, c, h: h))
+  if kit == "phosphor" {
+    (mail: pmarkb(ph-envelope_simple_fill-body, ph-envelope_simple_fill-vb, c, h: h),
+     web: pmarkb(ph-globe_fill-body, ph-globe_fill-vb, c, h: h),
+     phone: pmarkb(ph-phone_fill-body, ph-phone_fill-vb, c, h: h),
+     pin: pmarkb(ph-map_pin_fill-body, ph-map_pin_fill-vb, c, h: h),
+     ..brand)
+  } else if kit == "bootstrap" {
+    (mail: pmarkb(bi-envelope_fill-body, bi-envelope_fill-vb, c, h: h),
+     web: pmarkb(bi-globe-body, bi-globe-vb, c, h: h),
+     phone: pmarkb(bi-telephone_fill-body, bi-telephone_fill-vb, c, h: h),
+     pin: pmarkb(bi-geo_alt_fill-body, bi-geo_alt_fill-vb, c, h: h),
+     ..brand)
+  } else {
+    (mail: pmark(mail-path, mail-vb, c, h: h),
+     web: pmark(web-path, web-vb, c, h: h),
+     phone: pmark(phone-path, phone-vb, c, h: h),
+     pin: pmark(pin-path, pin-vb, c, h: h),
+     ..brand)
+  }
+}
 
 // ------------------------------------------------------- palette derivation
 // The harmonised mini-palette: an accent never travels alone. A pure neutral

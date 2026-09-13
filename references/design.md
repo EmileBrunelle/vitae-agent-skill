@@ -28,6 +28,36 @@ tallest internal white run must be **≥ 2.0× the median** internal white run
 (`BOUNDARY_RATIO`), and a run taller than 3.5% of page height is a hole
 unless it is a boundary (boundaries may reach 5%).
 
+**Boundaries carry ink by default (added 2026-08).** The white-run ratio can
+pass on whitespace alone, but a human scanning the page looks for a *mark*
+telling them where a section ends and the next begins. Default: every section
+boundary carries a visible separator — the family's own boundary device where
+the recipe already puts ink there (filled bar, heavy rule, band, knockout
+slab), otherwise a thin full-width hairline in `soft` ABOVE the section
+(≈0.5pt, decorative only, emits no text — ATS-safe), with the gap budget that
+the hairline replaces returned to body leading. Style it in the family's
+idiom; it never becomes a heavy accent rule under an UPPERCASE heading (clone
+marker #1 stays banned). An explicit request for a whitespace-only look
+overrides this default.
+
+**When a boundary does not read, whitespace is the LAST lever, not the first.**
+Recâdrage (Émile, 2026-09-13): the observed failure mode is an agent that sees a
+weak boundary and answers with vertical space, page after page, until the CV is
+a ladder of empty bands. The gate now warns over `SEPARATION_CEILING` (5.0×) for
+exactly that. Fixed order, stop at the first that works:
+
+1. **Add ink.** The family's own boundary device, or the thin `soft` hairline
+   above the section (§ Boundaries carry ink by default). One 0.5pt line beats
+   8pt of air and costs no page.
+2. **Raise the contrast downward** — tighten the *intra*-section rhythm (leading,
+   list-item gap, job-entry gap). The ratio is a ratio: lowering the median
+   separates the boundary without spending a millimetre of page.
+3. **Only then**, widen the section gap — and only within the family's measured
+   `above`, never past a 5% run and never with `v(1fr)`.
+
+A ratio above 5.0 on a family that *has* a device means step 3 was used to paper
+over step 1. The empty band is not separation, it is an unanswered question.
+
 **The ratio is a FLOOR, not a target, and passing it is not the test.** The
 floor is calibrated just under the families whose separation reads best —
 measured at 90 ppi: `color-band` 2.33, `hard-edge` 3.12, `swiss-grid` 3.40,
@@ -41,6 +71,29 @@ looked at: the boundary has to be obvious to the eye. A recipe that sits at
 2.00 has no margin left — one content edit fails it — and a recipe at 6.00
 with an ink device is over-separated; both were measured on `hard-edge` while
 tuning it, and 3.00 is where it landed.
+
+**The gate now measures the ink, not only the white (added 2026-09-13).**
+`measure_fill.bands()` reports boundary DEVICES alongside white runs: a row
+whose longest *unbroken* dark run spans ≥25% of the page width
+(`RULE_FLOOR`), measured against the page's modal luma rather than absolute
+black (`RULE_CONTRAST`, 20 levels) so a pale `soft` hairline and a tinted
+ground both read correctly. Measured at 150 ppi, longest run as a share of
+page width: `humanist-quiet` (device-less by design) 2.8%, `hard-edge` (short
+accent rule) 35.7%, `swiss-grid` (full-measure hairline) 86.0%, `color-band`
+(bleed bar) 100%. The floor sits in an order-of-magnitude gap, so it is not a
+tuned number.
+
+Two measurement traps, both walked into while building this, both worth not
+repeating: (1) the *fraction* of dark pixels in a row cannot separate a filled
+bar from a dense line of body text — both land near 0.5 once sampled — only
+continuity can; and (2) the longest run must be sought over the whole page, not
+on the row with the most ink, because a short accent rule covers LESS of its
+row than a dense text line covers of its own.
+
+The gate FAILs a page that carries no device anywhere AND whose boundary gap
+is over `SEPARATION_CEILING` — the « séparateurs, pas des espaces vides »
+defect. A device-less page under the ceiling is reported, not failed: that is
+the deliberately whitespace-only family, which then owes a high white ratio.
 
 **The instrument has one blind spot, and a device can walk into it.** The scan
 compares the boundary runs to the *intra-section* runs, so it needs
@@ -626,8 +679,25 @@ marks stay legible. Where a generic icon would have to be that small, use
 family, including those four**: a platform logo is a functional identifier
 of a contact channel, not ornament, and a recruiter scans for it. They are
 real brand marks — LinkedIn and GitHub from Simple Icons (CC0 1.0, no
-attribution required), email/phone/pin/website from Tabler Icons' filled set
-(MIT) — provenance kept in a comment in the `.typ` — inlined as an SVG string via
+attribution required) in every kit, while the email/phone/pin/website glyphs
+come from a **mark kit drawn per candidate** by `pick_design.py` (2026-08:
+Tabler filled, Phosphor fill, Bootstrap Icons fill — all MIT), so the small
+glyphs stop being a shared fingerprint of the tool; `marks(c, kit: "…")`
+selects the kit, and new kits are added with `scripts/harvest_icons.py`, which
+pulls any set's path data from the Iconify API (the same data the npm icon
+packages publish) with licence and version auto-documented. The same script
+also **refreshes** marks already in `lib.typ` in place
+(`harvest_icons.py simple-icons li=linkedin,gh=github --update
+templates/lib.typ`), so a brand redrawing its logo is one command and not an
+edit to the skill — with two things it will not do silently: it refuses a body
+that is not path-only (a `<circle>` would vanish through `pmark`'s single `d`)
+and it prints a NOTE for a mark flagged `hidden` upstream (LinkedIn's, withdrawn
+over brand guidelines — the CC0 grant holds, but that path no longer tracks the
+logo). Always look at the render afterwards: a refreshed path can shift optical
+weight at 7pt with every mechanical check unchanged. Inline is the
+preferred form (it keeps the hand-off self-contained); an assets dir shipped
+alongside is acceptable when a user prefers it. Provenance kept in a comment
+in the `.typ` — inlined as an SVG string via
 `image(bytes(…), format: "svg")`, so the document stays ONE self-contained
 file, the mark is vector (it emits no text — verified at the gate in every
 family) and its colour is a parameter rather than baked into a file:
