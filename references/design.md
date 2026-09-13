@@ -696,35 +696,50 @@ marks stay legible. Where a generic icon would have to be that small, use
 *Platform marks* (email, LinkedIn, GitHub, a personal site) are in **every
 family, including those four**: a platform logo is a functional identifier
 of a contact channel, not ornament, and a recruiter scans for it. They are
-real brand marks — LinkedIn and GitHub from Simple Icons (CC0 1.0, no
-attribution required) in every kit, while the email/phone/pin/website glyphs
-come from a **mark kit drawn per candidate** by `pick_design.py` (2026-08:
-Tabler filled, Phosphor fill, Bootstrap Icons fill — all MIT), so the small
-glyphs stop being a shared fingerprint of the tool; `marks(c, kit: "…")`
-selects the kit, and new kits are added with `scripts/harvest_icons.py`, which
-pulls any set's path data from the Iconify API (the same data the npm icon
-packages publish) with licence and version auto-documented. The same script
-also **refreshes** marks already in `lib.typ` in place
-(`harvest_icons.py bi li=linkedin,gh=github --update
-templates/lib.typ`), so a brand redrawing its logo is one command and not an
-edit to the skill — with two things it will not do silently: it refuses a body
-that is not path-only (a `<circle>` would vanish through `pmark`'s single `d`)
-and it prints a NOTE for a mark flagged `hidden` upstream (LinkedIn's, withdrawn
-over brand guidelines — the CC0 grant holds, but that path no longer tracks the
-logo). Always look at the render afterwards: a refreshed path can shift optical
-weight at 7pt with every mechanical check unchanged. Inline is the
-preferred form (it keeps the hand-off self-contained); an assets dir shipped
-alongside is acceptable when a user prefers it. Provenance kept in a comment
-in the `.typ` — inlined as an SVG string via
-`image(bytes(…), format: "svg")`, so the document stays ONE self-contained
-file, the mark is vector (it emits no text — verified at the gate in every
-family) and its colour is a parameter rather than baked into a file:
+real brand marks — LinkedIn and GitHub from **Bootstrap Icons** (MIT) in
+every kit, while the email/phone/pin/website glyphs come from a **mark kit
+drawn per candidate** by `pick_design.py` (Tabler filled, Phosphor fill,
+Bootstrap fill — all MIT), so the small glyphs stop being a shared fingerprint
+of the tool; `marks(c, kit: "…")` selects the kit.
+
+**The path data is not in this repo.** It is third-party artwork, so the skill
+ships the address instead: `scripts/harvest_icons.py <cv folder>` pulls every
+mark from the Iconify API (the same data the npm icon packages publish) into
+`<cv folder>/icons.typ`, at the moment a CV is built, written beside the
+`lib.typ` that does `#import "icons.typ": *` — never into `templates/`, whose
+committed `icons.typ` holds the EMPTY fallback so that import always resolves
+even with no network and no script run. A Typst import resolves against
+the importing file, so the copy of `lib.typ` in the deliverable folder finds
+the `icons.typ` next to it and the folder can be moved anywhere; nothing in
+the 28 family files changes, they still just call `marks(ic-col)`. Consequence:
+no vendored artwork, no tag to track, no refresh command to maintain — the
+marks are current by construction, and adding a kit is an entry in the script's
+`ICONS` table plus a branch in `marks()`.
+
+The file is written UNCONDITIONALLY, including on a network or API failure —
+then with empty strings, loudly on stderr, exit status still 0. Typst has no
+"if this file exists", so unconditional generation is what buys graceful
+degradation with no conditional logic in the document: an empty body makes
+`pmark` return `none`, `nb` drops the mark and its nbsp, and the contact line
+keeps the URL it already carries in plain text (`linkedin.com/in/handle`). The
+CV stays valid and ATS-readable, one notch plainer. The script still refuses a
+stroke-based body (it would fill into a blob) and prints a NOTE for a mark
+flagged `hidden` upstream (LinkedIn's, withdrawn over brand guidelines).
+Always look at the render: upstream can redraw a path and shift its optical
+weight at 7pt with every mechanical check unchanged.
+
+Provenance travels in the generated file's header. The mark is inlined as an
+SVG string via `image(bytes(…), format: "svg")`, so it is vector, emits no
+text (verified at the gate in every family) and its colour is a parameter
+rather than baked into a file:
 
 ```typst
-#let pmark(d, vb, c, h: 7pt) = box(baseline: 0.5pt, image(
-  bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
-    + "\"><path fill=\"" + c.to-hex() + "\" d=\"" + d + "\"/></svg>"),
-  format: "svg", height: h))
+#let pmark(body, vb, c, h: 7pt) = if body == "" { none } else {
+  box(baseline: 0.5pt, image(
+    bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
+      + "\">" + body.replace("currentColor", c.to-hex()) + "</svg>"),
+    format: "svg", height: h))
+}
 ```
 
 The *colour* is part of the family's accent budget, not a given: accent
@@ -744,11 +759,12 @@ tuning loop after adding them. Never emoji, never clipart, never a font glyph
 (an icon *font* would leak private-use characters into the extraction — the
 path data does not).
 
-**Sourcing a new icon later**: same recipe as above — inline path data from
-Simple Icons (brand/platform logos, CC0) or Lucide/Tabler (generic icons,
-ISC/MIT) via Iconify, pasted as a `d`/`viewBox` pair into `lib.typ` exactly
-like `pmark`'s existing entries. Never an icon font: private-use codepoints
-leak into the extraction (`references/ats.md`).
+**Sourcing a new icon later**: add `var: "prefix:icon-name"` to `ICONS` in
+`scripts/harvest_icons.py` and read `var-body` / `var-vb` from `marks()`.
+Prefer a FILL-based set (Tabler `*-filled`, Phosphor `*-fill`, Bootstrap
+`*-fill`) — the script refuses a stroke icon, which `pmark` would fill into a
+blob. Never paste path data into the repo, and never an icon font: private-use
+codepoints leak into the extraction (`references/ats.md`).
 
 Shared to all families (deltas vs the template, applied once): the palette
 block above, and note that the template's *body* hardcodes the accent in two
@@ -1685,7 +1701,7 @@ one closes (the *why* is the part that transfers — § Guided creation):
 | `chip` | a painted chip — `highlight`, never `box(fill:)`; `radius` is a passthrough so a family can shape a whole RUN of segments with one value | a box per item becomes its own text cluster and the rows interleave |
 | `specline` | the specialities line, items boxed, no `tracking` | letterspacing extracts as `N E X T`; an item split at a line end stops matching |
 | `nb` | mark + `~` + value inside a box | a mark orphaned at a line end separates from its value |
-| `marks` / `pmark` | the platform logos as inlined SVG path data | an icon FONT leaks private-use codepoints into the extraction |
+| `marks` / `pmark` | the platform logos as SVG path data, fetched into `icons.typ` at build time | an icon FONT leaks private-use codepoints into the extraction |
 | `icons-line` / `icons-solid` | the two generic icon styles, colour as a parameter | — (drawn from primitives: emits no text, and no `assets/` dir to hand over) |
 | `hrow` | the single-ROW alignment grid, right cell = the photo slot | multi-ROW data grids scramble order; single-row ones are safe *when each cell is one line* |
 | `earlyline` | the condensed early-career line, role first and years last in one paragraph | a bullet-less entry orphans its date; text before the date cannot |

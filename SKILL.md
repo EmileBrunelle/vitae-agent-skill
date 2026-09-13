@@ -162,9 +162,19 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    advertises that the document is tool output in translation. For a
    right-to-left language this also covers the read-me's own text direction.
 4. **Draft from the template.** Copy `templates/resume.typ` **and
-   `templates/lib.typ` beside it** (the hand-off is two files — Typst has no
-   bundler; `lib.typ` holds the verified shared mechanics, the devices stay
-   per-family), load the field pack if one exists, keep the design system's
+   `templates/lib.typ` and `templates/icons.typ` beside it** (the hand-off is
+   the first two files — Typst has no bundler; `lib.typ` holds the verified
+   shared mechanics, the devices stay per-family; `icons.typ` is the EMPTY
+   fallback `lib.typ` imports, and copying it is what keeps the folder
+   compiling with no network), then run **`python3 scripts/harvest_icons.py
+   <that folder>`** once: the contact/platform mark path data is third-party
+   artwork this skill does not ship, so it is fetched at build time into
+   `<that folder>/icons.typ`, overwriting the empty copy — never into
+   `templates/`. The script always writes the file and always exits 0 — if the
+   API is unreachable it says so on stderr and writes empty marks, and the CV
+   then compiles with no icons and its contact URLs in plain text. `verify.py`
+   copies the empty fallback in if the folder has none, so the gate never
+   fails for a missing `icons.typ`, load the field pack if one exists, keep the design system's
    invariants (`references/design.md`). Once `pick_design.py` has named the
    family, read that family's **reference implementation** in
    `templates/families/<family>/resume.typ` — all fourteen are there, each one
@@ -303,6 +313,8 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    fact-sheet diff, the visual look) are never covered by the script and
    stay manual:
    - `typst compile cv.typ` then `pdfinfo cv.pdf | grep Pages` — exact count.
+     (`icons.typ` must sit beside `lib.typ` first — step 4; the empty
+     fallback compiles, it just draws no marks.)
    - `python3 scripts/measure_fill.py page.png` on rendered PNGs — target per
      rule 5, and it is the **family's own** target, derived from the family's
      bottom margin (94-96% for the dense gabarits, 92-94% for the airy ones):

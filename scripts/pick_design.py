@@ -583,7 +583,7 @@ GUTTER_RAIL_DOMAIN = (
 # platform-mark glyph set (mail/web/phone/pin): drawn per candidate so the
 # small glyphs stop being a shared fingerprint. LinkedIn/GitHub stay Simple
 # Icons in every set — a brand logo is a functional identifier, not a style.
-# Sets are vendored in lib.typ; add more with scripts/harvest_icons.py
+# Sets are fetched into the CV folder's icons.typ; add more in harvest_icons.py
 # (Iconify API — the same data the npm icon packages publish).
 MARK_SETS = [
     ("tabler", "Tabler Icons filled, MIT"),
@@ -849,6 +849,14 @@ def emit_typ(p, market):
          % (p["family"], p["career"], market, p["key"]),
          "// PREAMBLE ONLY. The hand-off is TWO files: this .typ and lib.typ "
          "beside it.",
+         "// Copy templates/icons.typ here too (the empty fallback lib.typ "
+         "imports), then",
+         "// fetch the real contact marks into THIS folder (the path data is "
+         "third-party",
+         "// artwork the skill does not ship): python3 scripts/harvest_icons.py .",
+         "// It always writes ./icons.typ — on a network failure with empty "
+         "marks, and the CV",
+         "// then compiles with no icons and its contact URLs in plain text.",
          '#import "lib.typ": *',
          "",
          "// ---------- Palette (scripts/gen_palette.py validates every "

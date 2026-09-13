@@ -1,46 +1,31 @@
 #!/usr/bin/env python3
-"""Harvest icon path data from the icon-set ecosystem into inline Typst code.
+"""Fetch the contact/platform mark path data into a generated `icons.typ`.
 
-The deliverable (.typ + lib.typ) must compile on typst.app with zero installs,
-so icons are INLINED — but they don't have to be hand-copied: this script pulls
-any set's SVG bodies from the Iconify API (https://iconify.design), which
-mirrors the icon packages published on npm (Tabler, Phosphor, Bootstrap,
-Lucide, …), and emits ready-to-paste Typst `#let` definitions with the
-provenance and licence documented. An npm-based fetch of the same package is an
-equivalent alternative for a machine that already has node; this script only
-needs the Python stdlib.
+Run this at CV-BUILD time, in the folder that holds the `.typ` and its
+`lib.typ` copy, just before `typst compile`:
 
-Run it AT AUTHORING TIME (adding a set to lib.typ), never at CV-build time.
+    python3 scripts/harvest_icons.py <folder>      # writes <folder>/icons.typ
 
-`--update` closes the copy-paste loop: it rewrites the `#let <var>-path` /
-`#let <var>-vb` pairs in lib.typ in place from the live API, so refreshing a
-brand mark whose logo changed is one command and NOT an edit to the skill:
+Why fetch instead of vendoring: the path data is third-party artwork (Bootstrap
+Icons, Tabler, Phosphor — all MIT). This repo ships none of it; it ships the
+address. `lib.typ` does `#import "icons.typ": *`, so the generated file must
+sit beside the `lib.typ` that imports it — Typst resolves an import relative to
+the importing file, symlinks included. Never point this at `templates/`: the
+`icons.typ` committed there is the EMPTY fallback that makes that import
+resolve with no network and no script run, and overwriting it would put
+third-party artwork in the repo and noise in `git status`.
 
-    python3 harvest_icons.py bi li=linkedin,gh=github \
-        --update ../templates/lib.typ
+The file is ALWAYS written, including when the API is unreachable — then with
+empty strings. Typst has no "if this file exists", so unconditional generation
+is what makes graceful degradation possible without conditional logic in the
+document: an empty body makes `pmark` render nothing, the contact line keeps
+its URL in plain text, and the CV stays valid and ATS-readable. A failure is
+loud on stderr but never fails the build (exit status stays 0).
 
-Why the data still has to be inlined rather than fetched: Typst makes no
-network request at compile time, and the deliverable must build on typst.app
-with no assets directory. So the freshness lives in this script, not in the
-document. Re-run it when a brand refreshes its mark, then LOOK at the render —
-a new path can change the mark's optical weight at 7pt even when the URL,
-the licence and the gate all stay identical.
-
-Usage:
-    python3 harvest_icons.py <prefix> <icon,icon,...> [--var-prefix name]
-    python3 harvest_icons.py <prefix> <var=icon,var=icon> --update <lib.typ>
-    python3 harvest_icons.py ph envelope-simple-fill,globe-fill,phone-fill,map-pin-fill --var-prefix ph
-    python3 harvest_icons.py bi envelope-fill,globe,telephone-fill,geo-alt-fill --var-prefix bi
-
-Notes:
-- Prefer FILL-based sets (Tabler filled, Phosphor *-fill, Bootstrap *-fill):
-  they colour reliably. Stroke-based sets (Lucide, Feather) render through
-  currentColor substitution in `pmarkb` but hairline strokes can disappear at
-  7pt — eyeball the render before adopting one.
-- The emitted body is the icon's inner SVG with its viewBox; `lib.typ`'s
-  `pmarkb` wraps it and substitutes currentColor with the family's colour.
-- ALWAYS re-run the extraction gate after adding a set: an icon must emit NO
-  text (the pmark/pmarkb image mechanism guarantees it, but verify anyway).
+Adding a kit: add its vars to ICONS below and teach `marks()` in lib.typ about
+them. Prefer FILL-based sets (Tabler *-filled, Phosphor *-fill, Bootstrap
+*-fill): a stroke icon is REFUSED here (it renders as a solid blob through
+`pmark`, which substitutes the colour into `currentColor` and fills).
 """
 import json
 import re
@@ -49,116 +34,108 @@ import urllib.request
 
 API = "https://api.iconify.design"
 
+# Typst variable name -> "<iconify prefix>:<icon name>". lib.typ reads
+# `<var>-body` and `<var>-vb`.
+ICONS = {
+    # default kit: Bootstrap brand marks + Tabler filled generics
+    "li": "bi:linkedin",
+    "gh": "bi:github",
+    "mail": "tabler:mail-filled",
+    "web": "tabler:world-filled",
+    "phone": "tabler:phone-filled",
+    "pin": "tabler:map-pin-filled",
+    # phosphor kit
+    "ph-envelope_simple_fill": "ph:envelope-simple-fill",
+    "ph-globe_fill": "ph:globe-fill",
+    "ph-phone_fill": "ph:phone-fill",
+    "ph-map_pin_fill": "ph:map-pin-fill",
+    # bootstrap kit
+    "bi-envelope_fill": "bi:envelope-fill",
+    "bi-globe": "bi:globe",
+    "bi-telephone_fill": "bi:telephone-fill",
+    "bi-geo_alt_fill": "bi:geo-alt-fill",
+}
+
 
 def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "vitae-harvest/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "vitae-harvest/2.0"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
 
 
-def main():
-    argv = sys.argv[1:]
-    out = None
-    if "--update" in argv:
-        i = argv.index("--update")
-        out = argv[i + 1]
-        del argv[i:i + 2]
-    var = None
-    if "--var-prefix" in argv:
-        i = argv.index("--var-prefix")
-        var = argv[i + 1]
-        del argv[i:i + 2]
-    if len(argv) != 2:
-        sys.exit(__doc__)
-    prefix, names = argv
-    var = var or prefix
-    # --update takes `var=icon` pairs: the lib.typ variable is `li`, the icon
-    # upstream is `linkedin`, and nothing in the API knows about that mapping.
-    mapping = dict(p.split("=", 1) for p in names.split(",")) if out else {}
-    if out:
-        names = ",".join(mapping.values())
-
-    coll = fetch(f"{API}/collections?prefix={prefix}").get(prefix, {})
-    data = fetch(f"{API}/{prefix}.json?icons={names}")
-    w, h = data.get("width", 16), data.get("height", 16)
-    lic = coll.get("license", {})
-    print(f"// {coll.get('name', prefix)} — {lic.get('title', '?')} "
-          f"({lic.get('url', '?')})")
-    print(f"// harvested via Iconify API ({API}), set version "
-          f"{coll.get('version', '?')} — same data as the npm package")
-    missing = data.get("not_found", [])
-    if missing:
-        print(f"// NOT FOUND in set: {missing}", file=sys.stderr)
-    if out:
-        return update(out, data, coll, mapping, w, h)
-    for name, icon in data.get("icons", {}).items():
-        iw, ih = icon.get("width", w), icon.get("height", h)
-        body = icon["body"].replace('"', '\\"')
-        slug = name.replace("-", "_")
-        print(f'#let {var}-{slug}-body = "{body}"')
-        print(f'#let {var}-{slug}-vb = "0 0 {iw} {ih}"')
+def fetch_set(prefix, names):
+    """(icons dict, collection meta) for one set; ({}, {}) on any failure."""
+    try:
+        coll = fetch(f"{API}/collections?prefix={prefix}").get(prefix, {})
+        data = fetch(f"{API}/{prefix}.json?icons={','.join(names)}")
+    except Exception as e:                      # network, DNS, HTTP, bad JSON
+        print(f"ICONS: {prefix} unreachable ({e}) — marks will be omitted, "
+              f"contact lines keep their URLs as text", file=sys.stderr)
+        return {}, {}
+    if data.get("not_found"):
+        print(f"ICONS: {prefix}: not in set: {data['not_found']}", file=sys.stderr)
+    return data, coll
 
 
-def one_path(body):
-    """Return the concatenated `d` of a body made ONLY of <path> elements.
-
-    `pmark` renders a single `d` string, so a body carrying a <circle>, <rect>
-    or <g transform> would silently lose that geometry. Refuse instead: the
-    caller keeps the old mark and a human picks a different icon.
-    """
-    tags = set(re.findall(r"<(\w+)", body))
-    if tags - {"path"}:
-        return None, f"body is not path-only ({', '.join(sorted(tags))})"
-    # A stroke icon is path-only too, but `pmark` FILLS the path: harvesting
-    # tabler:brand-github (one path, fill="none" stroke-width="2") renders a
-    # blob, not a logo. Reject it here rather than leaving it to the eye.
+def usable(var, name, icon):
+    """Body of a fill-based icon, or None with a reason on stderr."""
+    body = icon["body"]
     if 'fill="none"' in body or re.search(r'\bstroke="(?!none)', body):
-        return None, ("body is stroke-based, not fill-based — pmark fills the "
-                      "path, so a stroke icon renders as a solid blob; use the "
-                      "set's filled variant (ph:*-fill, bi:*-fill, tabler *-filled)")
-    ds = re.findall(r'\bd="([^"]+)"', body)
-    return ("".join(ds), None) if ds else (None, "no path data")
+        print(f"ICONS: {var} ('{name}') is stroke-based — pmark fills the "
+              f"path, so it would render as a blob; omitted", file=sys.stderr)
+        return None
+    if icon.get("hidden"):
+        # Withdrawn-but-served marks (LinkedIn's, pulled over brand-guideline
+        # enforcement): the licence grant holds, but the path stops tracking
+        # the logo and may be purged. Say so rather than degrade silently.
+        print(f"ICONS: {var} ('{name}') is hidden/deprecated upstream — "
+              f"served for compatibility, no longer maintained", file=sys.stderr)
+    return body
 
 
-def update(path, data, coll, mapping, w, h):
-    """Rewrite the `#let <var>-path` / `-vb` pairs in lib.typ, in place."""
-    src = open(path).read()
-    icons, changed, kept = data.get("icons", {}), [], []
-    for var, name in mapping.items():
-        icon = icons.get(name)
-        if icon is None:
-            print(f"SKIP {var}: '{name}' not in {coll.get('name', '?')} "
-                  f"— nothing written", file=sys.stderr)
-            continue
-        if icon.get("hidden"):
-            # Simple Icons keeps withdrawn brand marks served-but-hidden
-            # (LinkedIn, after its brand-guideline enforcement). Still CC0 and
-            # still fetchable, but it will not track future logo changes and
-            # may be purged: say so rather than refresh it silently.
-            print(f"NOTE {var}: '{name}' is marked hidden/deprecated upstream "
-                  f"— served for compatibility, no longer maintained",
-                  file=sys.stderr)
-        d, why = one_path(icon["body"])
-        if d is None:
-            print(f"SKIP {var}: {why} — nothing written", file=sys.stderr)
-            continue
-        vb = f"0 0 {icon.get('width', w)} {icon.get('height', h)}"
-        new = (f'#let {var}-path = "{d}"\n#let {var}-vb = "{vb}"')
-        pat = re.compile(rf'^#let {re.escape(var)}-path = ".*"\n'
-                         rf'#let {re.escape(var)}-vb = ".*"$', re.M)
-        if not pat.search(src):
-            print(f"SKIP {var}: no `#let {var}-path` + `-vb` pair in {path}",
-                  file=sys.stderr)
-            continue
-        (changed if pat.search(src).group(0) != new else kept).append(var)
-        src = pat.sub(lambda _m: new, src, count=1)
-    open(path, "w").write(src)
-    v = coll.get("version", "?")
-    print(f"{path}: updated {changed or 'nothing'} "
-          f"(unchanged: {kept or 'none'}) from {coll.get('name','?')} {v}")
-    if changed:
-        print("Re-render and LOOK at the marks, then re-run the extraction "
-              "gate — a refreshed path can shift optical weight at 7pt.")
+# ponytail: no cache — every CV build spends 3 API round trips (one per set)
+# and a build with no network gets no marks at all. Ceiling: fine at one CV per
+# session. If builds get frequent or offline-first matters, cache the last good
+# icons.typ under ~/.cache/vitae/ and copy it in when the fetch fails.
+def main():
+    if len(sys.argv) != 2:
+        sys.exit(__doc__)
+    out = sys.argv[1].rstrip("/") + "/icons.typ"
+
+    by_prefix = {}
+    for var, ref in ICONS.items():
+        prefix, name = ref.split(":", 1)
+        by_prefix.setdefault(prefix, []).append((var, name))
+
+    lines = ["// GENERATED by scripts/harvest_icons.py — do not edit, do not",
+             "// commit. Icon path data fetched from the Iconify API",
+             f"// ({API}) when this CV was built; the same data the npm icon",
+             "// packages publish. An empty value means the fetch failed: the",
+             "// mark is then simply not drawn.", ""]
+    got = 0
+    for prefix, wanted in by_prefix.items():
+        data, coll = fetch_set(prefix, [n for _, n in wanted])
+        icons = data.get("icons", {})
+        dw, dh = data.get("width", 16), data.get("height", 16)
+        lic = coll.get("license", {})
+        lines.append(f"// {coll.get('name', prefix)} — {lic.get('title', '?')} "
+                     f"({lic.get('url', '?')}), set version "
+                     f"{coll.get('version', '?')}")
+        for var, name in wanted:
+            icon = icons.get(name)
+            body = usable(var, name, icon) if icon else None
+            if body is None:
+                lines += [f'#let {var}-body = ""', f'#let {var}-vb = ""']
+                continue
+            got += 1
+            vb = f"0 0 {icon.get('width', dw)} {icon.get('height', dh)}"
+            lines += [f'#let {var}-body = "{body.replace(chr(34), chr(92) + chr(34))}"',
+                      f'#let {var}-vb = "{vb}"']
+        lines.append("")
+
+    open(out, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    print(f"{out}: {got}/{len(ICONS)} marks"
+          + ("" if got == len(ICONS) else " — the rest render as no mark"))
 
 
 if __name__ == "__main__":
