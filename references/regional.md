@@ -15,6 +15,8 @@ file for the target market:
 - `regional/southeast-asia.md` — Indonesia, Malaysia, Singapore,
   Philippines, Vietnam, Thailand (one file, six *non-interchangeable*
   markets — read the country section, never the file average)
+- `regional/maghreb.md` — Morocco, Algeria, Tunisia (one file, three
+  *non-interchangeable* markets — same warning)
 
 **If the target market has no file, do not infer from training data** —
 markets outside this set (Middle East, East Asia, Latin America…) do not form
@@ -42,6 +44,9 @@ The market files carry only their deltas from this table.
 | Philippines | us-letter ("short bond"); a4 accepted digitally | Expected (2×2 in ID photo) | EN, American spelling | Rich by custom and contracting; Character References still normal | Formal; local sections (Seminars and Trainings, Eligibility) | 1 p. fresh grad, 2 p. at 5+ yrs |
 | Vietnam | a4 | Optional on the modern CV | VI; EN for FDI; VI+EN bilingual is real | Off the CV — those fields belong to the notarised sơ yếu lý lịch | Formal; state sector also wants the stamped form | 1-2 p. |
 | Thailand | a4 (LOW confidence — verify) | Expected, formal studio headshot | TH; EN for multinationals | Customary (incl. military status) though PDPA tells employers not to ask | Formal; expected-salary field is standard | 1-2 p. |
+| Morocco | a4 | Still quasi-expected | FR private sector; AR public; EN rising | Birth date/nationality declining — omit by default | French mechanics; « titre de CV » expected | 1 p. junior, 2 p. senior |
+| Algeria | a4 | Quasi-expected | FR private; AR public | Maximalist custom (birth, marital, service national) — warn user | French mechanics, detailed CVs | 2-3 p. normal |
+| Tunisia | a4 | Common in local models | FR private; EN valued in finance/multinationals | Modern guides say omit | French mechanics; « notions/courant/bilingue » for languages | 1 p. |
 
 Cautions the matrix compresses: **paper is us-letter in exactly two places**
 (North America, and Philippines print); **a national ID number never belongs

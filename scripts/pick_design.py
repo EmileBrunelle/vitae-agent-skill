@@ -580,6 +580,18 @@ GUTTER_RAIL_DOMAIN = (
 )
 
 
+# platform-mark glyph set (mail/web/phone/pin): drawn per candidate so the
+# small glyphs stop being a shared fingerprint. LinkedIn/GitHub stay Simple
+# Icons in every set — a brand logo is a functional identifier, not a style.
+# Sets are vendored in lib.typ; add more with scripts/harvest_icons.py
+# (Iconify API — the same data the npm icon packages publish).
+MARK_SETS = [
+    ("tabler", "Tabler Icons filled, MIT"),
+    ("phosphor", "Phosphor fill, MIT — harvested via Iconify/npm"),
+    ("bootstrap", "Bootstrap Icons fill, MIT — harvested via Iconify/npm"),
+]
+
+
 def _idx(key, n, salt=""):
     """First 8 hex digits of sha256(salt+key), modulo n — POSIX-reproducible."""
     h = hashlib.sha256((salt + key).encode("utf-8")).hexdigest()[:8]
@@ -709,6 +721,7 @@ def pick(name, field, career="early", photo=False, conservative=False,
                 accent=d["accents"][ai],
                 accent2=d.get("accents2", [None] * len(d["accents"]))[ai],
                 marker=d["markers"][_idx(key, len(d["markers"]), "marker|")],
+                markset=MARK_SETS[_idx(key, len(MARK_SETS), "markset|")],
                 labels=lab, font_register=fp["register"],
                 display=disp, display_wanted=disp_want, display_note=disp_note,
                 body=body, body_wanted=body_want, body_note=body_note)
@@ -737,8 +750,9 @@ def report(p, market):
         *(["family variant  : %s   (this family's own variant axis — apply it "
            "as drawn)" % p["variant"]] if p["variant"] else []),
         "contact icons   : %s" % d["icons"],
-        "platform marks  : email · LinkedIn · GitHub · site — in EVERY family "
-        "(Font Awesome Free path data, Icons CC BY 4.0, inlined as SVG)",
+        "platform marks  : email · LinkedIn · GitHub · site — in EVERY family; "
+        "mail/web/phone/pin glyphs from the drawn mark set: %s (%s); "
+        "LinkedIn/GitHub always Simple Icons, CC0" % p["markset"],
         "section labels  : profile=%r  skills=%r  soft=%r"
         % (p["labels"]["profile"], p["labels"]["skills"], p["labels"]["soft"]),
         "                  (Education / Languages / the experience sections keep"
@@ -872,7 +886,8 @@ def emit_typ(p, market):
                  % ("solid" if d["icons"].startswith("solid") else "line")
                  + ("   // bg: the band colour where they sit reversed out"
                     if col == "white" else ""))
-    o += ["#let mk = marks(ic-col)     // platform marks: EVERY family carries these",
+    o += ["#let mk = marks(ic-col, kit: \"%s\")   // drawn mark set: %s"
+          % p["markset"],
           "",
           "// ---------- Gabarit (fill target %s%% is derived from the bottom "
           "margin) ----------" % pg["fill"],
