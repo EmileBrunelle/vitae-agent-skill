@@ -72,11 +72,17 @@ with an ink device is over-separated; both were measured on `hard-edge` while
 tuning it, and 3.00 is where it landed.
 
 **The gate now measures the ink, not only the white (added 2026-09-13).**
-`measure_fill.bands()` reports boundary DEVICES alongside white runs: a row
-whose longest *unbroken* dark run spans ≥8% of the page width
+`measure_fill.bands()` reports candidate DEVICES alongside white runs: a row
+whose longest *unbroken* dark run spans ≥4% of the page width
 (`RULE_FLOOR`), measured against the page's modal luma rather than absolute
 black (`RULE_CONTRAST`, 20 levels) so a pale `soft` hairline and a tinted
-ground both read correctly. Measured at 150 ppi, longest run as a share of
+ground both read correctly. A wide run is only a CANDIDATE: `verify.py`
+(`boundary_ink()`) keeps the ones that sit at a section boundary — in a tall
+gap, capping it, or splitting it — and requires at least `DEVICE_QUORUM` (2)
+of them, because width alone cannot tell a rule from an underline (a
+`#show link: underline` on the contact line measures 21.8%, a two-column table
+rule 86.4%, both wider than `quiet-luxury`'s real 5.65% tick) and one mark is
+the flourish under the name, not a boundary system. Measured at 150 ppi, longest run as a share of
 page width: `humanist-quiet` (device-less by design) 2.8%, `margin-index`
 (accent rule inside a 2.5cm margin column) 11.5%, `hard-edge` (short accent
 rule) 35.7%, `swiss-grid` (full-measure hairline) 86.0%, `color-band` (bleed
@@ -260,7 +266,7 @@ break at arm's length. Two requirements, both verified per family:
   all and the ratio does not apply: `margin-index` puts the title in a 2.5cm
   margin column, so its whole boundary budget is the 30pt section gap plus
   the short accent rule above the title (11.5% of page width — real ink, and
-  the reason `RULE_FLOOR` sits at 8%), with the white-run ratio below
+  the reason `RULE_FLOOR` sits below that), with the white-run ratio below
   governing the rest (7.40, the highest of the roster).
 - **Measured, in the gate**: `scripts/verify.py` scans every rendered PNG
   (`measure_fill.gaps`) and FAILs when the tallest internal white run is

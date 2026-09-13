@@ -38,15 +38,20 @@ def measure(path):
     return f"ink from {lo / h * 100:.0f}% to {hi / h * 100:.0f}%"
 
 
-# A dark run this wide (share of page width) is a DEVICE. 0.25 was the first
-# guess and it produced a FALSE FAIL on `margin-index`, whose accent rule is
-# real but lives in a 2.5cm margin column: measured at 150 ppi it spans 11.5%,
-# and no text row on that page comes close. The corpus separates cleanly —
-# text tops out near 2.8% (`humanist-quiet`, genuinely device-less), a short
-# margin rule lands at 11.5%, a full-measure rule at 35.7% and up. 0.08 sits
-# between the two clusters with room on both sides. Raising it back will fail
-# any family whose device is deliberately shorter than the text column.
-RULE_FLOOR = 0.08
+# A dark run this wide (share of page width) is a candidate DEVICE. This is a
+# PREFILTER, not the test: it cannot tell a rule from an underline, because
+# "longest dark run" says nothing about WHERE the run is. Measured at 90 ppi
+# over the 14 families, the two populations overlap head to tail — real devices
+# as narrow as 5.65% (`quiet-luxury`'s inline tick), accidental text ink as wide
+# as 21.8% (a `#show link: underline` on the contact line) and 86.4% (a
+# two-column table rule). No value of this constant separates them. What does is
+# verify.py's check that the run sits AT a section boundary (there is no text in
+# a boundary), so this number only has to sit under the thinnest genuine device
+# and over ordinary text: text tops out at 3.66% across the corpus, the thinnest
+# real device is 5.65%, so 0.04 clears both with room. Do NOT raise it back to
+# 0.08: that alone false-failed `editorial-serif` (7.61%) and `avant-poster`
+# (7.29%), whose devices are real.
+RULE_FLOOR = 0.04
 RULE_CONTRAST = 20  # …and "dark" for a DEVICE means this much below the paper
 
 
@@ -58,14 +63,13 @@ def bands(path, thr=150, rule=RULE_FLOOR, contrast=RULE_CONTRAST):
     the first and last ink row, so the page margins count as neither.
 
     A row is WHITE when it holds no dark pixel. A row is a BAND when its
-    longest UNBROKEN dark run spans at least `rule` of the page width: that is
-    the signature of a boundary DEVICE — a hairline, a filled bar, a knocked-out
-    slab — and text cannot fake it, because word gaps chop every text row into
-    short runs. Measured at 150 ppi on freshly compiled pages, longest run as a
-    share of page width: humanist-quiet (no device by design) 2.8%, hard-edge
-    (short accent rule) 35.7%, swiss-grid (full-measure hairline) 86.0%,
-    color-band (bleed bar) 100%. The floor sits in the gap between the first
-    two, which is an order of magnitude wide — it is not a tuned number.
+    longest UNBROKEN dark run spans at least `rule` of the page width: a
+    hairline, a filled bar or a knocked-out slab reads that way, and ordinary
+    body text does not, because word gaps chop every text row into short runs.
+    Text CAN still fake it — an underlined link runs 21.8% unbroken, a
+    two-column table rule 86.4% — so a band here is a candidate, not a verdict;
+    see RULE_FLOOR, and verify.py, which accepts only the bands that sit at a
+    section boundary.
 
     A device is measured against the PAPER (the page's modal luma), not against
     absolute black: the default `soft` hairline is a pale rule — luma ~180 on
