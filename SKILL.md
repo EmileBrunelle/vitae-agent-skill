@@ -149,6 +149,18 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    regenerated from it (companion-guide.md, Delivery package) — a
    hand-maintained working copy plus a hand-maintained delivery copy WILL
    drift.
+   **The target language governs the WHOLE package, not just the CV.** The
+   companion guide, the read-me, every requested format (the .docx included),
+   and the folder and file NAMES are in the candidate's language. No language
+   suffix when only one language ships — `guide.pdf`, not `guide-ar.pdf`: the
+   recipient has no reason to see the production machinery. Harvested from
+   four consecutive corrections in one session (2026-08-27: « le guide qu'on
+   lui envoie devrait être en arabe seulement », « mets les titres de dossier,
+   le lisez-moi et tout en arabe aussi », « Pas guide-ar, juste guide », « T'as
+   fait de CV sur format Word en Arabe »). A polished CV inside a French-named
+   folder with a French read-me is unusable without an intermediary, and it
+   advertises that the document is tool output in translation. For a
+   right-to-left language this also covers the read-me's own text direction.
 4. **Draft from the template.** Copy `templates/resume.typ` **and
    `templates/lib.typ` beside it** (the hand-off is two files — Typst has no
    bundler; `lib.typ` holds the verified shared mechanics, the devices stay
@@ -456,7 +468,16 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
   the two, not the absolute gap (which overflows the page or opens a canyon).
   Measured on the render: tallest internal white run ≥ 2× the median. A
   family whose device carries ink (a filled bar, a heavy rule) legitimately
-  sits near that floor; a family with no device needs 4:1 or more. See
+  sits near that floor; a family with no device needs 4:1 or more. Boundaries
+  carry ink by default: where the family's boundary was whitespace-only, add
+  a thin `soft` hairline above each section (design.md § Invariants,
+  « Boundaries carry ink by default »). The reverse defect is equally a defect
+  and the gate now warns on it (ratio > 5.0): never answer a weak boundary with
+  more empty space. Order is ink → tighten the intra-section rhythm → widen the
+  gap, and step 3 is the last resort (design.md § Invariants, « whitespace is
+  the LAST lever »). Both halves are now MEASURED, not just written: the gate
+  reports the boundary devices it finds (`measure_fill.bands()`) and FAILs a
+  page that carries no device at all while leaning on a wide gap. See
   design.md § Invariants and § Rules common to every family.
 - Two named anti-references, both pass/fail against the rendered page
   (design.md § Anti-references — there are exactly two, no third gets
