@@ -211,6 +211,75 @@ def extract_text(pdf, use_poppler):
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 
+
+# ---------- no section split across a page break (SKILL.md rule 5) ----------
+
+# The headings come from the SOURCE, not from a guess at what a heading looks
+# like in the extraction: every family defines its own `#section(t, body)` and
+# calls it `#section("Title")[...]`, so the call sites ARE the declared list.
+# No font-size heuristic survives 14 families; a grep does.
+SECTION_CALL_RE = re.compile(r'#section\(\s*"([^"]*)"')
+
+# lib.typ's `runhead` emits `name #h(1fr) n / total` (design.md § the device
+# table: placed IN THE FLOW, because a page `header:` field is dropped by many
+# parsers). pdftotext may put the name and the `n / total` on one line or two,
+# in either order, so the pagination token is what identifies the band — and a
+# section heading never carries one.
+PAGINATION_RE = re.compile(r"\b\d+\s*/\s*\d+\b|\bpage\s+\d+\b", re.I)
+
+
+def _norm_heading(s):
+    """Compare headings on letters and digits only: the extraction upper-cases
+    them, and a family's device may add or drop punctuation around one."""
+    return re.sub(r"[^a-z0-9]+", " ", s.casefold()).strip()
+
+
+def check_no_split(source, pages):
+    """SKILL.md rule 5 -- "no section may split across a page break".
+
+    Reduced to one measurable statement: a section that starts on page P and
+    is not finished there leaves content at the TOP of page P+1. So every page
+    after the first must OPEN on a section heading. Contrapositive of the rule,
+    not an approximation of it -- if every break lands exactly on a boundary,
+    nothing straddles; if one does not, whatever section preceded it is split.
+
+    Pure function of (source text, extracted pages) so the selftest can feed it
+    synthetic text and needs no Typst. The academic gate checks the same
+    property one level down (verify_academic.check_no_straddle: the atom is the
+    ENTRY there, and its heading list comes from the declared JSON spec).
+    """
+    headings = {_norm_heading(t) for t in SECTION_CALL_RE.findall(source)}
+    headings.discard("")
+    if not headings:
+        return [(False, 'no-split: no #section("...") call in the source '
+                        "-- not checked")]
+    # pdftotext TERMINATES the last page with \f rather than separating pages
+    # with it, so a naive split leaves a trailing empty chunk — which read as
+    # "page N+1 opens on nothing" and failed all 30 one-page deliverables.
+    while pages and not pages[-1].strip():
+        pages = pages[:-1]
+    if len(pages) < 2:
+        return [(False, "no-split: single page, nothing to split")]
+    out = []
+    for pageno, page in enumerate(pages[1:], 2):
+        lines = [l.strip() for l in page.split("\n") if l.strip()]
+        for j in range(min(2, len(lines))):       # the running-head band only
+            if PAGINATION_RE.search(lines[j]):
+                lines = lines[j + 1:]
+                break
+        first = lines[0] if lines else ""
+        f = _norm_heading(first)
+        # A long heading can wrap, so the opening line may be a PREFIX of one.
+        # Loose in the only direction that is safe: the line still has to sit
+        # at the very top of the page to be considered at all.
+        ok = bool(f) and any(h == f or h.startswith(f + " ") for h in headings)
+        out.append((not ok,
+                    f'no-split: page {pageno} opens on "{first[:60]}"'
+                    + ("" if ok else " -- not a section heading, so the "
+                                     "section before the break is SPLIT "
+                                     "across it (SKILL.md rule 5)")))
+    return out
+
 # ---------- whitespace structure: section boundaries + canyons ----------
 
 # BOUNDARY_RATIO is a LOCATOR, not a grade. It answers "is this white run tall
@@ -1105,6 +1174,50 @@ def main():
             "— must not fail on the ratio"
         assert any(f for f, _ in check_whitespace(airy)), \
             "the same page with no family exemption must FAIL the quorum"
+        # --- rule 5, "no section may split across a page break": the
+        # headline rule of the whole skill, and until 2026-09-13 NOTHING on
+        # the industry side measured it (the academic gate measured its own
+        # entry-level analogue; lib.typ only sets `breakable: false`, which
+        # says what the template INTENDS, not what the PDF did).
+        ns_src = ('#section("Profile")[a]\n#section("Selected Projects")[b]\n'
+                  '#section("Certifications & Professional Development")[c]\n')
+        one = ["NAME\nProfile\ntext"]
+        assert not any(f for f, _ in check_no_split(ns_src, one)), \
+            "a single-page deliverable has no break and must never fail"
+        good = ["NAME\nPROFILE\ntext", "SELECTED PROJECTS\nProject Name\n2024"]
+        assert not any(f for f, _ in check_no_split(ns_src, good)), \
+            "a page opening on a declared heading is a clean break"
+        split = ["NAME\nPROFILE\ntext", "kept the API under 200 ms\n2024"]
+        assert any(f for f, _ in check_no_split(ns_src, split)), \
+            "page 2 opening mid-section is the SPLIT this check exists for"
+        # the running head must not be mistaken for the split it hides:
+        # lib.typ's runhead extracts as name and `n / total`, over one line or
+        # two, in either order.
+        # Only the order the device actually produces: pdftotext reads left
+        # to right, so `name #h(1fr) n / total` extracts as the name first —
+        # measured on swiss-grid/resume-2page, the corpus's only 2-pager.
+        # Pagination-first is not handled and is not a case that occurs.
+        for band in ("Firstname Lastname\n2 / 2",
+                     "Firstname Lastname — Backend Developer 2 / 2"):
+            rh = ["NAME\nPROFILE\ntext", band + "\nSELECTED PROJECTS\nProject"]
+            assert not any(f for f, _ in check_no_split(ns_src, rh)), \
+                f"the running head band ({band!r}) must be skipped, not judged"
+            bad_rh = ["NAME\nPROFILE\ntext", band + "\nkept the API under 200 ms"]
+            assert any(f for f, _ in check_no_split(ns_src, bad_rh)), \
+                "skipping the running head must not swallow the line AFTER it"
+        # a heading long enough to wrap still opens its page
+        wrapped = ["NAME\nPROFILE\ntext", "CERTIFICATIONS &\nPROFESSIONAL DEVELOPMENT"]
+        assert not any(f for f, _ in check_no_split(ns_src, wrapped)), \
+            "a wrapped heading must match on its first line, not fail"
+        # the pdftotext terminator: a trailing empty chunk is not a page
+        assert not any(f for f, _ in check_no_split(ns_src, one + [""])), \
+            "pdftotext's trailing \\f must not read as an empty second page"
+        assert any(f for f, _ in check_no_split(ns_src, split + [""])), \
+            "dropping the terminator must not drop a real trailing page"
+        # and a source with no #section() call is reported, never guessed at
+        assert not any(f for f, _ in check_no_split("#let x = 1\n", split)), \
+            "no declared heading list means NOT CHECKED, not a free pass fail"
+
         for f in (inked, bare, thin, linked, lone, tight, airy):
             os.unlink(f)
         print("selftest OK — tuner regex reads, writes and round-trips; "
@@ -1247,6 +1360,12 @@ def main():
         last = non_blank[-1] if non_blank else ""
         if len(last) <= 25 and re.search(r"[0-9]{4}\s*$", last):
             bad(f'orphaned date at end of page {pageno} of the extraction ("{last}") — bullet-less grid entry; see the trap in references/ats.md')
+    for is_fail, msg in check_no_split(typ_text, txt.split("\f")):
+        if is_fail:
+            bad(msg)
+        else:
+            print("OK    " + msg)
+
     print("──── extraction (check reading order, orphaned dates, intact skill lines) ────")
     print(txt)
 
