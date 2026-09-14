@@ -31,8 +31,20 @@ Paper: us-letter. Photo on CV: never. Age/marital status: never.
   traditional engineering fields.
 
 ## Gloss for readers outside Québec
-« Cégep » → "(Québec technical college)"; DEC → "College Diploma (DEC)";
-DEP → "Vocational Diploma (DEP/DVS — Diploma of Vocational Studies)". This
-applies to every credential name, not only the examples listed here — never
-expand an unfamiliar acronym from memory; verify with the institution or the
-candidate (rule 1).
+- **CEGEP**, not « Cégep » or « CÉGEP »: in English it's written all-caps,
+  unaccented — native anglophone-cégep usage, not a translation. Never gloss
+  it as "technical college" (not the institution's name, and in North
+  American English it reads as a trade school, collapsing the distinction
+  with the DEP/DVS below) or as "community college" (in the US an
+  alternate/remedial path; in Québec the cégep is the mandatory bridge
+  between high school and university — the analogy undersells the
+  candidate). Same for « BAC+2 »: means nothing to this readership.
+- DEC → "Diploma of College Studies (DEC)" — the sanctioned English term;
+  "College Diploma (DEC)" is approximate. The useful distinguishing fact is
+  length: "three-year Career/Technical programs" vs. "two-year Pre-university
+  programs". Recommended descriptor: "CEGEP — Québec public higher education,
+  three-year technical program".
+- DEP → "Vocational Diploma (DEP/DVS — Diploma of Vocational Studies)".
+- This applies to every credential name, not only the examples listed
+  here — never expand an unfamiliar acronym from memory; verify with the
+  institution or the candidate (rule 1).
