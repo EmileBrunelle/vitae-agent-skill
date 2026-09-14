@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-444444?style=for-the-badge" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/status-beta%200.2-444444?style=for-the-badge" alt="Status: beta 0.2">
+  <img src="https://img.shields.io/badge/status-beta%200.5-444444?style=for-the-badge" alt="Status: beta 0.5">
   <a href="https://typst.app"><img src="https://img.shields.io/badge/Typst-000000?style=for-the-badge&logo=typst&logoColor=white" alt="Typst"></a>
   <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-agent%20skill-D97757?style=for-the-badge&logo=claude&logoColor=white" alt="Claude Code agent skill"></a>
 </p>
@@ -16,7 +16,7 @@ in [Typst](https://typst.app) that pass **both** filters: automated screening
 (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
 scan.
 
-**Status: beta (0.2)** — the method is battle-tested, but the skill's file
+**Status: beta (0.5)** — the method is battle-tested, but the skill's file
 layout and script interfaces may still change before 1.0.
 
 Battle-tested method distilled from a real end-to-end résumé project that went
@@ -42,9 +42,11 @@ open-source, recruiting-expert) and cross-field integration simulations
   layout guideline), no unproven keywords, no interview-fatal verb inflation,
   protected-title compliance.
 - **Regional & multilingual**: paper size, photo policy (CV vs LinkedIn),
-  verb and spelling conventions, section names, title law per market —
-  Canada/Québec, USA, France, UK, Germany, and a verify-don't-guess rule for
-  everything else.
+  verb and spelling conventions, section names, title law per market — six
+  region files (Canada/Québec, USA, France,
+  UK/Ireland, Germany/Austria/Switzerland, Indonesia, Malaysia, Singapore,
+  the Philippines, Vietnam, Thailand, Morocco, Algeria, Tunisia), and a
+  verify-don't-guess rule for everything else.
 - **Adversarial review loop**: parallel reviewer personas, invented-but-
   realistic job postings per market segment, findings applied only when they
   survive cross-examination.
@@ -63,8 +65,20 @@ open-source, recruiting-expert) and cross-field integration simulations
   also requires a technical target field, and the creative unlock alone never
   draws it for a non-technical trade. Reference implementations of all
   fourteen families live in `templates/families/`.
-- Optional companion deliverables (job-search guide, cover letters, LinkedIn
-  checklist) via `references/companion-guide.md`.
+- **Academic CV mode**: a separate track for the exhaustive multi-page genre
+  (faculty applications, tenure/promotion, qualification dossiers) — its own
+  neutral gabarit (`templates/academic/`), no fill target or design draw, and
+  its own gate (`scripts/verify_academic.py`) checking a different invariant
+  ("no entry straddles a page break" instead of "no section is ever split"),
+  round-tripped against the declared `FAITS.md`-derived TOML data file rather
+  than the résumé fill/separation thresholds.
+- **Cover letters**: one per posting, never a generic one, from
+  `templates/letter.typ` — a reduced letterhead reusing the same CV's accent,
+  font and name/contact line, three paragraphs (why this employer, proofs
+  from `FAITS.md`, availability), gated by `scripts/verify_letter.py` (one
+  page; employer and exact job title both present in the extracted text).
+- Optional companion deliverables (job-search guide, LinkedIn checklist) via
+  `references/companion-guide.md`.
 
 ## Design families
 
@@ -142,12 +156,18 @@ references/regional.md           # regional router: universal rules + matrix
 references/regional/*.md         # per-market depth, loaded only for the target market
 references/reviews.md            # adversarial review protocol
 references/field-software-dev.md # field pack: software development
+references/field-academic.md     # field pack + workflow for the academic-CV mode (replaces industry rules, not layered)
 references/typst-primer.md       # minimal Typst syntax for agents that don't know it
-references/companion-guide.md    # optional job-search guide recipe
+references/companion-guide.md    # optional job-search guide recipe; also the cover-letter doctrine
 references/fonts.md              # font provenance: Google Fonts URLs, licences, both install routes
 templates/resume.typ             # annotated starting template
 templates/lib.typ                # shared verified mechanics (devices stay per-family); hand-off is these two files
 templates/icons.typ              # EMPTY fallback marks (committed); a harvest writes the CV folder's copy, never this one
+templates/letter.typ             # cover-letter gabarit: reduced letterhead copied from the same posting's CV, verified by scripts/verify_letter.py
+templates/academic/              # academic CV mode: neutral gabarit, no design draw
+  cv.typ                         #   annotated starting template for the academic genre
+  lib-academic.typ               #   mechanics specific to academic entries (publications, funding, teaching, service)
+  faits-academique.example.toml  #   example declared-facts data file verify_academic.py round-trips against
 templates/families/<family>/     # REFERENCE IMPLEMENTATIONS of all fourteen design families
   resume.typ                     #   font pair A — the family's primary draw
   resume-pair-b.typ              #   font pair B — the SAME family on its second font pair, to prove
@@ -158,7 +178,10 @@ templates/families/swiss-grid/resume-2page.typ   # the worked 2-page sample (run
 scripts/pick_design.py           # deterministic design draw: family, fonts, section labels, list markers; --emit-typ prints the ready-to-paste Typst preamble for the drawn recipe
 scripts/gen_palette.py           # generative, contrast-validated palettes (duotone included)
 scripts/measure_fill.py          # ink-coverage measurement
+scripts/harvest_icons.py         # fetches contact/platform icon path data into a generated icons.typ at CV-build time (never overwrites the committed empty fallback)
 scripts/verify.py                # gate + doctor: compile + pages + fill + extraction, any platform; --tune bisects #set par(leading:, spacing:) to the fill target (does not replace the gate — run it after)
+scripts/verify_academic.py       # academic-mode gate: entry-level page-break check + declared vs. extracted counts/order, round-tripped against the TOML data file (reuses verify.py's plumbing only, none of its fill constants)
+scripts/verify_letter.py         # cover-letter gate: exactly one page, employer and exact job title both present in the extracted text
 scripts/verify.sh                # POSIX wrapper around verify.py (2 lines)
 assets/example-1page.png         # rendered template example
 ```
