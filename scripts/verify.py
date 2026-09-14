@@ -282,6 +282,16 @@ DEVICELESS = {
     "clause-index",     # the device is a numeral — text, not furniture
     "gutter-rail",      # the bar is VERTICAL: never forms a row band
     "mono-technical",   # 6pt inline squares, ~1% of width, under any floor
+    # Same instrument limit as mono-technical, NOT a missing device. Its
+    # `section()` emits a 4.4pt accent lozenge above every title, so every
+    # boundary carries one. Measured 2026-09-13 on the render: six marks of
+    # 13x13px, 1.0% of a 1275px page, dead centre, at y=263 466 617 976 1148
+    # 1446 — one per section, each directly above its centred title. The only
+    # WIDE run on the page (9%, y=164) is the 56pt letterhead rule under the
+    # name, which is not the section device at all. The floor cannot come down
+    # to meet a 1% mark: the same scan reports dozens of 0.1-0.5% specks from
+    # glyph fragments and punctuation, so 1% sits inside the noise.
+    "engraved-card",
 }
 
 
@@ -503,17 +513,13 @@ def check_whitespace(path, boxes=None, family=None, degraded=False):
     ink = boundary_ink(white, all_ink, med)
     furniture = furniture_ink(path, boxes)
     # furniture_ink scans the whole PNG; measure_fill.bands reports rows of
-    # its CROP, which cuts 2% off the top. A position test has to shift one
-    # frame into the other — 33px on a 1650px page, two text lines.
-    # ponytail: only near_boundary is shifted. The _overlap dedupe below is
-    # left in the mixed frame it was written in, where it almost never fires,
-    # because correcting it is a DIFFERENT bug with a design consequence:
-    # measured 2026-09-13, every furniture band of color-band, swiss-grid,
-    # margin-index and engraved-card is the SAME band as one already in
-    # `ink`, so their unions are doubled — and engraved-card's drops from 2
-    # to 1, FAILing a shipped template whose single flourish is exactly what
-    # DEVICE_QUORUM was written to catch. That is a call about the template,
-    # not about this filter.
+    # its CROP, which cuts 2% off the top. EVERY use of a furniture band has
+    # to be in the crop's frame — the position test, the dedupe against
+    # `ink`, and what lands in `union` — or the two halves of the union are
+    # counted in different coordinate systems and the dedupe never fires.
+    # It did not, until 2026-09-13: `ink` and `furniture` double-counted the
+    # SAME band on color-band, swiss-grid, margin-index, editorial-serif and
+    # engraved-card, inflating every union those families reported.
     off = int(h * 0.02)
 
     def _overlap(a, b):
@@ -521,7 +527,8 @@ def check_whitespace(path, boxes=None, family=None, degraded=False):
 
     union = list(ink)
     for band in furniture:
-        if near_boundary((band[0] - off, band[1] - off), white, med) and \
+        band = (band[0] - off, band[1] - off)
+        if near_boundary(band, white, med) and \
                 not any(_overlap(band, u) for u in union):
             union.append(band)
 
@@ -731,6 +738,7 @@ def pages_from_name(typ):
 
 
 ACADEMIC_MARKER = "// vitae-academic:"
+LETTER_MARKER = "// vitae letter template"
 
 
 def is_academic(path):
@@ -752,6 +760,30 @@ def is_academic(path):
         return False
 
 
+def is_letter(path):
+    """True for a cover letter, which this gate must NOT judge either.
+
+    A letter is prose with a letterhead, not a sectioned resume: it has ONE
+    rule, by design (templates/letter.typ: « one thin rule in the CV's accent
+    colour »), so the section-device quorum — which asks for a boundary
+    SYSTEM, two devices minimum — is asking a letter for sections it does not
+    have. It carries its own gate, `scripts/verify_letter.py`.
+
+    It only surfaced on 2026-09-13, when the furniture/ink dedupe was moved
+    into one coordinate frame: until then the letterhead rule was counted
+    TWICE, once by each detector, and the letter cleared a quorum of 2 on a
+    single device. The letter was never right; the double count hid it.
+
+    The marker is the template's own line 1 — nothing new to emit, and it
+    travels with a delivered copy the way the family banner does.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return LETTER_MARKER in fh.read(4096)
+    except OSError:
+        return False
+
+
 def check_all(directory):
     """Run the single-file gate over every .typ under `directory`.
 
@@ -762,7 +794,7 @@ def check_all(directory):
     typs = sorted(f for f in glob.glob(os.path.join(directory, "**", "*.typ"),
                                        recursive=True)
                   if not os.path.basename(f).startswith(("lib", "icons"))
-                  and not is_academic(f))
+                  and not is_academic(f) and not is_letter(f))
     if not typs:
         print(f"no .typ found under {directory}")
         return 1
@@ -976,6 +1008,36 @@ def main():
             "towards the quorum just because word boxes are available — the " \
             "gate claims the bands are AT a section boundary"
         os.unlink(link_png)
+
+        # --- one device, seen by BOTH detectors, must count ONCE. This is
+        # the frame bug: `furniture_ink` scans the whole PNG while
+        # `measure_fill.bands` reports rows of a crop that cuts 2% off the
+        # top, so the `_overlap` dedupe was comparing two coordinate systems
+        # and never fired. A single rule at a boundary therefore scored 2 and
+        # cleared DEVICE_QUORUM on its own — which is how the cover letter
+        # (one letterhead rule, by design) and engraved-card passed. ---
+        one_png, one_boxes = _page(rule_luma=30, rules=1, gap=90,
+                                   want_boxes=True)
+        assert len(furniture_ink(one_png, one_boxes)) >= 1, \
+            "the lone rule must reach furniture_ink at all, else the next " \
+            "assert passes for the wrong reason"
+        assert any(f and "no ink" in m for f, m in
+                   check_whitespace(one_png, boxes=one_boxes)), \
+            "a page carrying ONE device must FAIL the quorum: both scans " \
+            "see that same rule, and counting it twice is the mixed-frame " \
+            "bug — a boundary SYSTEM is two devices, not one counted twice"
+        os.unlink(one_png)
+
+        with tempfile.NamedTemporaryFile("w", suffix=".typ", delete=False,
+                                         encoding="utf-8") as fh:
+            fh.write("// vitae letter template — one letter per posting\n")
+            lettre = fh.name
+        assert is_letter(lettre), \
+            "a cover letter must be recognised by its line-1 marker, or a " \
+            "sweep asks a one-rule letter for a section boundary SYSTEM"
+        assert not is_letter(__file__), \
+            "is_letter must not fire on an ordinary file"
+        os.unlink(lettre)
 
         # --- the gate must actually FAIL now (2026-09-13 fix): a page with
         # no device anywhere used to pass whenever its whitespace ratio sat
