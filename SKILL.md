@@ -2,10 +2,10 @@
 name: vitae
 description: Build ATS- and human-optimized résumés/CVs in Typst — exact page control (1-page and 2-page versions), no section ever split across pages, measured page fill, machine-parseable layout, regional and multilingual conventions, adversarial review loop, optional job-search guide. Use when the user asks to create, redesign, improve, translate, or tailor a CV/résumé, or to evaluate one against a job posting.
 license: MIT
-compatibility: Requires typst 0.13+ and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) recommended, falls back to pypdf. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
+compatibility: Requires typst 0.13+ and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate needs pdftotext word boxes and reports instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.3"
+  version: "0.4"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -509,9 +509,13 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
   more empty space. Order is ink → tighten the intra-section rhythm → widen the
   gap, and step 3 is the last resort (design.md § Invariants, « whitespace is
   the LAST lever »). Both halves are now MEASURED, not just written: the gate
-  reports the devices it finds AT a section boundary (`verify.boundary_ink()`
-  — ink anywhere else, an underline or a table rule, does not count) and FAILs
-  a page that carries none while leaning on a wide gap. See
+  reports the devices it finds AT a section boundary — the union of
+  `verify.boundary_ink()` (ink in a white gap) and `verify.furniture_ink()`
+  (ink no word box covers, which catches a device set on the heading's own
+  line); ink that is plain text, an underline or a table rule does not count —
+  and FAILs any page under `DEVICE_QUORUM`, no longer only one that also leans
+  on a wide gap. The escapes are the four `DEVICELESS` families and a missing
+  `pdftotext` (design.md § Invariants, « How a device is detected »). See
   design.md § Invariants and § Rules common to every family.
 - Two named anti-references, both pass/fail against the rendered page
   (design.md § Anti-references — there are exactly two, no third gets
