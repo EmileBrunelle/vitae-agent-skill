@@ -358,6 +358,15 @@ no family draw and no palette generation either: one neutral gabarit, from
    - `pdftotext cv.pdf -` — reading order sane, no orphaned dates, skill lines
      intact, and dates within each section in reverse-chronological order.
      Full checklist and known extraction traps: `references/ats.md`.
+   - **No section split across a page break** (rule 5's first half) — checked
+     by the gate since 2026-09-13, not by eye. Reduced to its contrapositive,
+     which is what a PDF can actually answer: every page after the first must
+     OPEN on a section heading, so that every break lands exactly on a
+     boundary. The heading list comes from the `#section("...")` call sites in
+     the source, and lib.typ's `runhead` band is skipped by its `n / total`
+     token. `breakable: false` on the section block states the INTENT; this
+     states the outcome. A source with no `#section(...)` call reports NOT
+     CHECKED rather than passing.
    - Recompute the contrast of the accent as actually rendered (not the
      hex you intended) against its background, with design.md's formula —
      must still clear 4.5:1.
