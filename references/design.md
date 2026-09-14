@@ -83,19 +83,26 @@ devices from TEXT, and text is now subtracted.
 Under `DEVICE_QUORUM` the page FAILs — really, not conditionally on the white
 ratio as before. Two escapes, both narrow:
 
-- `DEVICELESS` in `verify.py`: four families whose device is real but of a
+- `DEVICELESS` in `verify.py`: five families whose device is real but of a
   KIND no row scan can see — `humanist-quiet` (no ink, by doctrine),
   `clause-index` (the device is a numeral, so it is text), `gutter-rail` (the
   bar is VERTICAL and never forms a row band), `mono-technical` (6pt squares,
-  ~1% of width). The family is read from the `// FAMILY:` banner on line 1,
+  ~1% of width), `engraved-card` (a 4.4pt lozenge above every title: measured
+  on the render, six marks of 13x13px — 1.0% of a 1275px page — dead centre,
+  one per section). The family is read from the `// FAMILY:` banner on line 1,
   never from the directory: a delivered CV is a copy living in the user's own
   folder, and a path-only rule failed exactly the files the skill ships.
 - No `pdftotext` on PATH: the quorum is reported, never failed. A missing tool
   is not a design defect.
 
-`mono-technical` and `engraved-card` (2 bands, at the quorum's edge) are the
-genuine weak boundaries in the roster: their devices are real but too small to
-read at arm's length. That is a design debt, not a gate bug.
+`mono-technical` and `engraved-card` are the genuine weak boundaries in the
+roster: their devices are real but too small to read at arm's length. That is a
+design debt, not a gate bug — and it is now the ONLY thing keeping them out of
+the roster's mainstream, since both are `DEVICELESS`. The "2 bands, at the
+quorum's edge" reading of `engraved-card` published here on 2026-09-13 was an
+ARTEFACT: the union double-counted the same band in two coordinate frames.
+Corrected, the family scores 1 — its letterhead rule — and its actual section
+device was never visible to the gate at all.
 
 **When a boundary does not read, whitespace is the LAST lever, not the first.**
 The observed failure mode is an agent that sees a weak boundary and answers with

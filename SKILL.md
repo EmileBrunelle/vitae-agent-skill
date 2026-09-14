@@ -528,7 +528,7 @@ no family draw and no palette generation either: one neutral gabarit, from
   (ink no word box covers, which catches a device set on the heading's own
   line); ink that is plain text, an underline or a table rule does not count —
   and FAILs any page under `DEVICE_QUORUM`, no longer only one that also leans
-  on a wide gap. The escapes are the four `DEVICELESS` families and a missing
+  on a wide gap. The escapes are the five `DEVICELESS` families and a missing
   `pdftotext` (design.md § Invariants, « How a device is detected »). See
   design.md § Invariants and § Rules common to every family.
 - Two named anti-references, both pass/fail against the rendered page
