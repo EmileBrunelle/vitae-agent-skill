@@ -65,6 +65,11 @@ fourteen are in [GALLERY.md](GALLERY.md).
 The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never
 drawn by default — see § Design families in `references/design.md`.
 
+`templates/academic/**` (the academic-CV mode's gabarit) is **out of this
+industry calibration**: the fill targets, section-separation devices, and the
+fourteen-family roster above describe industry résumés only and say nothing
+about academic dossiers.
+
 ## Install
 
 Copy this folder to your agent's skills directory, e.g. for Claude Code:

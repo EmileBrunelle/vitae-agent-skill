@@ -1,0 +1,447 @@
+# vitae-academic data file — SCHEMA (read this before writing a gate or a
+# real dossier against it). All data below is FICTIONAL (example only).
+#
+# WHY THIS FILE, NOT THE .typ, IS THE SOURCE OF TRUTH FOR COUNTS/ORDER:
+# the gate checks `N_declared == N_extracted` per section (check A) and
+# strict antechronology per section (check B) by reading the counts and
+# undated-prefix lengths declared HERE against `pdftotext -layout` of the
+# rendered PDF — never against the .typ, which would be a tautology (a
+# regex on the source compared to a PDF compiled from that same source).
+#
+# GENERAL CONVENTIONS
+# - Every entry table carries `date` and `src`. `src` is the same
+#   provenance-per-fact convention as FAITS.md (e.g. "faits.md#pub-3"): a
+#   fabricated entry with no traceable source is a research-conduct problem
+#   in this genre, not mere embellishment (design note §4.1).
+# - `date` is normally a 4-digit year (string, e.g. "2022") or a range
+#   ("2019-2024"). For an UNDATED-PREFIX entry (submitted/forthcoming items
+#   that precede the dated sequence in publications/talks), `date` is a
+#   status string instead ("submitted", "forthcoming", "in press") — never
+#   guessed, always declared, and counted by the matching `undated_prefix`
+#   entry in `[counts]` below.
+# - Sections are declared even when empty/optional: an optional section with
+#   zero entries still gets `count = 0` so the gate can tell "empty" from
+#   "not implemented".
+#
+# [counts] — the declared entry count per section, checked against
+# `pdftotext` extraction by EQUALITY (check A). Flat sections use one key;
+# split sections (publications, talks) use a nested table, one key per
+# sub-type. This is the ONLY table the gate needs to know how many rows to
+# expect — it never counts `[[array.of.tables]]` occurrences itself, because
+# a section can legitimately declare 0 while carrying no array at all.
+#
+#   counts.education, counts.appointments, counts.honours,
+#   counts.publications.{journal,conference,chapter,preprint,other},
+#   counts.talks.{plenary,invited,conference,seminar,poster},
+#   counts.funding, counts.supervision, counts.teaching, counts.service,
+#   counts.knowledge_mobilization, counts.references
+#
+# [undated_prefix] — declared length of the undated lead-in (submitted /
+# forthcoming / in press) for sections where that convention applies
+# (publications and talks sub-types only; 0 = no prefix, the default for
+# every other section since they have no such convention). Check B skips
+# exactly this many leading rows before requiring non-increasing years.
+#
+# PER-SECTION REQUIRED FIELDS (beyond date/src):
+#   [meta]          name, title, affiliation, address, email, cv_date
+#                   (required — "CV version date"), lang. Optional:
+#                   website, orcid.
+#   [[education]]   degree, institution. Optional: thesis, supervisor.
+#   [[appointments]] role, institution. Optional: kind (postdoc/visiting/
+#                   sabbatical/regular).
+#   [[honours]]     title, awarding_body. (optional section)
+#   [[publications.<type>]]  authors, title, venue. Optional: doi, status.
+#                   <type> in journal | conference | chapter | preprint | other.
+#                   Conference here means PEER-REVIEWED PROCEEDINGS treated
+#                   as a primary publication (math/CS convention, design
+#                   note §2) — do not confuse with [[talks.conference]].
+#   [[talks.<tier>]]  title, event, location.
+#                   <tier> in plenary | invited | conference | seminar | poster,
+#                   listed in that descending-prestige order in the CV.
+#   [[funding]]     agency, program, role (PI or co-I), amount, currency,
+#                   period.
+#   [[supervision]] student, level (PhD/MSc/postdoc/intern), thesis_title.
+#                   Optional: current_position, end_date.
+#   [[teaching]]    code, title, level, term, enrolment.
+#   [[service]]     category (referee/committee/jury/editorial/organizing/
+#                   society), description (name the journal/body — a
+#                   referee entry with no named journal does not satisfy
+#                   section 10 of the design note).
+#   [[knowledge_mobilization]]  description. (optional section)
+#   [[references]]  name, affiliation, email. (optional section, US convention)
+# affiliations_languages is TWO PLAIN LINES, not a dated list — no `count`,
+# no antechronology check applies to it.
+
+[meta]
+name = "Alix Bernard-Tremblay"
+title = "Associate Professor, Department of Mathematics and Computer Science"
+affiliation = "Université de l'Estrie"
+address = "2500 rue des Sciences, Sherbrooke, QC J1K 0A0, Canada"
+email = "alix.bernard-tremblay@u-estrie.example"
+website = "u-estrie.example/~abtremblay"
+orcid = "0000-0002-1111-2222"
+cv_date = "2026-09-01"
+lang = "en"
+
+[counts]
+education = 2
+appointments = 3
+honours = 2
+funding = 3
+supervision = 3
+teaching = 3
+service = 4
+knowledge_mobilization = 1
+references = 2
+
+[counts.publications]
+journal = 3
+conference = 3
+chapter = 0
+preprint = 2
+other = 0
+
+[counts.talks]
+plenary = 1
+invited = 2
+conference = 3
+seminar = 3
+poster = 2
+
+[undated_prefix]
+# only publications/talks sub-types carry this; every key defaults to 0
+# and is listed explicitly here for the ones that are non-zero.
+[undated_prefix.publications]
+journal = 1
+conference = 0
+chapter = 0
+preprint = 0
+other = 0
+
+[undated_prefix.talks]
+plenary = 0
+invited = 0
+conference = 0
+seminar = 0
+poster = 0
+
+# ---------------------------------------------------------------- education
+[[education]]
+date = "2018"
+src = "faits.md#education-1"
+degree = "Ph.D. in Mathematics"
+institution = "Université de Montréal"
+thesis = "Spectral Gaps in Random Combinatorial Structures"
+supervisor = "R. Fontaine"
+
+[[education]]
+date = "2013"
+src = "faits.md#education-2"
+degree = "M.Sc. in Mathematics"
+institution = "Université Laval"
+
+# ------------------------------------------------------------- appointments
+[[appointments]]
+date = "2024"
+src = "faits.md#appt-1"
+role = "Visiting Researcher"
+institution = "Max Planck Institute for Mathematics, Bonn"
+kind = "visiting"
+
+[[appointments]]
+date = "2019-2024"
+src = "faits.md#appt-2"
+role = "Assistant Professor"
+institution = "Université de l'Estrie"
+kind = "regular"
+
+[[appointments]]
+date = "2017-2019"
+src = "faits.md#appt-3"
+role = "Postdoctoral Fellow"
+institution = "University of Waterloo"
+kind = "postdoc"
+
+# ------------------------------------------------------------------ honours
+[[honours]]
+date = "2022"
+src = "faits.md#honour-1"
+title = "Early Career Research Award"
+awarding_body = "Canadian Mathematical Society"
+
+[[honours]]
+date = "2015"
+src = "faits.md#honour-2"
+title = "Best Student Paper Award"
+awarding_body = "CanaDAM"
+
+# ------------------------------------------------------------- publications
+[[publications.journal]]
+date = "forthcoming"
+src = "faits.md#pub-j1"
+authors = "Bernard-Tremblay, A., Okafor, T."
+title = "Expansion Rates of Random Cayley Graphs Revisited"
+venue = "Journal of Combinatorial Theory, Series B"
+status = "forthcoming"
+
+[[publications.journal]]
+date = "2023"
+src = "faits.md#pub-j2"
+authors = "Bernard-Tremblay, A."
+title = "A Spectral Bound for Sparse Random Hypergraphs"
+venue = "Combinatorica"
+doi = "10.1000/example.j2"
+
+[[publications.journal]]
+date = "2020"
+src = "faits.md#pub-j3"
+authors = "Bernard-Tremblay, A., Singh, P."
+title = "Gap Distributions in Small-World Networks"
+venue = "SIAM Journal on Discrete Mathematics"
+doi = "10.1000/example.j3"
+
+[[publications.conference]]
+date = "2022"
+src = "faits.md#pub-c1"
+authors = "Bernard-Tremblay, A., Leclerc, M."
+title = "Approximate Counting via Spectral Sparsification"
+venue = "Proceedings of STACS 2022"
+doi = "10.1000/example.c1"
+
+[[publications.conference]]
+date = "2021"
+src = "faits.md#pub-c2"
+authors = "Bernard-Tremblay, A."
+title = "Fast Sampling for Sparse Combinatorial Designs"
+venue = "Proceedings of ICALP 2021"
+
+[[publications.conference]]
+date = "2016"
+src = "faits.md#pub-c3"
+authors = "Bernard-Tremblay, A., Fontaine, R."
+title = "On the Complexity of Random Graph Colouring"
+venue = "Proceedings of SODA 2016"
+
+[[publications.preprint]]
+date = "2025"
+src = "faits.md#pub-p1"
+authors = "Bernard-Tremblay, A."
+title = "Towards a Unified Bound for Random Regular Graphs"
+venue = "arXiv:2501.00000"
+
+[[publications.preprint]]
+date = "2019"
+src = "faits.md#pub-p2"
+authors = "Bernard-Tremblay, A., Okafor, T."
+title = "A Note on Sparse Cuts in Expander Families"
+venue = "arXiv:1901.00000"
+
+# ------------------------------------------------------------------- talks
+[[talks.plenary]]
+date = "2024"
+src = "faits.md#talk-pl1"
+title = "Expansion, Sparsity, and Randomness"
+event = "Canadian Mathematical Society Winter Meeting"
+location = "Ottawa, ON"
+
+[[talks.invited]]
+date = "2023"
+src = "faits.md#talk-in1"
+title = "Spectral Bounds for Sparse Hypergraphs"
+event = "Combinatorics Seminar"
+location = "University of Waterloo"
+
+[[talks.invited]]
+date = "2021"
+src = "faits.md#talk-in2"
+title = "Random Structures and Sampling"
+event = "AMS Special Session on Random Graphs"
+location = "Washington, DC"
+
+[[talks.conference]]
+date = "2022"
+src = "faits.md#talk-c1"
+title = "Approximate Counting via Spectral Sparsification"
+event = "STACS 2022"
+location = "Marseille, France"
+
+[[talks.conference]]
+date = "2021"
+src = "faits.md#talk-c2"
+title = "Fast Sampling for Sparse Combinatorial Designs"
+event = "ICALP 2021"
+location = "Glasgow, UK (virtual)"
+
+[[talks.conference]]
+date = "2016"
+src = "faits.md#talk-c3"
+title = "On the Complexity of Random Graph Colouring"
+event = "SODA 2016"
+location = "Arlington, VA"
+
+[[talks.seminar]]
+date = "2023"
+src = "faits.md#talk-s1"
+title = "Sparse Cuts and Expansion"
+event = "Discrete Math Seminar, Université de Montréal"
+location = "Montréal, QC"
+
+[[talks.seminar]]
+date = "2020"
+src = "faits.md#talk-s2"
+title = "Random Regular Graphs: An Overview"
+event = "Combinatorics Seminar, Université Laval"
+location = "Québec, QC"
+
+[[talks.seminar]]
+date = "2018"
+src = "faits.md#talk-s3"
+title = "Spectral Gaps in Random Structures"
+event = "Waterloo Combinatorics and Optimization Seminar"
+location = "Waterloo, ON"
+
+[[talks.poster]]
+date = "2017"
+src = "faits.md#talk-po1"
+title = "Sampling Sparse Designs"
+event = "CanaDAM 2017"
+location = "Toronto, ON"
+
+[[talks.poster]]
+date = "2014"
+src = "faits.md#talk-po2"
+title = "Gap Distributions in Small-World Networks"
+event = "Canadian Discrete and Algorithmic Mathematics Conference"
+location = "Vancouver, BC"
+
+# ------------------------------------------------------------------ funding
+[[funding]]
+date = "2023-2027"
+src = "faits.md#fund-1"
+agency = "NSERC"
+program = "Discovery Grant"
+role = "PI"
+amount = "140,000"
+currency = "CAD"
+period = "2023-2027"
+
+[[funding]]
+date = "2021-2023"
+src = "faits.md#fund-2"
+agency = "FRQNT"
+program = "Établissement de nouveaux chercheurs"
+role = "PI"
+amount = "45,000"
+currency = "CAD"
+period = "2021-2023"
+
+[[funding]]
+date = "2019-2021"
+src = "faits.md#fund-3"
+agency = "NSERC"
+program = "Discovery Grant"
+role = "co-I"
+amount = "30,000"
+currency = "CAD"
+period = "2019-2021"
+
+# -------------------------------------------------------------- supervision
+[[supervision]]
+date = "2024"
+src = "faits.md#sup-1"
+student = "J. Ferreira"
+level = "PhD"
+thesis_title = "Sparsification Methods for Random Hypergraphs (in progress)"
+
+[[supervision]]
+date = "2022"
+src = "faits.md#sup-2"
+student = "M. Chartrand"
+level = "MSc"
+thesis_title = "Sampling Algorithms for Sparse Designs"
+current_position = "Data Scientist, Bell Canada"
+end_date = "2022"
+
+[[supervision]]
+date = "2020"
+src = "faits.md#sup-3"
+student = "K. Nadeau"
+level = "postdoc"
+thesis_title = "Spectral Methods in Combinatorics (postdoctoral project)"
+current_position = "Assistant Professor, Université de Sherbrooke"
+end_date = "2020"
+
+# ----------------------------------------------------------------- teaching
+[[teaching]]
+date = "2025"
+src = "faits.md#teach-1"
+code = "MAT-501"
+title = "Graduate Topics in Combinatorics"
+level = "graduate"
+term = "Fall 2025"
+enrolment = "12"
+
+[[teaching]]
+date = "2020-2025"
+src = "faits.md#teach-2"
+code = "MAT-210"
+title = "Discrete Mathematics"
+level = "undergraduate"
+term = "annual, Fall 2020-2025"
+enrolment = "80"
+
+[[teaching]]
+date = "2021"
+src = "faits.md#teach-3"
+code = "MAT-330"
+title = "Probability and Random Structures"
+level = "undergraduate"
+term = "Winter 2021"
+enrolment = "35"
+
+# ------------------------------------------------------------------ service
+[[service]]
+date = "2020-2026"
+src = "faits.md#svc-1"
+category = "referee"
+description = "Referee for Combinatorica, SIAM Journal on Discrete Mathematics, Journal of Combinatorial Theory Series B (2020-2026, approx. 3-5 reports/year)"
+
+[[service]]
+date = "2023"
+src = "faits.md#svc-2"
+category = "jury"
+description = "PhD thesis examiner, Université de Montréal (candidate: S. Bouchard)"
+
+[[service]]
+date = "2021-2024"
+src = "faits.md#svc-3"
+category = "committee"
+description = "Member, NSERC Discovery Grants Evaluation Group 1508 (Mathematics)"
+
+[[service]]
+date = "2022"
+src = "faits.md#svc-4"
+category = "organizing"
+description = "Co-organizer, CanaDAM 2022 Special Session on Random Structures"
+
+# ---------------------------------------------------- knowledge mobilization
+[[knowledge_mobilization]]
+date = "2023"
+src = "faits.md#km-1"
+description = "Public lecture, \"What Makes a Network Random?\", Sherbrooke Science Festival"
+
+# -------------------------------------------------- affiliations/languages
+[affiliations_languages]
+affiliations = "Canadian Mathematical Society; American Mathematical Society"
+languages = "French (native), English (fluent)"
+
+# --------------------------------------------------------------- references
+[[references]]
+name = "R. Fontaine"
+affiliation = "Professor, Université de Montréal"
+email = "r.fontaine@udem.example"
+
+[[references]]
+name = "T. Okafor"
+affiliation = "Associate Professor, University of Waterloo"
+email = "t.okafor@uwaterloo.example"

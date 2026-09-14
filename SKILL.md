@@ -1,11 +1,11 @@
 ---
 name: vitae
-description: Build ATS- and human-optimized résumés/CVs in Typst — exact page control (1-page and 2-page versions), no section ever split across pages, measured page fill, machine-parseable layout, regional and multilingual conventions, adversarial review loop, optional job-search guide. Use when the user asks to create, redesign, improve, translate, or tailor a CV/résumé, or to evaluate one against a job posting.
+description: Build ATS- and human-optimized résumés/CVs in Typst — exact page control (1-page and 2-page versions), no section ever split across pages, measured page fill, machine-parseable layout, regional and multilingual conventions, adversarial review loop, optional job-search guide. Also builds academic CVs (the exhaustive multi-page genre — publications, funding, teaching, supervision, service) with its own template and gate. Use when the user asks to create, redesign, improve, translate, or tailor a CV/résumé or an academic CV, or to evaluate one against a job posting.
 license: MIT
 compatibility: Requires typst 0.13+ and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate needs pdftotext word boxes and reports instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.4"
+  version: "0.5"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -79,6 +79,18 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    page count instead of forcing it.
 
 ## Workflow
+
+**Academic mode.** If the document is an academic CV (a university faculty
+application, a promotion or tenure/qualification dossier, an academic
+nomination), load `references/field-academic.md` and follow **its** workflow
+instead of the steps below. Academic mode **replaces rule 5 and step 4, it
+does not relax them** — it has its own measured invariants, checked by
+`scripts/verify_academic.py`. The replacement invariant in one line: **the
+atom is the entry, not the section** — "no entry straddles a page break"
+stands in for "no section is ever split." There is no fill target at all in
+academic mode, not even a last-page floor — dropped, not loosened. There is
+no family draw and no palette generation either: one neutral gabarit, from
+`templates/academic/`. Nothing else in this file changes.
 
 0. **Check the environment.** Run `python3 scripts/verify.py --doctor` (any
    platform) — a read-only dependency preflight that prints the exact install
