@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-444444?style=for-the-badge" alt="Licence : MIT"></a>
-  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.2-444444?style=for-the-badge" alt="Statut : bêta 0.2">
+  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.5-444444?style=for-the-badge" alt="Statut : bêta 0.5">
   <a href="https://typst.app"><img src="https://img.shields.io/badge/Typst-000000?style=for-the-badge&logo=typst&logoColor=white" alt="Typst"></a>
   <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-skill%20d'agent-D97757?style=for-the-badge&logo=claude&logoColor=white" alt="Skill d'agent pour Claude Code"></a>
 </p>
@@ -16,7 +16,7 @@ Un skill d'agent (« agent skill ») pour construire des CV en
 automatisé (ATS — Applicant Tracking Systems, systèmes de suivi des
 candidatures — et les cribleurs IA) et le survol humain de 30 secondes.
 
-**Statut : bêta (0.2)** — la méthode est éprouvée sur le terrain, mais
+**Statut : bêta (0.5)** — la méthode est éprouvée sur le terrain, mais
 l'organisation des fichiers du skill et les interfaces des scripts peuvent
 encore changer avant la version 1.0.
 
@@ -50,9 +50,10 @@ n'utilisant que ces fichiers.
   aux titres protégés.
 - **Régional et multilingue** : format de papier, politique de photo (CV vs
   LinkedIn), conventions de verbes et d'orthographe, noms de sections, droit
-  des titres selon le marché — Canada/Québec, États-Unis, France,
-  Royaume-Uni, Allemagne, et une règle de vérification (plutôt que de
-  supposition) pour tout le reste.
+  des titres selon le marché — six fichiers de région (Canada/Québec,
+  États-Unis, France, Royaume-Uni/Irlande, Allemagne/Autriche/Suisse, Indonésie, Malaisie, Singapour, Philippines,
+  Vietnam, Thaïlande, Maroc, Algérie, Tunisie), et une règle de vérification
+  (plutôt que de supposition) pour tout le reste.
 - **Boucle de revue adversariale** : personas de réviseurs en parallèle,
   offres d'emploi inventées mais réalistes par segment de marché, constats
   appliqués seulement s'ils résistent au contre-interrogatoire.
@@ -73,9 +74,23 @@ n'utilisant que ces fichiers.
   domaine cible technique, et le déblocage créatif seul ne la tire jamais pour
   un métier non technique. Les implémentations de référence des quatorze
   familles se trouvent dans `templates/families/`.
-- Livrables complémentaires optionnels (guide de recherche d'emploi, lettres
-  de présentation, liste de vérification LinkedIn) via
-  `references/companion-guide.md`.
+- **Mode CV académique** : un parcours séparé pour le genre exhaustif
+  multi-pages (candidatures de corps professoral, permanence/promotion,
+  dossiers de qualification) — son propre gabarit neutre
+  (`templates/academic/`), aucune cible de remplissage ni tirage de design, et
+  son propre gate (`scripts/verify_academic.py`) qui vérifie un autre
+  invariant (« aucune entrée à cheval sur un saut de page » plutôt que
+  « aucune section jamais coupée »), confronté au fichier de données TOML
+  déclaré (dérivé de `FAITS.md`) plutôt qu'aux seuils de remplissage/
+  séparation du CV industriel.
+- **Lettres de présentation** : une par offre, jamais une lettre générique, à
+  partir de `templates/letter.typ` — un en-tête réduit qui réutilise l'accent,
+  la police et la ligne nom/coordonnées du même CV, trois paragraphes
+  (pourquoi cet employeur, les preuves tirées de `FAITS.md`, la disponibilité),
+  gatée par `scripts/verify_letter.py` (une page; l'employeur et l'intitulé
+  exact du poste tous deux présents dans le texte extrait).
+- Livrables complémentaires optionnels (guide de recherche d'emploi, liste de
+  vérification LinkedIn) via `references/companion-guide.md`.
 
 ## Familles de design
 
@@ -160,12 +175,18 @@ references/regional.md           # routeur régional : règles universelles + ma
 references/regional/*.md         # profondeur par marché, chargé seulement pour le marché cible
 references/reviews.md            # protocole de revue adversariale
 references/field-software-dev.md # pack de domaine : développement logiciel
+references/field-academic.md     # pack de domaine + workflow du mode CV académique (remplace les règles industrielles, sans s'y superposer)
 references/typst-primer.md       # syntaxe Typst minimale pour les agents qui ne la connaissent pas
-references/companion-guide.md    # recette optionnelle du guide de recherche d'emploi
+references/companion-guide.md    # recette optionnelle du guide de recherche d'emploi; aussi la doctrine des lettres de présentation
 references/fonts.md              # provenance des polices : URL Google Fonts, licences, deux façons de les installer
 templates/resume.typ             # gabarit de départ annoté
 templates/lib.typ                # mécanique vérifiée partagée (les dispositifs restent propres à chaque famille); ce sont ces deux fichiers qui font office de passation
 templates/icons.typ              # marques de repli VIDES (versionnées); une récolte écrit la copie du dossier de CV, jamais celle-ci
+templates/letter.typ             # gabarit de lettre de présentation : en-tête réduit copié du CV de la même offre, vérifié par scripts/verify_letter.py
+templates/academic/              # mode CV académique : gabarit neutre, aucun tirage de design
+  cv.typ                         #   gabarit de départ annoté pour le genre académique
+  lib-academic.typ               #   mécanique propre aux entrées académiques (publications, subventions, enseignement, service)
+  faits-academique.example.toml  #   exemple de fichier de données déclarées que verify_academic.py confronte au PDF
 templates/families/<family>/     # IMPLÉMENTATIONS DE RÉFÉRENCE des quatorze familles de design
   resume.typ                     #   paire de polices A — le tirage principal de la famille
   resume-pair-b.typ              #   paire de polices B — la MÊME famille avec sa seconde paire de polices, pour prouver
@@ -176,7 +197,10 @@ templates/families/swiss-grid/resume-2page.typ   # l'exemple 2 pages travaillé 
 scripts/pick_design.py           # tirage déterministe du design : famille, polices, libellés de sections, puces; --emit-typ affiche le préambule Typst prêt à coller pour la recette tirée
 scripts/gen_palette.py           # palettes génératives à contraste validé (duotone inclus)
 scripts/measure_fill.py          # mesure de la couverture d'encre
+scripts/harvest_icons.py         # récupère les données de tracé des icônes de contact/plateforme dans un icons.typ généré au moment du build du CV (n'écrase jamais le repli vide versionné)
 scripts/verify.py                # portail + doctor : compilation + pages + remplissage + extraction, toute plateforme; --tune fait une bissection sur #set par(leading:, spacing:) vers la cible de remplissage (ne remplace pas le portail — le lancer après)
+scripts/verify_academic.py       # portail du mode académique : vérification des sauts de page au niveau de l'entrée + comptes/ordre déclarés vs extraits, confrontés au fichier de données TOML (ne réutilise que la mécanique de verify.py, aucune de ses constantes de remplissage)
+scripts/verify_letter.py         # portail des lettres de présentation : exactement une page, employeur et intitulé exact du poste tous deux présents dans le texte extrait
 scripts/verify.sh                # enveloppe POSIX autour de verify.py (2 lignes)
 assets/example-1page.png         # rendu d'exemple du gabarit
 ```
