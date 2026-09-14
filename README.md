@@ -1,5 +1,16 @@
 # vitae
 
+<p align="center">
+  <b>English</b> · <a href="README.fr.md">Français</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-444444?style=for-the-badge" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/status-beta%200.2-444444?style=for-the-badge" alt="Status: beta 0.2">
+  <a href="https://typst.app"><img src="https://img.shields.io/badge/Typst-000000?style=for-the-badge&logo=typst&logoColor=white" alt="Typst"></a>
+  <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-agent%20skill-D97757?style=for-the-badge&logo=claude&logoColor=white" alt="Claude Code agent skill"></a>
+</p>
+
 An agent skill for building résumés and CVs
 in [Typst](https://typst.app) that pass **both** filters: automated screening
 (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
@@ -20,7 +31,8 @@ open-source, recruiting-expert) and cross-field integration simulations
 ## What it does
 
 - **Exact page control**: 1-page and 2-page versions, deterministic page
-  breaks, no section ever split across pages (unbreakable blocks).
+  breaks, no section ever split across pages — enforced by unbreakable
+  blocks and **verified on the rendered PDF** by the gate, not by eye.
 - **Measured page fill**: last-ink target derived from the actual margins,
   verified by a pixel measurement script — with an explicit anti-filler rule.
 - **Machine-parseable layout**: linear skill lines, month+year dates, clean
