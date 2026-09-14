@@ -674,6 +674,28 @@ def pages_from_name(typ):
     return "2" if re.search(r"-2\s*page", os.path.basename(typ), re.I) else "1"
 
 
+ACADEMIC_MARKER = "// vitae-academic:"
+
+
+def is_academic(path):
+    """True for an academic CV, which this gate must NOT judge.
+
+    An academic CV is a different genre: the atom is the ENTRY, not the
+    section, there is no fill target at all, and its length is whatever the
+    record is — 13 pages is ordinary. This gate is calibrated on one- and
+    two-page industry resumes, and `check_all` guesses a headerless file's
+    page count from its NAME (defaulting to 1), so a sweep would fail an
+    academic CV for being itself. It carries its own gate:
+    `scripts/verify_academic.py`. The marker is a line-1 comment the academic
+    template emits; see academic-mode.md § 5.2.3.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return ACADEMIC_MARKER in fh.read(4096)
+    except OSError:
+        return False
+
+
 def check_all(directory):
     """Run the single-file gate over every .typ under `directory`.
 
@@ -683,7 +705,8 @@ def check_all(directory):
     """
     typs = sorted(f for f in glob.glob(os.path.join(directory, "**", "*.typ"),
                                        recursive=True)
-                  if not os.path.basename(f).startswith(("lib", "icons")))
+                  if not os.path.basename(f).startswith(("lib", "icons"))
+                  and not is_academic(f))
     if not typs:
         print(f"no .typ found under {directory}")
         return 1
@@ -893,6 +916,17 @@ def main():
                    check_whitespace(bare_tight, degraded=True)), \
             "degraded mode must say so, not silently pass"
         os.unlink(bare_tight)
+
+        with tempfile.NamedTemporaryFile("w", suffix=".typ", delete=False,
+                                         encoding="utf-8") as fh:
+            fh.write("// vitae-academic: sections=13 entries=212\n#set page()\n")
+            acad = fh.name
+        assert is_academic(acad), \
+            "an academic CV must be recognised by its line-1 marker, or a " \
+            "sweep judges a 13-page CV against a 1-page resume gate"
+        assert not is_academic(__file__), \
+            "is_academic must not fire on an ordinary file"
+        os.unlink(acad)
 
         assert family_from_path("templates/families/quiet-luxury/resume.typ") \
             == "quiet-luxury"

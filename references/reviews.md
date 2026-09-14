@@ -75,6 +75,39 @@ evidence from the images:
 Both are pass/fail, not stylistic preferences, and a FAIL means the recipe (not
 the content) gets changed.
 
+## Academic-mode panel (replaces the core panel in academic mode)
+
+Academic mode recasts the personas above — an academic dossier is read by
+different people looking for different things, and a rhetorical review misses
+what actually breaks it.
+
+1. **Committee member** — reads the dossier the way a hiring or
+   tenure/promotion committee does: publication record against the position's
+   bar, teaching evidence, service load, letters and their fit with the
+   narrative. Deliverables: gaps a committee would flag in discussion, claims
+   that need a stronger citation or a missing detail, ordering problems (what
+   should lead vs. what is buried).
+2. **Extraction-and-counts auditor** — not a rhetorical reviewer: this one
+   **actually runs `pdftotext`** on the rendered dossier and recounts entries
+   per section (publications, talks, grants, courses taught) against the
+   source fact sheet. Deliverables: any miscount, any entry that split across
+   a page break, any entry `pdftotext` garbled or dropped. This is the
+   academic-mode analogue of the ATS/parsing expert, but the check is a count
+   match, not a keyword scan.
+3. **Department head** — keeps the `FAITS.md` fact-diff from the core panel's
+   hiring-manager reviewer **word for word**, unchanged: compare every claim
+   in the dossier against the fact sheet and list each mechanism, number, or
+   lost hedge the sheet does not contain. Academic inflation (an "invited"
+   talk that was a contributed one, a "PI" role that was co-PI) is exactly
+   the failure mode this check exists to catch.
+4. **Institution-type segments** — one reviewer per institution type the
+   candidate is targeting, each reading the *same* dossier through that
+   institution's lens rather than inventing a posting: a US research
+   university (research output and grant trajectory lead) and a teaching
+   institution (teaching evidence and student outcomes lead) score the same
+   CV differently, and the reviewer says which sections would need
+   reordering or expanding for the other type.
+
 ## Synthesizing findings
 
 - Apply only findings that survive cross-review ("keyword X is padding" from
