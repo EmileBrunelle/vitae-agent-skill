@@ -1910,6 +1910,19 @@ one wrapped line can cascade an unbreakable section onto a new page.
   need it. Caveat: markup like `#box`/`*bold*` only works in `[content]`
   arguments — inside a helper's `"string"` argument it renders literally;
   call helpers with `[brackets]` when markup is needed.
-- Bold budget: ≤2 bold tech terms per bullet; never bold whole concept phrases.
+- **Bold budget: AT MOST ONE bold term per bullet** — and a bullet that names
+  no technology carries none. Never bold whole concept phrases.
+  The bold marks a SCAN ANCHOR — one fixation point per bullet for the
+  30-second read — not a keyword highlighter; the keywords are the skills
+  section's job. So the same technology is bold in one bullet and plain in the
+  next, and that is correct: the mark belongs to the POSITION, not to the word.
+  This replaces a `≤2` ceiling on 2026-09-13. A ceiling with no positive rule
+  under it is not a rule, and it drifted exactly as you would predict: measured
+  across a 10-deliverable corpus, 54 bullets carried 1, eleven carried 2,
+  thirteen carried 3, and fourteen carried none — with the SAME term bold in
+  one sentence and plain in the next (`Node.js, *RabbitMQ*`; `*PHP*` in one
+  entry and `PHP / MySQL` in another). The owner's report was that the bold
+  "looks random". It was: a budget bounds the damage, it does not decide
+  anything.
 - En dash `–` for ranges, em dash — for asides; consistent per language.
 - Hyphenation off (`hyphenate: false`) — ragged right, no broken words.
