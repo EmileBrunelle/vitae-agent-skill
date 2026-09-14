@@ -438,6 +438,48 @@ def boundary_ink(white, ink, med):
     return [(a, b) for a, b in ink if span(a, b) >= BOUNDARY_RATIO * med]
 
 
+# How tall a white run must be, in median gaps, to count as the BOUNDARY a
+# furniture band sits at. BOUNDARY_RATIO (2.0) cannot be reused here: it
+# grades a SPAN (white above + band + white below), and a band typeset on the
+# heading's own line only ever touches the white ABOVE it — the heading text
+# is below, so the run under it is an ordinary line gap or nothing.
+# Measured 2026-09-13 over the 14 families' `resume.typ`: tallest white run
+# within `med` of each furniture band, in med units, two clusters —
+#   AT a boundary (color-band, editorial-serif, engraved-card, margin-index,
+#     quiet-luxury, swiss-grid, avant-poster): 1.54 1.60 1.73 1.73 1.73 1.73
+#     1.73 1.73 1.86 1.86 2.00 …(11 more)… 2.86 3.00 3.14 3.29 4.71 4.86 5.14
+#   inside a section (hard-edge's and avant-poster's link underlines): 0.00
+#     0.00 0.40
+# A void from 0.40 to 1.54 with nothing in it; 1.2 sits inside it, far from
+# both edges. The proximity tolerance is `med` itself — one line height, what
+# separates a band on the heading line from the gap above it.
+BOUNDARY_ADJACENT = 1.2
+
+
+def near_boundary(band, white, med):
+    """True when a FURNITURE band sits AT a section boundary.
+
+    `boundary_ink`'s `span` cannot be reused here, and applying it would
+    delete every band this detector exists to find: a tick or side bar
+    typeset ON the heading's own line is not INSIDE any white run — the row
+    carries text — so `up` and `dn` are both 0 and the span collapses to the
+    band's own thickness. Furniture needs PROXIMITY, not containment: the
+    band counts when it touches, or comes within one median gap of, a white
+    run tall enough to be a boundary rather than a line gap.
+
+    Without this the union was position-blind on the furniture half: a page
+    with NO device at all but four underlined links mid-section satisfied
+    DEVICE_QUORUM while the message claimed the bands sat "AT a section
+    boundary".
+    """
+    a, b = band
+    for x, y in white:
+        near = y >= a - med and x <= b + med
+        if near and (y - x) >= BOUNDARY_ADJACENT * med:
+            return True
+    return False
+
+
 def check_whitespace(path, boxes=None, family=None, degraded=False):
     """Yield (is_fail, message) for one rendered page.
 
@@ -460,13 +502,27 @@ def check_whitespace(path, boxes=None, family=None, degraded=False):
     ratio = top / med
     ink = boundary_ink(white, all_ink, med)
     furniture = furniture_ink(path, boxes)
+    # furniture_ink scans the whole PNG; measure_fill.bands reports rows of
+    # its CROP, which cuts 2% off the top. A position test has to shift one
+    # frame into the other — 33px on a 1650px page, two text lines.
+    # ponytail: only near_boundary is shifted. The _overlap dedupe below is
+    # left in the mixed frame it was written in, where it almost never fires,
+    # because correcting it is a DIFFERENT bug with a design consequence:
+    # measured 2026-09-13, every furniture band of color-band, swiss-grid,
+    # margin-index and engraved-card is the SAME band as one already in
+    # `ink`, so their unions are doubled — and engraved-card's drops from 2
+    # to 1, FAILing a shipped template whose single flourish is exactly what
+    # DEVICE_QUORUM was written to catch. That is a call about the template,
+    # not about this filter.
+    off = int(h * 0.02)
 
     def _overlap(a, b):
         return not (a[1] < b[0] or b[1] < a[0])
 
     union = list(ink)
     for band in furniture:
-        if not any(_overlap(band, u) for u in union):
+        if near_boundary((band[0] - off, band[1] - off), white, med) and \
+                not any(_overlap(band, u) for u in union):
             union.append(band)
 
     if ratio < BOUNDARY_RATIO:
@@ -788,9 +844,15 @@ def main():
         # Two synthetic pages, drawn with PIL so the check needs no Typst.
         from PIL import Image, ImageDraw
 
-        def _page(rule_luma=None, gap=45, rule_len=975, underline=False, rules=4):
+        def _page(rule_luma=None, gap=45, rule_len=975, underline=0, rules=4,
+                  want_boxes=False):
+            # `underline` is a COUNT of sections that get an underlined link
+            # mid-body; `want_boxes` also returns the word boxes for the body
+            # text (never for the underlines — pdftotext does not box a rule),
+            # which is what lets furniture_ink see them.
             im = Image.new("L", (1275, 1650), 255)
             d = ImageDraw.Draw(im)
+            boxes = []
             y = 200
             for s in range(4):
                 if rule_luma is not None and s < rules:  # a hairline AT the boundary
@@ -799,15 +861,18 @@ def main():
                 for i in range(6):              # body text: short dark runs
                     for x in range(150, 1100, 60):
                         d.rectangle([x, y, x + 44, y + 8], fill=30)
+                        boxes.append((x / FURNITURE_SCALE, y / FURNITURE_SCALE,
+                                      (x + 44) / FURNITURE_SCALE,
+                                      (y + 8) / FURNITURE_SCALE))
                     y += 22
-                    if underline and s == 1 and i == 2:
+                    if s < underline and i == 2:
                         # an underlined link mid-section: a 24%-of-width
                         # unbroken run, wider than any real device on the
                         # roster, but nowhere near a boundary
                         d.line([(150, y - 6), (450, y - 6)], fill=30, width=2)
             f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             im.save(f.name)
-            return f.name
+            return (f.name, boxes) if want_boxes else f.name
 
         # inked: a tight page whose boundaries are pale full-measure hairlines.
         # thin: the same, with a device deliberately SHORTER than the text
@@ -821,7 +886,7 @@ def main():
         # passes only while the short rule is seen: miss the device and the
         # same page is the "empty space is doing the whole job" failure.
         thin = _page(rule_luma=30, rule_len=70, gap=75)
-        linked = _page(rule_luma=None, gap=90, underline=True)
+        linked = _page(rule_luma=None, gap=90, underline=1)
         # one rule at the top and nothing below it: the `engraved-card` /
         # `gutter-rail` case, a flourish under the name and bare space after
         lone = _page(rule_luma=30, gap=75, rules=1)
@@ -892,6 +957,25 @@ def main():
             "furniture_ink must SEE the same tick once word boxes are given " \
             "— ink not covered by any word box, on a line that carries text"
         os.unlink(tick_png)
+
+        # …and the other half of the same coin: furniture is only a device
+        # when it sits AT a boundary. A page with NO device anywhere but four
+        # underlined links deep inside its sections used to satisfy
+        # DEVICE_QUORUM the moment word boxes were available — `linked` above
+        # only ever exercised the BOX-LESS path, where the links are caught by
+        # boundary_ink instead, so it could not see this. Word boxes cover the
+        # body text and not the underlines, so furniture_ink finds all four.
+        link_png, link_boxes = _page(rule_luma=None, gap=90, underline=4,
+                                     want_boxes=True)
+        assert len(furniture_ink(link_png, link_boxes)) >= DEVICE_QUORUM, \
+            "the underlines must reach furniture_ink at all, else the next " \
+            "assert passes for the wrong reason"
+        assert any(f and "no ink" in m for f, m in
+                   check_whitespace(link_png, boxes=link_boxes)), \
+            "link underlines in the MIDDLE of a section must not count " \
+            "towards the quorum just because word boxes are available — the " \
+            "gate claims the bands are AT a section boundary"
+        os.unlink(link_png)
 
         # --- the gate must actually FAIL now (2026-09-13 fix): a page with
         # no device anywhere used to pass whenever its whitespace ratio sat
@@ -966,7 +1050,9 @@ def main():
               "a pale or short hairline AT a boundary reads as a device, while "
               "an underlined link away from one does not — empty-space-only "
               "separation FAILs either way; furniture_ink sees a device beside "
-              "text that the old row-wide scan is blind to; the quorum FAILs "
+              "text that the old row-wide scan is blind to, and only where a "
+              "boundary is (link underlines mid-section do not count, word "
+              "boxes or not); the quorum FAILs "
               "unconditionally on zero devices unless the family is DEVICELESS; "
               "and the white ratio fails nothing on its own, at either end "
               "(tight-but-inked passes, and the ceiling clears the roster's "
