@@ -47,6 +47,41 @@ idiom; it never becomes a heavy accent rule under an UPPERCASE heading (clone
 marker #1 stays banned). An explicit request for a whitespace-only look
 overrides this default.
 
+**How a device is detected (rewritten 2026-09-13).** Two row scans, unioned;
+neither alone is enough.
+
+1. *Ink in a horizontal white gap* (`boundary_ink`) — sees full-width rules,
+   knockout slabs and pale hairlines, i.e. devices that own rows of their own.
+2. *Ink no `pdftotext` word box covers* (`furniture_ink`, `FURNITURE_FLOOR`
+   0.02) — sees devices typeset ON the heading's line, which scan 1 is blind
+   to because the heading's glyphs occupy the same rows.
+
+Scan 1 alone reported **0 devices for `quiet-luxury` and `avant-poster`**,
+both of which carry seven; scan 2 alone loses `keyline-corporate` (hairline
+too pale), `hard-edge` (knockout hidden under the white text's own box) and
+`bold-display` (underline inside the box padding). The union is the gate.
+`FURNITURE_FLOOR` is 0.02 because the signal is identical from 0.01 to 0.03;
+under 0.005 contact icons and list bullets arrive. It can sit far below
+`measure_fill.RULE_FLOOR` (0.04) because that floor only ever had to separate
+devices from TEXT, and text is now subtracted.
+
+Under `DEVICE_QUORUM` the page FAILs — really, not conditionally on the white
+ratio as before. Two escapes, both narrow:
+
+- `DEVICELESS` in `verify.py`: four families whose device is real but of a
+  KIND no row scan can see — `humanist-quiet` (no ink, by doctrine),
+  `clause-index` (the device is a numeral, so it is text), `gutter-rail` (the
+  bar is VERTICAL and never forms a row band), `mono-technical` (6pt squares,
+  ~1% of width). The family is read from the `// FAMILY:` banner on line 1,
+  never from the directory: a delivered CV is a copy living in the user's own
+  folder, and a path-only rule failed exactly the files the skill ships.
+- No `pdftotext` on PATH: the quorum is reported, never failed. A missing tool
+  is not a design defect.
+
+`mono-technical` and `engraved-card` (2 bands, at the quorum's edge) are the
+genuine weak boundaries in the roster: their devices are real but too small to
+read at arm's length. That is a design debt, not a gate bug.
+
 **When a boundary does not read, whitespace is the LAST lever, not the first.**
 The observed failure mode is an agent that sees a weak boundary and answers with
 vertical space, page after page, until the CV is a ladder of empty bands. The

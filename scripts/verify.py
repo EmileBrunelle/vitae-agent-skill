@@ -69,6 +69,8 @@ import subprocess
 import sys
 import tempfile
 
+from PIL import Image
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fill  # noqa: E402
 
@@ -273,6 +275,139 @@ DEVICE_QUORUM = 2
 CANYON = 0.035          # a hole this tall (fraction of page height) is a defect
 BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run this tall
 
+# Families whose boundary device is real but of a KIND no row scan can see.
+# Measured 2026-09-13; each is a device nature, not a tuning miss:
+DEVICELESS = {
+    "humanist-quiet",   # no ink at all, by doctrine (design.md: pure gap)
+    "clause-index",     # the device is a numeral — text, not furniture
+    "gutter-rail",      # the bar is VERTICAL: never forms a row band
+    "mono-technical",   # 6pt inline squares, ~1% of width, under any floor
+}
+
+
+def family_from_path(path):
+    """The family this CV is built from, for the DEVICELESS exemption.
+
+    Read from the `// FAMILY: <name>` banner every template carries on line 1,
+    NOT from the directory. A delivered CV is a copy of the template living in
+    the user's own folder (SKILL.md: "delivered copies are retailoring"), so a
+    path-only rule exempts the template and fails the very file the skill
+    ships — measured: a copy of `humanist-quiet` outside the tree FAILed the
+    quorum while the family is legitimately device-less. The banner travels
+    with the copy; the path does not. Directory name is the fallback, for a
+    file whose banner was edited away."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            m = re.match(r"\s*//\s*FAMILY:\s*([\w-]+)", fh.readline())
+        if m:
+            return m.group(1)
+    except OSError:
+        pass
+    parts = os.path.normpath(path).split(os.sep)
+    if "families" in parts:
+        i = parts.index("families")
+        if i + 1 < len(parts):
+            return parts[i + 1]
+    return None
+
+
+def word_boxes(pdf):
+    """Per-page list of pdftotext word boxes (x0, y0, x1, y1) in PDF points.
+
+    Returns None (not a list of empties) when pdftotext is missing or fails,
+    so callers can tell "no text found" from "couldn't check" and degrade to
+    the old ink-only detector rather than treating every row as furniture.
+    """
+    try:
+        r = subprocess.run(["pdftotext", "-bbox", pdf, "-"],
+                            capture_output=True, text=True)
+    except (FileNotFoundError, OSError):
+        return None
+    if r.returncode != 0:
+        return None
+    pages = []
+    for pg in r.stdout.split("<page ")[1:]:
+        pages.append([(float(m[1]), float(m[2]), float(m[3]), float(m[4])) for m in
+                      re.finditer(r'<word xMin="([\d.]+)" yMin="([\d.]+)" '
+                                  r'xMax="([\d.]+)" yMax="([\d.]+)"', pg)])
+    return pages
+
+
+# Rows whose longest dark run OUTSIDE every word box reaches this share of
+# page width are furniture (a tick, a side bar) rather than a word's own
+# ink. Measured plateau, not a fitted curve: the signal is identical from
+# 0.01 to 0.03; below 0.005 contact icons and list bullets start appearing as
+# "devices". The old detector's RULE_FLOOR needed to be 0.04 to separate a
+# device from RAW TEXT on the same scan; this floor only has to separate a
+# device from the residue text leaves after its own word boxes are
+# subtracted, which is a much smaller gap to clear.
+FURNITURE_FLOOR = 0.02
+FURNITURE_PPI = 90
+FURNITURE_SCALE = FURNITURE_PPI / 72.0   # pdftotext boxes are in PDF points
+FURNITURE_PAD = 1.0                      # pt padding so antialiasing at a
+                                         # glyph's edge doesn't read as ink
+
+
+def furniture_ink(png, boxes):
+    """Ink bands (start, end) that fall OUTSIDE every word box on the page.
+
+    Interval arithmetic, not a per-pixel coverage mask: each row's covering
+    boxes are merged into a handful of intervals, and only the GAPS between
+    them are ever scanned pixel-by-pixel. A text-heavy row is almost entirely
+    covered, so this looks at a sliver of it instead of the whole width.
+    """
+    if not boxes:
+        return []
+    im = Image.open(png).convert("L")
+    w, h = im.size
+    px = im.load()
+    sc = FURNITURE_SCALE
+    cov = [[] for _ in range(h)]
+    for x0, y0, x1, y1 in boxes:
+        ya = max(0, int((y0 - FURNITURE_PAD) * sc))
+        yb = min(h - 1, int((y1 + FURNITURE_PAD) * sc))
+        xa = max(0, int((x0 - FURNITURE_PAD) * sc))
+        xb = min(w, int((x1 + FURNITURE_PAD) * sc) + 1)
+        for y in range(ya, yb + 1):
+            cov[y].append((xa, xb))
+
+    def uncovered_dark_run(y):
+        merged = []
+        for a, b in sorted(cov[y]):
+            if merged and a <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+            else:
+                merged.append((a, b))
+        gaps, prev = [], 0
+        for a, b in merged:
+            if a > prev:
+                gaps.append((prev, a))
+            prev = max(prev, b)
+        if prev < w:
+            gaps.append((prev, w))
+        best = run = 0
+        for gs, ge in gaps:
+            run = 0
+            for x in range(gs, ge):
+                if px[x, y] < 200:
+                    run += 1
+                    best = max(best, run)
+                else:
+                    run = 0
+        return best
+
+    rows = [uncovered_dark_run(y) / w for y in range(h)]
+    bands, cur = [], None
+    for y, r in enumerate(rows):
+        if r >= FURNITURE_FLOOR:
+            cur = [y, y] if cur is None else [cur[0], y]
+        elif cur:
+            bands.append((cur[0], cur[1]))
+            cur = None
+    if cur:
+        bands.append((cur[0], cur[1]))
+    return bands
+
 
 def boundary_ink(white, ink, med):
     """The ink bands that sit AT a section boundary, not just anywhere.
@@ -303,8 +438,16 @@ def boundary_ink(white, ink, med):
     return [(a, b) for a, b in ink if span(a, b) >= BOUNDARY_RATIO * med]
 
 
-def check_whitespace(path):
-    """Yield (is_fail, message) for one rendered page."""
+def check_whitespace(path, boxes=None, family=None, degraded=False):
+    """Yield (is_fail, message) for one rendered page.
+
+    `boxes` is this page's pdftotext word-box list (from `word_boxes`), used
+    to see furniture the old rule/bar scan is blind to (a tick or side bar
+    typeset ON a heading's own line — no white row above it). `family` is
+    the template family name (from `family_from_path`); it is the only thing
+    that can exempt a page from the device quorum (see DEVICELESS), and only
+    a template family, never a user's own CV.
+    """
     import statistics
     h, white, all_ink = measure_fill.bands(path)
     runs = [b - a for a, b in white]
@@ -316,6 +459,16 @@ def check_whitespace(path):
         return
     ratio = top / med
     ink = boundary_ink(white, all_ink, med)
+    furniture = furniture_ink(path, boxes)
+
+    def _overlap(a, b):
+        return not (a[1] < b[0] or b[1] < a[0])
+
+    union = list(ink)
+    for band in furniture:
+        if not any(_overlap(band, u) for u in union):
+            union.append(band)
+
     if ratio < BOUNDARY_RATIO:
         yield False, (f"section separation: biggest internal gap {top}px is "
                       f"{ratio:.2f}x the median {med}px — under the "
@@ -328,23 +481,33 @@ def check_whitespace(path):
     # with no device AT A BOUNDARY, whitespace is the whole separator,
     # and a WIDE boundary on top of that is the failure this gate exists to
     # catch: separators are wanted, not empty space.
-    if len(ink) < DEVICE_QUORUM:
-        yield ratio > SEPARATION_CEILING, (
-            f"boundaries carry no ink: {len(ink)} rule/bar/slab AT a section "
+    if len(union) < DEVICE_QUORUM:
+        exempt = family in DEVICELESS
+        # A MISSING TOOL IS NOT A DESIGN DEFECT. Without pdftotext the union
+        # is the old row scan alone, which is exactly the detector this gate
+        # was rewritten to stop trusting: it scores 0 on quiet-luxury and
+        # avant-poster, whose devices are real but sit on the heading's own
+        # line. Failing on that would report a valid CV as broken, so when the
+        # boxes are unavailable the quorum is REPORTED, never failed.
+        yield (not (exempt or degraded)), (
+            f"boundaries carry no ink: {len(union)} rule/bar/slab AT a section "
             f"boundary, need {DEVICE_QUORUM} ({len(all_ink)} wide dark run(s) "
             f"on the page — an underline, a table rule or a single flourish "
             f"under the name is not a boundary system)"
-            + (f", and the boundary gap is {ratio:.2f}x the median — empty "
-               f"space is doing the whole job. Add the family's device, or a "
-               f"thin `soft` hairline above each section, and give the gap "
-               f"back to body leading"
-               if ratio > SEPARATION_CEILING else
-               " — legitimate only for a deliberately device-less family, "
-               "which then needs a HIGH white ratio to compensate"))
+            + (" — NOT MEASURED: pdftotext is unavailable, so devices beside "
+               "the heading (ticks, side bars) are invisible to this run. "
+               "Install poppler-utils to restore the check"
+               if degraded else
+               f" — add the family's device at each boundary, or a thin `soft` "
+               f"hairline above each section (design.md § Boundaries carry ink "
+               f"by default); if the gap is doing the work instead, give it "
+               f"back to body leading")
+            + (f" — EXEMPT: {family} is on DEVICELESS (its device is real "
+               f"but of a kind no row scan can see)" if exempt else ""))
     else:
-        yield False, (f"boundary devices: {len(ink)} ink band(s) at a section "
+        yield False, (f"boundary devices: {len(union)} ink band(s) at a section "
                       f"boundary, of {len(all_ink)} on the page "
-                      f"({', '.join(str(b - a) + 'px' for a, b in ink[:6])})")
+                      f"({', '.join(str(b - a) + 'px' for a, b in union[:6])})")
     if ratio > SEPARATION_CEILING:
         yield False, (f"section separation: biggest gap {top}px = {ratio:.2f}x "
                       f"median {med}px — OVER {SEPARATION_CEILING}x. Legitimate "
@@ -662,34 +825,118 @@ def main():
             assert any(f and "no ink" in m for f, m in check_whitespace(p)), \
                 "empty-space-only separation must FAIL on the ink check, " \
                 "whatever ink the page carries away from its boundaries"
+
+        # --- furniture: the blind spot no row-wide scan can see ---
+        # A device typeset ON the heading's own text line (a tick, a side
+        # bar) never shows up in `all_ink`: the row also carries word ink, so
+        # its longest UNBROKEN run is just one word's width — under
+        # RULE_FLOOR — same as any ordinary text row. Only a word-box list
+        # that does NOT cover the device can tell the two apart.
+        def _page_with_tick():
+            im = Image.new("L", (1275, 1650), 255)
+            d = ImageDraw.Draw(im)
+            boxes = []
+            y = 200
+            for s in range(4):
+                first_row = True
+                for i in range(6):
+                    for x in range(150, 1100, 60):
+                        d.rectangle([x, y, x + 44, y + 8], fill=30)
+                        boxes.append((x / FURNITURE_SCALE, y / FURNITURE_SCALE,
+                                      (x + 44) / FURNITURE_SCALE,
+                                      (y + 8) / FURNITURE_SCALE))
+                    if first_row:
+                        # the tick: same row as text (never a white gap), and
+                        # deliberately left OUT of `boxes` above. 30px of
+                        # 1275 = 2.35%, above FURNITURE_FLOOR (2%) and below
+                        # RULE_FLOOR (4%) so the old row-wide scan is blind
+                        # to it on its own width too.
+                        d.rectangle([1130, y, 1160, y + 8], fill=20)
+                        first_row = False
+                    y += 22
+                y += 45
+            f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            im.save(f.name)
+            return f.name, boxes
+
+        tick_png, tick_boxes = _page_with_tick()
+        assert not any("boundary devices:" in m for _, m
+                       in check_whitespace(tick_png)), \
+            "without word boxes the OLD detector alone must MISS a device " \
+            "sitting beside a text line (not in any white gap)"
+        assert any("boundary devices:" in m for _, m
+                   in check_whitespace(tick_png, boxes=tick_boxes)), \
+            "furniture_ink must SEE the same tick once word boxes are given " \
+            "— ink not covered by any word box, on a line that carries text"
+        os.unlink(tick_png)
+
+        # --- the gate must actually FAIL now (2026-09-13 fix): a page with
+        # no device anywhere used to pass whenever its whitespace ratio sat
+        # under SEPARATION_CEILING (6.0) — which the WHOLE corpus does (max
+        # measured: 5.14). Quorum failure is now unconditional unless the
+        # family is in DEVICELESS. ---
+        bare_tight = _page(rule_luma=None, gap=10)  # ratio well under 6.0
+        assert any(f for f, _ in check_whitespace(bare_tight)), \
+            "zero boundary devices must FAIL the quorum even when the " \
+            "whitespace ratio is nowhere near SEPARATION_CEILING — this is " \
+            "exactly the case that never failed before"
+        assert not any(f for f, _ in
+                       check_whitespace(bare_tight, family="humanist-quiet")), \
+            "a DEVICELESS-exempt family must not FAIL on zero devices"
+        # A missing pdftotext must not masquerade as a design defect: without
+        # word boxes the union is the old row scan alone, which scores 0 on
+        # real pages whose device sits on the heading's line.
+        assert not any(f for f, _ in
+                       check_whitespace(bare_tight, degraded=True)), \
+            "with no word boxes the quorum must be REPORTED, not failed"
+        assert any("NOT MEASURED" in m for _, m in
+                   check_whitespace(bare_tight, degraded=True)), \
+            "degraded mode must say so, not silently pass"
+        os.unlink(bare_tight)
+
+        assert family_from_path("templates/families/quiet-luxury/resume.typ") \
+            == "quiet-luxury"
+        assert family_from_path("/home/x/my-own-cv.typ") is None, \
+            "a path outside templates/families/ must never carry an exemption"
+
         # --- the 2026-09-13 recalibration, pinned from both sides ---
         # tight: boundaries carry a hairline but the gap is only 1.77x the
         # median — BELOW the old 2.0 floor, which failed it. The corpus says
         # that ratio does not rank separation (a page with NO section gap at
         # all scores 2.69), so an inked page must pass at any ratio. This is
         # the `engraved-card/resume-pair-b` case, which measured 1.89.
-        tight = _page(rule_luma=30, gap=10)
+        tight = _page(rule_luma=30, gap=25)
         assert not any(f for f, _ in check_whitespace(tight)), \
             "the white ratio must no longer FAIL a page whose boundaries " \
             "carry ink, however tight the gap"
         # airy: no device anywhere and a ratio of ~5.1 — the top of the real
-        # roster (margin-index 5.14, a legitimately device-less family). It
-        # must NOT fail: SEPARATION_CEILING sits above the whole corpus, and
-        # dropping it back under 5.2 turns this into a failure.
+        # roster (margin-index 5.14). SEPARATION_CEILING still must not fail
+        # it on the ratio alone; but the ratio was never what covered a truly
+        # device-less family — DEVICELESS does. margin-index itself is not
+        # exempt (it measures a union of 14: its "device-less" reputation was
+        # an artifact of the old ink-blind scan), so this is a synthetic
+        # stand-in and must only pass WITH an exemption.
         airy = _page(rule_luma=None, gap=53)
-        assert not any(f for f, _ in check_whitespace(airy)), \
+        assert not any(f for f, _ in
+                       check_whitespace(airy, family="humanist-quiet")), \
             "SEPARATION_CEILING must sit above the roster's highest page " \
-            f"(5.14x); at {SEPARATION_CEILING} a device-less family that " \
-            "compensates with white — which design.md requires of it — fails"
+            f"(5.14x); at {SEPARATION_CEILING} an exempt device-less family " \
+            "that compensates with white — which design.md requires of it " \
+            "— must not fail on the ratio"
+        assert any(f for f, _ in check_whitespace(airy)), \
+            "the same page with no family exemption must FAIL the quorum"
         for f in (inked, bare, thin, linked, lone, tight, airy):
             os.unlink(f)
         print("selftest OK — tuner regex reads, writes and round-trips; "
               "an unrecognised par declaration is reported, not guessed; "
               "a pale or short hairline AT a boundary reads as a device, while "
               "an underlined link away from one does not — empty-space-only "
-              "separation FAILs either way; and the white ratio fails nothing "
-              "on its own, at either end (tight-but-inked passes, and the "
-              "ceiling clears the roster's highest page)")
+              "separation FAILs either way; furniture_ink sees a device beside "
+              "text that the old row-wide scan is blind to; the quorum FAILs "
+              "unconditionally on zero devices unless the family is DEVICELESS; "
+              "and the white ratio fails nothing on its own, at either end "
+              "(tight-but-inked passes, and the ceiling clears the roster's "
+              "highest page)")
         sys.exit(0)
 
     if argv and argv[0] == "--tune":
@@ -737,6 +984,9 @@ def main():
         print(f"FAIL  pages: {pages} (expected {expected})")
         fail = 1
 
+    family = family_from_path(typ)
+    pages_boxes = word_boxes(pdf)  # None => pdftotext missing, degrades below
+
     with tempfile.TemporaryDirectory() as tmp:
         pngs = render_pngs(typ, tmp, use_cli)
         if not pngs:
@@ -744,7 +994,7 @@ def main():
             # Silently passing here is how a broken render reads as a PASS.
             print("FAIL  no PNG rendered — fill unmeasured")
             fail = 1
-        for path in pngs:
+        for i, path in enumerate(pngs):
             result = measure_fill.measure(path)
             if "blank page" in result:
                 print(f"FAIL  fill: {path}: {result}")
@@ -762,7 +1012,9 @@ def main():
                     print(f"OK    fill: {path}: {result}")
             else:
                 print(f"INFO  fill: {path}: {result} (target = (100 - bottom-margin%) - 0..2%)")
-            for is_fail, msg in check_whitespace(path):
+            boxes = pages_boxes[i] if pages_boxes and i < len(pages_boxes) else None
+            for is_fail, msg in check_whitespace(path, boxes=boxes, family=family,
+                                                 degraded=boxes is None):
                 print(f"{'FAIL' if is_fail else 'OK  '}  {msg}")
                 fail = fail or int(is_fail)
 
