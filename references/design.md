@@ -47,14 +47,29 @@ idiom; it never becomes a heavy accent rule under an UPPERCASE heading (clone
 marker #1 stays banned). An explicit request for a whitespace-only look
 overrides this default.
 
-**How a device is detected (rewritten 2026-09-13).** Two row scans, unioned;
-neither alone is enough.
+**How a device is detected (rewritten 2026-09-13).** Two row scans, unioned
+under a POSITION test; neither alone is enough.
 
 1. *Ink in a horizontal white gap* (`boundary_ink`) — sees full-width rules,
    knockout slabs and pale hairlines, i.e. devices that own rows of their own.
 2. *Ink no `pdftotext` word box covers* (`furniture_ink`, `FURNITURE_FLOOR`
    0.02) — sees devices typeset ON the heading's line, which scan 1 is blind
    to because the heading's glyphs occupy the same rows.
+
+Both halves are filtered by LOCATION before they count — that is the whole
+invariant, and the union is where it was first lost. Scan 1 keeps a band whose
+span (white above + band + white below) reaches `BOUNDARY_RATIO` × the median
+gap. Scan 2 cannot use that test: a band on the heading's own line is inside no
+white run at all, so its span collapses to its own thickness and every device
+this scan exists to find would be deleted. It uses PROXIMITY instead
+(`near_boundary`): the band must touch, or come within one median gap of, a
+white run at least `BOUNDARY_ADJACENT` (1.2) × that median — tall enough to be
+a boundary rather than a line gap. Measured over the 14 families, the two
+clusters are 1.54–5.14 for bands at a boundary and 0.00–0.40 for bands inside a
+section, so 1.2 sits in an empty range. Without this filter scan 2 was
+position-blind and a page with NO device but four underlined links mid-section
+satisfied `DEVICE_QUORUM` while the message claimed the bands were at a
+boundary.
 
 Scan 1 alone reported **0 devices for `quiet-luxury` and `avant-poster`**,
 both of which carry seven; scan 2 alone loses `keyline-corporate` (hairline
