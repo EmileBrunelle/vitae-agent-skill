@@ -1,8 +1,11 @@
 # Adversarial review protocol
 
-Run reviews as parallel subagents, each spawned with an explicit cheap model
-(`model: haiku` or `sonnet`) — never let a fan-out inherit an expensive
-main-loop model. Each
+Run reviews as parallel subagents, each on the cheapest model your runtime
+offers — never let a fan-out inherit an expensive main-loop model. Where the
+runtime has no subagents, run the personas sequentially in the main session
+and clear between them; what matters is that each persona judges the CV
+without the others' conclusions in front of it, not that they run at once.
+Each
 reviewer gets: the rendered page PNGs, the `.typ` sources, and an immutable
 fact sheet about the candidate with the instruction **never suggest adding
 facts the candidate did not provide**. Reviewers must hunt for reasons to

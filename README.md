@@ -1,6 +1,6 @@
 # vitae
 
-An agent skill (Claude Code / compatible agents) for building résumés and CVs
+An agent skill for building résumés and CVs
 in [Typst](https://typst.app) that pass **both** filters: automated screening
 (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
 scan.
@@ -72,17 +72,21 @@ about academic dossiers.
 
 ## Install
 
-Copy this folder to your agent's skills directory, e.g. for Claude Code:
+Copy this folder into the directory your agent loads skills from, either
+user-wide or per-project:
 
 ```
-~/.claude/skills/vitae/          # user-wide
-<project>/.claude/skills/vitae/  # per-project
+<skills-dir>/vitae/
 ```
+
+Consult your agent's own documentation for where that directory is. Nothing
+here is tied to one vendor: `SKILL.md` is the entry point and the rest is
+Typst templates plus Python scripts, so an agent with no skills directory at
+all can simply be pointed at `SKILL.md`.
 
 ## Usage
 
-In a Claude Code session, just ask naturally — the skill triggers on résumé/CV
-work:
+Just ask naturally — the skill triggers on résumé/CV work:
 
 ```
 > Rebuild my CV from ~/old_cv.pdf and my LinkedIn, targeting backend roles in

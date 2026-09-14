@@ -64,9 +64,10 @@ are final; it reuses their design tokens so the package reads as one system.
 
 ## Authoring at scale (multi-agent)
 
-- One chapter per parallel subagent, spawned with an explicit cheap model
-  (`model: haiku` or `sonnet`) — up to 7 chapters inheriting an expensive
-  main-loop model is a quota incident. Each gets: the candidate fact sheet
+- One chapter per parallel subagent, each on the cheapest model your runtime
+  offers — up to 7 chapters inheriting an expensive main-loop model is a
+  budget incident. With no subagents available, write the chapters one at a
+  time; the guide is unaffected, only the wall-clock. Each gets: the candidate fact sheet
   (immutable, "invent nothing"), the chapter outline, and a STRICT output
   format: `## ` sections, `### ` subsections, `- ` bullets, `*bold*`, no
   tables, no code blocks, no emojis. That format converts mechanically.

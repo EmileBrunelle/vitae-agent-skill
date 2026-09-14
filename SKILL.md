@@ -407,9 +407,11 @@ no family draw and no palette generation either: one neutral gabarit, from
    one per target market segment (recruiter 30-second scan, hiring manager of
    the field, ATS expert, plus one per segment with an invented but realistic
    posting) — the market-segment reviewers are part of this FIRST pass, not
-   an optional later round. Spawn every reviewer with an explicit cheap model
-   (`model: haiku` or `sonnet`) — a fan-out inheriting an expensive main-loop
-   model burns quota fast. Give them rendered PNGs *and* sources. Apply only
+   an optional later round. Spawn every reviewer on the cheapest model your
+   runtime offers — a fan-out inheriting an expensive main-loop model burns
+   budget fast. If your runtime has no subagents, run the personas one at a
+   time in the main session, clearing between them: the review is mandatory,
+   the parallelism is not. Give them rendered PNGs *and* sources. Apply only
    findings that survive cross-examination; findings demanding invented
    facts become questions for the user. After applying findings, go back
    through step 6 before delivering. Once that final PASS holds, write the
