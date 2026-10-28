@@ -310,3 +310,28 @@
   ink: color.mix((luma(95), 85%), (accent, 15%)),
   dark: color.mix((luma(25), 92%), (accent, 8%)),
 )
+
+// ----------------------------------------------------------- list markers
+// A list marker is DRAWN (vector shape), never a character. A character
+// marker (–, —, •, ▪, ·) lands in the ATS's extracted text: measured on the
+// Banque Nationale portal it came out alone on its own line above the bullet's
+// text, and Eightfold printed it literally. An icon font is no escape (its
+// glyphs are private-use characters). The width is measured from the glyph the
+// shape replaces, so indent, body-indent and line breaks are unchanged.
+// kind: "dash" (–) · "emdash" (—) · "dot" (•) · "square" (▪) · "mid" (·).
+#let drawn-marker(kind, fill, bold: false) = context {
+  let sample = (dash: "–", emdash: "—", dot: "•", square: "▪", mid: "·").at(kind)
+  let w = measure(text(weight: if bold { "bold" } else { "regular" }, sample)).width
+  let (sw, sh, cy, shape) = if kind == "dash" or kind == "emdash" {
+    (w - 0.12em, if bold { 0.1em } else { 0.07em }, 0.27em, "rect")
+  } else if kind == "dot" {
+    (0.34em, 0.34em, 0.3em, "circle")
+  } else if kind == "square" {
+    (0.3em, 0.3em, 0.3em, "rect")
+  } else {
+    (0.14em, 0.14em, 0.27em, "circle")
+  }
+  box(width: w, height: 0pt, place(top + left, dx: 0.06em, dy: -(cy + sh / 2),
+    if shape == "rect" { rect(width: sw, height: sh, fill: fill, stroke: none) }
+    else { circle(width: sw, height: sh, fill: fill, stroke: none) }))
+}

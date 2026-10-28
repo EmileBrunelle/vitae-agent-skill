@@ -69,7 +69,7 @@
       sub.step(); clause.display(); [.]; sub.display() }]
    #text(weight: "bold")[#cat]], items)
 
-#set list(marker: text(fill: accent, weight: "bold")[–], indent: 10pt,
+#set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
 
 // HEADER: TWO ZONES over a REFERENCE ROW. The identity block left, the contact

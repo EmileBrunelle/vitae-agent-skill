@@ -47,7 +47,7 @@
 // jump does the separating (nobody else uses italic as the skills device)
 #let skill(cat, items) = srow(text(style: "italic")[#cat], items)
 
-#set list(marker: text(fill: accent)[—], indent: 9pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.45em, body-indent: 6pt)
 
 // header: name and role in the content column, contacts on one line under it;
 // the margin column stays empty here (extraction keeps the name first)

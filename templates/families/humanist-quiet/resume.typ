@@ -42,7 +42,7 @@
 // skills: bulleted rows, accent marker, em-dash label (hanging indent aligns wraps)
 #let skill(cat, items) = srow([#text(fill: accent, weight: "bold")[–]#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
 
-#set list(marker: text(fill: accent, weight: "bold")[–], indent: 10pt,
+#set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
 
 // header: name + subtitle left, contacts on two left-aligned lines below

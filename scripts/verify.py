@@ -431,6 +431,19 @@ def check_degree_tokens(txt):
     return [l.strip() for l in txt.split("\n") if DEGREE_NEAR_RE.search(l)]
 
 
+# A bullet marker set as a CHARACTER survives into the ATS's text (measured:
+# Banque Nationale showed it alone on a line above the bullet; Eightfold printed
+# it literally). Markers must be drawn (references/ats.md). Private-use code
+# points are what icon fonts (Font Awesome etc.) emit. Leading position only:
+# an inline separator or a prose dash is not what this catches.
+BULLET_CHAR_RE = re.compile("^[\u25c6\u25c7\u2022\u25aa\u25ab\u25ba\u25cf\u25a0\u25e6\u2023\u2219\u27a2\ue000-\uf8ff]")
+
+
+def check_bullet_chars(txt):
+    """Extracted lines that start with a bullet or private-use character."""
+    return [l.strip() for l in txt.split("\n") if BULLET_CHAR_RE.match(l.strip())]
+
+
 def family_from_path(path):
     """The family this CV is built from, for the DEVICELESS exemption.
 
@@ -1352,6 +1365,12 @@ def main():
         assert not check_degree_tokens(
             "After coursework at Polytechnique Exemple, I am completing a bachelor's degree")
 
+        for t in ("\u25c6 Built the API", "  \u2022", "\u25aa item", "\uf0b7 item"):
+            assert check_bullet_chars(t), t
+        for t in ("Built the API", "City \u2022 phone", "\u2013 prose dash",
+                  "Bilingual English / French"):
+            assert not check_bullet_chars(t), t
+
         for f in (inked, bare, thin, linked, lone, tight, airy):
             os.unlink(f)
         print("selftest OK — tuner regex reads, writes and round-trips; "
@@ -1504,6 +1523,10 @@ def main():
         print(f'WARN  year-only date range ("{line}") — month+year both ends unless the candidate cannot supply months (SKILL.md rule 1; references/ats.md)')
     for line in check_degree_tokens(txt):
         print(f'WARN  degree token beside a non-completion marker ("{line}") — ATS (Eightfold) read "B.Eng. program" as a degree held; say "coursework" (references/ats.md)')
+
+    bullets = check_bullet_chars(txt)
+    if bullets:
+        print(f'WARN  {len(bullets)} line(s) start with a bullet character in the extraction (e.g. "{bullets[0][:30]}") — ATS prints it or puts it alone on a line; draw list markers as vector shapes (references/ats.md)')
 
     print("──── extraction (check reading order, orphaned dates, intact skill lines) ────")
     print(txt)

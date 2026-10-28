@@ -49,7 +49,7 @@
   text(weight: "bold", size: 9.5pt)[#upper(cat)], items,
   brk: true, above: 6pt, below: 0pt)
 
-#set list(marker: text(fill: accent2, weight: "bold")[•], indent: 10pt,
+#set list(marker: drawn-marker("dot", accent2, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
 
 // header: full-width accent band (page 1 only, placed — takes no flow space)

@@ -47,7 +47,7 @@
 // skills: the label itself carries the accent — no separator, no rule
 #let skill(cat, items) = srow(text(fill: accent, weight: "bold")[#cat], items)
 
-#set list(marker: text(fill: dark)[–], indent: 10pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.45em, body-indent: 6pt)
 
 // header: name left + contact column right (photo slot = right cell), no rule
 #block(above: 0pt, below: 12pt)[

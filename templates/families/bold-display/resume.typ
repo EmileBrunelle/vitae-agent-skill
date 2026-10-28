@@ -46,7 +46,7 @@
 // skills: bold label, wide gap, items — no separator punctuation at all
 #let skill(cat, items) = srow(box[#text(weight: "bold")[#cat]#h(12pt)], items)
 
-#set list(marker: text(fill: accent2, weight: "bold")[▪], indent: 10pt,
+#set list(marker: drawn-marker("square", accent2, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
 
 // header: oversized accent name left, contacts on one line below

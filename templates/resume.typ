@@ -73,7 +73,7 @@
 // e.g. #skill("Languages", [Python, *TypeScript*]) — a "string" renders it literally.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
-#set list(marker: text(fill: accent, weight: "bold")[–], indent: 10pt,
+#set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
   spacing: 0.5em, body-indent: 6pt)
 
 // ---------- Header (centered; platform marks only, no generic icons) ----------

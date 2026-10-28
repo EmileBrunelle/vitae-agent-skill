@@ -66,7 +66,7 @@
 // a rule or a colour was not available. Nobody else punctuates with a period.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat.], items)
 
-#set list(marker: text(fill: accent)[–], indent: 10pt, spacing: 0.45em,
+#set list(marker: drawn-marker("dash", accent), indent: 10pt, spacing: 0.45em,
   body-indent: 6pt)
 
 // HEADER: fully CENTRED — the social-stationery lockup. Name, a short centred

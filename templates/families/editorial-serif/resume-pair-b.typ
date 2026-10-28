@@ -46,7 +46,7 @@
 // skills: serif bold label, thin accent tick (vector), sans items
 #let skill(cat, items) = srow([#text(font: dispf, size: 11pt, weight: "bold")[#cat] #box(width: 3pt, height: 3pt, fill: accent, baseline: -2pt)], items)
 
-#set list(marker: text(fill: dark)[–], indent: 10pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.45em, body-indent: 6pt)
 
 // header: oversized serif name, then role line left / contact column right (photo slot)
 #block(above: 0pt, below: 12pt)[

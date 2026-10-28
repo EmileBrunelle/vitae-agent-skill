@@ -43,7 +43,7 @@
 // skills: small uppercase run-in label (no tracking), then the items
 #let skill(cat, items) = srow(text(size: 8.5pt, weight: "bold")[#upper(cat)], items)
 
-#set list(marker: text(fill: dark, weight: "bold")[▪], indent: 10pt,
+#set list(marker: drawn-marker("square", dark, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
 
 // header: ONE grid row — name/role left, contact column right (photo slot = right cell)
