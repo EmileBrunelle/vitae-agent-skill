@@ -130,5 +130,5 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Languages (spell out the boolean-search words: "bilingual") ----------
 #section("Languages")[
-Bilingual English / French (fluent) #h(8pt)#text(fill: accent)[•]#h(8pt) Third language (native)
+Bilingual English / French (fluent) #h(8pt)#drawn-marker("dot", accent)#h(8pt) Third language (native)
 ]

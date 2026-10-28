@@ -40,7 +40,7 @@
   note-st: it => text(fill: muted, it))
 
 // skills: bulleted rows, accent marker, em-dash label (hanging indent aligns wraps)
-#let skill(cat, items) = srow([#text(fill: accent, weight: "bold")[–]#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
+#let skill(cat, items) = srow([#drawn-marker("dash", accent, bold: true)#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
@@ -52,10 +52,10 @@
   #text(size: 10.5pt)[Backend Software Developer — B.Sc. in Computer Science]
   #v(-4pt)
   #text(size: 9pt, fill: muted)[
-    #nb(mk.pin)[City, Region] #h(5pt)·#h(5pt) #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
-    #h(5pt)·#h(5pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+    #nb(mk.pin)[City, Region] #h(5pt)#drawn-marker("mid", auto)#h(5pt) #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
+    #h(5pt)#drawn-marker("mid", auto)#h(5pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
     #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(5pt)·#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #h(5pt)#drawn-marker("mid", auto)#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 
@@ -119,7 +119,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Languages (spell out the boolean-search words: "bilingual") ----------
 #section("Languages")[
-Bilingual English / French (fluent) #h(8pt)#text(fill: accent)[•]#h(8pt) Third language (native)
+Bilingual English / French (fluent) #h(8pt)#drawn-marker("dot", accent)#h(8pt) Third language (native)
 ]
 
 // ---------- 2-page version recipe ----------

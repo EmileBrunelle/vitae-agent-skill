@@ -318,20 +318,53 @@
 // text, and Eightfold printed it literally. An icon font is no escape (its
 // glyphs are private-use characters). The width is measured from the glyph the
 // shape replaces, so indent, body-indent and line breaks are unchanged.
+// fill: a colour, or `auto` for the surrounding text colour. Inline separators
+// (Languages / contact lines) use kind "dot" too: a separator character wrapping
+// to the start of a line is what the verify.py WARN reads as a bullet.
 // kind: "dash" (–) · "emdash" (—) · "dot" (•) · "square" (▪) · "mid" (·).
+//
+// Calibration: the shape is fitted to the INK of the glyph it replaces, not to
+// its advance box. Every one of these glyphs is horizontally centred in its
+// advance, and its ink TOP is measured here ("bounds" text edge); Typst cannot
+// measure the ink bottom or horizontal ink, so the ink size (width, height, in
+// em) comes from `marker-ink` (family names lowercased, as Typst
+// reports them), measured per family from the rendered glyph at 1200 dpi. A family not listed falls back to proportions typical of the kind.
+#let marker-ink = (
+  "adwaita sans|b|square": (0.291em, 0.291em), "nimbus sans|b|square": (0.257em, 0.263em),
+  "liberation sans|b|square": (0.251em, 0.251em),
+  "noto sans|b|dot": (0.286em, 0.314em), "red hat text|b|dot": (0.240em, 0.246em),
+  "adwaita sans|r|dot": (0.314em, 0.314em), "noto sans|r|dot": (0.229em, 0.251em),
+  "red hat text|r|dot": (0.206em, 0.206em), "open sans|r|dot": (0.217em, 0.246em),
+  "cantarell|r|dot": (0.263em, 0.263em), "liberation sans|r|dot": (0.274em, 0.274em),
+  "libertinus serif|r|dot": (0.235em, 0.229em), "stix two text|r|dot": (0.240em, 0.251em),
+  "nimbus sans|r|dot": (0.251em, 0.251em), "carlito|r|dot": (0.354em, 0.354em),
+  "public sans|r|mid": (0.114em, 0.114em), "pt sans|r|mid": (0.120em, 0.120em),
+  "c059|r|mid": (0.131em, 0.126em), "p052|r|mid": (0.120em, 0.120em),
+  "cantarell|r|mid": (0.131em, 0.131em),
+  "noto sans|r|mid": (0.126em, 0.137em), "adwaita sans|r|mid": (0.131em, 0.131em),
+  "public sans|b|dash": (0.480em, 0.109em), "pt sans|b|dash": (0.446em, 0.120em),
+  "noto sans|b|dash": (0.429em, 0.120em), "cantarell|b|dash": (0.526em, 0.109em),
+  "carlito|b|dash": (0.354em, 0.091em), "open sans|r|dash": (0.423em, 0.080em),
+  "noto sans|r|dash": (0.423em, 0.080em), "c059|r|dash": (0.560em, 0.063em),
+  "p052|r|dash": (0.503em, 0.063em), "liberation sans|r|dash": (0.560em, 0.074em),
+  "libertinus serif|r|emdash": (0.671em, 0.055em), "stix two text|r|emdash": (0.949em, 0.060em),
+)
 #let drawn-marker(kind, fill, bold: false) = context {
   let sample = (dash: "–", emdash: "—", dot: "•", square: "▪", mid: "·").at(kind)
-  let w = measure(text(weight: if bold { "bold" } else { "regular" }, sample)).width
-  let (sw, sh, cy, shape) = if kind == "dash" or kind == "emdash" {
-    (w - 0.12em, if bold { 0.1em } else { 0.07em }, 0.27em, "rect")
-  } else if kind == "dot" {
-    (0.34em, 0.34em, 0.3em, "circle")
-  } else if kind == "square" {
-    (0.3em, 0.3em, 0.3em, "rect")
-  } else {
-    (0.14em, 0.14em, 0.27em, "circle")
-  }
-  box(width: w, height: 0pt, place(top + left, dx: 0.06em, dy: -(cy + sh / 2),
-    if shape == "rect" { rect(width: sw, height: sh, fill: fill, stroke: none) }
-    else { circle(width: sw, height: sh, fill: fill, stroke: none) }))
+  let wt = if bold { "bold" } else { "regular" }
+  let w = measure(text(weight: wt, sample)).width
+  let asc = measure(text(weight: wt, top-edge: "bounds", bottom-edge: "baseline", sample)).height
+  let fam = text.font.first()
+  if type(fam) == dictionary { fam = fam.name }
+  let key = lower(fam) + "|" + if bold { "b" } else { "r" } + "|" + kind
+  let fallback = (
+    dash: (w * 0.9, 0.09em), emdash: (w * 0.9, 0.09em),
+    dot: (asc * 0.55, asc * 0.57), square: (asc * 0.64, asc * 0.64), mid: (asc * 0.3, asc * 0.32),
+  ).at(kind)
+  let (iw, ih) = marker-ink.at(key, default: fallback)
+  let (iw, ih) = (iw.to-absolute(), ih.to-absolute())
+  let fill = if fill == auto { text.fill } else { fill }
+  box(width: w, height: 0pt, place(top + left, dx: (w - iw) / 2, dy: -asc,
+    if kind == "dot" or kind == "mid" { ellipse(width: iw, height: ih, fill: fill, stroke: none) }
+    else { rect(width: iw, height: ih, fill: fill, stroke: none) }))
 }

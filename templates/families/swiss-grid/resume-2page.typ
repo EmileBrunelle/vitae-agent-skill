@@ -234,5 +234,5 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // ---------- Languages (spell out the boolean-search words: "bilingual") ----------
 // Levels stated, per the recipe — the 1-page version drops them to one line.
 #section("Languages", airy: true)[
-Bilingual English / French #h(8pt)#text(fill: accent)[•]#h(8pt) English (fluent) #h(8pt)#text(fill: accent)[•]#h(8pt) French (native) #h(8pt)#text(fill: accent)[•]#h(8pt) Third language (intermediate)
+Bilingual English / French #h(8pt)#drawn-marker("dot", accent)#h(8pt) English (fluent) #h(8pt)#drawn-marker("dot", accent)#h(8pt) French (native) #h(8pt)#drawn-marker("dot", accent)#h(8pt) Third language (intermediate)
 ]

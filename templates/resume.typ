@@ -88,10 +88,10 @@
   #v(-4pt)
   #text(size: 9.5pt, fill: muted)[
     City, Region
-    #h(5pt)•#h(5pt) #link("tel:+15555550100")[(555) 555-0100]
-    #h(5pt)•#h(5pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #link("tel:+15555550100")[(555) 555-0100]
+    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
     #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(5pt)•#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 
@@ -162,7 +162,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Languages (spell out the boolean-search words: "bilingual") ----------
 #section("Languages")[
-Bilingual English / French (fluent) #h(8pt)#text(fill: accent)[•]#h(8pt) Third language (native)
+Bilingual English / French (fluent) #h(8pt)#drawn-marker("dot", accent)#h(8pt) Third language (native)
 ]
 
 // ---------- 2-page version recipe ----------
