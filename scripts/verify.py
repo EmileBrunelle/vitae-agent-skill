@@ -26,7 +26,8 @@ manifest to keep in sync with the files:
     // vitae: pages=1 fill=94-96
 
 A file without that line is still checked: its page count comes from its name
-(`*-2page.typ` is two pages, anything else is one) and its fill is reported
+(`[-_]2p`, `[-_]2page(s)`, optionally with a space, e.g. `_2p`, `-2page`,
+`-2pages`, is two pages; anything else is one) and its fill is reported
 instead of gated. Not one .typ in this repo carries the header, so demanding
 it made `--all` return 30 UNCHECKED and exit 1 on its own corpus.
 
@@ -362,6 +363,72 @@ DEVICELESS = {
     # glyph fragments and punctuation, so 1% sits inside the noise.
     "engraved-card",
 }
+
+
+# ---------- ATS date and degree-token checks (references/ats.md) ----------
+
+# A range whose START has a year and no month: "2019 – 2021", "2017 – present".
+# The ATS parses these as 12-month or zero-length stints (ats.md § dates), so
+# the rule is month+year both ends. WARN, never FAIL: SKILL.md rule 1 lets a
+# candidate who cannot supply months keep year-only deliberately. A lone year
+# (a degree year) is not a range and never matches.
+# Explicit EN+FR months (full, abbreviated, accented) and seasons, so that
+# "Marketing", "Mayor" or "Decorator" are never read as a month.
+_MONTH = (r"(?:jan(?:uary|vier|v)?|f[ée]v(?:rier|r)?|feb(?:ruary)?|mar(?:ch|s)?"
+          r"|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|jul(?:y)?|juil(?:l(?:et)?)?"
+          r"|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember|embre)?)?|oct(?:ober|obre)?"
+          r"|nov(?:ember|embre)?|dec(?:ember)?|d[eé]c(?:embre)?)")
+_SEASON = r"(?:fall|autumn|summer|winter|spring|automne|[ée]t[ée]|hiver|printemps)"
+_DATED = r"(?:%s|%s)\.?\s+" % (_MONTH, _SEASON)
+# Both ends of a range need a month (or season): `Aug 2019 – 2021` and
+# `2019 – Aug 2021` WARN as well as `2019 – 2021`. Present/now as the end is fine.
+YEAR_RANGE_RE = re.compile(
+    r"(?<!\d)((?:19|20)\d{2})\s*[–—-]\s*"
+    r"(%s)?"
+    r"((?:19|20)\d{2}(?!\d)|present|now|aujourd.hui|pr[ée]sent)" % _DATED, re.I)
+MONTH_BEFORE_RE = re.compile(r"(?<![^\W\d_])" + _DATED.replace(r"\s+", r"\s*") + r"$", re.I)
+
+
+def check_year_only_dates(txt):
+    """Lines carrying a range where either end lacks a month (or season)."""
+    out = []
+    for line in txt.split("\n"):
+        for m in YEAR_RANGE_RE.finditer(line):
+            end_ok = (m.group(2) is not None
+                      or not m.group(3)[0].isdigit())
+            if not (MONTH_BEFORE_RE.search(line[:m.start()]) and end_ok):
+                out.append(line.strip())
+                break
+    return out
+
+
+# A degree token next to a non-completion marker: the Eightfold-class parsers
+# read "B.Eng. program" as a degree HELD (ats.md). Wording that says what it is
+# ("Undergraduate coursework") carries no degree token and passes.
+DEGREE_RE = re.compile(
+    r"(?<!\w)(?:B\.?\s?Eng|B\.?\s?Sc|M\.?\s?Sc|Bachelor(?:'?s)?|Baccalaur[ée]at"
+    r"|Bac(?![\w+])\.?|Master(?:'?s)?|Ma[iî]trise|Licence)(?!\w)", re.I)
+# "Program Manager" etc. is a job title, not a non-completion marker. (The
+# window stops at a comma/semicolon, so "Master's degree, program in CS" no
+# longer WARNs; "Master's degree program in CS" does. Only a WARN either way.)
+INCOMPLETE_RE = re.compile(
+    r"\b(?:coursework|program(?:me)?(?!\s+(?:manager|director|coordinator|lead"
+    r"|officer|analyst|gestionnaire|directeur|directrice|coordonnat)\w*)"
+    r"|in progress|ongoing|scolarit[ée]|en cours|"
+    r"incomplete|non compl[ée]t[ée]|not completed)\b", re.I)
+
+
+# Adjacent, not merely on the same line: prose such as "coursework at Polytechnique Exemple, I am
+# completing a bachelor's degree" says what it is and must not trip the check.
+DEGREE_NEAR_RE = re.compile(
+    "(?:%s)[^,;]{0,30}?(?:%s)|(?:%s)[^,;]{0,30}?(?:%s)"
+    % (DEGREE_RE.pattern, INCOMPLETE_RE.pattern,
+       INCOMPLETE_RE.pattern, DEGREE_RE.pattern), re.I)
+
+
+def check_degree_tokens(txt):
+    """Lines pairing a degree token with a non-completion marker within 30 chars."""
+    return [l.strip() for l in txt.split("\n") if DEGREE_NEAR_RE.search(l)]
 
 
 def family_from_path(path):
@@ -803,7 +870,25 @@ HEADER_RE = re.compile(r"^//\s*vitae:\s*pages=(\d+)(?:\s+fill=(\d+)-(\d+))?",
 
 def pages_from_name(typ):
     """The page count a headerless deliverable declares in its own file name."""
-    return "2" if re.search(r"-2\s*page", os.path.basename(typ), re.I) else "1"
+    return "2" if re.search(r"[-_]2\s*p(?:ages?)?(?![a-z])",
+                            os.path.basename(typ), re.I) else "1"
+
+
+NON_CV_RE = re.compile(
+    r"(?<![^\W\d_])(?:guide|lettre|letter|cover|lisez-moi|readme)(?![^\W\d_])",
+    re.I)
+
+
+def is_gated(typ):
+    """--all's rule: gate every .typ except known non-CV deliverables (guide,
+    letter, cover, lisez-moi, readme by name); a `// vitae:` header opts in."""
+    if not NON_CV_RE.search(os.path.basename(typ)):
+        return True
+    try:
+        with open(typ, encoding="utf-8") as fh:
+            return bool(HEADER_RE.search(fh.read(4096)))
+    except OSError:
+        return False
 
 
 ACADEMIC_MARKER = "// vitae-academic:"
@@ -864,8 +949,13 @@ def check_all(directory):
                                        recursive=True)
                   if not os.path.basename(f).startswith(("lib", "icons"))
                   and not is_academic(f) and not is_letter(f))
+    for t in [t for t in typs if not is_gated(t)]:
+        print(f"SKIP  {t}  (name matches a non-CV deliverable, no `// vitae:` header)")
+    skipped = len(typs) - len([t for t in typs if is_gated(t)])
+    typs = [t for t in typs if is_gated(t)]
     if not typs:
-        print(f"no .typ found under {directory}")
+        print(f"{skipped} skipped, 0 checked" if skipped
+              else f"no .typ found under {directory}")
         return 1
     fail, unchecked = 0, []
     for typ in typs:
@@ -936,6 +1026,22 @@ def main():
         # here and every 2-page deliverable is silently gated as a 1-pager.
         assert pages_from_name("a/resume-2page.typ") == "2"
         assert pages_from_name("a/resume.typ") == "1"
+        for n in ("CV_X_2p.typ", "cv_2page.typ", "cv_2pages.typ", "cv-2p.typ",
+                  "cv-2pages.typ", "CV-2 page.typ"):
+            assert pages_from_name(n) == "2", n
+        for n in ("CV_X_1p.typ", "cv_2pager.typ", "cv_12p.typ"):
+            assert pages_from_name(n) == "1", n
+        assert is_gated("CV_A_1p.typ") and not is_gated("Guide_X.typ")
+        assert is_gated("Jane_Doe.typ") and is_gated("lebenslauf.typ")
+        with tempfile.TemporaryDirectory() as td:
+            for n, body in (("Odd_Letter.typ", "// vitae: pages=1\n"),
+                            ("Guide_Candidature_X.typ", "x\n"),
+                            ("Guide_Hdr.typ", "// vitae: pages=1\n"),
+                            ("Jane_Doe.typ", "x\n")):
+                with open(os.path.join(td, n), "w", encoding="utf-8") as fh:
+                    fh.write(body)
+            g = {n for n in os.listdir(td) if is_gated(os.path.join(td, n))}
+            assert g == {"Odd_Letter.typ", "Guide_Hdr.typ", "Jane_Doe.typ"}, g
         assert pages_from_name("a/resume-pair-b.typ") == "1"
         assert pages_from_name("a/CV-2 page.typ") == "2"  # a space still counts
         assert pages_from_name("2page/resume.typ") == "1", "directory, not file"
@@ -1218,6 +1324,34 @@ def main():
         assert not any(f for f, _ in check_no_split("#let x = 1\n", split)), \
             "no declared heading list means NOT CHECKED, not a free pass fail"
 
+        # ATS date / degree-token checks: each must fire on its defect and stay
+        # quiet on the legitimate shape, else the WARN is noise or a no-op.
+        for bad_d in ("Engineer  2019 – 2021", "Player 2017 – present",
+                      "2019–aujourd'hui", "Dev 2018 - 2020", "2015 — now"):
+            assert check_year_only_dates(bad_d), bad_d
+        for ok_d in ("Aug 2019 – Dec 2021", "janv. 2019 – présent",
+                     "Sept. 2019 – Dec 2021", "Summer 2019 – Fall 2021",
+                     "B.Eng., Software Engineering — 2020",
+                     "June 2026 – present", "Fall 2013"):
+            assert not check_year_only_dates(ok_d), ok_d
+        for bad_d in ("Marketing 2019 – 2021", "Mayor 2019 – 2021",
+                      "Aug 2019 – 2021", "2019 – Aug 2021", "août 2018 – 2020"):
+            assert check_year_only_dates(bad_d), bad_d
+        for t in ("Bac en cours", "Bac. en cours"):
+            assert check_degree_tokens(t), t
+        for t in ("Mastercard program", "Bac+3",
+                  "Program Manager | Master Builder, Bachelor of Arts",
+                  "Program director — Bachelor of Arts"):
+            assert not check_degree_tokens(t), t
+        assert check_degree_tokens(
+            "Undergraduate B.Eng. program, software engineering")
+        assert check_degree_tokens("Baccalauréat en cours, génie logiciel")
+        assert not check_degree_tokens(
+            "Undergraduate coursework, software engineering")
+        assert not check_degree_tokens("B.Eng., Software Engineering — 2020")
+        assert not check_degree_tokens(
+            "After coursework at Polytechnique Exemple, I am completing a bachelor's degree")
+
         for f in (inked, bare, thin, linked, lone, tight, airy):
             os.unlink(f)
         print("selftest OK — tuner regex reads, writes and round-trips; "
@@ -1365,6 +1499,11 @@ def main():
             bad(msg)
         else:
             print("OK    " + msg)
+
+    for line in check_year_only_dates(txt):
+        print(f'WARN  year-only date range ("{line}") — month+year both ends unless the candidate cannot supply months (SKILL.md rule 1; references/ats.md)')
+    for line in check_degree_tokens(txt):
+        print(f'WARN  degree token beside a non-completion marker ("{line}") — ATS (Eightfold) read "B.Eng. program" as a degree held; say "coursework" (references/ats.md)')
 
     print("──── extraction (check reading order, orphaned dates, intact skill lines) ────")
     print(txt)

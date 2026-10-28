@@ -337,13 +337,15 @@ no family draw and no palette generation either: one neutral gabarit, from
    EXPECTED_PAGES [FILL_MIN FILL_MAX]` (POSIX wrapper, two lines, execs
    into verify.py) on Linux/macOS/WSL/Git Bash, or `python scripts/verify.py
    cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]` directly on bare Windows — it
-   exits non-zero if any check fails; never skip it after an edit. **Paste
+   exits non-zero if any check fails; `verify.sh --all DIR` checks every CV in DIR (page count from a `// vitae: pages=N` header, else from `_2p`/`-2page` in the name) and gates every .typ, printing `SKIP` only for files whose name contains guide, lettre, letter, cover, lisez-moi or readme (case-insensitive, whole word) and that carry no `// vitae:` header (a header always opts in). Never skip it after an edit. **Paste
    the gate's full output verbatim into the session before delivering** —
    this is the anti-circumvention check: a summary ("gate passed") is not
    proof, and a result that was never run cannot be pasted. Either way, the
    items further down this list (contrast recompute, date order, the
    fact-sheet diff, the visual look) are never covered by the script and
    stay manual:
+   - The gate also WARNs (never fails) on year-only date ranges and on a
+     degree token beside a non-completion marker ("B.Eng. program").
    - `typst compile cv.typ` then `pdfinfo cv.pdf | grep Pages` — exact count.
      (`icons.typ` must sit beside `lib.typ` first — step 4; the empty
      fallback compiles, it just draws no marks.)

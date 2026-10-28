@@ -43,6 +43,10 @@ same extracted text.
   Degree years may stay year-only (graduation-date convention). If the
   candidate genuinely cannot supply months, rule 1 of SKILL.md wins: keep
   year-only and flag it.
+  `verify.py` WARNs on a range where either end lacks a month (`2019 – 2021`,
+  `2017 – present`, `Aug 2019 – 2021`, `2019 – Aug 2021`; a season counts, present/now as end is fine)
+  and on a degree token beside "program"/"coursework"-type markers (an
+  ATS read "B.Eng. program" as a degree held — write "coursework").
 - **Entry-with-no-bullets trap** (verified): a grid-based job entry with no
   bullet list under it, followed by a paragraph-style section, can emit its
   date orphaned at the very end of the extraction. Detect with the grep below.
