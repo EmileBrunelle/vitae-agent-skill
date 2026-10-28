@@ -247,6 +247,33 @@ not measured here, except where noted.
   it is what the parser reads. Never let the mark be the only carrier of the
   information.
 
+## Eightfold (Microsoft careers portal) — measured quirks
+
+Measured on 4 profile extractions (extractions 3-6, 2026-10-28, FR and EN
+CVs). None of this is checkable statically, so `verify.py` has no gate for
+it; treat it as a post-upload checklist.
+
+- **Education: school FIRST** (`School — Title · dates`). Eightfold cuts an
+  education line at the school name; a title placed before it got glued to
+  the previous entry (present in extraction 3, gone in extraction 4 after
+  the switch to school-first).
+- **Raw entry line copied** at the top of every description: delete it by
+  hand in the profile.
+- **Location stays empty** even when the city is on the entry's meta line.
+  Don't restructure the CV for it: fill the field by hand.
+- **Summary (About) is rewritten**, sometimes translated to English, with
+  no final period: paste the Profile text in by hand.
+- **Junk skills** come from isolated words translated or lifted out of
+  context (Playwright → "Dramaturge", planning poker → "Poker", "Rail
+  Transport" from Rails, fragments like "Pages", "Forms"): prune by hand.
+- **French month abbreviations**: `juill.` is not recognised (the range
+  collapsed to "aoû 2019") while `sept.`, `janv.`, `févr.`, `déc.` are.
+  Do NOT change the abbreviation: `juill.` is the correct OQLF form.
+- **Québec DEC / DEP** survive better from a French CV (`DEC, Informatique
+  de Gestion`); from the English CV they become inexact equivalents
+  ("Diploma…", "DVS/DEP").
+- **Any manual profile edit is wiped by a re-upload**: edit last.
+
 ## Verification commands
 
 One command in any POSIX shell: `scripts/verify.sh cv.typ EXPECTED_PAGES
