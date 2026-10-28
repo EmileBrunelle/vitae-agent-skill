@@ -284,6 +284,13 @@ it; treat it as a post-upload checklist.
   ("Diploma…", "DVS/DEP").
 - **Any manual profile edit is wiped by a re-upload**: edit last.
 
+## Workday (myworkdayjobs)
+
+Measured 2026-10-28 on one tenant: the parser loses the employer on one-line
+`Title — Employer · dates` entries, pastes the Profile into job 1 and picks no
+degree. Fix = a parse-only copy for "Autofill", never a change to the real CV.
+Protocol, results and recipe: `references/workday.md`.
+
 ## Verification commands
 
 One command in any POSIX shell: `scripts/verify.sh cv.typ EXPECTED_PAGES

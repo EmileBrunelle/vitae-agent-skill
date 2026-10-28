@@ -360,6 +360,8 @@ no family draw and no palette generation either: one neutral gabarit, from
    - `pdftotext cv.pdf -` — reading order sane, no orphaned dates, skill lines
      intact, and dates within each section in reverse-chronological order.
      Full checklist and known extraction traps: `references/ats.md`.
+     Portal-specific quirks: Eightfold in `references/ats.md`, Workday in
+     `references/workday.md`.
    - **No section split across a page break** (rule 5's first half) — checked
      by the gate since 2026-09-13, not by eye. Reduced to its contrapositive,
      which is what a PDF can actually answer: every page after the first must
