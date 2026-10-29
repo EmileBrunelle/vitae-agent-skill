@@ -2,10 +2,10 @@
 name: vitae
 description: Build ATS- and human-optimized résumés/CVs in Typst — exact page control (1-page and 2-page versions), no section ever split across pages, measured page fill, machine-parseable layout, regional and multilingual conventions, adversarial review loop, optional job-search guide. Also builds academic CVs (the exhaustive multi-page genre — publications, funding, teaching, supervision, service) with its own template and gate. Use when the user asks to create, redesign, improve, translate, or tailor a CV/résumé or an academic CV, or to evaluate one against a job posting.
 license: MIT
-compatibility: Requires typst 0.13+ and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate needs pdftotext word boxes and reports instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
+compatibility: Requires typst 0.13+ (verified on 0.15) and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate needs pdftotext word boxes and reports instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.6.4"
+  version: "0.6.5"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
