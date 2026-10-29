@@ -27,6 +27,7 @@
 // margin, and the margin is what carries this family — measured, not guessed.
 // Fill target derives from the 2cm bottom margin: (100 - 7.2) - 0..2%.
 #set page(paper: "us-letter", margin: (x: 2.0cm, top: 1.6cm, bottom: 1.6cm))
+#set page(..wd-page-x(2.0cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.556em, spacing: 0.656em)
 
@@ -103,6 +104,9 @@
 // over this default (references/regional.md).
 
 // ---------- Profile ----------
+// Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
+#let section = wd-section(section)
+
 #section("Summary")[
 Role and degree in one clause, then the strongest verifiable fact (X years
 shipping production code at A, B, C). One sentence covering the stack with

@@ -21,6 +21,7 @@
 #let mk = marks(ic-col)
 
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.2cm))
+#set page(..wd-page-x(1.6cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.525em, spacing: 0.625em)
 
@@ -65,6 +66,9 @@
 ]
 
 // ---------- Profile ----------
+// Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
+#let section = wd-section(section)
+
 #section("Professional Summary")[
 Role and degree in one clause, then the strongest verifiable fact (X years
 shipping production code at A, B, C). One sentence covering the stack with

@@ -6,9 +6,9 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-444444?style=for-the-badge" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/status-beta%200.5-444444?style=for-the-badge" alt="Status: beta 0.5">
+  <img src="https://img.shields.io/badge/status-beta%200.6-444444?style=for-the-badge" alt="Status: beta 0.6">
   <a href="https://typst.app"><img src="https://img.shields.io/badge/Typst-000000?style=for-the-badge&logo=typst&logoColor=white" alt="Typst"></a>
-  <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-agent%20skill-D97757?style=for-the-badge&logo=claude&logoColor=white" alt="Claude Code agent skill"></a>
+  <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-open%20standard-D97757?style=for-the-badge" alt="Agent Skills open standard"></a>
 </p>
 
 An agent skill for building résumés and CVs
@@ -16,7 +16,7 @@ in [Typst](https://typst.app) that pass **both** filters: automated screening
 (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
 scan.
 
-**Status: beta (0.5)** — the method is battle-tested, but the skill's file
+**Status: beta (0.6)** — the method is battle-tested, but the skill's file
 layout and script interfaces may still change before 1.0.
 
 Battle-tested method distilled from a real end-to-end résumé project that went

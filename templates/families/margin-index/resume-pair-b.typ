@@ -19,6 +19,7 @@
 #let mk = marks(ic-col)
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
+#set page(..wd-page) if workday
 #set text(font: bodyf, size: 11pt, lang: "en", fill: dark, hyphenate: false,
   number-type: "old-style", number-width: "proportional")
 #set par(justify: false, leading: 0.805em, spacing: 1.045em)
@@ -28,12 +29,20 @@
 // so the extraction order stays heading → body.
 #let section(t, body, airy: false) = block(breakable: false,
   above: if airy { 34pt } else { 29pt }, below: 0pt)[
+  #if workday [
+    // parse copy: title ABOVE the body, so the extraction order stays heading → body
+    // (a margin column wraps the title and is read before the header contacts)
+    #text(size: 10.5pt, weight: "bold", fill: accent)[#t]
+    #v(3pt)
+    #body
+  ] else [
   #grid(columns: (2.5cm, 1fr), column-gutter: 12pt, align: (right + top, left + top),
     [#line(length: 100%, stroke: 1pt + accent)
      #v(3pt)
      #text(size: 10.5pt, weight: "bold", fill: accent)[#t]],
     body,
   )
+  ]
 ]
 
 // dates right-flush; the institution/descriptor line under the entry is what
@@ -66,6 +75,9 @@
 ]
 
 // ---------- Profile ----------
+// Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
+#let section = wd-section(section)
+
 #section("Summary")[
 Role and degree in one clause, then the strongest verifiable fact (X years
 shipping production code at A, B, C). One sentence covering the stack with

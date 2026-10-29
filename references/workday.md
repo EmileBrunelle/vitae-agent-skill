@@ -37,8 +37,9 @@ Experience
 - Everything before the first recognised employer (the Profile/Summary) is
   pasted into job 1's description, and an institution named in it (a
   university) is taken as job 1's employer.
-- One-word employer names stayed empty in every layout; only a two-word name
-  was recognised. 1 observation: hypothesis, not a rule.
+- Most employers stayed empty in every layout and format. The one employer
+  that was recognised may simply be in Workday's company database. 1
+  observation: hypothesis, not a rule.
 - "present" does not tick "I currently work here".
 - Location is filled from `City (Region)` for some jobs.
 - Trailing sections (projects) may be swallowed into the last job's
@@ -62,11 +63,36 @@ Education
 | D | T0 minus city in education descriptors only | phantom school and date fixed; missing school NOT back | 2 |
 | E | B + C | gains cumulative; job 1 description = profile text, employer = the university | 3 |
 | F | E minus Profile | job 1 employer no longer the university; description correct. Best | 3 |
+| T_G | F's content uploaded as plain text (.txt) | parsed identically to F | - |
+| T_H | F plus explicit key-value labels ("Employer:", "Period:") | WORSE: dates lost, schools dropped. Never label | - |
+| T_I | F's content, same CV in ENGLISH (parse-only layout) | employers filled (2 of 3 small companies), two-word title kept intact, "currently work here" ticked for "present" jobs; but non-US credential names dropped as schools (5 to 2), one employer line glued to the previous job's description (phantom job titled with the next meta line's city) | - |
+| T_J | T_I with the Education section swapped for the same entries in French (heading still "Education") | ZERO schools recognised; the whole French education block dumped into the last job's description; employers shifted (a school name became the last job's employer) | - |
 
-Remaining after F: most employers empty, one title still truncated, location
-of job 1, "currently work here", every degree, one end date.
+Language (T_I, T_J, measured 2026-10-28): in English Workday filled employers
+(2 of 3 small local companies), kept a two-word title intact (French: truncated
+to one word) and ticked "currently work here" for "present" jobs, none of which
+it ever did in French in any layout or format. English has its own defect:
+non-US credential names (regional diplomas, "Undergraduate coursework") are
+dropped as schools, and an employer line after a long bullet list can be glued
+to the previous job's description. Workday parses the document in ONE language:
+never mix languages inside the parse copy (T_J). For a non-English CV, expect
+employers to stay empty. T_H: labels make it worse, never label fields.
+
+T_G (historical, before the legal-name fix of rule 1 below): the remaining defects
+(most employers empty, a title truncated, Degree never filled) looked like Workday
+entity recognition rather than PDF reading, so no FORMAT or LAYOUT change fixed
+them. Content did: the full legal name filled Company 4/4 (rule 1), and
+"degree, program" lines brought Field of study to 3/5 (rule 2). Degree itself
+stays 0/5. The PDF stays the recommended parse copy.
+
+Remaining after F and the rule 1-2 fixes: some titles truncated, location of job 1,
+"currently work here", every Degree, one end date, and employers left empty when
+no legal name is given.
 
 ## Recommended recipe: two-file strategy
+
+0. Build the parse-only copy in the language of the POSTING, entirely in that
+   one language (sections, headings, entries). One copy per posting language.
 
 1. Build a parse-only copy of the CV: experience and education stacked one
    field per line (Employer / Title / Dates; School / Degree / Dates), NO
@@ -81,8 +107,94 @@ The real CV is never changed for Workday.
 
 ## Template support
 
-The vitae templates have no Workday mode yet. Minimal change (guidance, not
-implemented): a stack helper in `templates/lib.typ` that renders an entry's
-fields one per line, plus a `sys.inputs` flag (e.g. `--input workday=1`) that
-selects it and suppresses the Profile section and education cities. Build the
-parse-only PDF from the same source with that flag.
+Every template (`templates/resume.typ`, each family's `resume*.typ`) has a
+built-in parse-only mode, selected by a `sys.inputs` flag:
+
+    typst compile --input workday=1 resume.typ resume-workday.pdf
+
+With the flag, each `entry` is stacked one field per line (Employer / Title /
+Dates; education School / Degree / Dates) followed by the descriptor line and
+bullets, the Profile/Summary section is omitted, and a leading city is dropped
+from education descriptors. Volunteer/involvement sections keep the
+normal entries; a Projects section is DROPPED (rule 3). The page is pinned to
+a 40cm-wide, one-page-tall layout (rules 4-5). Without the flag the output is unchanged.
+
+Section titles are normalised (lowercase, accents stripped, spaces collapsed)
+and matched against built-in lists in EN, FR, DE, ES, IT, PT (profile/objective:
+Profil, Sommaire, Objective, Personal Statement, Executive Summary, Objectif,
+Kurzprofil, Perfil, Profilo...; education: Formation, Etudes, Ausbildung, Formacion,
+Formazione, Formacao...; keep: Volunteer Work, Leadership, Benevolat, Implications,
+Engagement, Ehrenamt, Voluntariado, Volontariato... Projects/Projets are NOT kept:
+they are dropped, see rule 3). Profile and keep titles match exactly; education
+titles also match as a whole-word stem, so compound titles ("Education &
+Certifications", "Education et formation", "Formation et certifications") count
+as education. A title in none
+of them is not matched (profile kept, education city kept): add it with comma
+lists, `--input workday-omit="Mon profil"`, `--input workday-edu="..."`,
+`--input workday-keep="..."` (normalised the same way, added to the lists).
+A title given as content is matched on its plain text. A projects title
+(`projects`, `projets`, `projekte`, ...) is dropped unless it is also given to
+`--input workday-keep="..."`, which keeps it as plain entries.
+
+City stripping in education descriptors only removes the first " · " segment
+when it has a place shape: letters, spaces and `.'-`, FOLLOWED BY ", Region"
+or " (Region)", at most 40 chars, no digits. "Toronto, Ontario · 5 weeks" and
+"Montréal (Québec) · …" are stripped; "Honours · …", "Cum laude · …" and
+"GPA 3.8 · …" are kept. Limit: a bare city with no region ("Montréal · …") is
+kept, and an all-letter "X, Y" phrase that is not a place would be stripped. Other limits: the section name is never reset, so an
+entry placed between sections inherits the previous section's kind; the
+margin-index `earlyline` only acts on a string `org` split on " — ". The mechanics are in
+`templates/lib.typ` (`workday`, `entry`, `wd-section`); each template's one hook
+is `#let section = wd-section(section)`. Notes given as Typst content (not a string) are never city-stripped. Academic CV template: not covered.
+
+## Parse-copy rules from the second measurement round (real tenant, 2026-10)
+
+Source: the CV author's test log (lots 2-3, variants L1/L6b/L11/L12 and the final
+recipe). Status: V = verified by upload on one tenant, T = template behaviour
+(built and checked in every family), C = content rule (not template-enforceable).
+
+1. (V, C) Employer as the FULL LEGAL NAME with its suffix ("Acme Inc.", "Acme inc.",
+   "Acme Ltd") filled the Company field 4/4; without it, most stayed empty. Doc-only:
+   ask the user for each legal name and use it in the parse copy only (the real CV keeps
+   the usual name). Pitfalls:
+   - Never append a suffix blindly. Map EACH employer to its confirmed legal name and
+     leave non-companies (a personal project listed as an entry, e.g. "Recipe-Planner",
+     a school, a freelance activity) untouched.
+   - The legal name is NOT translated. An English parse copy uses the registered name
+     ("Fabrication Exemple inc.", not "Example Manufacturing inc.") unless the user confirms
+     an English registered version.
+   The template implements no suffix logic: if a mapping is ever automated it must be an
+   explicit user-supplied list, never `org + " Inc."`.
+2. (V, C) Education line "degree, program" ("Baccalauréat, informatique"): Field of
+   study filled 3/5 vs 0/5 (Degree itself stays 0/5). Dates must stay textual/year-based: numeric MM/YYYY dates were
+   REJECTED and killed Field of study. Field of study is a closed per-tenant list with
+   fuzzy matching: there is no universal label, check each by hand.
+3. (V, T) Projects section: no Workday field; it was swallowed into the last job's
+   description. Dropped from the parse copy by default; `workday-keep` overrides.
+4. (V, T; L11 relevé DOM-verified) Job descriptions are copied as the physical PDF lines, so the parse copy is a
+   40cm-wide page: every bullet is one line (zero mid-sentence breaks verified). LIMIT:
+   40cm holds ~240 characters per line at body size; a longer bullet wraps and Workday
+   splits it mid-sentence. After building, check that no bullet wrapped (`pdftotext
+   -layout`: every bullet one line) — if one did, shorten it (best: a 240-char bullet is
+   too long for the human CV too) or raise the width in `wd-page-x`. `width: auto` was
+   tried and rejected: `100%`/`fr` columns collapse in 10 of 15 families. The
+   header stays at Letter content width, otherwise the right-hand contact column is read
+   AFTER the experience. Check reading order with `pdftotext` in DEFAULT mode, not only
+   `-raw`. (margin-index puts its section title above the body in this mode for the
+   same reason.)
+5. (V for the drop, observed on a capture only for the fix, not DOM-verified) Workday
+   DROPS THE LAST LINE OF EACH PAGE (seen in L7/L10/L11); the fix, a single
+   page of free height (`height: auto`, template behaviour; read on a capture in L12), is not DOM-checked. Typst gotcha: `set` inside `if {}` is
+   block-scoped, so families use `#set page(..wd-page) if workday` right after their
+   `#set page(...)`. A family with a manual `#pagebreak()` must skip it in workday mode, and its running
+   head (`runhead`) too (swiss-grid `resume-2page` does).
+   Rule 4's wd-page assumes US Letter; a family with side margin x != 1.5cm passes it
+   (`wd-page-x(x)`), so the header keeps its own content width.
+
+Also: one language per parse copy (T_J), and the two-file strategy above.
+
+### Manual checklist after Autofill
+
+Never filled or unreliable, always check: Degree (never filled), Field of study,
+"I currently work here" box, end year of an in-progress program, start MONTH (Feb was
+read as 1), Location, Languages, Skills.

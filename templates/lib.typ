@@ -44,6 +44,122 @@
 // nbsp, leaving the value alone — no stray leading space.
 #let nb(mark, value) = if mark == none { box[#value] } else { box[#mark~#value] }
 
+// ------------------------------------------------------------ workday mode
+// `typst compile --input workday=1 resume.typ` builds the PARSE-ONLY copy for
+// Workday's "Autofill with résumé" button (references/workday.md): every
+// `entry` stacked one field per line, the Profile/Summary section omitted, no
+// city in education descriptors. The default build (flag absent) is
+// byte-for-byte the normal CV. Upload this copy to autofill, fix the remaining
+// fields by hand, then replace the attachment with the real CV before submitting.
+#let workday = sys.inputs.at("workday", default: "0") == "1"
+// Name of the section being laid out (kept only in workday mode) so `entry`
+// can tell experience from education and volunteering.
+#let wd-section-name = state("wd-section-name", "")
+// Section titles are matched after normalisation (lowercase, accents stripped,
+// "&"/"et"/"und"/... kept as listed words, spaces collapsed) against the lists
+// below: EN, FR, DE, ES, IT, PT. A title not in a list is handled with a
+// template-level override, comma lists on the command line:
+//     --input workday-omit="my profile title"   (sections dropped)
+//     --input workday-edu="my education title"  (education: city stripped)
+//     --input workday-keep="my projects title"  (volunteer/projects: plain entry)
+// Override values are normalised the same way and ADD to the built-in lists.
+#let wd-plain(c) = if type(c) == str { c } else if type(c) == content {
+  if c.has("text") { c.text } else if c.has("children") {
+    c.children.map(wd-plain).join()
+  } else if c.has("body") { wd-plain(c.body) } else if c == [ ] { " " } else { "" }
+} else { "" }
+#let wd-norm(t) = {
+  let s = lower(wd-plain(t))
+  for (a, b) in (("àáâãä", "a"), ("èéêë", "e"), ("ìíîï", "i"), ("òóôõö", "o"),
+                 ("ùúûü", "u"), ("ç", "c"), ("ñ", "n"), ("ß", "ss"), ("œ", "oe")) {
+    for ch in a.clusters() { s = s.replace(ch, b) }
+  }
+  s.replace(regex("\\s+"), " ").trim()
+}
+#let wd-over(key) = sys.inputs.at(key, default: "").split(",").map(wd-norm).filter(x => x != "")
+#let wd-omit = ("profile", "summary", "professional summary", "career summary",
+  "about", "about me", "profil", "profil professionnel", "sommaire", "resume",
+  "resume de carriere", "a propos", "kurzprofil", "profil", "berufsprofil",
+  "zusammenfassung", "ueber mich", "perfil", "perfil profesional", "resumen",
+  "sobre mi", "profilo", "profilo professionale", "riepilogo", "chi sono",
+  "resumo", "perfil profissional", "sobre mim",
+  "objective", "career objective", "professional objective", "personal statement",
+  "executive summary", "professional profile", "personal profile", "career profile",
+  "objectif", "objectif de carriere", "objectif professionnel", "profil de carriere",
+  "berufsziel", "karriereziel", "objetivo", "objetivo profesional", "objetivo de carrera",
+  "obiettivo", "obiettivo professionale", "obiettivo di carriera",
+  "objetivo de carreira", "objetivo profissional") + wd-over("workday-omit")
+#let wd-edu-names = ("education", "education & training", "education and training",
+  "academic background", "formation", "formation et etudes", "etudes", "education",
+  "scolarite", "formation academique", "ausbildung", "studium", "bildung",
+  "akademische ausbildung", "formacion", "formacion academica", "educacion",
+  "estudios", "formazione", "istruzione", "istruzione e formazione", "studi",
+  "formacao", "formacao academica", "educacao", "ensino") + wd-over("workday-edu")
+// Compound titles ("Education & Certifications", "Education et formation",
+// "Formation et certifications") are matched too: the normalised title CONTAINS
+// one of these stems as a whole word (word-boundary regex), so "Educational
+// outreach" or "Reformation" do not match.
+#let wd-edu-stems = ("education", "formation", "etudes", "scolarite", "ausbildung",
+  "studium", "bildung", "formacion", "educacion", "formacao", "educacao", "formazione",
+  "istruzione", "academic background")
+#let wd-keep-names = ("volunteer", "volunteering", "volunteer experience",
+  "involvement", "community involvement", "community", "benevolat", "implications",
+  "implication", "engagement", "engagements", "implication communautaire",
+  "ehrenamt", "ehrenamtliches engagement", "voluntariado", "volontariato",
+  "volunteer work", "volunteering experience", "leadership", "leadership & involvement",
+  "leadership and involvement", "benevole", "engagement benevole",
+  "engagement communautaire", "benevolat et implication") + wd-over("workday-keep")
+// Projects have no Workday field: the section is DROPPED from the parse copy
+// (measured: otherwise swallowed into the last job's description). A title
+// given to `workday-keep` is exempt from the drop and laid out as plain entries.
+#let wd-projects = ("projects", "selected projects", "projets", "projets personnels",
+  "projekte", "proyectos", "progetti", "projetos", "personal projects")
+#let wd-keeps(sec) = wd-norm(sec) in wd-keep-names
+#let wd-is-edu(sec) = {
+  let n = wd-norm(sec)
+  n in wd-edu-names or wd-edu-stems.any(k => n.contains(regex("(^|[^a-z])" + k + "($|[^a-z])")))
+}
+// A placeholder education descriptor starts with a city ("City · ..."): drop
+// that first segment (Workday reads a city-only descriptor as a phantom school)
+// ONLY when it has a place shape: letters/spaces/.'-, optionally ", Region" or
+// " (Region)", at most 40 chars, no digits. "GPA 3.8 · Dean's list" is kept.
+// Limit: a one-word non-place first segment ("Honours · 2019") is
+// indistinguishable from a city and is dropped.
+#let wd-place = regex("^[\\p{L} .'-]+(, [\\p{L} .'-]+| \\([^)]+\\))$")
+#let wd-nocity(note) = if type(note) == str and note.contains(" · ") {
+  let parts = note.split(" · ")
+  let first = parts.first()
+  if first.len() <= 40 and first.contains(wd-place) { parts.slice(1).join(" · ") } else { note }
+} else { note }
+// Page pinning for the parse copy (measured on a real tenant, references/workday.md):
+//  - Workday copies each job description as the PHYSICAL PDF lines, so the page is
+//    40cm wide and sections are laid out across all of it: every bullet is one line.
+//  - The header must stay at Letter content width, or its right-hand contact column
+//    moves AFTER the experience in the reading order. So the page gets an extra
+//    right margin of (40cm - Letter width) and `wd-section` lets each section
+//    overflow it (width: 100% + wd-extra).
+//  - Workday DROPS THE LAST LINE OF EACH PAGE: one page of free height (height: auto).
+// Families apply it with ONE line right after their `#set page(...)`:
+//     #set page(..wd-page) if workday
+// (`set` inside `if {}` is block-scoped in Typst, so it must be the `if` suffix form.)
+// Assumes a US-Letter family (21.59cm). The right margin is the family's own side
+// margin x plus the extra width: a family whose x is not 1.5cm uses
+//     #set page(..wd-page-x(2.0cm)) if workday
+// (same x as its own page margin; avant-poster passes its `mx`).
+#let wd-extra = 40cm - 21.59cm
+#let wd-page-x(x) = (width: 40cm, height: auto, margin: (right: wd-extra + x))
+#let wd-page = wd-page-x(1.5cm)
+// Wrap a family's own `section` so workday mode drops the Profile/Summary and
+// records the section name. Call once, right after the family defines `section`:
+//     #let section = wd-section(section)
+// Identity when the flag is absent.
+#let wd-section(f) = if not workday { f } else {
+  (t, body, ..args) => if wd-norm(t) in wd-omit or (wd-norm(t) in wd-projects and wd-norm(t) not in wd-keep-names) { none } else {
+    wd-section-name.update(t)
+    block(width: 100% + wd-extra, f(t, body, ..args))
+  }
+}
+
 // ---------------------------------------------------------------- entries
 // entry — the ONE experience/education entry mechanic, and the only place the
 // emission order is decided:
@@ -70,13 +186,32 @@
            org-st: it => text(weight: "semibold", it),
            note-st: it => it,
            sep: [ — ], meta-size: 9pt, gap: 1.5pt,
-           above: 6pt, below: 3pt) = block(
-  above: above, below: below, sticky: true)[
-  #grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
-    role-st(role), date-st(dates))
-  #v(gap)
-  #text(size: meta-size)[#org-st(org)#if note != none [#note-st([#sep#note])]]
-]
+           above: 6pt, below: 3pt) = {
+  let plain = block(above: above, below: below, sticky: true)[
+    #grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
+      role-st(role), date-st(dates))
+    #v(gap)
+    #text(size: meta-size)[#org-st(org)#if note != none [#note-st([#sep#note])]]
+  ]
+  if not workday { plain } else {
+    // Workday parse-only copy: one field per line, Employer / Title / Dates
+    // (education: School / Degree / Dates), then the descriptor line.
+    // Volunteer/involvement/projects sections keep the plain entry.
+    context {
+      let sec = wd-section-name.get()
+      if wd-keeps(sec) { plain } else {
+        let note = if note != none and wd-is-edu(sec) { wd-nocity(note) } else { note }
+        block(above: above, below: below, sticky: true)[
+          #par[#org-st(org)#linebreak()#role-st(role)#linebreak()#date-st(dates)]
+          #if note != none [
+            #v(gap)
+            #text(size: meta-size)[#note-st(note)]
+          ]
+        ]
+      }
+    }
+  }
+}
 
 // srow — the extraction-safe skills row: ONE paragraph per category, the label
 // immediately followed by its items in the emission order. Verified failure
@@ -169,8 +304,14 @@
 // decorating). The mechanic that matters: the ROLE comes first and the years
 // come last IN THE SAME PARAGRAPH, so there is always text before the date and
 // the orphaned-date trap cannot fire — unlike a bullet-less grid entry.
-#let earlyline(role, org, years, sep: [ · ], year-st: it => it) = par[
-  #text(weight: "semibold")[#role]#sep#org#sep#year-st(years)]
+// Workday mode: stacked School / Degree / Dates, then the descriptor without its
+// city; `org` is read as "School — City · descriptor" (the placeholder shape).
+#let earlyline(role, org, years, sep: [ · ], year-st: it => it) = if workday and type(org) == str {
+  let parts = org.split(" — ")
+  let rest = wd-nocity(parts.slice(1).join(" — "))
+  par[#parts.at(0)#linebreak()#text(weight: "semibold")[#role]#linebreak()#year-st(years)#if rest != "" [#linebreak()#rest]]
+} else { par[
+  #text(weight: "semibold")[#role]#sep#org#sep#year-st(years)] }
 
 // runhead — the running head for page 2+: the candidate's name and the page
 // number, repeated at the top of the page. Harvested from academic-CV

@@ -47,6 +47,7 @@
 #let mk = marks(ic-col)
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
+#set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.665em, spacing: 0.725em)
 
@@ -85,6 +86,9 @@
 ]
 
 // ---------- Profile ----------
+// Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
+#let section = wd-section(section)
+
 #section("Profile")[
 Role and degree in one clause, then the strongest verifiable fact (X years
 shipping production code at A, B, C). One sentence covering the stack with
@@ -163,11 +167,11 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // only Skills/Strengths/Languages on page 2 at first and measured 49% fill,
 // which is the 2-page version failing its own rule 5 rather than passing it —
 // hence the two extra sections below.
-#pagebreak()
+#if not workday { pagebreak() }  // workday parse copy: one page (the last line of each page is dropped)
 
 // The running head goes in the FLOW, right after the break — never in a page
 // `header:` field, which many parsers skip entirely (lib.typ § runhead).
-#runhead[Firstname Lastname — Backend Software Developer][2][2]
+#if not workday { runhead[Firstname Lastname — Backend Software Developer][2][2] }  // no page 2 in the parse copy
 
 // recipe step 4: #set text / #set par are document-GLOBAL, so page 2 is
 // re-balanced locally here rather than by loosening the whole document. Page 2

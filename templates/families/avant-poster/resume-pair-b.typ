@@ -31,6 +31,7 @@
 // (100 - 5.7) - 0..2%.
 #let mx = 1.8cm
 #set page(paper: "us-letter", margin: (x: mx, top: 1.3cm, bottom: 1.6cm))
+#set page(..wd-page-x(mx)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.503em, spacing: 0.593em)
 
@@ -121,6 +122,9 @@
 // (references/regional.md).
 
 // ---------- Profile ----------
+// Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
+#let section = wd-section(section)
+
 #section("Summary")[
 Role and degree in one clause, then the strongest verifiable fact (X years
 shipping production code at A, B, C). One sentence covering the stack with

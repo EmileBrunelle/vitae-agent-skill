@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires typst 0.13+ and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate needs pdftotext word boxes and reports instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.5"
+  version: "0.6"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -361,7 +361,7 @@ no family draw and no palette generation either: one neutral gabarit, from
      intact, and dates within each section in reverse-chronological order.
      Full checklist and known extraction traps: `references/ats.md`.
      Portal-specific quirks: Eightfold in `references/ats.md`, Workday in
-     `references/workday.md`.
+     `references/workday.md` (parse-only copy: `typst compile --input workday=1 …`).
    - **No section split across a page break** (rule 5's first half) — checked
      by the gate since 2026-09-13, not by eye. Reduced to its contrapositive,
      which is what a PDF can actually answer: every page after the first must

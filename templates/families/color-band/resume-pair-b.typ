@@ -39,10 +39,11 @@
 // Each mark+value pair goes through `nb`, a #box[…~…] so the mark can never
 // be orphaned at a line end — and `nb` drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
-#import "lib.typ": marks, nb, drawn-marker
+#import "lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry
 #let mk = marks(ic-col)
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
+#set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.54em, spacing: 0.59em)
 
@@ -56,14 +57,20 @@
   #body
 ]
 
-#let job(role, org, dates, note) = block(above: 6pt, below: 3pt, sticky: true)[
+// Workday mode (--input workday=1): lib.typ's `entry` stacks the fields
+// (this file otherwise keeps its own job device).
+#let job(role, org, dates, note) = if workday {
+  wd-entry(role, org, dates, note,
+    date-st: it => text(size: 9pt, fill: accent2, weight: "bold", it),
+    note-st: it => text(fill: muted, it), above: 6pt, below: 3pt)
+} else { block(above: 6pt, below: 3pt, sticky: true)[
   #grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
     text(size: 11pt, weight: "bold")[#role],
     text(size: 9pt, fill: accent2, weight: "bold")[#dates],
   )
   #v(1.5pt)
   #text(size: 9pt)[#text(weight: "semibold")[#org]#if note != none [#text(fill: muted)[ — #note]]]
-]
+] }
 
 // skills: label on its own line, items on the line below (two-line rows)
 #let skill(cat, items) = block(above: 6pt, below: 0pt)[
@@ -92,6 +99,9 @@
 ]
 
 // ---------- Profile ----------
+// Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
+#let section = wd-section(section)
+
 #section("Profile")[
 Role and degree in one clause, then the strongest verifiable fact (X years
 shipping production code at A, B, C). One sentence covering the stack with
