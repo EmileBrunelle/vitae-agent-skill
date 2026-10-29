@@ -1444,9 +1444,9 @@ def main():
             fail = 1
         if not (fmin and fmax):
             print("WARN  fill NOT checked (no FILL_MIN FILL_MAX given) — rerun "
-                  "with the template's targets, e.g. "
-                  f"scripts/verify.py {typ} {expected} 94 96 "
-                  "(the family template header gives them)")
+                  f"as scripts/verify.py {typ} {expected} FILL_MIN FILL_MAX; "
+                  "the targets come from the pick_design.py report "
+                  '("fill target : NN-NN%") and differ per family')
         for i, path in enumerate(pngs):
             result = measure_fill.measure(path)
             if "blank page" in result:
@@ -1541,8 +1541,8 @@ def main():
             print("PASS  all mechanical checks — now LOOK at the PNGs")
         else:
             print("PASS  mechanical checks except fill (no FILL_MIN FILL_MAX "
-                  "given) — rerun with the template's targets, then LOOK at "
-                  "the PNGs")
+                  "given) — rerun with the fill targets from the pick_design.py "
+                  "report, then LOOK at the PNGs")
 
     sys.exit(fail)
 

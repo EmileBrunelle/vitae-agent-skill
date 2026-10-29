@@ -386,56 +386,56 @@ FONTS = {
               ("Public Sans", "GF (OFL, USWDS)")]),
     "editorial-serif": dict(
         register="serif display over a humanist sans body",
-        display=[("Caladea", "local: fonts-crosextra-caladea (OFL)"),
-                 ("Noto Serif", "local: google-noto-serif-fonts / fonts-noto"),
+        display=[("Caladea", "GF · Linux: fonts-crosextra-caladea (OFL)"),
+                 ("Noto Serif", "GF · Linux: google-noto-serif-fonts / fonts-noto"),
                  ("Newsreader", "GF (OFL, Production Type)"),
                  ("Spectral", "GF (OFL, Production Type)")],
-        body=[("Open Sans", "local: open-sans-fonts / fonts-open-sans"),
+        body=[("Open Sans", "GF · Linux: open-sans-fonts / fonts-open-sans"),
               ("Source Sans 3", "GF (OFL, Adobe)"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
               ("Karla", "GF (OFL)")]),
     "color-band": dict(
         register="contemporary brand sans, display + text cuts of one system",
-        display=[("Red Hat Display", "local: redhat-display-fonts (OFL)"),
+        display=[("Red Hat Display", "GF · Linux: redhat-display-fonts (OFL)"),
                  ("DM Sans", "GF (OFL)"),
                  ("Sora", "GF (OFL)")],
-        body=[("Red Hat Text", "local: redhat-text-fonts (OFL)"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+        body=[("Red Hat Text", "GF · Linux: redhat-text-fonts (OFL)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Public Sans", "GF (OFL, USWDS)")]),
     "humanist-quiet": dict(
         register="one humanist sans, display and body, nothing else",
-        display=[("Cantarell", "local: abattis-cantarell-fonts (OFL)"),
+        display=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
                  ("Karla", "GF (OFL)"),
                  ("Source Sans 3", "GF (OFL, Adobe)")],
-        body=[("Cantarell", "local: abattis-cantarell-fonts (OFL)"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+        body=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Karla", "GF (OFL)")]),
     "keyline-corporate": dict(
         register="clean grotesque, weight and size carry the hierarchy",
-        display=[("Vazirmatn", "local: vazirmatn-fonts (OFL)"),
+        display=[("Vazirmatn", "GF · Linux: vazirmatn-fonts (OFL)"),
                  ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
                  ("Libre Franklin", "GF (OFL)")],
-        body=[("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+        body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Liberation Sans", "local: liberation-fonts"),
               ("Source Sans 3", "GF (OFL, Adobe)")]),
     "margin-index": dict(
         register="text serif with real italics and old-style figures, "
                  "one family throughout",
-        display=[("STIX Two Text", "local: stix-fonts (OFL)"),
-                 ("Libertinus Serif", "local: libertinus-fonts (OFL)"),
+        display=[("STIX Two Text", "GF · Linux: stix-fonts (OFL)"),
+                 ("Libertinus Serif", "GF · Linux: libertinus-fonts (OFL)"),
                  ("Source Serif 4", "GF (OFL, Adobe)"),
                  ("Piazzolla", "GF (OFL)")],
-        body=[("STIX Two Text", "local: stix-fonts (OFL)"),
-              ("Libertinus Serif", "local: libertinus-fonts (OFL)"),
+        body=[("STIX Two Text", "GF · Linux: stix-fonts (OFL)"),
+              ("Libertinus Serif", "GF · Linux: libertinus-fonts (OFL)"),
               ("PT Serif", "GF (OFL, ParaType)"),
               ("Source Serif 4", "GF (OFL, Adobe)")]),
     "mono-technical": dict(
         register="document-grade monospace for the devices + a neutral sans body",
-        display=[("Source Code Pro", "local: adobe-source-code-pro-fonts (OFL)"),
+        display=[("Source Code Pro", "GF · Linux: adobe-source-code-pro-fonts (OFL)"),
                  ("Adwaita Mono", "local: adwaita-mono-fonts (OFL)"),
                  ("IBM Plex Mono", "GF (OFL, IBM) / fonts-ibm-plex"),
                  ("JetBrains Mono", "GF (OFL) — disable ligatures")],
-        body=[("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+        body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
               ("Public Sans", "GF (OFL, USWDS)")]),
     "quiet-luxury": dict(
@@ -444,7 +444,7 @@ FONTS = {
                  ("Manrope", "GF (OFL)"),
                  ("Outfit", "GF (OFL)")],
         body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Manrope", "GF (OFL)")]),
     "bold-display": dict(
         register="geometric display for the name + a neutral sans body",
@@ -456,7 +456,7 @@ FONTS = {
                  ("Space Grotesk", "GF (OFL)"),
                  ("Unbounded", "GF (OFL)")],
         body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Work Sans", "GF (OFL)")]),
     "engraved-card": dict(
         register="one quiet serif for display and body, "
@@ -474,13 +474,13 @@ FONTS = {
               ("Alegreya", "GF (OFL, Huerta Tipográfica)")]),
     "clause-index": dict(
         register="institutional grotesque with tabular figures",
-        display=[("PT Sans", "local pkg: pt-sans-fonts / fonts-paratype "
+        display=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype "
                              "(OFL/ParaType FFL)"),
                  ("Schibsted Grotesk", "GF (OFL, Bakken & Bæck)"),
                  ("Fira Sans", "GF (OFL) / fonts-fira-sans")],
-        body=[("PT Sans", "local pkg: pt-sans-fonts / fonts-paratype"),
+        body=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype"),
               ("Public Sans", "GF (OFL, USWDS)"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto")]),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto")]),
     "hard-edge": dict(
         register="heavy grotesque display + a neutral sans body + a document "
                  "mono for ALL metadata",
@@ -491,9 +491,9 @@ FONTS = {
                   "no italic")],
         mono=[("Fira Mono", "GF (OFL) / fonts-fira-mono"),
               ("DejaVu Sans Mono", "local: dejavu-sans-mono-fonts / fonts-dejavu"),
-              ("Noto Sans Mono", "local: google-noto-sans-mono-fonts / fonts-noto")],
+              ("Noto Sans Mono", "GF · Linux: google-noto-sans-mono-fonts / fonts-noto")],
         body=[("Public Sans", "GF (OFL, USWDS)"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
     "gutter-rail": dict(
         register="UI grotesque for the chrome + a document mono for the BUFFER "
@@ -511,9 +511,9 @@ FONTS = {
         # Mono and Noto Sans Mono all hold both lines (verified by bbox).
         mono=[("Geist Mono", "GF (OFL, Vercel)"),
               ("Red Hat Mono", "GF (OFL, Red Hat)"),
-              ("Noto Sans Mono", "local: google-noto-sans-mono-fonts / fonts-noto")],
+              ("Noto Sans Mono", "GF · Linux: google-noto-sans-mono-fonts / fonts-noto")],
         body=[("Public Sans", "GF (OFL, USWDS)"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
     "avant-poster": dict(
         register="condensed grotesque display + a humanist sans body",
@@ -521,7 +521,7 @@ FONTS = {
                  ("Big Shoulders Display", "GF (OFL)"),
                  ("Fira Sans Condensed", "GF (OFL) / fonts-fira-sans")],
         body=[("Fira Sans", "GF (OFL) / fonts-fira-sans"),
-              ("Noto Sans", "local: google-noto-sans-fonts / fonts-noto"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Public Sans", "GF (OFL, USWDS)")]),
 }
 
@@ -622,11 +622,12 @@ def _installed(name, have):
     so "X" matches that variant and the FULL installed name is what to emit."""
     if name in have:
         return name
-    for h in sorted(have):
-        m = re.fullmatch(r"(.+?) \d+pt", h)
-        if m and m.group(1) == name:
-            return h
-    return None
+    best = None
+    for h in have:
+        m = re.fullmatch(r"(.+?) (\d+)pt", h)
+        if m and m.group(1) == name and (best is None or int(m.group(2)) < best[0]):
+            best = (int(m.group(2)), h)
+    return best[1] if best else None
 
 
 def _pick_font(pool, key, salt, have):
@@ -785,7 +786,11 @@ def report(p, market):
     # Any face marked GF has to be fetched before drafting — it is in no distro.
     # Say where from, once, and only when this draw actually needs it.
     roles = [p["display"], p["body"]] + ([p["mono"]] if p["mono"] else [])
-    if any("GF" in (r[1] or "") for r in roles):
+    notes = [p["display_note"], p["body_note"]] + (
+        [p["mono_note"]] if p["mono"] else [])
+    if any("GF" in (r[1] or "") and ("Linux:" not in r[1]
+                                     or not nt.startswith("available"))
+           for r, nt in zip(roles, notes)):
         lines.append(
             "                  faces marked [GF] are Google Fonts (OFL) and "
             "ship in no distro package:")
@@ -842,10 +847,12 @@ def _chain(pool, drawn, role, have=None):
                 inst.append(got)
         names = inst
     tail = "DejaVu Sans Mono" if role == "mono" else "Noto Sans"
-    if not any("local" in prov for n, prov in pool
+    if not any(("local" in prov or "Linux:" in prov) for n, prov in pool
                if n in names or _installed(n, have or set()) in names):
-        if have is None or _installed(tail, have):
+        if have is None:
             names.append(tail)
+        elif _installed(tail, have):
+            names.append(_installed(tail, have))
     return "(" + ", ".join('"%s"' % n for n in names) + ")"
 
 
@@ -969,6 +976,24 @@ def emit_typ(p, market):
 
 
 def selftest():
+    # _installed: plain name wins; "X <n>pt" variant resolves to the full
+    # installed name, smallest n numerically; no false prefix matches.
+    assert _installed("DM Sans", {"DM Sans", "DM Sans 9pt"}) == "DM Sans"
+    assert _installed("DM Sans", {"DM Sans 14pt", "DM Sans 9pt"}) == "DM Sans 9pt"
+    assert _installed("Noto Sans", {"Noto Sans Mono", "Noto Sans Display 12pt"}) is None
+    assert _installed("Noto Sans", {"Noto Sans 12pt"}) == "Noto Sans 12pt"
+    # _chain with a synthetic font set: every emitted name is installed,
+    # including the tail; have=None keeps the full pool plus the tail.
+    _pool = [("DM Sans", "GF (OFL)"), ("Sora", "GF (OFL)"),
+             ("Red Hat Display", "GF · Linux: redhat-display-fonts")]
+    _have = {"DM Sans 9pt", "Red Hat Display", "Noto Sans"}
+    _names = re.findall(r'"([^"]+)"', _chain(_pool, ("DM Sans 9pt", "x"), "display", _have))
+    assert _names and all(n in _have for n in _names), _names
+    assert _names[0] == "DM Sans 9pt" and "Sora" not in _names, _names
+    _nt = re.findall(r'"([^"]+)"', _chain(_pool, ("DM Sans", "x"), "display", None))
+    assert _nt == ["DM Sans", "Sora", "Red Hat Display"], _nt
+    _nt = re.findall(r'"([^"]+)"', _chain([("Sora", "GF")], ("Sora", "GF"), "display", None))
+    assert _nt == ["Sora", "Noto Sans"], _nt
     a = pick("Candidate A", "software", check_fonts=False)
     assert a == pick("Candidate A", "software", check_fonts=False), \
         "not deterministic"

@@ -197,15 +197,14 @@ no family draw and no palette generation either: one neutral gabarit, from
    `pick_design.py` first (command below): it names the family. Then copy
    `templates/families/<family>/resume.typ` as your working `cv.typ`, **with
    `templates/lib.typ` and `templates/icons.typ` beside it**. `section()`,
-   `job()`, `header()` and the other devices are defined in the family file,
+   `job()`, `skill()` and the other devices are defined in the family file,
    NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with
    `unknown variable: section`. (`templates/resume.typ` is only the generic
    starter, for when no family is drawn.) Read `references/typst-primer.md`
-   (1 minute) before writing any Typst. The hand-off is the first two files —
-   Typst has no bundler; `lib.typ` holds the verified
-   shared mechanics, the devices stay per-family; `icons.typ` is the EMPTY
-   fallback `lib.typ` imports, and copying it is what keeps the folder
-   compiling with no network), then run **`python3 scripts/harvest_icons.py
+   (1 minute) before writing any Typst. Typst has no bundler, so the folder
+   holds three files: `cv.typ` (the family file), `lib.typ` (the verified
+   shared mechanics) and `icons.typ` (the EMPTY fallback `lib.typ` imports;
+   copying it keeps the folder compiling with no network). Then run **`python3 scripts/harvest_icons.py
    <that folder>`** once: the contact/platform mark path data is third-party
    artwork this skill does not ship, so it is fetched at build time into
    `<that folder>/icons.typ`, overwriting the empty copy — never into

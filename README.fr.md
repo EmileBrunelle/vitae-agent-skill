@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-444444?style=for-the-badge" alt="Licence : MIT"></a>
-  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.6.6-444444?style=for-the-badge" alt="Statut : bêta 0.6.5">
+  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.6.6-444444?style=for-the-badge" alt="Statut : bêta 0.6.6">
   <a href="https://typst.app"><img src="https://img.shields.io/badge/Typst-000000?style=for-the-badge&logo=typst&logoColor=white" alt="Typst"></a>
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-standard%20ouvert-D97757?style=for-the-badge" alt="Standard ouvert Agent Skills"></a>
 </p>
