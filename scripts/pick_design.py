@@ -83,6 +83,7 @@ pool member of each font role that `typst fonts` actually lists.
 """
 import argparse
 import hashlib
+import re
 import subprocess
 import sys
 
@@ -615,6 +616,19 @@ def _fonts_available():
     return {l.strip() for l in out.stdout.splitlines() if l.strip()}
 
 
+def _installed(name, have):
+    """The name Typst reports for pool family `name`, or None. A variable font
+    with an optical-size axis installs as "X <digits>pt" (references/fonts.md),
+    so "X" matches that variant and the FULL installed name is what to emit."""
+    if name in have:
+        return name
+    for h in sorted(have):
+        m = re.fullmatch(r"(.+?) \d+pt", h)
+        if m and m.group(1) == name:
+            return h
+    return None
+
+
 def _pick_font(pool, key, salt, have):
     """Deterministic draw, then availability: if the drawn face is missing
     locally, fall through the pool in order and report BOTH — never a silent
@@ -622,11 +636,13 @@ def _pick_font(pool, key, salt, have):
     drawn = pool[_idx(key, len(pool), salt)]
     if have is None:
         return drawn, None, "unverified (no `typst fonts` here — check by hand)"
-    if drawn[0] in have:
-        return drawn, None, "available locally"
+    got = _installed(drawn[0], have)
+    if got:
+        return (got, drawn[1]), None, "available locally"
     for cand in pool:
-        if cand[0] in have:
-            return cand, drawn, ("DRAWN FACE MISSING: install %s (%s), or use "
+        got = _installed(cand[0], have)
+        if got:
+            return (got, cand[1]), drawn, ("DRAWN FACE MISSING: install %s (%s), or use "
                                  "this available pool member meanwhile"
                                  % (drawn[0], drawn[1]))
     return drawn, None, "NO pool member installed — install one before drafting"
@@ -715,7 +731,7 @@ def pick(name, field, career="early", photo=False, conservative=False,
             continue
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
         lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
-    return dict(key=key, family=fam, eligible=eligible, recipe=d,
+    return dict(key=key, family=fam, have=have, eligible=eligible, recipe=d,
                 mono=mono, mono_note=mono_note, variant=variant,
                 career=career, domain=dom or "unknown", audacity=audacity,
                 accent=d["accents"][ai],
@@ -813,13 +829,23 @@ def report(p, market):
     return "\n".join(lines)
 
 
-def _chain(pool, drawn, role):
+def _chain(pool, drawn, role, have=None):
     """Typst font fallback chain: the drawn face first, then the rest of the
     family's own pool, and always ENDING on a face a standard Linux font set
     has — otherwise Typst silently substitutes something arbitrary."""
     names = [drawn[0]] + [n for n, _ in pool if n != drawn[0]]
-    if not any("local" in prov for n, prov in pool if n in names):
-        names.append("DejaVu Sans Mono" if role == "mono" else "Noto Sans")
+    if have is not None:                # font check on: emit installed names only
+        inst = [drawn[0]]               # the chosen face is always kept
+        for n, _ in pool:
+            got = _installed(n, have)
+            if got and got not in inst:
+                inst.append(got)
+        names = inst
+    tail = "DejaVu Sans Mono" if role == "mono" else "Noto Sans"
+    if not any("local" in prov for n, prov in pool
+               if n in names or _installed(n, have or set()) in names):
+        if have is None or _installed(tail, have):
+            names.append(tail)
     return "(" + ", ".join('"%s"' % n for n in names) + ")"
 
 
@@ -876,11 +902,11 @@ def emit_typ(p, market):
           "#let dark = pal.dark        // body ink",
           "",
           "// ---------- Type: %s ----------" % p["font_register"],
-          "#let bodyf = %s" % _chain(fp["body"], p["body"], "body"),
-          "#let dispf = %s" % _chain(fp["display"], p["display"], "display")]
+          "#let bodyf = %s" % _chain(fp["body"], p["body"], "body", p["have"]),
+          "#let dispf = %s" % _chain(fp["display"], p["display"], "display", p["have"])]
     if p["mono"]:
         o.append("#let monof = %s   // ALL metadata sits in this face"
-                 % _chain(fp["mono"], p["mono"], "mono"))
+                 % _chain(fp["mono"], p["mono"], "mono", p["have"]))
     col = _icon_colour(d["icons"])
     o += ["",
           "// ---------- Contact icons + platform marks ----------",

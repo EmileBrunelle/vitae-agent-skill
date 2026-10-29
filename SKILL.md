@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires typst 0.13+ (verified on 0.15) and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate needs pdftotext word boxes and reports instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.6.5"
+  version: "0.6.6"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -193,9 +193,16 @@ no family draw and no palette generation either: one neutral gabarit, from
    folder with a French read-me is unusable without an intermediary, and it
    advertises that the document is tool output in translation. For a
    right-to-left language this also covers the read-me's own text direction.
-4. **Draft from the template.** Copy `templates/resume.typ` **and
-   `templates/lib.typ` and `templates/icons.typ` beside it** (the hand-off is
-   the first two files — Typst has no bundler; `lib.typ` holds the verified
+4. **Draft from the family's worked file — never from scratch.** Run
+   `pick_design.py` first (command below): it names the family. Then copy
+   `templates/families/<family>/resume.typ` as your working `cv.typ`, **with
+   `templates/lib.typ` and `templates/icons.typ` beside it**. `section()`,
+   `job()`, `header()` and the other devices are defined in the family file,
+   NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with
+   `unknown variable: section`. (`templates/resume.typ` is only the generic
+   starter, for when no family is drawn.) Read `references/typst-primer.md`
+   (1 minute) before writing any Typst. The hand-off is the first two files —
+   Typst has no bundler; `lib.typ` holds the verified
    shared mechanics, the devices stay per-family; `icons.typ` is the EMPTY
    fallback `lib.typ` imports, and copying it is what keeps the folder
    compiling with no network), then run **`python3 scripts/harvest_icons.py
@@ -207,12 +214,10 @@ no family draw and no palette generation either: one neutral gabarit, from
    then compiles with no icons and its contact URLs in plain text. `verify.py`
    copies the empty fallback in if the folder has none, so the gate never
    fails for a missing `icons.typ`, load the field pack if one exists, keep the design system's
-   invariants (`references/design.md`). Once `pick_design.py` has named the
-   family, read that family's **reference implementation** in
-   `templates/families/<family>/resume.typ` — all fourteen are there, each one
-   gate-passing, with `resume-pair-b.typ` beside it showing the same recipe on
-   its second font pair. It is faster and safer to start from the family's own
-   worked file than to rebuild its devices from prose.
+   invariants (`references/design.md`). All fourteen family files
+   (`templates/families/<family>/resume.typ`) are gate-passing, with
+   `resume-pair-b.typ` beside each showing the same recipe on its second font
+   pair.
    `templates/families/swiss-grid/resume-2page.typ` is the worked **2-page**
    example (deliberate break, `runhead`, both pages measured). For the look, do **not** choose freely
    — an agent choosing freely reconverges on the template's own combination and
@@ -296,8 +301,8 @@ no family draw and no palette generation either: one neutral gabarit, from
    sheet against the protected titles in `references/regional.md` and the
    target market's file — the wording on the source CV does not by itself
    authorize reusing a reserved title.
-   Read `references/typst-primer.md` (1 minute) before drafting, and again
-   after ANY compile error, before retrying: it covers every construct the
+   After ANY compile error, re-read `references/typst-primer.md` (pointer in
+   step 4) before retrying: it covers every construct the
    template uses and the exact errors agents actually hit; don't guess
    syntax, test with `typst eval`. If the primer doesn't cover the error,
    don't try random variants — consult up-to-date documentation by whatever

@@ -1442,6 +1442,11 @@ def main():
             # Silently passing here is how a broken render reads as a PASS.
             print("FAIL  no PNG rendered — fill unmeasured")
             fail = 1
+        if not (fmin and fmax):
+            print("WARN  fill NOT checked (no FILL_MIN FILL_MAX given) — rerun "
+                  "with the template's targets, e.g. "
+                  f"scripts/verify.py {typ} {expected} 94 96 "
+                  "(the family template header gives them)")
         for i, path in enumerate(pngs):
             result = measure_fill.measure(path)
             if "blank page" in result:
@@ -1532,7 +1537,12 @@ def main():
     print(txt)
 
     if fail == 0:
-        print("PASS  all mechanical checks — now LOOK at the PNGs")
+        if fmin and fmax:
+            print("PASS  all mechanical checks — now LOOK at the PNGs")
+        else:
+            print("PASS  mechanical checks except fill (no FILL_MIN FILL_MAX "
+                  "given) — rerun with the template's targets, then LOOK at "
+                  "the PNGs")
 
     sys.exit(fail)
 
