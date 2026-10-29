@@ -363,7 +363,8 @@ FAMILIES = {
 # A family may declare an OPTIONAL third role, `mono`, when its recipe sets all
 # metadata in a monospace (hard-edge and gutter-rail).
 # "local:" = present in a standard Linux font set here (verified with
-# `typst fonts`); "GF:" = Google Fonts, OFL, download or distro package.
+# `typst fonts`); "GF (...)" = Google Fonts only, OFL, download; "GF · Linux:
+# <pkg>" = on Google Fonts AND packaged on some Linux distros (either route).
 # Documented EXEMPTION to the "at least one local member per role" rule: the
 # three CREATIVE families (avant-poster, gutter-rail, hard-edge) have NO
 # display-pool member in a standard Linux font set — their registers (a
@@ -783,20 +784,28 @@ def report(p, market):
     if p["mono"]:
         lines.append("mono font       : %s   [%s]  — %s   (ALL metadata)"
                      % (p["mono"][0], p["mono"][1], p["mono_note"]))
-    # Any face marked GF has to be fetched before drafting — it is in no distro.
-    # Say where from, once, and only when this draw actually needs it.
+    # A GF-only face is in no distro and has to be fetched; a "GF · Linux:
+    # <pkg>" face has two routes. Say so once, and only when this draw needs it.
     roles = [p["display"], p["body"]] + ([p["mono"]] if p["mono"] else [])
     notes = [p["display_note"], p["body_note"]] + (
         [p["mono_note"]] if p["mono"] else [])
-    if any("GF" in (r[1] or "") and ("Linux:" not in r[1]
-                                     or not nt.startswith("available"))
-           for r, nt in zip(roles, notes)):
+    need = [r[1] or "" for r, nt in zip(roles, notes)
+            if "GF" in (r[1] or "") and not (
+                "Linux:" in r[1] and nt.startswith("available"))]
+    if any("Linux:" not in x for x in need):
         lines.append(
             "                  faces marked [GF] are Google Fonts (OFL) and "
             "ship in no distro package:")
+    elif need:
         lines.append(
-            "                  install them, then confirm with `typst fonts` "
-            "— references/fonts.md has the URL,")
+            "                  faces marked [GF · Linux: pkg] are Google Fonts "
+            "(OFL) AND packaged on some distros:")
+    if need:
+        lines.append(
+            "                  install them (Google Fonts download%s), then "
+            "confirm with `typst fonts` — references/fonts.md has the URL,"
+            % (", or the named Linux package"
+               if any("Linux:" in x for x in need) else ""))
         lines.append(
             "                  the licence and both installation routes "
             "(~/.local/share/fonts + fc-cache, or --font-path).")

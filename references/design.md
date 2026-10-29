@@ -278,7 +278,7 @@ avoid is how a bar becomes a mood.
 
 Pick the family with `scripts/pick_design.py` (deterministic per candidate —
 the 1-page, 2-page and translated versions then share one look) unless the
-user names one explicitly. The template stays single: a family is a **recipe
+user names one explicitly. `templates/resume.typ` is the single generic starter; a family is a **recipe
 with its own worked file** (`templates/families/<family>/resume.typ`, the
 starting point for a CV — SKILL.md step 4); `templates/resume.typ` is only the
 generic starter.

@@ -5,12 +5,13 @@ design family may draw (its `FONTS` table). This file answers the other
 question: when the script prints a face with provenance **`GF`**, where does it
 come from, what is its licence, and how do you install it.
 
-Provenance in `pick_design.py` means exactly two things:
+Provenance in `pick_design.py` takes exactly three forms:
 
 | Provenance | Meaning |
 |---|---|
 | `local: <package>` | present in a standard Linux font set; install the named distro package and `typst fonts` sees it |
-| `GF (...)` | Google Fonts. Not installed anywhere by default — one of the two routes below |
+| `GF · Linux: <package>` | on Google Fonts AND packaged on some Linux distros: either download it (routes below) or install the named package |
+| `GF (...)` | Google Fonts only. Not installed anywhere by default — one of the two routes below |
 
 Every face in every pool is under the **SIL Open Font License 1.1 (OFL)**
 except where the table says otherwise. OFL permits redistribution and embedding
