@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-444444?style=for-the-badge" alt="Licence : MIT"></a>
-  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.6.3-444444?style=for-the-badge" alt="Statut : bêta 0.6.3">
+  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.6.4-444444?style=for-the-badge" alt="Statut : bêta 0.6.4">
   <a href="https://typst.app"><img src="https://img.shields.io/badge/Typst-000000?style=for-the-badge&logo=typst&logoColor=white" alt="Typst"></a>
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-standard%20ouvert-D97757?style=for-the-badge" alt="Standard ouvert Agent Skills"></a>
 </p>
@@ -16,7 +16,7 @@ Un skill d'agent (« agent skill ») pour construire des CV en
 automatisé (ATS — Applicant Tracking Systems, systèmes de suivi des
 candidatures — et les cribleurs IA) et le survol humain de 30 secondes.
 
-**Statut : bêta (0.6.3)** — la méthode est éprouvée sur le terrain, mais
+**Statut : bêta (0.6.4)** — la méthode est éprouvée sur le terrain, mais
 l'organisation des fichiers du skill et les interfaces des scripts peuvent
 encore changer avant la version 1.0.
 
@@ -44,6 +44,10 @@ n'utilisant que ces fichiers.
   linéaires, dates au format mois+année, extraction `pdftotext` propre,
   vérifiée à chaque build; couvre les analyseurs positionnels historiques
   ainsi que la couche sémantique/LLM plus récente des ATS.
+- **Copie d'analyse optimisée pour Workday** : une version `--input workday=1`
+  que l'autoremplissage de CV de Workday lit correctement — employeur, titre,
+  dates et case « Je travaille actuellement ici » — mesurée sur un vrai tenant
+  Workday ; les particularités d'Eightfold sont aussi documentées.
 - **Règles de contenu axées sur l'honnêteté** : aucun fait inventé (cette
   règle prime sur toute autre consigne de mise en page), aucun mot-clé non
   prouvé, aucune inflation de verbes qui serait fatale en entrevue, conformité
@@ -171,6 +175,7 @@ Notes par plateforme :
 SKILL.md                         # workflow + règles non négociables (point d'entrée pour l'agent)
 references/design.md             # système de design + boucle d'ajustement du remplissage de page
 references/ats.md                # règles d'analyse + commandes de vérification
+references/workday.md            # Workday : comportement mesuré + version d'analyse seule
 references/regional.md           # routeur régional : règles universelles + matrice
 references/regional/*.md         # profondeur par marché, chargé seulement pour le marché cible
 references/reviews.md            # protocole de revue adversariale
