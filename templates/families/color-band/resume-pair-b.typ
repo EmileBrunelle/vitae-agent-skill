@@ -39,7 +39,7 @@
 // Each mark+value pair goes through `nb`, a #box[…~…] so the mark can never
 // be orphaned at a line end — and `nb` drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
-#import "lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry
+#import "lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, masthead
 #let mk = marks(ic-col)
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
@@ -81,10 +81,8 @@
 #set list(marker: drawn-marker("dot", accent2, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
 
-// header: full-width accent band (page 1 only, placed — takes no flow space)
-#place(top + left, dx: -1.5cm, dy: -1.2cm,
-  rect(width: 100% + 3cm, height: 3.0cm, fill: accent))
-#block(above: 0pt, below: 13pt)[
+// header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
+#masthead(accent)[
   #text(font: dispf, size: 24pt, weight: "bold", fill: white)[Firstname Lastname]
   #v(-4pt)
   #text(size: 10.5pt, fill: white, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]

@@ -63,6 +63,7 @@ that meant fetching a binary over HTTPS with no checksum verification;
 print the install commands instead and let the user choose.
 """
 import glob
+import html
 import os
 import re
 import shutil
@@ -470,8 +471,10 @@ def family_from_path(path):
     return None
 
 
-def word_boxes(pdf):
+def word_boxes(pdf, with_text=False):
     """Per-page list of pdftotext word boxes (x0, y0, x1, y1) in PDF points.
+
+    With `with_text` each item is ((x0, y0, x1, y1), word) instead.
 
     Returns None (not a list of empties) when pdftotext is missing or fails,
     so callers can tell "no text found" from "couldn't check" and degrade to
@@ -486,9 +489,10 @@ def word_boxes(pdf):
         return None
     pages = []
     for pg in r.stdout.split("<page ")[1:]:
-        pages.append([(float(m[1]), float(m[2]), float(m[3]), float(m[4])) for m in
-                      re.finditer(r'<word xMin="([\d.]+)" yMin="([\d.]+)" '
-                                  r'xMax="([\d.]+)" yMax="([\d.]+)"', pg)])
+        items = [((float(m[1]), float(m[2]), float(m[3]), float(m[4])), html.unescape(m[5]))
+                 for m in re.finditer(r'<word xMin="([\d.]+)" yMin="([\d.]+)" '
+                                      r'xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)</word>', pg)]
+        pages.append(items if with_text else [b for b, _ in items])
     return pages
 
 
@@ -637,6 +641,79 @@ def near_boundary(band, white, med):
         if near and (y - x) >= BOUNDARY_ADJACENT * med:
             return True
     return False
+
+
+def check_text_clip(png, boxes):
+    """List of FAIL messages for text a filled region hides or cuts (a header
+    band shorter than its own text; white-on-colour text that runs past the
+    band onto white paper). Text parsers still read such a line, so no other
+    gate sees it. `boxes` is this page's [((x0,y0,x1,y1), word)] list
+    (`word_boxes(pdf, with_text=True)`). Two signals:
+
+    1. CUT: a word whose box straddles a fill edge. The background just left AND
+       just right of the box must both step by a large luminance jump at the same
+       row, strictly inside the middle half of the box. A step counts only if it
+       PERSISTS (flat for 3px on each side): a hairline rule flanking the word
+       (grid(1fr, auto, 1fr) with `line`) is a stroke, not a fill, and is not flat.
+    2. HIDDEN: a word whose box holds a single flat colour — text colour ~ the
+       background under it (white text left on white paper past a short band).
+    """
+    if not boxes:
+        return []
+    im = Image.open(png).convert("RGB")
+    lum = im.convert("L")
+    w, h = im.size
+    px, rgb = lum.load(), im.load()
+    s = FURNITURE_SCALE
+    found = []   # (kind, line-row, word) — folded into one FAIL per line below
+
+    def column_edges(x, ya, yb):
+        x = min(max(int(x), 0), w - 1)
+        edges = []
+        for y in range(max(ya, 3), min(yb, h - 3) + 1):
+            above = [px[x, y - k] for k in (3, 2, 1)]
+            below = [px[x, y + k] for k in (0, 1, 2)]
+            if max(above) - min(above) > 30 or max(below) - min(below) > 30:
+                continue   # not flat on both sides: a stroke / glyph edge, not a fill
+            if abs(sum(above) / 3 - sum(below) / 3) > 60:
+                edges.append(y)
+        return edges
+
+    for (x0, y0, x1, y1), word in boxes:
+        ya, yb = int(y0 * s), min(int(y1 * s), h - 1)
+        xa, xb = max(int(x0 * s), 0), min(int(x1 * s), w - 1)
+        if yb - ya < 6 or xb - xa < 3 or len(word) < 2:
+            continue   # lone punctuation sits between neighbours' glyph edges: noise
+        region = [rgb[x, y] for y in range(ya, yb + 1) for x in range(xa, xb + 1)]
+        base = max(set(region), key=region.count)
+        if max(max(abs(c - b) for c, b in zip(p, base)) for p in region) < 40:
+            found.append(("hidden", ya, word))
+            continue
+        lo, hi = ya + (yb - ya) * 0.25, yb - (yb - ya) * 0.25
+        left = [y for y in column_edges(x0 * s - 2, ya, yb) if lo <= y <= hi]
+        right = [y for y in column_edges(x1 * s + 2, ya, yb) if lo <= y <= hi]
+        if any(abs(a - b) <= 2 for a in left for b in right):
+            found.append(("cut", ya, word))
+    out = []
+    for kind in ("cut", "hidden"):
+        lines = []   # words of one kind, grouped by text line (rows within 4px)
+        for _, row, word in sorted(f for f in found if f[0] == kind):
+            if lines and row - lines[-1][0] <= 4:
+                lines[-1][1].append(word)
+            else:
+                lines.append((row, [word]))
+        for row, words in lines:
+            first = " ".join(words[:4]) + (" …" if len(words) > 4 else "")
+            if kind == "cut":
+                out.append(f'text line at y~{row / s:.0f}pt ({len(words)} word(s): "{first}") is cut by '
+                           "the edge of a filled region (header band / bar shorter than its "
+                           "content?) — grow the container with its text (lib.typ masthead), "
+                           "never a fixed height")
+            else:
+                out.append(f'text line at y~{row / s:.0f}pt ({len(words)} word(s): "{first}") is '
+                           "indistinguishable from its background (clipped band, white-on-white "
+                           "or too pale) — it extracts fine but a reader cannot see it")
+    return out
 
 
 def check_whitespace(path, boxes=None, family=None, degraded=False):
@@ -820,8 +897,10 @@ def tune(typ, expected, fmin, fmax, lo=None, hi=None, step=0.005):
         if not ok_lo:
             open(typ, "w", encoding="utf-8").write(original)   # undo the probe
             print("FAIL  even the floor leading %.3fem does not give %s page(s) "
-                  "— this is a content/section-gap problem, not a rhythm one"
-                  % (lo, expected))
+                  "— either the content is too long for %s page(s), or the search range starts "
+                  "too high: try an explicit lower range, e.g. `--tune %s %s %s %s 0.45 1.0` "
+                  "(FILL_MIN FILL_MAX LEAD_LO LEAD_HI)"
+                  % (lo, expected, expected, typ, expected, fmin, fmax))
             return 1
         best, best_fill = lo, fill_lo
         # The top of the feasible interval is not always the ANSWER: the last
@@ -1373,6 +1452,50 @@ def main():
 
         for f in (inked, bare, thin, linked, lone, tight, airy):
             os.unlink(f)
+        # check_text_clip: a word straddling a filled band's bottom edge FAILs;
+        # the same word wholly inside the band, or wholly on paper, does not.
+        # A line hidden past a short band (white on white) FAILs; a word flanked
+        # by hairline rules (grid(1fr, auto, 1fr) + line, 1-2pt gutter) does not.
+        with tempfile.TemporaryDirectory() as td:
+            def _png(draw, name="t.png"):
+                im = Image.new("RGB", (400, 200), (255, 255, 255))
+                draw(im)
+                p = os.path.join(td, name); im.save(p)
+                return p
+
+            def _word(y_word, x0=40, x1=200):
+                return [((x0 / FURNITURE_SCALE, y_word / FURNITURE_SCALE,
+                          x1 / FURNITURE_SCALE, (y_word + 14) / FURNITURE_SCALE), "linkedin.com")]
+
+            def _ink(im, y, col=(255, 255, 255), x0=60, x1=180):   # fake glyphs
+                for x in range(x0, x1, 6):
+                    im.paste(col, (x, y + 3, x + 3, y + 11))
+
+            def _band(im):
+                im.paste((60, 60, 60), (0, 0, 400, 100))   # band, bottom edge y=100
+
+            def _at(y):                                    # band + visible glyphs at y
+                def d(im):
+                    _band(im); _ink(im, y, (255, 255, 255) if y + 14 <= 100 else (200, 30, 30))
+                return _png(d)
+            assert check_text_clip(_at(92), _word(92)), "word cut by the band edge must FAIL"
+            assert not check_text_clip(_at(70), _word(70)), "word inside the band must pass"
+            assert not check_text_clip(_at(120), _word(120)), "word on paper must pass"
+            # (a) line wholly past the band: white glyphs on white paper
+            def _hidden(im):
+                _band(im); _ink(im, 120)
+            assert any("indistinguishable" in m for m in check_text_clip(_png(_hidden), _word(120))), \
+                "text whose colour matches the paper must FAIL"
+            # (b) word flanked by rules at mid-height, 1-2pt gutter
+            for thick in (1, 2):
+                def _rules(im, thick=thick):
+                    for x in range(60, 180, 6):
+                        im.paste((0, 0, 0), (x, 105, x + 3, 113))      # dark glyphs
+                    im.paste((0, 0, 0), (0, 108, 37, 108 + thick))     # rule left
+                    im.paste((0, 0, 0), (203, 108, 400, 108 + thick))  # rule right
+                assert not check_text_clip(_png(_rules), _word(100, 40, 200)), \
+                    f"a word flanked by {thick}px rules is not cut by a fill"
+
         print("selftest OK — tuner regex reads, writes and round-trips; "
               "an unrecognised par declaration is reported, not guessed; "
               "a pale or short hairline AT a boundary reads as a device, while "
@@ -1433,7 +1556,8 @@ def main():
         fail = 1
 
     family = family_from_path(typ)
-    pages_boxes = word_boxes(pdf)  # None => pdftotext missing, degrades below
+    pages_text = word_boxes(pdf, with_text=True)  # None => pdftotext missing, degrades below
+    pages_boxes = [[b for b, _ in pg] for pg in pages_text] if pages_text is not None else None
 
     with tempfile.TemporaryDirectory() as tmp:
         pngs = render_pngs(typ, tmp, use_cli)
@@ -1466,6 +1590,11 @@ def main():
             else:
                 print(f"INFO  fill: {path}: {result} (target = (100 - bottom-margin%) - 0..2%)")
             boxes = pages_boxes[i] if pages_boxes and i < len(pages_boxes) else None
+            if pages_text is None and i == 0:
+                print("WARN  text-clip gate skipped: pdftotext not found (install poppler-utils)")
+            for msg in check_text_clip(path, pages_text[i] if pages_text and i < len(pages_text) else None):
+                print("FAIL  " + msg)
+                fail = 1
             for is_fail, msg in check_whitespace(path, boxes=boxes, family=family,
                                                  degraded=boxes is None):
                 print(f"{'FAIL' if is_fail else 'OK  '}  {msg}")

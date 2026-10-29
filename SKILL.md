@@ -2,10 +2,10 @@
 name: vitae
 description: Build ATS- and human-optimized résumés/CVs in Typst — exact page control (1-page and 2-page versions), no section ever split across pages, measured page fill, machine-parseable layout, regional and multilingual conventions, adversarial review loop, optional job-search guide. Also builds academic CVs (the exhaustive multi-page genre — publications, funding, teaching, supervision, service) with its own template and gate. Use when the user asks to create, redesign, improve, translate, or tailor a CV/résumé or an academic CV, or to evaluate one against a job posting.
 license: MIT
-compatibility: Requires typst 0.13+ (verified on 0.15) and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate needs pdftotext word boxes and reports instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
+compatibility: Requires typst 0.13+ (verified on 0.15) and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate and the text-clip gate (check_text_clip) need pdftotext word boxes and report (WARN) instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.6.6"
+  version: "0.6.7"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -43,12 +43,19 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
 
 1. **Never invent facts.** No metrics, technologies, dates, or achievements the
    candidate did not provide. Public facts about *employers* are fine. When a
-   fact is missing, leave a placeholder and tell the user what to ask the
-   candidate. Degree names and acronyms are facts too: never expand an
+   fact is missing, leave it OFF the page and tell the user what to ask the
+   candidate (see the page-text clause below). Degree names and acronyms are facts too: never expand an
    acronym from memory — reuse the source's exact wording or the
    institution's official program name. Even in unattended/automatic mode
    with no round-trip available, never paper over a gap with plausible
-   wording — the placeholder stays visible in the deliverable. **This rule
+   wording — the gap goes in the report. **Page text is facts only:** never
+   print a note-to-self, a placeholder or "to be confirmed" wording on the
+   page ("start and end months to be confirmed…" is a defect). A year-only
+   date is shown as the years ("2020 – 2022"); the gate's WARN carries the
+   gap into the report to the user. Never repeat a fact or restate a date to
+   gain fill ("DEC in Science" in title and descriptor, "expected May 2026"
+   in three places, "degree in progress" beside a date that already says
+   it): each fact appears once per entry. **This rule
    outranks every layout or convention guideline** — when "5-7 skill rows" or
    "month+year dates" would require padding or guessing, follow this rule and
    flag the gap instead.
@@ -76,7 +83,12 @@ exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays;
    including the last page of a multi-page version. **Anti-filler clause:** if
    hitting the target would require a non-substantial bullet or cramped
    spacing, the content does not honestly fill that pagination — change the
-   page count instead of forcing it.
+   page count instead of forcing it. The same holds for thin facts: when the
+   real facts cannot reach the target, stop padding (no repeated facts, no
+   restated dates, no filler descriptors), state the shortfall in the report
+   ("page 1 fills 92%, target 94-96%") and name the facts that would close it
+   — course or personal projects, more bullets per role, coursework, awards —
+   and ask the user for them.
 
 ## Workflow
 
@@ -350,6 +362,15 @@ no family draw and no palette generation either: one neutral gabarit, from
    stay manual:
    - The gate also WARNs (never fails) on year-only date ranges and on a
      degree token beside a non-completion marker ("B.Eng. program").
+   - The gate also FAILs text a filled region hides or cuts (`check_text_clip`: a
+     header band shorter than its own text, white text left on white paper past
+     the band's end). Prefer `lib.typ` `masthead` for new or edited header
+     bands (it grows with its content); a fixed-height band must still pass
+     `check_text_clip` at the tuned leading.
+   - After recopying `lib.typ` into an existing CV (to take a skill update),
+     re-run `verify.py --tune`: the shared mechanics changed, so leading and
+     fill must be re-measured. If it fails with "even the floor…", give the
+     tuner an explicit lower range (`--tune cv.typ 1 94 96 0.45 1.0`).
    - `typst compile cv.typ` then `pdfinfo cv.pdf | grep Pages` — exact count.
      (`icons.typ` must sit beside `lib.typ` first — step 4; the empty
      fallback compiles, it just draws no marks.)

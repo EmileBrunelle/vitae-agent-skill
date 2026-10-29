@@ -519,3 +519,45 @@
     if kind == "dot" or kind == "mid" { ellipse(width: iw, height: ih, fill: fill, stroke: none) }
     else { rect(width: iw, height: ih, fill: fill, stroke: none) }))
 }
+
+// masthead — full-bleed header band that GROWS with its content. A fixed-height
+// `place(rect(height: ..))` behind a flow block clips the last contact line as
+// soon as the header gets taller (a longer contact row, a tuned leading, a font
+// swap). Here the fill belongs to the block itself, so band and text can never
+// disagree. The page's own margins are resolved from the page (auto -> Typst's
+// 2.5/21 x shorter side; ratios against the page size; inside/outside by page
+// parity) and bled over by `outset`, so the band reaches to the paper
+// edge whatever `#set page(margin: ..)` the family declares. `bottom` is the
+// padding under the last line INSIDE the band; `gap` is the space between the
+// band and what follows (the larger of it and the next block's own `above`). The
+// defaults reproduce the old fixed band's look and page fill exactly; both are
+// explicit, so ambient `set block(spacing: ..)` does not change them.
+#let masthead(fill, body, bottom: 5pt, gap: 8pt) = context {
+  let pw = page.width
+  let ph = if page.height == auto { pw } else { page.height }   // workday: continuous page
+  let dflt = 2.5 / 21 * calc.min(pw, ph)
+  let res(v, full) = if v == auto { dflt }
+    else if type(v) == ratio { v * full }
+    else if type(v) == relative { v.length.to-absolute() + v.ratio * full }
+    else { v.to-absolute() }
+  let odd = calc.odd(here().page())
+  let side(k) = {
+    let m = page.margin
+    if type(m) != dictionary { return res(m, if k in ("top", "bottom") { ph } else { pw }) }
+    let full = if k in ("top", "bottom") { ph } else { pw }
+    let alt = if k == "left" { if odd { "inside" } else { "outside" } }
+      else if k == "right" { if odd { "outside" } else { "inside" } } else { none }
+    let ax = if k in ("left", "right") { "x" } else { "y" }
+    for key in (k, alt, ax, "rest") {
+      if key != none and key in m { return res(m.at(key), full) }
+    }
+    dflt
+  }
+  let ml = side("left")
+  let mr = side("right")
+  let mt = side("top")
+  // `outset` paints the fill into the margins WITHOUT touching the layout, so the
+  // band's flow height is exactly text + bottom + gap (no negative-pad arithmetic).
+  block(width: 100%, above: 0pt, below: gap, fill: fill,
+    outset: (left: ml, right: mr, top: mt), inset: (bottom: bottom), body)
+}
