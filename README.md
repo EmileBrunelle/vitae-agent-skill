@@ -40,7 +40,7 @@ open-source, recruiting-expert) and cross-field integration simulations
   parsers and the newer semantic/LLM ATS layer.
 - **Workday-optimised parse-only copy**: a `--input workday=1` build that
   Workday's résumé autofill reads correctly — employer, title, dates and the
-  "I currently work here" box — measured on a real Workday tenant; Eightfold
+  "I currently work here" box — measured on two real Workday tenants; Eightfold
   quirks are documented too.
 - **Honesty-first content rules**: no invented facts (the rule outranks every
   layout guideline), no unproven keywords, no interview-fatal verb inflation,

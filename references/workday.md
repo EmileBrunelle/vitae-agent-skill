@@ -1,7 +1,10 @@
 # Workday (myworkdayjobs) — measured résumé-parser behaviour
 
-Measured 2026-10-28 on ONE tenant (a Canadian financial institution, `wd10` host), 7 test
-uploads of the same CV (baseline T0, variants A-F). None of this is checkable
+Measured 2026-10-28 on two tenants. Main series on the first (a Canadian
+financial institution, `wd10` host): test uploads of the same CV (baseline T0,
+variants A-F, then single-variable variants); the final recipe was then
+re-uploaded unchanged on a second tenant (another Canadian financial
+institution, whose form has no Education section). None of this is checkable
 statically, so `verify.py` has no gate for it; treat it as a post-upload
 checklist. Overlap with the Eightfold section of `ats.md` is deliberate
 (same family of defects, different fixes).
@@ -13,7 +16,9 @@ checklist. Overlap with the Eightfold section of `ats.md` is deliberate
   parser should be the same for every employer.
 - Form configuration (required fields, degree picklist contents) does vary per
   employer. Expect the parse to match; expect the form around it to differ.
-- 1 tenant measured: re-test when a new release lands or on a second tenant.
+- 2 tenants measured: the recipe parsed identically on the second, so treat it
+  as product behaviour, not tenant configuration. Re-test when a new release
+  lands.
 
 ## Test protocol
 

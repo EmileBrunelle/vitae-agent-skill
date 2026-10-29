@@ -46,7 +46,7 @@ n'utilisant que ces fichiers.
   ainsi que la couche sémantique/LLM plus récente des ATS.
 - **Copie d'analyse optimisée pour Workday** : une version `--input workday=1`
   que l'autoremplissage de CV de Workday lit correctement — employeur, titre,
-  dates et case « Je travaille actuellement ici » — mesurée sur un vrai tenant
+  dates et case « Je travaille actuellement ici » — mesurée sur deux vrais tenants
   Workday ; les particularités d'Eightfold sont aussi documentées.
 - **Règles de contenu axées sur l'honnêteté** : aucun fait inventé (cette
   règle prime sur toute autre consigne de mise en page), aucun mot-clé non
