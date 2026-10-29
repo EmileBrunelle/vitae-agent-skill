@@ -166,7 +166,9 @@
 // currently work here" and invents an end date. A trailing present-type word
 // in a STRING date run is rewritten to "Present"; content is left untouched.
 #let wd-present-re = regex("(?i)\\b(?:present|current|now|présent|aujourd['’]hui|à ce jour|en cours|actualidad|presente|atual|atualidade|oggi|heute|derzeit)$")
-#let wd-present(d) = if type(d) == str { d.trim().replace(wd-present-re, "Present") } else { d }
+// French « févr. » is not recognised (Workday falls back to January); the full
+// « février » is (references/workday.md rule 9).
+#let wd-present(d) = if type(d) == str { d.trim().replace(wd-present-re, "Present").replace(regex("(?i)\bfévr\."), "février") } else { d }
 
 // ---------------------------------------------------------------- entries
 // entry — the ONE experience/education entry mechanic, and the only place the

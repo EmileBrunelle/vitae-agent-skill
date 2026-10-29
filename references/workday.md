@@ -207,14 +207,20 @@ recipe). Status: V = verified by upload on one tenant, T = template behaviour
 7. (V) Location punctuation is stripped: « Montréal (Québec) » and « Montréal, Québec »
    both become « Montréal Québec ». Nothing to do.
 8. (V) LinkedIn URL: filled from the PDF, empty from a DOCX even with a real hyperlink: one
-   more reason the PDF parse copy is the default.
+   more reason the PDF parse copy is the default (PDF value DOM-verified, L18/L19).
+9. (V, T; L18/L19, a financial-sector tenant, PDF) Month names: French « févr. » is not recognised and
+   falls back to January; the full « février » is read as 2 (workday mode rewrites it).
+   « janv. », « mars », « avr. », « juin », « sept. » are read correctly; « déc. » is
+   untested. An ENGLISH month in a French copy (« Feb 2014 – Present ») breaks the whole
+   date line: dates empty, line pushed into the description — keep months in the
+   copy's language (only « Present » is the exception, rule 6).
 
 Also: one language per parse copy (T_J), and the two-file strategy above.
 
 ### Manual checklist after Autofill
 
 Never filled or unreliable, always check: Degree (never filled), Field of study,
-end year of an in-progress program, start MONTH (Feb was read as 1), Languages, Skills.
+end year of an in-progress program, start/end MONTHS (rule 9), Languages, Skills.
 For in-progress jobs, Location and "I currently work here" are automatic with « Present »
 (rule 6): just check them. Location and the box stay manual for finished jobs and for
 a parse copy whose date was typed as content.
