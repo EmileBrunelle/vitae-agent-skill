@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-444444?style=for-the-badge" alt="Licence : MIT"></a>
-  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.6-444444?style=for-the-badge" alt="Statut : bêta 0.6">
+  <img src="https://img.shields.io/badge/statut-b%C3%AAta%200.6.1-444444?style=for-the-badge" alt="Statut : bêta 0.6.1">
   <a href="https://typst.app"><img src="https://img.shields.io/badge/Typst-000000?style=for-the-badge&logo=typst&logoColor=white" alt="Typst"></a>
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-standard%20ouvert-D97757?style=for-the-badge" alt="Standard ouvert Agent Skills"></a>
 </p>
@@ -16,7 +16,7 @@ Un skill d'agent (« agent skill ») pour construire des CV en
 automatisé (ATS — Applicant Tracking Systems, systèmes de suivi des
 candidatures — et les cribleurs IA) et le survol humain de 30 secondes.
 
-**Statut : bêta (0.6)** — la méthode est éprouvée sur le terrain, mais
+**Statut : bêta (0.6.1)** — la méthode est éprouvée sur le terrain, mais
 l'organisation des fichiers du skill et les interfaces des scripts peuvent
 encore changer avant la version 1.0.
 

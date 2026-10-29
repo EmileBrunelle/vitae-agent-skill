@@ -40,8 +40,9 @@ Experience
 - Most employers stayed empty in every layout and format. The one employer
   that was recognised may simply be in Workday's company database. 1
   observation: hypothesis, not a rule.
-- "present" does not tick "I currently work here".
-- Location is filled from `City (Region)` for some jobs.
+- Only the English « Present » (capital P) marks a job as in progress (rule 6);
+  « présent », « aujourd'hui », « à ce jour » do not tick "I currently work here".
+- Location is filled from `City (Region)` for some jobs (always for in-progress ones, rule 6).
 - Trailing sections (projects) may be swallowed into the last job's
   description.
 
@@ -99,7 +100,8 @@ no legal name is given.
    Profile/Summary section, no city in education descriptors. Page count is
    irrelevant for this file.
 2. Upload it to "Autofill with résumé". Fix by hand what remains: employers,
-   truncated titles, location, "currently work here", end dates, degrees.
+   truncated titles, end dates, degrees (location and "currently work here" are automatic
+   for in-progress jobs, rule 6: check them).
 3. Delete it from the Résumé/CV attachment field and upload the real CV before
    submitting.
 
@@ -191,10 +193,28 @@ recipe). Status: V = verified by upload on one tenant, T = template behaviour
    Rule 4's wd-page assumes US Letter; a family with side margin x != 1.5cm passes it
    (`wd-page-x(x)`), so the header keeps its own content width.
 
+6. (V, T; L13/L16/L17, DOCX and PDF autofill, one tenant: a financial-sector employer, 2026-10-28) An
+   in-progress job is recognised ONLY when its end is written « Present » (English,
+   capital P). Then Workday fills Location from the descriptor line, ticks "I currently
+   work here" and leaves End date empty. With « présent », « aujourd'hui », « à ce jour »
+   it leaves Location empty, never ticks the box and invents an end date = the current
+   month. (With a past end date Location was filled, L16: it is the in-progress parsing.)
+   Template: in workday mode, stacked Job/Education entries rewrite a trailing present-type
+   word in a string date run to « Present » (`wd-present` in `lib.typ`; en present/current/now,
+   fr présent/aujourd'hui/à ce jour/en cours, es actualidad/presente, pt atual/presente,
+   it presente/oggi, de heute/derzeit; case-insensitive, end of string). Volunteer/keep
+   sections and content-typed dates are left untouched. The real CV keeps its own language.
+7. (V) Location punctuation is stripped: « Montréal (Québec) » and « Montréal, Québec »
+   both become « Montréal Québec ». Nothing to do.
+8. (V) LinkedIn URL: filled from the PDF, empty from a DOCX even with a real hyperlink: one
+   more reason the PDF parse copy is the default.
+
 Also: one language per parse copy (T_J), and the two-file strategy above.
 
 ### Manual checklist after Autofill
 
 Never filled or unreliable, always check: Degree (never filled), Field of study,
-"I currently work here" box, end year of an in-progress program, start MONTH (Feb was
-read as 1), Location, Languages, Skills.
+end year of an in-progress program, start MONTH (Feb was read as 1), Languages, Skills.
+For in-progress jobs, Location and "I currently work here" are automatic with « Present »
+(rule 6): just check them. Location and the box stay manual for finished jobs and for
+a parse copy whose date was typed as content.

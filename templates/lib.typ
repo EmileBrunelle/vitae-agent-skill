@@ -160,6 +160,14 @@
   }
 }
 
+// Workday recognises an in-progress job ONLY when its end is the English word
+// "Present" (references/workday.md rule 6): any localised word ("présent",
+// "aujourd'hui", "actualidad"...) leaves Location empty, never ticks "I
+// currently work here" and invents an end date. A trailing present-type word
+// in a STRING date run is rewritten to "Present"; content is left untouched.
+#let wd-present-re = regex("(?i)\\b(?:present|current|now|présent|aujourd['’]hui|à ce jour|en cours|actualidad|presente|atual|atualidade|oggi|heute|derzeit)$")
+#let wd-present(d) = if type(d) == str { d.trim().replace(wd-present-re, "Present") } else { d }
+
 // ---------------------------------------------------------------- entries
 // entry — the ONE experience/education entry mechanic, and the only place the
 // emission order is decided:
@@ -202,7 +210,7 @@
       if wd-keeps(sec) { plain } else {
         let note = if note != none and wd-is-edu(sec) { wd-nocity(note) } else { note }
         block(above: above, below: below, sticky: true)[
-          #par[#org-st(org)#linebreak()#role-st(role)#linebreak()#date-st(dates)]
+          #par[#org-st(org)#linebreak()#role-st(role)#linebreak()#date-st(wd-present(dates))]
           #if note != none [
             #v(gap)
             #text(size: meta-size)[#note-st(note)]
@@ -309,7 +317,7 @@
 #let earlyline(role, org, years, sep: [ · ], year-st: it => it) = if workday and type(org) == str {
   let parts = org.split(" — ")
   let rest = wd-nocity(parts.slice(1).join(" — "))
-  par[#parts.at(0)#linebreak()#text(weight: "semibold")[#role]#linebreak()#year-st(years)#if rest != "" [#linebreak()#rest]]
+  par[#parts.at(0)#linebreak()#text(weight: "semibold")[#role]#linebreak()#year-st(wd-present(years))#if rest != "" [#linebreak()#rest]]
 } else { par[
   #text(weight: "semibold")[#role]#sep#org#sep#year-st(years)] }
 
