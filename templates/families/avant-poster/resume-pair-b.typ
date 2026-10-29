@@ -47,15 +47,15 @@
 // emits no text, so the bar costs nothing in the layout and nothing in the
 // extraction.
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 20pt } else { 15pt }, below: 0pt)[
+  above: if airy { 23pt } else { 18pt }, below: 0pt)[
   #box(width: 100%, height: 13pt)[
     #place(horizon + left, dx: -mx,
       rect(width: mx + 30pt, height: 5pt, fill: accent))
     #place(horizon + left, dx: 38pt,
       text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#upper(t)])
   ]
-  #v(6pt)
-  #body
+  #v(10pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // dates right-flush in hue B; the organization line under the entry anchors the
@@ -165,7 +165,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Stack")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

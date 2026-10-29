@@ -23,7 +23,7 @@
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.2cm))
 #set page(..wd-page-x(1.6cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.525em, spacing: 0.625em)
+#set par(justify: false, leading: 0.486em, spacing: 0.586em)
 
 // device: the title, then a SHORT hairline tick on its own baseline-centre —
 // inline punctuation, not furniture. Never under the heading, never full width
@@ -34,8 +34,8 @@
   #text(font: dispf, size: 12pt, weight: "semibold", fill: dark)[#t]
   #h(7pt)
   #box(baseline: -3pt, line(length: 34pt, stroke: 2pt + accent))
-  #v(5pt)
-  #body
+  #v(13.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // dates right-flush; the organization line under the entry anchors the date in
@@ -109,7 +109,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills & Tools")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools", "Git (version control), Docker")

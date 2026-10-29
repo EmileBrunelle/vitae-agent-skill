@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# AGENT: do not read this file — run it. Its printed output is the instruction.
+# Usage: python3 scripts/harvest_icons.py <cv folder>   (writes <cv folder>/icons.typ)
+# (Reading it wastes context: a small model read a sibling script 3 times and never wrote the CV.)
 """Fetch the contact/platform mark path data into a generated `icons.typ`.
 
 Run this at CV-BUILD time, in the folder that holds the `.typ` and its

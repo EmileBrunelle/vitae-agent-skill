@@ -32,12 +32,12 @@
 
 // device: oversized dark title over a heavy accent underline as wide as the title
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 19pt } else { 14pt }, below: 0pt)[
+  above: if airy { 21.5pt } else { 16.5pt }, below: 0pt)[
   #box(inset: (bottom: 3pt), stroke: (bottom: 2.5pt + accent2))[
     #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#upper(t)]
   ]
-  #v(6pt)
-  #body
+  #v(10.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
@@ -120,7 +120,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Stack")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

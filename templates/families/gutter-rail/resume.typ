@@ -124,13 +124,13 @@
 // avant-poster's claim — nothing bleeds off the page edge.
 #let crumb = polygon(fill: accent, (0pt, 0pt), (3.6pt, 2.1pt), (0pt, 4.2pt))
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 21pt } else { 16pt }, below: 0pt)[
+  above: if airy { 22.5pt } else { 17.5pt }, below: 0pt)[
   #block(width: 100%, above: 0pt, below: 0pt, outset: (left: 11pt),
     stroke: (left: 0.9pt + accent))[
     #place(left + top, dx: -8pt, dy: 3.6pt, crumb)
     #text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t]
-    #v(4.5pt)
-    #body
+    #v(11.5pt)
+    #block(above: 0pt, below: 0pt, width: 100%, body)
   ]
 ]
 
@@ -242,7 +242,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2 and S3), continuous integration")

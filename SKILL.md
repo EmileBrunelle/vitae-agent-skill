@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires typst 0.13+ (verified on 0.15) and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate and the text-clip gate (check_text_clip) need pdftotext word boxes and report (WARN) instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.6.7"
+  version: "0.6.8"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -205,19 +205,32 @@ no family draw and no palette generation either: one neutral gabarit, from
    folder with a French read-me is unusable without an intermediary, and it
    advertises that the document is tool output in translation. For a
    right-to-left language this also covers the read-me's own text direction.
-4. **Draft from the family's worked file — never from scratch.** Run
-   `pick_design.py` first (command below): it names the family. Then copy
-   `templates/families/<family>/resume.typ` as your working `cv.typ`, **with
-   `templates/lib.typ` and `templates/icons.typ` beside it**. `section()`,
-   `job()`, `skill()` and the other devices are defined in the family file,
-   NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with
+4. **Draft from the family's worked file — never from scratch. One command:**
+   `python3 <skill>/scripts/pick_design.py --name "<candidate>" --field <field>
+   --market <market> --career early|mid|senior [--photo] [--conservative]
+   [--creative] --init <cv folder>` — it prints the design report (family, fonts,
+   palette, leading, fill target), then writes `<cv folder>/lib.typ` and
+   `icons.typ` (byte copies), and `<cv folder>/cv.typ` = the drawn family's worked
+   file with the drawn palette, fonts, leading and mark kit already substituted.
+   It refuses to overwrite an existing `cv.typ` (`--force` to replace) and prints
+   the next commands (`harvest_icons.py <folder>`, `verify.py --tune <folder>/cv.typ 1
+   <lo> <hi>`, then `verify.py <folder>/cv.typ 1 <lo> <hi>`) — run them verbatim, but
+   on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
+   replace the filler with the candidate's facts, then `--tune`, then verify. **Scripts are
+   run, never read — their printed output is the instruction.** Fallback only if
+   `--init` errors: `cp <skill>/templates/families/<family>/resume.typ <folder>/cv.typ`
+   plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
+   apply the values of `--emit-typ` by hand. **Never retype, rewrite or summarize
+   `lib.typ`** (a rewrite from memory lost `derive()` and the build never compiled
+   again); customization goes in `cv.typ`. `verify.py` FAILs a lib that is not a
+   copy. `section()`, `job()`, `skill()` and the other devices are defined in the
+   family file, NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with
    `unknown variable: section`. (`templates/resume.typ` is only the generic
    starter, for when no family is drawn.) Read `references/typst-primer.md`
    (1 minute) before writing any Typst. Typst has no bundler, so the folder
    holds three files: `cv.typ` (the family file), `lib.typ` (the verified
    shared mechanics) and `icons.typ` (the EMPTY fallback `lib.typ` imports;
-   copying it keeps the folder compiling with no network). Then run **`python3 scripts/harvest_icons.py
-   <that folder>`** once: the contact/platform mark path data is third-party
+   copying it keeps the folder compiling with no network). `--init` prints the `harvest_icons.py <that folder>` command: run it once: the contact/platform mark path data is third-party
    artwork this skill does not ship, so it is fetched at build time into
    `<that folder>/icons.typ`, overwriting the empty copy — never into
    `templates/`. The script always writes the file and always exits 0 — if the
@@ -232,13 +245,7 @@ no family draw and no palette generation either: one neutral gabarit, from
    `templates/families/swiss-grid/resume-2page.typ` is the worked **2-page**
    example (deliberate break, `runhead`, both pages measured). For the look, do **not** choose freely
    — an agent choosing freely reconverges on the template's own combination and
-   every candidate ends up with the same CV. Run:
-   `python3 scripts/pick_design.py --name "<candidate>" --field <field>
-   --market <market> --career early|mid|senior [--photo] [--conservative]
-   [--creative]` and apply the design family it prints; add `--emit-typ` to get
-   the ready-to-paste Typst preamble for the drawn recipe (palette, fonts,
-   gabarit, icon lines, `#set` block) — it deliberately does **not** emit the
-   devices, because those are the recipe. **`--market` is documentation only**
+   every candidate ends up with the same CV. The draw is the `--init` command above (without `--init` it only prints the report; `--emit-typ` prints the preamble values alone — it deliberately does **not** emit the devices, because those are the recipe). **`--market` is documentation only**
    — it is echoed in the report and changes nothing: a conservative market
    must be passed as `--conservative` (the `--field` table also flips it on by
    itself for law, finance, accounting, insurance, government…).
@@ -278,7 +285,8 @@ no family draw and no palette generation either: one neutral gabarit, from
    two positional arguments after `FILL_MAX`, e.g.
    `scripts/verify.py --tune cv.typ 1 88 96 0.45 1.40`. A losing search leaves
    the file untouched, so a failed `--tune` never costs you the family's own
-   rhythm.
+   rhythm. Don't override `entry()`/`srow()` `above`/`gap` per entry to win fill (their `auto` is derived from leading and the measured role/org clearance): tune leading via `--tune`; the proximity gate (`check_group_proximity`) FAILs a sub-line closer to the next block than to its own head.
+   Every dated entry must use lib `entry()`: a hand-built grid is not measured by the date-adjacency gate. Check that verify.py's `INFO  date adjacency: N lib entries measured, …` line counts every dated entry in the CV.
    Fresh fonts beyond the pool: only on the user's explicit request, or when
    nothing in the pool is available — then follow design.md § Font pools
    (vetting checklist, no over-used display defaults, add the winner back into
@@ -345,8 +353,11 @@ no family draw and no palette generation either: one neutral gabarit, from
    violation, and it survives every mechanical check. **Aim each bullet at one
    line** wherever the honest content allows it — that is what the 30-second
    scan reads; two lines are fine for a bullet that earns them, three means
-   the bullet is two bullets. Prose (the Profile) wraps freely: that is its
-   job. The hard half of this rule — structured lines never wrap — is checked
+   the bullet is two bullets. Never force a line break (`\ `) inside a bullet
+   to fix spacing or fill — `verify.py` FAILs it (`check_forced_linebreak`). A section title and a row label never share a name (spoken "Languages" vs programming "Languages") — `check_duplicate_names` FAILs it.
+   Prose (the Profile) wraps freely: that is its job. The Profile carries what
+   Skills can't (level, domain, outcome) and never re-lists technologies the
+   Skills section already names. The hard half of this rule — structured lines never wrap — is checked
    on the render in step 6 (design.md § Line integrity).
 6. **Verify mechanically** (loop until all pass; re-run after EVERY edit).
    Run the MECHANICAL subset in one command — `scripts/verify.sh cv.typ
@@ -413,7 +424,12 @@ no family draw and no palette generation either: one neutral gabarit, from
      clone markers may survive: UPPERCASE headings over a full-width accent
      rule, a `Category: items` skills block, accent on role title + rules +
      links.
-   - Render PNGs and *look at them*: no ugly breaks, consistent apostrophes,
+   - Render PNGs and *look at them* — open each PNG with your own image-viewing
+     capability (e.g. read the image file so it appears in your context; any
+     tool, any model). Pixel statistics (PIL, `measure_fill.py`) are not a
+     substitute, and deleting the PNG unviewed fails this step. Check by name:
+     each sub-line sits closer to its own head than to the next block; every
+     section bar clears the block above it; no text is clipped. Also: no ugly breaks, consistent apostrophes,
      no widows, body text comfortably readable at printed size, accent
      crisp against white and still legible converted to grayscale.
      Wherever a **painted surface meets a vector mark** (a chip or badge beside

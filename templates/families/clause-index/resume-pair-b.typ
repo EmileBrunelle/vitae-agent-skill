@@ -49,8 +49,8 @@
     text(size: 12pt, weight: "bold", fill: accent, number-type: "lining",
       number-width: "tabular")[#context clause.display()],
     text(font: dispf, size: 12pt, weight: "bold", fill: dark)[#t])
-  #v(5pt)
-  #body
+  #v(12pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // dates right-flush, tabular figures (a standard document aligns its numerals);
@@ -142,7 +142,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills & Tools")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

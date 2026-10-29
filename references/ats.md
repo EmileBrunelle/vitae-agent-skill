@@ -15,7 +15,7 @@ same extracted text.
 
 ## Layout rules (extraction-safe patterns)
 
-- **Skills as linear text**, one paragraph per category: `Languages: C#, Java,
+- **Skills as linear text**, one paragraph per category: `Programming: C#, Java,
   Python…`. Multi-row two-column grids extract column-by-column and orphan
   every label from its values.
 - **Wrapped separator lines scatter too**: a single line of `item • item •
@@ -24,7 +24,7 @@ same extracted text.
   the next section. For anything that may wrap, use a bulleted list or a
   plain paragraph.
 - **A double `#h()` around a coloured separator glyph isolates it as its own
-  paragraph** (verified, 8 families' Languages line: `#h(8pt)#text(fill:
+  paragraph** (verified, 8 families' Programming line: `#h(8pt)#text(fill:
   …)[•]#h(8pt)`): the glyph's colour change plus the two function-based gaps
   make poppler emit "…(fluent)" / a blank line / "•" alone / a blank line /
   "Third language…" instead of one paragraph — even when the line never

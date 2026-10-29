@@ -149,11 +149,41 @@
 #let wd-extra = 40cm - 21.59cm
 #let wd-page-x(x) = (width: 40cm, height: auto, margin: (right: wd-extra + x))
 #let wd-page = wd-page-x(1.5cm)
+// Verification markers — PURE METADATA, no layout effect. `head-mark` tags an
+// entry head / skill label and `sec-mark` a section title with their page and
+// position; scripts/verify.py reads them with `typst query` (<vitae-head>,
+// <vitae-sec>) to measure grouping (head -> sub-lines vs sub-lines -> next
+// block), date adjacency and duplicate names. They never move a line.
+// `part-mark` tags the two other cells of an `entry` (<vitae-part>): the date
+// cell ("date") and the line under the head ("org": org and/or descriptor),
+// each with its page, the x/y where its first glyph starts and the measured
+// size of the cell content. verify.py finds the date's words in the PDF BY
+// POSITION from it (never by guessing what a date looks like) and checks the
+// order pdftotext reads them in. An entry head carries `dated`: false when
+// the entry was given no date, so "no date marker" is told apart from "a lib
+// without part markers".
+#let head-plain(c) = if type(c) == str { c } else if c == [ ] { " " } else if c.has("text") { c.text } else if c.has("body") { head-plain(c.body) } else if c.has("child") { head-plain(c.child) } else if c.has("children") { c.children.map(head-plain).join("") } else { "" }
+#let head-mark(kind, label, org: none, dated: none) = context [#metadata((
+  kind: kind, text: head-plain(label), org: if org == none { "" } else { head-plain(org) },
+  page: here().position().page, x: here().position().x.pt(), y: here().position().y.pt())
+  + if dated == none { (:) } else { (dated: dated) }) <vitae-head>]
+#let part-mark(kind, c) = context {
+  let p = here().position()
+  let m = measure(c)
+  [#metadata((kind: kind, text: head-plain(c), page: p.page, x: p.x.pt(), y: p.y.pt(),
+    w: m.width.pt(), h: m.height.pt())) <vitae-part>]
+}
+#let has-text(c) = { let t = if c == none { none } else { head-plain(c) }; type(t) == str and t.trim() != "" }
+#let sec-mark(t) = context [#metadata((
+  text: head-plain(t), page: here().position().page, y: here().position().y.pt())) <vitae-sec>]
+
 // Wrap a family's own `section` so workday mode drops the Profile/Summary and
 // records the section name. Call once, right after the family defines `section`:
 //     #let section = wd-section(section)
 // Identity when the flag is absent.
-#let wd-section(f) = if not workday { f } else {
+#let wd-section(f) = if not workday {
+  (t, body, ..args) => { sec-mark(t); f(t, body, ..args) }
+} else {
   (t, body, ..args) => if wd-norm(t) in wd-omit or (wd-norm(t) in wd-projects and wd-norm(t) not in wd-keep-names) { none } else {
     wd-section-name.update(t)
     block(width: 100% + wd-extra, f(t, body, ..args))
@@ -196,29 +226,48 @@
            org-st: it => text(weight: "semibold", it),
            note-st: it => it,
            sep: [ — ], meta-size: 9pt, gap: 1.5pt,
-           above: 6pt, below: 3pt) = {
-  let plain = block(above: above, below: below, sticky: true)[
-    #grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
-      role-st(role), date-st(dates))
-    #v(gap)
-    #text(size: meta-size)[#org-st(org)#if note != none [#note-st([#sep#note])]]
+           above: auto, lift: 0.1em, below: 3pt) = context {
+  // In-head spacing, measured from the faces in use (no ambient block spacing:
+  // the head row is wrapped so `par.spacing` never lands between role and org).
+  // `clr` is the smallest role-baseline -> org-line-top distance at which the
+  // role row's descender box and the org line's ascender box (what pdftotext
+  // boxes) do not touch; `gap` is the clearance kept on top of it. Both
+  // reading-order conditions depend on that box gap staying > 0.
+  let h(c) = measure(c).height
+  let dsc(st) = h(st(text(top-edge: "baseline", bottom-edge: "descender")[gy]))
+  let o(t) = h(text(size: meta-size, org-st(text(top-edge: t, bottom-edge: "baseline")[Hd])))
+  let clr = calc.max(dsc(role-st), dsc(date-st)) + o("ascender") - o("cap-height")
+  // Gap ABOVE the entry (to the previous entry's last line): at least the
+  // body leading (the gap between two wrapped lines inside the entry), and at
+  // least the role -> org distance plus `lift` (the previous entry's last line
+  // usually has descenders, the role line usually none), so the head never
+  // sits closer to the previous entry than to its own org line.
+  let ab = if above != auto { above } else {
+    calc.max(par.leading.to-absolute(), clr + gap.to-absolute() + lift.to-absolute())
+  }
+  let dated = has-text(dates)
+  let line = [#org-st(org)#if note != none [#note-st([#sep#note])]]
+  let plain = block(above: ab, below: below, sticky: true)[
+    #block(spacing: 0pt, grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
+      [#head-mark("entry", role, org: org, dated: dated)#role-st(role)],
+      if dated [#part-mark("date", date-st(dates))#date-st(dates)] else { date-st(dates) }))
+    #v(clr + gap)
+    #text(size: meta-size)[#if has-text(org) or has-text(note) { part-mark("org", line) }#line]
   ]
   if not workday { plain } else {
     // Workday parse-only copy: one field per line, Employer / Title / Dates
     // (education: School / Degree / Dates), then the descriptor line.
     // Volunteer/involvement/projects sections keep the plain entry.
-    context {
-      let sec = wd-section-name.get()
-      if wd-keeps(sec) { plain } else {
-        let note = if note != none and wd-is-edu(sec) { wd-nocity(note) } else { note }
-        block(above: above, below: below, sticky: true)[
-          #par[#org-st(org)#linebreak()#role-st(role)#linebreak()#date-st(wd-present(dates))]
-          #if note != none [
-            #v(gap)
-            #text(size: meta-size)[#note-st(note)]
-          ]
+    let sec = wd-section-name.get()
+    if wd-keeps(sec) { plain } else {
+      let note = if note != none and wd-is-edu(sec) { wd-nocity(note) } else { note }
+      block(above: ab, below: below, sticky: true)[
+        #par[#org-st(org)#linebreak()#role-st(role)#linebreak()#date-st(wd-present(dates))]
+        #if note != none [
+          #v(gap)
+          #text(size: meta-size)[#note-st(note)]
         ]
-      }
+      ]
     }
   }
 }
@@ -238,14 +287,26 @@
 //   hang: <len>    wrapped lines align under the label (bulleted rows)
 // `above`/`below` given => the row becomes a block (needed for the two-line
 // shape); left at `none` it stays a bare `par` and keeps par spacing.
-#let srow(label, items, hang: 0pt, brk: false, above: none, below: none) = {
-  let body = if brk { [#label \ #items] } else { [#label #items] }
-  if above == none and below == none {
+#let srow(label, items, hang: 0pt, brk: false, brk-gap: none, above: none, lift: 0pt,
+          below: none) = {
+  let row = if brk and brk-gap != none {
+    // two-line row set as two lines of one block: the label line sits
+    // `brk-gap` over its items (tighter than the leading), so the label reads
+    // as the head of ITS items, not as the tail of the row above. Same
+    // emission order as the one-paragraph form: label, then items.
+    block[#set par(spacing: 0pt); #par[#head-mark("skill", label)#label]#v(brk-gap)#par(hanging-indent: hang, items)]
+  } else {
+    let body = if brk { [#head-mark("skill", label)#label \ #items] } else { [#head-mark("skill", label)#label #items] }
     par(hanging-indent: hang, body)
+  }
+  if above == none and below == none { row } else if above == auto {
+    // `auto`: the gap to the row above is the body leading (+ `lift`), so a
+    // row's own wrapped lines never sit farther apart than two rows do.
+    context block(above: par.leading.to-absolute() + lift,
+      below: if below == none { auto } else { below }, row)
   } else {
     block(above: if above == none { auto } else { above },
-          below: if below == none { auto } else { below },
-      par(hanging-indent: hang, body))
+          below: if below == none { auto } else { below }, row)
   }
 }
 

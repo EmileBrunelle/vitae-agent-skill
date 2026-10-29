@@ -29,7 +29,7 @@
 #set page(paper: "us-letter", margin: (x: 2.0cm, top: 1.6cm, bottom: 1.6cm))
 #set page(..wd-page-x(2.0cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.514em, spacing: 0.614em)
+#set par(justify: false, leading: 0.568em, spacing: 0.668em)
 
 // DEVICE: a small accent LOZENGE (a rotated filled square — vector, emits no
 // text) centred above a CENTRED title. The engraver's spot: one mark, dead
@@ -46,8 +46,8 @@
     rotate(45deg, rect(width: 4.4pt, height: 4.4pt, fill: accent))))
   #v(2pt)
   #align(center, text(font: dispf, size: 12pt, weight: "semibold", fill: dark)[#t])
-  #v(5pt)
-  #body
+  #v(10.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // dates right-flush; the institution/descriptor line under the entry is what
@@ -56,7 +56,7 @@
   role-st: it => text(size: 11.5pt, weight: "bold", it),
   date-st: it => text(size: 9.5pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it),
-  meta-size: 9.5pt, above: 7pt, below: 3pt)
+  meta-size: 9.5pt, below: 3pt)
 
 // skills: the label, then a FULL STOP, then the items — the engraved
 // catalogue/trade-card convention, where the period was the separator because
@@ -137,7 +137,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools", "Git (version control), Docker, Linux")

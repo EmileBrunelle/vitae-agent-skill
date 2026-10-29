@@ -25,20 +25,20 @@
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.756em, spacing: 0.836em)
+#set par(justify: false, leading: 0.741em, spacing: 0.821em)
 
 // device: a `soft` rule ACROSS the boundary, plus the accent keyline down the
 // left of the title. The rule is what separates sections — the vertical
 // keyline marks the title and is invisible to a horizontal boundary scan,
 // which is why this family used to buy separation with empty space alone.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 18pt } else { 14pt }, below: 0pt)[
+  above: if airy { 20.5pt } else { 16.5pt }, below: 0pt)[
   #block(above: 0pt, below: 5pt)[#line(length: 100%, stroke: 0.6pt + soft)]
   #box(inset: (left: 11pt), stroke: (left: 4pt + accent))[
     #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
   ]
-  #v(5pt)
-  #body
+  #v(11.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
@@ -110,7 +110,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Skills")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

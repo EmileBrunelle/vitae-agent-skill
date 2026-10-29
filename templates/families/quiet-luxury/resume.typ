@@ -34,8 +34,8 @@
   #text(font: dispf, size: 12pt, weight: "semibold", fill: dark)[#t]
   #h(7pt)
   #box(baseline: -3pt, line(length: 34pt, stroke: 2pt + accent))
-  #v(4pt)
-  #body
+  #v(11.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // dates right-flush; the organization line under the entry anchors the date in
@@ -109,7 +109,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills & Tools")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools", "Git (version control), Docker")

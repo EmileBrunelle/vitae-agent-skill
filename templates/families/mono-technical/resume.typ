@@ -37,8 +37,8 @@
   #box(width: 3pt, height: 6pt, fill: accent2, baseline: 0pt)
   #h(5pt)
   #text(font: dispf, size: 11.5pt, weight: "bold", fill: dark)[#t]
-  #v(4pt)
-  #body
+  #v(13pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // dates in the MONO face, hue B, right-flush (tabular alignment is this
@@ -114,7 +114,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Stack")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools", "Git (version control), Docker")

@@ -117,6 +117,7 @@ first that works:
 2. **Raise the contrast downward** — tighten the *intra*-section rhythm (leading,
    list-item gap, job-entry gap). The ratio is a ratio: lowering the median
    separates the boundary without spending a millimetre of page.
+   Do it through leading (`verify.py --tune`), never by overriding `entry()`/`srow()` `above`/`gap` per entry: `above: auto` is already max(leading, clearance + gap + lift), and `check_group_proximity` FAILs (optical gap ratio, baseline → x-height, < 0.7) a sub-line that sits nearer the next block than its own head.
 3. **Only then**, widen the section gap — and only within the family's measured
    `above`, never past a 5% run and never with `v(1fr)`.
 
@@ -1211,7 +1212,7 @@ single small mark. The third *classic* current and nothing like the other two �
   document. The only family on a centred axis and the only one whose section
   titles are centred.
 - **Skills block**: the label, then a **full stop**, then the items —
-  `Languages. Python, TypeScript, …` — the engraved catalogue/trade-card
+  `Programming. Python, TypeScript, …` — the engraved catalogue/trade-card
   convention, where the period was the separator because a rule and a colour
   were not available. Nobody else punctuates with a period.
 - **Accent role**: the section lozenges and the short rule under the name. Two

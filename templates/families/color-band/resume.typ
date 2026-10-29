@@ -33,12 +33,12 @@
 
 // device: heading reversed out of a solid accent bar, no rules at all
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 12pt } else { 7pt }, below: 0pt)[
+  above: if airy { 19pt } else { 14pt }, below: 0pt)[
   #block(width: 100%, fill: accent, inset: (x: 6pt, y: 2.5pt))[
     #text(font: dispf, size: 11.5pt, weight: "bold", fill: white)[#upper(t)]
   ]
-  #v(5pt)
-  #body
+  #v(8.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
@@ -48,7 +48,7 @@
 // skills: label on its own line, items on the line below (two-line rows)
 #let skill(cat, items) = srow(
   text(weight: "bold", size: 9.5pt)[#upper(cat)], items,
-  brk: true, above: 6pt, below: 0pt)
+  brk: true, brk-gap: 2pt, above: auto, below: 0pt)
 
 #set list(marker: drawn-marker("dot", accent2, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
@@ -129,7 +129,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills & Tools")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

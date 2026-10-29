@@ -25,15 +25,15 @@
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.545em, spacing: 0.645em)
+#set par(justify: false, leading: 0.665em, spacing: 0.765em)
 #show link: set text(fill: accent)
 
 // device: none — whitespace and a size/weight step do all the delimiting
 #let section(t, body, airy: false) = block(breakable: false,
   above: if airy { 31pt } else { 26pt }, below: 0pt)[
   #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
-  #v(4pt)
-  #body
+  #v(10.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
@@ -106,7 +106,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

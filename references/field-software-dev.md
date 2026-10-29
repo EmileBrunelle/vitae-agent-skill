@@ -48,7 +48,7 @@ simulated adversarial hiring reviews on a real junior-developer dossier.
 
 - Spell both forms: "continuous integration (CI/CD)", "version control (Git)",
   acronyms AND words — boolean searches hit either.
-- Group skills in 5-7 rows: Languages / Frontend / Backend & data /
+- Group skills in 5-7 rows: Programming / Frontend / Backend & data /
   Software quality / Tools & DevOps / Methodologies. The quality row
   (unit & integration testing, code review, test plans) is an
   underused differentiator — most juniors cannot prove it; anchor it in

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# AGENT: do not read this file — run it. Its printed output is the instruction.
+# Usage: python3 scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --init <cv folder>
+# (Reading it wastes context: a small model read a sibling script 3 times and never wrote the CV.)
 """Pick the design family and its secondary parameters for one candidate.
 
 Deterministic: the same candidate always gets the same look, so the 1-page,
@@ -9,7 +12,8 @@ Usage:
     python3 scripts/pick_design.py --name "Firstname Lastname" \
         --field software --market north-america \
         [--career early|mid|senior] [--photo] [--conservative] \
-        [--audacity sober|expressive|bold] [--creative] [--emit-typ]
+        [--audacity sober|expressive|bold] [--creative] [--emit-typ] \\
+        [--init <cv folder> [--force]]
     python3 scripts/pick_design.py --list        # families, registers, gamuts
     python3 scripts/pick_design.py --selftest    # assert determinism + pools
 
@@ -40,6 +44,12 @@ Usage:
                     code gutter, so it also needs a TECHNICAL --field
                     (GUTTER_RAIL_DOMAIN below). The creative unlock alone never
                     draws it for a non-technical trade.
+    --init FOLDER   the ONE-COMMAND start: prints the report, then writes
+                    FOLDER/lib.typ + icons.typ (byte copies) and FOLDER/cv.typ
+                    (the drawn family's worked file with the drawn palette,
+                    fonts, leading, mark kit substituted). Refuses to overwrite
+                    an existing cv.typ unless --force. Its printed next steps
+                    are the instruction: scripts are run, never read.
     --emit-typ      print a ready-to-paste Typst PREAMBLE for the drawn recipe
                     (tokens, fonts, page/text/par) — never the devices: the
                     heading device, skills block, accent roles and header
@@ -83,6 +93,7 @@ pool member of each font role that `typst fonts` actually lists.
 """
 import argparse
 import hashlib
+import os
 import re
 import subprocess
 import sys
@@ -984,6 +995,134 @@ def emit_typ(p, market):
     return "\n".join(o)
 
 
+def _sub1(src, pat, repl, what, family, required=True):
+    """Replace exactly one match of `pat` (MULTILINE) in `src`."""
+    new, n = re.subn(pat, repl, src, count=0, flags=re.M)
+    if n != 1:
+        if n == 0 and not required:
+            return src
+        raise SystemExit("--init: %s: %d match(es) for %s (need exactly 1) — "
+                         "the family file changed shape; fall back to the "
+                         "manual route (cp + --emit-typ)" % (family, n, what))
+    return new
+
+
+def init_folder(p, folder, force=False):
+    """One executed command -> a compiling starting point in `folder`.
+
+    lib.typ / icons.typ are copied byte for byte. cv.typ is the drawn family's
+    worked file with the drawn recipe's VALUES substituted line by line on the
+    preamble's known `#let` / `#set par` lines (the family's own icon helpers,
+    selective imports and devices are untouched — a wholesale preamble swap
+    would drop them: color-band keeps its own ic-* defs, avant-poster its `mx`)."""
+    import shutil
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fam, d, fp = p["family"], p["recipe"], FONTS[p["family"]]
+    fdir = os.path.join(root, "templates", "families", fam)
+    out = os.path.join(folder, "cv.typ")
+    if os.path.exists(out) and not force:
+        raise SystemExit("--init: %s exists — refusing to overwrite (re-run "
+                         "with --force to replace it)" % out)
+    import shlex
+    q = shlex.quote
+    body_c = _chain(fp["body"], p["body"], "body", p["have"])
+    disp_c = _chain(fp["display"], p["display"], "display", p["have"])
+
+    def head_names(src):
+        g = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.M)
+        return g("bodyf"), g("dispf")
+    # pair B iff the drawn faces are the second pair's lead faces
+    pick_file, best = "resume.typ", -1
+    for fn in ("resume.typ", "resume-pair-b.typ"):
+        fpth = os.path.join(fdir, fn)
+        if not os.path.exists(fpth):
+            continue
+        b, ds = head_names(open(fpth, encoding="utf-8").read())
+        score = (bool(b) and b.group(1) == p["body"][0]) + \
+                (bool(ds) and ds.group(1) == p["display"][0])
+        if score > best or (score == best and fn == "resume.typ"):
+            pick_file, best = fn, score
+    src = open(os.path.join(fdir, pick_file), encoding="utf-8").read()
+
+    def lead(name):                       # keep `#let name = ` + trailing // note
+        return r'^(#let %s = )[^\n]*?(\s*//[^\n]*)?$' % name
+
+    def accent_line(name, val):
+        # gutter-rail: `if screen { rgb(A) } else { rgb(B) }` — drawn value is
+        # the print branch; keep the screen branch as shipped.
+        m = re.search(r'^#let %s = if screen \{ (rgb\("[^"]+"\)) \} else '
+                      r'\{ rgb\("[^"]+"\) \}' % name, src, re.M)
+        if m:
+            return (r'^(#let %s = if screen \{ rgb\("[^"]+"\) \} else \{ )'
+                    r'rgb\("[^"]+"\)( \}.*)$' % name,
+                    lambda mm: mm.group(1) + 'rgb("%s")' % val + mm.group(2))
+        return (lead(name),
+                lambda mm: mm.group(1) + 'rgb("%s")' % val + (mm.group(2) or ""))
+    pat, fn = accent_line("accent", p["accent"])
+    src = _sub1(src, pat, fn, "#let accent", fam)
+    if p["accent2"]:
+        pat, fn = accent_line("accent2", p["accent2"])
+        src = _sub1(src, pat, fn, "#let accent2", fam)
+    sub = lambda v: (lambda mm: mm.group(1) + v + (mm.group(2) or ""))
+    src = _sub1(src, lead("bodyf"), sub(body_c), "#let bodyf", fam)
+    if re.search(r'^#let dispf = monof\b', src, re.M):
+        # mono-technical: the display face IS the mono face
+        src = _sub1(src, lead("monof"), sub(disp_c), "#let monof", fam)
+    else:
+        src = _sub1(src, lead("dispf"), sub(disp_c), "#let dispf", fam)
+        if p["mono"]:
+            src = _sub1(src, lead("monof"), sub(
+                _chain(fp["mono"], p["mono"], "mono", p["have"])),
+                "#let monof", fam)
+    src = _sub1(src, r'^(#set par\(justify: false, )leading: [^,]+, spacing: '
+                r'[^)]+(\).*)$',
+                lambda mm: mm.group(1) + "leading: %s, spacing: %s" % (
+                    d["leading"], d["spacing"]) + mm.group(2),
+                "#set par", fam)
+    src = _sub1(src, r'^(#let mk = marks\(ic-col)(\).*)$',
+                lambda mm: mm.group(1) + ', kit: "%s"' % p["markset"][0]
+                + mm.group(2), "#let mk", fam)
+    if p["variant"]:                      # gutter-rail's square/pill axis
+        r = "2.5pt" if "pill" in p["variant"] else "0pt"
+        src = _sub1(src, r'^(#let seg-radius = )\S+', lambda mm: mm.group(1) + r,
+                    "#let seg-radius", fam)
+    pg = d["page"]
+    for k, v in (("margin", pg["margin"]), ("body", pg["body"])):
+        if k == "margin" and "(%s)" % v not in src and v not in src:
+            sys.stderr.write("note: %s's own page margin differs from the "
+                             "recipe's (%s) — kept the family file's\n"
+                             % (fam, v))
+    os.makedirs(folder, exist_ok=True)
+    kept = []
+    for f in ("lib.typ", "icons.typ"):
+        srcf, dst = os.path.join(root, "templates", f), os.path.join(folder, f)
+        if os.path.exists(dst):
+            if f == "lib.typ" and open(dst, "rb").read() != open(srcf, "rb").read():
+                kept.append("kept existing %s (differs from the skill's) — a lib "
+                            "update is deliberate: cp %s %s"
+                            % (dst, q(srcf), q(dst)))
+                continue
+            if f == "icons.typ" and os.path.getsize(dst) > 0:
+                kept.append("kept existing %s (harvested icons)" % dst)
+                continue
+        shutil.copyfile(srcf, dst)
+    with open(out, "w", encoding="utf-8") as fh:
+        fh.write(src)
+    lo, hi = pg["fill"].split("-")
+    print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "
+          "byte-for-byte)" % (out, fam, fam, pick_file))
+    for k in kept:
+        print("note: " + k)
+    vf = q(os.path.join(root, "scripts", "verify.py"))
+    print("next, run these (do not read the scripts, their output is the "
+          "instruction):")
+    print("  python3 %s %s" % (q(os.path.join(root, "scripts", "harvest_icons.py")), q(folder)))
+    print("  python3 %s --tune %s 1 %s %s" % (vf, q(out), lo, hi))
+    print("  python3 %s %s 1 %s %s" % (vf, q(out), lo, hi))
+    print("The filler starter may overflow/underfill with the drawn fonts: expected. "
+          "Replace the filler with the candidate's facts first, then --tune, then verify.")
+
+
 def selftest():
     # _installed: plain name wins; "X <n>pt" variant resolves to the full
     # installed name, smallest n numerically; no false prefix matches.
@@ -1157,6 +1296,13 @@ if __name__ == "__main__":
                          "request only — never inferred)")
     ap.add_argument("--emit-typ", action="store_true",
                     help="print a paste-ready Typst preamble for the recipe")
+    ap.add_argument("--init", metavar="FOLDER",
+                    help="write a compiling starting point into FOLDER: "
+                         "lib.typ + icons.typ (byte copies) and cv.typ = the "
+                         "drawn family's worked file with the drawn recipe's "
+                         "palette/fonts/leading substituted")
+    ap.add_argument("--force", action="store_true",
+                    help="with --init: overwrite an existing cv.typ")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--no-font-check", action="store_true",
                     help="skip the local `typst fonts` availability check")
@@ -1188,6 +1334,11 @@ if __name__ == "__main__":
     elif a.name and a.field:
         p = pick(a.name, a.field, a.career, a.photo, a.conservative,
                  a.audacity, not a.no_font_check, a.creative)
-        print(emit_typ(p, a.market) if a.emit_typ else report(p, a.market))
+        if a.init:
+            print(report(p, a.market))
+            print()
+            init_folder(p, a.init, a.force)
+        else:
+            print(emit_typ(p, a.market) if a.emit_typ else report(p, a.market))
     else:
         sys.exit(__doc__)

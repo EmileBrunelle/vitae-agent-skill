@@ -22,7 +22,7 @@
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 11pt, lang: "en", fill: dark, hyphenate: false,
   number-type: "old-style", number-width: "proportional")
-#set par(justify: false, leading: 0.805em, spacing: 1.045em)
+#set par(justify: false, leading: 0.835em, spacing: 1.075em)
 
 // device: NO rule, NO bar — the title hangs in the left margin column beside
 // its own content. Single-ROW grid per section (safe: ats.md), title cell first
@@ -49,8 +49,7 @@
 // keeps the date anchored in the extraction (ats.md, orphaned-date trap)
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
-  note-st: it => text(fill: muted, it),
-  above: 5pt)
+  note-st: it => text(fill: muted, it))
 
 // skills: italic run-in label, no separator glyph at all — the italic/roman
 // jump does the separating (nobody else uses italic as the skills device)
@@ -124,7 +123,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Expertise")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools", "Git (version control), Docker")

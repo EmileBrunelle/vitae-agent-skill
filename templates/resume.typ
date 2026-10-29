@@ -71,7 +71,7 @@
 // Linear skill line — NEVER a data grid (ATS extracts grids column-by-column).
 // French: use [#cat~:] for the non-breaking space before the colon.
 // Markup (*bold*, #box) inside items only works if you pass [content],
-// e.g. #skill("Languages", [Python, *TypeScript*]) — a "string" renders it literally.
+// e.g. #skill("Programming", [Python, *TypeScript*]) — a "string" renders it literally.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
@@ -149,7 +149,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Skills")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

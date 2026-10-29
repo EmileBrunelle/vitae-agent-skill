@@ -49,16 +49,16 @@
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.665em, spacing: 0.725em)
+#set par(justify: false, leading: 0.720em, spacing: 0.780em)
 
 // device: heavy accent rule ABOVE the title, full width; nothing below
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 18pt } else { 13pt }, below: 0pt)[
+  above: if airy { 20pt } else { 15pt }, below: 0pt)[
   #line(length: 100%, stroke: 2.5pt + accent)
   #v(4pt)
   #text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t]
-  #v(6pt)
-  #body
+  #v(12pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
@@ -181,7 +181,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // and measures only the LAST page, so a two-declaration file like this one is
 // balanced by hand — tune page 1 with the 1-page file, then set the second
 // declaration here until page 2 lands in the same target.
-#set par(justify: false, leading: 0.900em, spacing: 1.000em)
+#set par(justify: false, leading: 0.960em, spacing: 1.060em)
 
 // ---------- Selected Projects: the section a 1-page version cannot afford ----------
 // This is the honest reason a CV goes to two pages: named, verifiable work that
@@ -204,7 +204,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Skills", airy: true)[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues, Redis")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

@@ -26,7 +26,7 @@
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.550em, spacing: 0.630em)
+#set par(justify: false, leading: 0.631em, spacing: 0.711em)
 
 // device: short heavy accent bar 20 a large serif title (magazine kicker rule)
 #let section(t, body, airy: false) = block(breakable: false,
@@ -34,8 +34,8 @@
   #line(length: 46pt, stroke: 3.5pt + accent)
   #v(3pt)
   #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
-  #v(3pt)
-  #body
+  #v(9pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // role in the display serif: the serif/sans jump does the hierarchy
@@ -109,7 +109,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Skills")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

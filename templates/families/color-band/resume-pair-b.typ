@@ -35,48 +35,38 @@
 // Same mechanism as every other family: `marks()` from lib.typ, reading the
 // `icons.typ` that scripts/harvest_icons.py generates beside it at build time
 // (the path data is third-party artwork and is NOT vendored in this repo).
-// Selective import: this file keeps its own job()/chip devices.
+// Selective import: this file keeps its own chip devices.
 // Each mark+value pair goes through `nb`, a #box[…~…] so the mark can never
 // be orphaned at a line end — and `nb` drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
-#import "lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, masthead
+#import "lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
 #let mk = marks(ic-col)
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.54em, spacing: 0.59em)
+#set par(justify: false, leading: 0.552em, spacing: 0.602em)
 
 // device: heading reversed out of a solid accent bar, no rules at all
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 10pt } else { 5pt }, below: 0pt)[
+  above: if airy { 19pt } else { 14pt }, below: 0pt)[
   #block(width: 100%, fill: accent, inset: (x: 6pt, y: 2.5pt))[
     #text(font: dispf, size: 11.5pt, weight: "bold", fill: white)[#upper(t)]
   ]
-  #v(5pt)
-  #body
+  #v(8pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
-// Workday mode (--input workday=1): lib.typ's `entry` stacks the fields
-// (this file otherwise keeps its own job device).
-#let job(role, org, dates, note) = if workday {
-  wd-entry(role, org, dates, note,
-    date-st: it => text(size: 9pt, fill: accent2, weight: "bold", it),
-    note-st: it => text(fill: muted, it), above: 6pt, below: 3pt)
-} else { block(above: 6pt, below: 3pt, sticky: true)[
-  #grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
-    text(size: 11pt, weight: "bold")[#role],
-    text(size: 9pt, fill: accent2, weight: "bold")[#dates],
-  )
-  #v(1.5pt)
-  #text(size: 9pt)[#text(weight: "semibold")[#org]#if note != none [#text(fill: muted)[ — #note]]]
-] }
+// lib.typ's `entry` sets the head (role, date, org line) — its measured
+// in-head spacing is what keeps the org line grouped with its own role.
+#let job(role, org, dates, note) = wd-entry(role, org, dates, note,
+  date-st: it => text(size: 9pt, fill: accent2, weight: "bold", it),
+  note-st: it => text(fill: muted, it))
 
 // skills: label on its own line, items on the line below (two-line rows)
-#let skill(cat, items) = block(above: 6pt, below: 0pt)[
-  #text(weight: "bold", size: 9.5pt)[#upper(cat)] \
-  #items
-]
+#let skill(cat, items) = srow(
+  text(weight: "bold", size: 9.5pt)[#upper(cat)], items,
+  brk: true, brk-gap: 2pt, above: auto, below: 0pt)
 
 #set list(marker: drawn-marker("dot", accent2, bold: true), indent: 10pt,
   spacing: 0.45em, body-indent: 6pt)
@@ -147,7 +137,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Skills & Tools")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")

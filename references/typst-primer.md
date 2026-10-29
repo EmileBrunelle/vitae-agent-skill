@@ -11,8 +11,8 @@ language. Every mistake below was observed in a real cold run of this skill.
   any function call.
 - **Content `[...]` vs string `"..."`**: content allows markup inside; a string
   renders markup *literally*. Helper calls take either:
-  `#skill("Languages", "C\#, Python")` (plain string) or
-  `#skill("Languages", [C\#, *Python*])` (content — bold works).
+  `#skill("Programming", "C\#, Python")` (plain string) or
+  `#skill("Programming", [C\#, *Python*])` (content — bold works).
 
 ## Escaping in prose (markup mode)
 

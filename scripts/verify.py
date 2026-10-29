@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# AGENT: do not read this file — run it. Its printed output is the instruction.
+# Usage: python3 scripts/verify.py <cv.typ> PAGES [FILL_MIN FILL_MAX]
+#        python3 scripts/verify.py --tune <cv.typ> PAGES FILL_MIN FILL_MAX
+# (Reading it wastes context: a small model read this file 3 times and never wrote the CV.)
 """One-command gate for the MECHANICAL subset of SKILL.md step 6 (any
 platform with Python 3 -- Linux, macOS, Windows). Exits non-zero if any
 check fails. Left to do by hand: the visual PNG inspection, recomputing
@@ -62,8 +66,11 @@ see references/ats.md for the caveat). No functional --install flag:
 that meant fetching a binary over HTTPS with no checksum verification;
 print the install commands instead and let the user choose.
 """
+import atexit
 import glob
+import hashlib
 import html
+import json
 import os
 import re
 import shutil
@@ -838,6 +845,670 @@ def check_whitespace(path, boxes=None, family=None, degraded=False):
 # not honestly fill that pagination. The tuner says so instead of inventing a
 # value; the fix is the section gap, real content, or a different page count.
 
+# ---------- grouping / date / duplicate-name / forced-break gates ----------
+# lib.typ tags every entry head and skill label with an invisible <vitae-head>
+# metadata (text, org, page, x, y) and every section title with <vitae-sec>
+# (pure metadata, no layout effect). `typst query` reads them back; the words
+# come from the PDF (word_boxes(pdf, with_text=True)).
+
+def _typst_query(typ, selector, root=None):
+    """JSON list of the values of every element labelled `selector`, or None."""
+    rootargs = ["--root", root] if root else []
+    for cmd in (["typst", "query", typ, selector, "--field", "value"] + rootargs,
+                ["typst", "eval", f"query({selector}).map(it => it.value)",
+                 "--in", typ, "--target", "paged"] + rootargs):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True)
+        except (FileNotFoundError, OSError):
+            return None
+        if r.returncode == 0 and r.stdout.strip().startswith("["):
+            try:
+                return json.loads(r.stdout)
+            except ValueError:
+                continue
+    return None
+
+
+def _gnorm(t):
+    return "".join(ch for ch in t.casefold() if ch.isalnum())
+
+
+def _lines(words, x_min):
+    """Words (x0, y0, x1, y1, text) at or right of x_min, clustered into text
+    lines by y-centre -> sorted list of dicts {y0, y1, c, x0, words}."""
+    ws = sorted((w for w in words if w[0] >= x_min), key=lambda w: (w[1] + w[3]) / 2)
+    out = []
+    for w in ws:
+        c = (w[1] + w[3]) / 2
+        if out and abs(c - out[-1]["c"]) <= 3.0:
+            ln = out[-1]
+            ln["words"].append(w)
+            ln["y0"], ln["y1"] = min(ln["y0"], w[1]), max(ln["y1"], w[3])
+            ln["x0"] = min(ln["x0"], w[0])
+            ln["c"] = (ln["y0"] + ln["y1"]) / 2
+        else:
+            out.append({"y0": w[1], "y1": w[3], "c": c, "x0": w[0], "words": [w]})
+    return out
+
+
+def _find_run(words, text, ytyp):
+    """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of
+    word tuples, or None."""
+    toks = [t for t in (_gnorm(w) for w in text.split()) if t][:4]
+    if not toks:
+        return None
+    norm = [_gnorm(w[4]) for w in words]
+    best = None
+    for j in range(len(words)):
+        if norm[j] != toks[0]:
+            continue
+        run, k = [j], j + 1
+        for t in toks[1:]:
+            while k < len(words) and norm[k] == "":
+                k += 1
+            if k < len(words) and norm[k] == t:
+                run.append(k)
+                k += 1
+            else:
+                break
+        else:
+            yc = (words[j][1] + words[j][3]) / 2
+            if best is None or abs(yc - ytyp) < best[0]:
+                best = (abs(yc - ytyp), run)
+    if best is None or best[0] > 30:
+        return None
+    return [words[k] for k in best[1]]
+
+
+def _line_index(lines, run):
+    w = run[0]
+    for i, ln in enumerate(lines):
+        if any(x is w for x in ln["words"]):
+            return i
+    return None
+
+
+INK_DPI = 300
+INK_DELTA = 60          # a pixel counts as ink when it differs this much from the background
+RULE_PT = 10.0          # an ink run this long in one pixel row is a rule / band / underline, not glyphs
+
+
+def _row_stats(data, w, r, tbl):
+    """(ink pixels, longest contiguous ink run) of pixel row r of a w-wide crop."""
+    s = data[r * w:(r + 1) * w].translate(tbl)
+    n = s.count(b"\x01")
+    return n, (max(map(len, s.split(b"\x00"))) if n else 0)
+
+
+def _xheight_band(prof):
+    """(top, bottom) row indexes of the dense x-height band of a text line from
+    its ink row profile (None when there is no ink). Ascender, cap-overshoot and
+    descender rows are sparse (only the letters that have them), the x-height band
+    is dense (every letter), so the band is the stretch of rows that is mostly
+    above half the peak density (maximum-sum run of prof - level): a line
+    "across our users." with no ascender or descender gets the same band as one
+    full of them, which is what makes the measured gap depend on the layout and
+    not on the words."""
+    nz = sorted(v for v in prof if v > 0)
+    if not nz:
+        return None
+    peak = nz[int(0.9 * (len(nz) - 1))]          # robust: one hairline row must not set the level
+    lvl = 0.5 * peak
+    best, cur, start, bi = 0.0, 0.0, 0, None
+    for i, v in enumerate(prof):
+        if cur <= 0:
+            cur, start = 0.0, i
+        cur += v - lvl
+        if cur > best:
+            best, bi = cur, (start, i)
+    return bi
+
+
+def _page_ink_gap(pdf):
+    """gap_fn(page, up, lo) -> OPTICAL gap (pt) between two text lines
+    ([x0, x1, y0, y1] pdftotext boxes), measured on a 300 dpi raster of `pdf`
+    (pdftoppm; pages rendered lazily): from the BASELINE of the upper line to the
+    x-HEIGHT TOP of the lower one. The baseline and x-height top come from each
+    line's ink row profile (_xheight_band), so ascenders, capitals and descenders
+    do not move them: the gap depends on the layout, never on the words. A line
+    on a filled band counts as the band (top/bottom edge of the fill); a rule
+    between the two lines splits the gap, and the longest part is returned (a
+    title bar is what separates the title from the block above). With no
+    raster, the gap is the pdftotext box gap (lower top - upper bottom)."""
+    cache, tmp, pbg, met = {}, [], {}, {}
+    k = INK_DPI / 72.0
+
+    def img(page):
+        if page not in cache:
+            cache[page] = None
+            try:
+                if not tmp:
+                    tmp.append(tempfile.mkdtemp(prefix="vitae-prox-"))
+                    # a 300 dpi page raster is ~9 MB: never leave them behind
+                    atexit.register(shutil.rmtree, tmp[0], True)
+                pre = os.path.join(tmp[0], f"p{page}")
+                r = subprocess.run(["pdftoppm", "-r", str(INK_DPI), "-gray", "-singlefile",
+                                    "-f", str(page), "-l", str(page), pdf, pre],
+                                   capture_output=True)
+                if r.returncode == 0:
+                    cache[page] = Image.open(pre + ".pgm").convert("L")
+                    cache[page].load()
+            except (OSError, ValueError):
+                cache[page] = None
+        return cache[page]
+
+    def page_bg(page, im):
+        # background = the PAGE's dominant tone, not the crop's (a reversed-out
+        # band would otherwise count as "background")
+        if page not in pbg:
+            hp = im.histogram()
+            pbg[page] = max(range(256), key=hp.__getitem__)
+        return pbg[page]
+
+    def tbl_for(bg):
+        return bytes(1 if abs(v - bg) > INK_DELTA else 0 for v in range(256))
+
+    def metrics(page, im, ln):
+        """(top, base) pixel rows of one text line: x-height band of its ink, or
+        the edges of the fill it sits on."""
+        key = (page,) + tuple(round(v, 1) for v in ln)
+        if key in met:
+            return met[key]
+        res = None
+        ya, yb = max(int(ln[2] * k), 0), min(int(ln[3] * k) + 1, im.height)
+        xa, xb = max(int(ln[0] * k), 0), min(int(ln[1] * k) + 1, im.width)
+        if yb - ya >= 3 and xb > xa:
+            reg = im.crop((xa, ya, xb, yb))
+            hp = reg.histogram()
+            lbg = max(range(256), key=hp.__getitem__)
+            pg = page_bg(page, im)
+            if abs(lbg - pg) > INK_DELTA:
+                # line on a filled band (or field): its optical extent is the fill's
+                # rows, found on a strip just left / right of the text
+                m = int(3 * k)
+                res = None
+                for sx in ((max(xa - m, 0), max(xa - 1, 0)), (min(xb + 1, im.width), min(xb + m, im.width))):
+                    if sx[1] - sx[0] < 2:
+                        continue
+                    strip = im.crop((sx[0], 0, sx[1], im.height))
+                    sd, sw = strip.tobytes(), strip.width
+                    stb = bytes(1 if abs(v - lbg) <= INK_DELTA else 0 for v in range(256))
+                    full = lambda r: sd[r * sw:(r + 1) * sw].translate(stb).count(b"\x01") >= 0.9 * sw
+                    c = (ya + yb) // 2
+                    if not full(c):
+                        continue
+                    t = b = c
+                    while t > 0 and full(t - 1):
+                        t -= 1
+                    while b < im.height - 1 and full(b + 1):
+                        b += 1
+                    if b - t + 1 <= 3 * (yb - ya):       # a band round the line, not a page-high field
+                        res = (t, b)
+                        break
+            if res is None:
+                tbl = tbl_for(lbg)
+                data, w = reg.tobytes(), reg.width
+                prof = []
+                for r in range(reg.height):
+                    n, run = _row_stats(data, w, r, tbl)
+                    prof.append(0 if run >= RULE_PT * k else n)    # underline / rule rows are not glyphs
+                bd = _xheight_band(prof)
+                if bd and bd[1] - bd[0] >= 2:
+                    res = (ya + bd[0], ya + bd[1])
+        met[key] = res
+        return res
+
+    def gap(page, up, lo):
+        im = img(page) if pdf else None
+        if im is None:
+            return lo[2] - up[3]
+        mu, ml = metrics(page, im, up), metrics(page, im, lo)
+        if mu is None or ml is None:
+            return lo[2] - up[3]
+        a, b = mu[1] + 1, ml[0]                    # first row below the upper baseline .. lower x-height top
+        if b <= a:
+            return 0.0
+        # rules between the two lines split the gap
+        xa = max(int(min(up[0], lo[0]) * k), 0)
+        xb = min(int(max(up[1], lo[1]) * k) + 1, im.width)
+        if xb <= xa:
+            return (b - a) / k
+        reg = im.crop((xa, a, xb, b))
+        tbl = tbl_for(page_bg(page, im))
+        data, w = reg.tobytes(), reg.width
+        edges, last = [], a
+        for r in range(reg.height):
+            if _row_stats(data, w, r, tbl)[1] >= RULE_PT * k:
+                edges.append((last, a + r))        # blank stretch [last, a+r)
+                last = a + r + 1
+        edges.append((last, b))
+        return max(e1 - e0 for e0, e1 in edges) / k
+
+    return gap
+
+
+def measure_groups(heads, secs, pages_words, gap_fn=None):
+    """Whole-group proximity. A group is an entry/skill row from its FIRST line
+    (the role / label) through its LAST line (org line, bullets, wrapped lines
+    included), up to the next block's head (entry head, skill label or section
+    title of the same column flow). Per group: internal = the MAX gap between
+    consecutive lines inside it, between = the gap from its last line to the
+    next block's first line; ratio = between / internal. Gaps are ink gaps when
+    gap_fn is given (default: pdftotext box gap). Section titles are measured
+    too: sbefore = last line of the previous block -> title (its bar), safter =
+    title -> first line of its section. Returns (rows, skipped); rows are
+    {kind: "group"|"sec", text, page, ...}. Single-line groups, last blocks on a
+    page, rail titles beside the body and unlocated text are skipped."""
+    gap_fn = gap_fn or (lambda page, up, lo: lo[2] - up[3])
+    rows, skipped = [], 0
+    marks = [dict(h, _k="h") for h in heads] + [dict(s, _k="s") for s in secs]
+    box = lambda ln: [ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]]
+    for h in sorted(heads, key=lambda h: (h["page"], h["y"])):
+        if h["page"] - 1 >= len(pages_words):
+            skipped += 1
+            continue
+        words = pages_words[h["page"] - 1]
+        run = _find_run(words, h["text"], h["y"])
+        if run is None:
+            skipped += 1
+            continue
+        hx = min(w[0] for w in run)
+        lines = _lines(words, hx - 2)
+        i0 = _line_index(lines, run)
+        if i0 is None:
+            skipped += 1
+            continue
+        # next block head on this page (entry head, skill label or section title)
+        later = [m for m in marks if m["page"] == h["page"] and m["y"] > h["y"] + 2
+                 and not (m["_k"] == "h" and abs(m["x"] - h["x"]) > 60)]
+        if not later:
+            continue                       # last block on its page: no next head
+        m = min(later, key=lambda m: m["y"])
+        mrun = _find_run(words, m["text"], m["y"])
+        if mrun is None:
+            skipped += 1
+            continue
+        # a rail title sits wholly LEFT of the body column (margin-index); a title
+        # that merely starts left of an indented head (gutter-rail's skill rows
+        # open with a drawn mark) is an in-flow title, its own line in the flow
+        rail = max(w[2] for w in mrun) < hx - 2
+        if rail:
+            # Rail title beside the body: its y is the top of the title cell (rule
+            # + gap), a few pt ABOVE the body's first line, so matching it by
+            # y-centre lands one line too low. If an in-column head opens within
+            # that window, THAT is the next block of this column's flow.
+            h2 = [x for x in marks if x["_k"] == "h" and x["page"] == h["page"]
+                  and abs(x["x"] - h["x"]) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
+            if h2:
+                m = min(h2, key=lambda x: x["y"])
+                mrun = _find_run(words, m["text"], m["y"])
+                if mrun is None:
+                    skipped += 1
+                    continue
+        if not rail:
+            mx0 = min(w[0] for w in mrun)
+            if mx0 < hx - 2:               # in-flow title starting left of an indented head
+                lines = _lines(words, mx0 - 2)
+                i0 = _line_index(lines, run)
+            i_next = _line_index(lines, mrun) if i0 is not None else None
+        else:                              # title set in a rail beside the body
+            mc = (mrun[0][1] + mrun[0][3]) / 2
+            cand = [(abs(ln["c"] - mc), i) for i, ln in enumerate(lines)
+                    if i > i0 and abs(ln["c"] - mc) <= 12]
+            i_next = min(cand)[1] if cand else None
+        if i_next is None or i_next <= i0 + 1:
+            continue                       # single-line group (or no next head): nothing inside
+        ls = [box(ln) for ln in lines[i0:i_next + 1]]
+        tx = [" ".join(w[4] for w in sorted(ln["words"], key=lambda w: w[0])[:4])[:28]
+              for ln in lines[i0:i_next + 1]]
+        gaps = [gap_fn(h["page"], ls[i], ls[i + 1]) for i in range(len(ls) - 2)]
+        between = gap_fn(h["page"], ls[-2], ls[-1])
+        internal = max(gaps)
+        wi = gaps.index(internal)              # the line pair behind the largest internal gap
+        rows.append({"kind": "group", "text": h["text"], "page": h["page"], "n": len(ls) - 1,
+                     "gaps": gaps, "internal": internal, "between": between,
+                     "ratio": (between / internal) if internal > 0 else float("inf"), "ls": ls,
+                     "pair_in": (tx[wi], tx[wi + 1]), "pair_btw": (tx[-2], tx[-1])})
+    # sections: previous block's last line -> title (bar) vs title -> first line
+    xs = {}
+    for h in heads:
+        xs.setdefault(h["page"], []).append(h["x"])
+    for sc in secs:
+        pg = sc.get("page")
+        if not pg or pg - 1 >= len(pages_words) or pg not in xs:
+            continue
+        words = pages_words[pg - 1]
+        srun = _find_run(words, sc["text"], sc.get("y", 0))
+        bx = min(xs[pg])
+        if srun is None or min(w[0] for w in srun) < bx - 5:
+            continue                       # unlocated, or a rail title beside the body
+        lines = _lines(words, bx - 2)
+        i = _line_index(lines, srun)
+        if i is None or i < 1 or i + 1 >= len(lines):
+            continue
+        up, t, lo = box(lines[i - 1]), box(lines[i]), box(lines[i + 1])
+        before, after = gap_fn(pg, up, t), gap_fn(pg, t, lo)
+        rows.append({"kind": "sec", "text": sc["text"], "page": pg, "before": before,
+                     "after": after, "ratio": (before / after) if after > 0 else float("inf")})
+    return rows, skipped
+
+
+PROX_FAIL, PROX_WARN = 0.7, 0.85
+
+
+def check_group_proximity(typ, pdf, root=None, heads=None, secs=None, pages=None, detail=None):
+    """[(level, message)], level FAIL/WARN/OK. Gestalt proximity on whole
+    groups: for every entry/skill row (first line through last line, org line
+    and bullets included), the gap from its last line to the NEXT block's first
+    line must not be much smaller than the largest gap between two lines
+    inside it (ratio between/internal; OPTICAL gaps at 300 dpi, baseline of
+    the upper line to x-height top of the lower one, so the words never move
+    the ratio): FAIL below PROX_FAIL (0.7 — the head visibly belongs to the
+    wrong block), WARN below PROX_WARN (0.85). Calibrated by eye on templates,
+    fixtures and real model output with the earlier ink-gap measure (groups
+    at 0.24-0.49 read as attached to the next entry, 0.82-0.96 as acceptable),
+    then re-mapped to the optical measure by sweeping entry `above` 8pt -> 3pt
+    on 6 families: the old FAIL line (0.6) lands at 0.64-0.79 optical (mean
+    0.71), the old WARN line (0.83-0.86) at 0.81-0.91; shipped templates and
+    fixtures sit at >= 0.85. Section titles get the same thresholds on gap above
+    the title (or its bar) / gap below it to the section's first line (DETAIL
+    rows, kind "sec")."""
+    heads = _typst_query(typ, "<vitae-head>", root) if heads is None else heads
+    secs = (_typst_query(typ, "<vitae-sec>", root) or []) if secs is None else secs
+    if pages is None:
+        wb = word_boxes(pdf, with_text=True)
+        pages = [[(b[0], b[1], b[2], b[3], t) for b, t in pg] for pg in wb] if wb else None
+    if heads is None or pages is None:
+        return [("WARN", "group proximity NOT checked (typst query or pdftotext unavailable)")]
+    if not heads:
+        return [("WARN", "group proximity not measured: no lib entry()/srow() heads")]
+    rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
+    if detail is not None:
+        detail.extend(rows)
+    grp = [r for r in rows if r["kind"] == "group"]
+    if not grp:
+        return [("WARN", f"group proximity: no checkable group ({skipped} head(s) not located) — unchecked")]
+    for r in grp:
+        print(f'DETAIL group "{r["text"][:30]}" p{r["page"]} lines={r["n"]} internal={r["internal"]:.2f}pt '
+              f'between={r["between"]:.2f}pt ratio={r["ratio"]:.2f}')
+    for r in rows:
+        if r["kind"] == "sec":
+            print(f'DETAIL section "{r["text"][:30]}" p{r["page"]} before-bar={r["before"]:.2f}pt '
+                  f'bar-to-first={r["after"]:.2f}pt ratio={r["ratio"]:.2f}')
+    out = []
+    if skipped:
+        out.append(("WARN", f"group proximity not measured for {skipped} head(s) (multi-column layout, "
+                    "rail title or head not located in the PDF text)"))
+    sec = [r for r in rows if r["kind"] == "sec"]
+    if sec:
+        # a section title belongs to what FOLLOWS it: the gap above it (previous
+        # block's last line -> title or its bar) must not be much smaller than
+        # the gap below it (title -> first line). Same calibration as groups.
+        s = min(sec, key=lambda r: r["ratio"])
+        sw = (f'(worst "{s["text"][:30]}": gap above {s["before"]:.1f}pt, gap below '
+              f'{s["after"]:.1f}pt, ratio {s["ratio"]:.2f}')
+        sbad = [r for r in sec if not r["ratio"] >= PROX_FAIL]
+        sweak = [r for r in sec if not r["ratio"] >= PROX_WARN]
+        if sbad:
+            out.append(("FAIL", f"section proximity: {len(sbad)}/{len(sec)} titles sit closer to the block "
+                        f"above than to their own first line {sw}; need >= {PROX_FAIL}) — fix the family's "
+                        "`section` (its `above` and the gap under the title), not the content file"))
+        elif sweak:
+            out.append(("WARN", f"section proximity: {len(sweak)}/{len(sec)} titles barely separated from "
+                        f"the block above {sw}; aim for >= {PROX_WARN})"))
+        else:
+            out.append(("OK", f'section proximity: {len(sec)} titles, gap above >= {PROX_WARN} x gap below '
+                        f'(tightest "{s["text"][:30]}": ratio {s["ratio"]:.2f})'))
+    m = min(grp, key=lambda r: r["ratio"])
+    q = lambda t: '"' + t + '"'
+    worst = (f'(worst {q(m["text"][:30])}: largest gap inside {m["internal"]:.1f}pt '
+             f'({q(m["pair_in"][0])} -> {q(m["pair_in"][1])}), gap to the next block '
+             f'{m["between"]:.1f}pt ({q(m["pair_btw"][0])} -> {q(m["pair_btw"][1])}), ratio {m["ratio"]:.2f}')
+    bad = [r for r in grp if not r["ratio"] >= PROX_FAIL]
+    if bad:
+        return out + [("FAIL", f'group proximity: {len(bad)}/{len(grp)} groups sit closer to the next block than '
+                 f'their own lines are to each other {worst}; need >= {PROX_FAIL})\n'
+                 "      do not override entry/srow above/gap/below per entry; look for a manual #v, linebreak "
+                 "or blank line inside that entry (a gap that is too big inside is as bad as one too small after);\n"
+                 "      if the CV uses the family file as shipped, report it: it is a template bug (never edit lib.typ)")]
+    weak = [r for r in grp if not r["ratio"] >= PROX_WARN]
+    if weak:
+        return out + [("WARN", f'group proximity: {len(weak)}/{len(grp)} groups barely separated from the next block '
+                 f'{worst}; aim for >= {PROX_WARN})\n'
+                 "      do not override entry/srow above/gap/below per entry; check for a manual #v, linebreak or "
+                 "blank line inside that entry")]
+    return out + [("OK", f"group proximity: {len(grp)} groups, gap to next block >= {PROX_WARN} x internal gap "
+             f'(tightest "{m["text"][:30]}": ratio {m["ratio"]:.2f}, {m["between"]:.1f}pt vs {m["internal"]:.1f}pt)')]
+
+
+# Date adjacency is measured from POSITIONS, never from what a date looks like:
+# lib.typ `entry` tags its head (<vitae-head>, with `dated`), its date cell and
+# the line under the head (<vitae-part>: "date" / "org") with the x/y where
+# their first glyph starts and the measured size of the cell. The date's words
+# are the PDF words inside the date cell's box; their reading-order index is
+# their position in `pdftotext -bbox` (the same layout analysis as the text an
+# ATS reads). No regex decides what a date is, so an org "Vision 2020 Inc", a
+# bullet "5000 users" or a role "Tier 2 Support" cannot be mistaken for one.
+ENTRY_MARKS = "selector(<vitae-head>).or(<vitae-part>)"
+
+
+def _entry_records(marks):
+    """Marks in document order -> one record per entry head:
+    {"head": mark, "date": mark|None, "org": mark|None, "date_first": bool}.
+    A part mark belongs to the entry head emitted before it."""
+    recs, cur = [], None
+    for m in marks or []:
+        k = m.get("kind")
+        if k == "entry":
+            cur = {"head": m, "date": None, "org": None, "date_first": None}
+            recs.append(cur)
+        elif k in ("date", "org") and cur is not None and cur[k] is None:
+            cur[k] = m
+            if cur["date_first"] is None:
+                cur["date_first"] = k == "date"
+        elif k not in ("date", "org"):
+            cur = None
+    return recs
+
+
+def _yc(w):
+    return (w[0][1] + w[0][3]) / 2
+
+
+def _first_word(words, x, y, y_end, x_end=None):
+    """Reading-order index of the first word of the line starting at (x, y):
+    words whose centre lies in [y - 2, y_end) and that start at or right of x
+    (before x_end), top line first, then leftmost. None when nothing is there."""
+    c = [i for i, w in enumerate(words)
+         if y - 2 <= _yc(w) < y_end and w[0][0] >= x - 1.5
+         and (x_end is None or w[0][0] < x_end)]
+    if not c:
+        return None
+    top = min(_yc(words[i]) for i in c)
+    return min((i for i in c if _yc(words[i]) <= top + 3), key=lambda i: words[i][0][0])
+
+
+def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None, stats=None):
+    """FAIL messages: in the extracted text (what an ATS reads) an entry's date
+    must come BEFORE the line under its head (org / descriptor: ats.md, the org
+    line anchors the date) and before the NEXT entry's head. Positions come from
+    lib.typ's markers; the order is pdftotext's. `warns` (list) collects
+    "not measured" notes. An entry given no date (`dated: false`) is skipped.
+    `stats` (dict) receives the counts: measured / undated / unmeasured lib
+    entries (an entry not built with lib `entry` carries no marker and is in
+    none of them)."""
+    marks = _typst_query(typ, ENTRY_MARKS, root) if marks is None else marks
+    out = []
+    warn = (lambda m: warns.append(m)) if warns is not None else (lambda m: None)
+    fix = ('fix: give the date a month range ("Sep 2011 – Jun 2012", rule: month+year) '
+           "or put a line of text after the date inside the same entry "
+           "(institution / descriptor line), so the date is not alone at the end "
+           "of the entry (references/ats.md, Entry-with-no-bullets trap)")
+    late = ("— a parser then reads the date as missing. Most common cause: a narrow "
+            "date (bare year such as \"2012\") right-flushed on the role row whose "
+            "following lines do not reach under it, so pdftotext clusters it alone and "
+            "emits it late. ")
+    recs = _entry_records(marks)
+    st = stats if stats is not None else {}
+    st.update(measured=0, undated=0, unmeasured=0)
+    if not recs:
+        return out
+    if not any("dated" in r["head"] for r in recs):
+        warn("no lib markers (entry heads carry no date/org part marks: old lib.typ "
+             "or hand-built heads)")
+        return out
+    words = word_boxes(pdf, with_text=True) if words is None else words
+    if words is None:
+        warn("pdftotext unavailable (word positions needed)")
+        return out
+    for ix, r in enumerate(recs):
+        h, d, o = r["head"], r["date"], r["org"]
+        name = f'entry "{(h.get("text") or "")[:40]}"'
+        if "dated" not in h:
+            warn(f"{name}: no lib markers")
+            continue
+        if not h["dated"]:
+            st["undated"] += 1
+            continue                       # entry given no date: nothing to order
+        st["unmeasured"] += 1              # until the judgement below is reached
+        if d is None:
+            warn(f"{name}: dated but no date marker")
+            continue
+        if o is not None and not r["date_first"]:
+            out.append(f"{name}: the employer line is EMITTED before the date (entry "
+                       "rebuilt out of lib order?) " + late + fix)
+            continue
+        pg = h.get("page") or 1
+        if d.get("page") != pg:
+            out.append(f"{name}: its date is set on page {d.get('page')}, its head on page {pg} "
+                       "— the date is read with the wrong entry. " + fix)
+            continue
+        if not 0 < pg <= len(words):
+            warn(f"{name}: page {pg} not in the PDF")
+            continue
+        pw = words[pg - 1]
+        oy = o["y"] if o is not None and o.get("page") == pg and o["y"] > d["y"] else None
+        d_end = oy if oy is not None else d["y"] + 4 * max(d.get("h", 0), 6)
+        di = [i for i, w in enumerate(pw)
+              if w[0][0] >= d["x"] - 1.5 and w[0][2] <= d["x"] + d.get("w", 0) + 1.5
+              and d["y"] - 2 <= _yc(w) < d_end]
+        hi = _first_word(pw, h["x"], h["y"], d_end, x_end=d["x"] - 1)
+        if not di or hi is None:
+            warn(f"{name}: {'date' if not di else 'head'} words not found at the marker position")
+            continue
+        last = max(di)
+        # the entry's column: role start .. date end; "below" = under the date row
+        cl, cr = h["x"] - 1.5, d["x"] + d.get("w", 0) + 1.5
+        d_bot = max(pw[i][0][3] for i in di)
+        nr = next((n for n in recs[ix + 1:]
+                   if (n["head"].get("page") or 1) == pg and abs(n["head"]["x"] - h["x"]) <= 2), None)
+        nxt = nr["head"] if nr is not None else None
+        n_end = (nr["date"]["x"] - 1 if nr is not None and nr["date"] is not None
+                 and nr["date"].get("page") == pg else cr)
+        ni = _first_word(pw, nxt["x"], nxt["y"], nxt["y"] + 40, x_end=n_end) if nxt is not None else None
+        oi = (_first_word(pw, o["x"], o["y"], o["y"] + max(o.get("h", 0), 6) + 4, x_end=cr)
+              if oy is not None else None)
+        # first word READ of anything set below the head block in this column
+        # (org line, bullet, next head, next section title)
+        bi = min((i for i, w in enumerate(pw)
+                  if _yc(w) > d_bot and w[0][0] < cr and w[0][2] > cl), default=None)
+        st["unmeasured"] -= 1
+        st["measured"] += 1
+        if ni is not None and last > ni:
+            out.append(f"{name}: its date is emitted AFTER the next entry starts "
+                       "— a narrow date (bare year such as \"2012\") right-flushed on the role "
+                       "row, with no line under it reaching below the date, is clustered alone by "
+                       "pdftotext and emitted late. " + fix)
+        elif oi is not None and last > oi:
+            out.append(f"{name}: the extracted text reads the employer line "
+                       "BEFORE the date (role/org boxes overlap? raise the in-head gap in lib.typ entry) "
+                       + late + fix)
+        elif bi is not None and last > bi:
+            out.append(f"{name}: its date is emitted AFTER text set below the entry head "
+                       f'(read first: "{pw[bi][1][:30]}") ' + late + fix)
+        elif o is not None and oi is None:
+            warn(f"{name}: employer line words not found at the marker position")
+    return out
+
+
+LIST_ITEM_RE = re.compile(r"^(\s*)(?:[-+]|\d+\.)\s")
+FORCED_BREAK_RE = re.compile(r"(?<!\\)\\(?:\s|$)|#linebreak\s*\(")
+
+
+def check_forced_linebreak(src):
+    """FAIL messages: a forced line break (`\\ ` or `#linebreak()`) inside a
+    bullet / list item. A bullet is one sentence that wraps on its own; a hard
+    break mid-bullet leaves a ragged half-line and, in the extraction, splits
+    the bullet in two."""
+    out, indent = [], None
+    for n, raw in enumerate(src.split("\n"), 1):
+        line = re.sub(r"(?:^|(?<=\s))//.*$", "", raw)
+        m = LIST_ITEM_RE.match(line)
+        if m:
+            indent = len(m.group(1))
+        elif indent is not None:
+            if not line.strip() or len(line) - len(line.lstrip()) <= indent:
+                indent = None
+        if indent is not None and FORCED_BREAK_RE.search(line):
+            out.append(f"line {n}: forced line break inside a bullet "
+                       f'("{raw.strip()[:50]}") — let the bullet wrap itself; '
+                       "split it into two bullets or shorten it")
+    return out
+
+
+def check_duplicate_names(secs, heads):
+    """FAIL messages: one name used both as a section title and as a row label
+    (e.g. section LANGUAGES for spoken languages + skill label "Languages" for
+    programming ones), compared case-insensitively. Two things with one name
+    read as one list to a human and to an ATS."""
+    titles = {}
+    for s in secs or []:
+        if _gnorm(s.get("text", "")):
+            titles.setdefault(_gnorm(s["text"]), s["text"])
+    out = []
+    for h in heads or []:
+        if h.get("kind") == "skill" and _gnorm(h["text"]) in titles:
+            out.append(f'"{h["text"].strip()}" is both a skill row label and the section title '
+                       f'"{titles[_gnorm(h["text"])]}" — rename one (e.g. "Programming languages")')
+    return out
+
+
+def run_new_gates(typ, pdf, txt, src, root=None, detail=None):
+    """Print the new gates' lines; return 1 if any FAIL."""
+    fail = 0
+    for lvl, msg in check_group_proximity(typ, pdf, root=root, detail=detail):
+        print(f"{lvl:<5} {msg}")
+        fail |= lvl == "FAIL"
+    marks = _typst_query(typ, ENTRY_MARKS, root)
+    heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
+    if heads is not None and not any(h.get("kind") == "entry" for h in heads):
+        print("WARN  date adjacency not measured: no lib entry()/srow() heads")
+    dwarn, dst = [], {}
+    for msg in check_date_adjacency(typ, pdf, marks=marks or [], warns=dwarn, stats=dst):
+        print("FAIL  date adjacency: " + msg)
+        fail = 1
+    if marks is not None:
+        _n = dst.get("measured", 0)
+        print(f"INFO  date adjacency: {_n} lib entr{'y' if _n == 1 else 'ies'} measured, "
+              f"{dst.get('undated', 0)} undated, {dst.get('unmeasured', 0)} not measured "
+              "(a dated entry not built with lib entry() is not counted)")
+    if dwarn:
+        print(f"WARN  date adjacency not measured: {len(dwarn)} entr{'y' if len(dwarn) == 1 else 'ies'} "
+              f"({'; '.join(dwarn[:3])})")
+    if marks is None:
+        print("WARN  date adjacency not measured: typst query unavailable")
+    for msg in check_forced_linebreak(src):
+        print("FAIL  " + msg)
+        fail = 1
+    secs = _typst_query(typ, "<vitae-sec>", root)
+    if not secs:   # a CV that never wrapped `section` in wd-section(): read the calls
+        secs = [{"text": t} for t in re.findall(r'#section\(\s*"((?:[^"\\]|\\.)*)"', src)]
+    for msg in check_duplicate_names(secs, heads):
+        print("FAIL  duplicate name: " + msg)
+        fail = 1
+    return fail
+
+
 PAR_RE = re.compile(r"(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(em[^)]*?spacing:\s*)([0-9.]+)(em)")
 
 
@@ -1085,6 +1756,130 @@ def check_all(directory):
     return fail
 
 
+# sha256 of every templates/lib.typ ever committed (past releases). A CV whose
+# lib.typ matches one of these is a stale-but-honest copy (WARN); anything else
+# was rewritten or edited (FAIL). The CURRENT lib is not listed: it is compared
+# by content against the skill's own file. Regenerate after each release commit:
+#   for c in $(git log --format=%H -- templates/lib.typ); do
+#     git show $c:templates/lib.typ | sha256sum | cut -c1-64; done | sort -u
+# (a model once rewrote lib.typ from memory, dropped `derive()`, and looped.)
+KNOWN_LIB_SHA256 = {
+    "a1b12d2fc073111d24bfb7f8ddd8ddff071ec313b213eaf9892a6448b2de7970",
+    "b8fc908c0b36bdcd923fa867b212c7f5d12347ef1b4ca1411d18008b0f0bbb80",
+    "ce6baaaa89b851cfdfced2bfcc436a67094adef8e13a89879a7d3d4f5daf3411",
+    "61dc57dfd3c47aa14dbc0a84d1eced9afffc4e2e2a248242ce01ebec2f8da74c",
+    "3bc21e1423e38f6b86234046c7f12ed2dc04eb7941ff574cf1e79c44a3269d2a",
+    "6ba83f076ddf631218165bcda09a0198a19a7f0f13c94abddbdf1b66716de368",
+    "67f96ab972f0f672e6885ead87e5b789bb37d160905127ef34590318327dc98c",
+    "e77ad87885a2e310fec8bb2b7f751f412af7878d03f1470f47ed5bdaec15675b",
+    "d8f3e08332cafa4fe8e8a2125175a1e66d94fc7ca9060adbd5bd6cc736bab38c",
+    "5cf956d8341d41f9970e23074ac362cdf52d6d79f649d8f620a53b31e5a2989f",
+    "7f50222c3394eee82bbfc1ac470c691c4b3756da0c0615d91e23d6d1394af8f9",
+    "c037a4309decb8dfcf10058624f0b0ded8d466606bcabf9e327766bb99e6a99b",
+}
+
+
+def _strip_typst_comments(src):
+    """src without // line comments and (nested) /* */ blocks. Double-quoted
+    strings are respected but never span a newline (a stray 6" in markup must
+    not swallow the rest of the file); backtick raw spans are skipped whole."""
+    out, i, n, q = [], 0, len(src), False
+    while i < n:
+        c = src[i]
+        if c == "\n":
+            q = False
+            out.append(c)
+        elif q:
+            out.append(c)
+            if c == "\\" and i + 1 < n and src[i + 1] != "\n":
+                out.append(src[i + 1]); i += 1
+            elif c == '"':
+                q = False
+        elif c == "\\" and i + 1 < n and src[i + 1] != "\n":
+            out.append(c + src[i + 1]); i += 1          # escaped char (\//, \", \`)
+        elif c == "`":
+            e = len(src[i:]) - len(src[i:].lstrip("`"))   # opening run of backticks
+            close = src.find("`" * e, i + e)
+            j = n if close < 0 else close + e
+            out.append(" ")                # raw text is not code: drop it
+            i = j
+            continue
+        elif c == '"':
+            q = True; out.append(c)
+        elif src.startswith("//", i) and (i == 0 or src[i - 1] != ":"):
+            while i < n and src[i] != "\n":
+                i += 1
+            continue
+        elif src.startswith("/*", i):
+            depth, i = 1, i + 2
+            while i < n and depth:
+                if src.startswith("/*", i):
+                    depth += 1; i += 2
+                elif src.startswith("*/", i):
+                    depth -= 1; i += 2
+                else:
+                    i += 1
+            continue
+        else:
+            out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def check_lib_integrity(typ_path, skill_dir=None, known=None):
+    """Return [(level, msg)] for the lib.typ the CV imports ("FAIL"/"WARN");
+    empty when it is the skill's own lib or the CV imports none. Runs before
+    compilation so the message survives a Typst error."""
+    skill_dir = skill_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    known = KNOWN_LIB_SHA256 if known is None else known
+    ref = os.path.join(skill_dir, "templates", "lib.typ")
+    # Follow local #import "x.typ" chains (cv.typ -> family.typ -> lib.typ).
+    lib, shown, seen, todo = None, None, set(), [os.path.abspath(typ_path)]
+    while todo and lib is None:
+        f = todo.pop(0)
+        if f in seen:
+            continue
+        seen.add(f)
+        try:
+            with open(f, encoding="utf-8-sig", errors="replace") as fh:
+                src = fh.read()
+        except OSError:
+            continue
+        src = _strip_typst_comments(src)
+        for imp in re.findall(r'\bimport\s*\(?\s*"([^"]+\.typ)"', src):
+            base = os.path.dirname(os.path.abspath(typ_path)) if imp.startswith("/") else os.path.dirname(f)
+            path = os.path.normpath(os.path.join(base, imp.lstrip("/") if imp.startswith("/") else imp))
+            if os.path.basename(imp) == "lib.typ":
+                lib, shown = path, imp
+                break
+            todo.append(path)
+    if lib is None and os.path.isfile(ref) and os.path.isfile(
+            os.path.join(os.path.dirname(os.path.abspath(typ_path)), "lib.typ")):
+        return [("WARN", "lib import not recognised: a lib.typ sits next to the CV but no #import "
+                         "resolves to it, so its integrity was NOT checked")]
+    if lib is None or not os.path.isfile(ref):
+        return []
+    cv_dir = os.path.dirname(lib)
+    import shlex
+    cp = f"cp {shlex.quote(ref)} {shlex.quote(cv_dir + '/')}"
+    if not os.path.isfile(lib):
+        return [("FAIL", f"{shown} is imported but missing — copy it: {cp}")]
+    import hashlib
+    def digest(f):
+        with open(f, "rb") as fh:
+            data = fh.read()
+        if data.startswith(b"\xef\xbb\xbf"):
+            data = data[3:]
+        return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+    h = digest(lib)
+    if h == digest(ref):
+        return []
+    if h in known:
+        return [("WARN", f"lib.typ is from an older vitae release; recopy to get fixes: {cp}")]
+    return [("FAIL", "lib.typ is not a copy of the skill's lib (rewritten or edited) "
+                     f"— recopy it byte-for-byte: {cp}")]
+
+
 def main():
     argv = sys.argv[1:]
 
@@ -1092,6 +1887,17 @@ def main():
         if len(argv) < 2:
             sys.exit("usage: verify.py --all DIR")
         sys.exit(check_all(argv[1]))
+    if argv and argv[0] == "--gates":
+        # new gates only, on a compiled PDF: --gates cv.typ cv.pdf [--root DIR]
+        # (fixtures import ../../templates, so they need the repo as root)
+        if len(argv) < 3:
+            sys.exit("usage: verify.py --gates cv.typ cv.pdf [--root DIR]")
+        root = argv[argv.index("--root") + 1] if "--root" in argv else None
+        rows = []
+        rc = run_new_gates(argv[1], argv[2], extract_text(argv[2], True),
+                           open(argv[1], encoding="utf-8").read(), root=root, detail=rows)
+        print("DETAIL " + json.dumps(rows))
+        sys.exit(rc)
     if argv and argv[0] == "--doctor":
         ok, _, _ = preflight()
         sys.exit(0 if ok else 1)
@@ -1496,7 +2302,269 @@ def main():
                 assert not check_text_clip(_png(_rules), _word(100, 40, 200)), \
                     f"a word flanked by {thick}px rules is not cut by a fill"
 
-        print("selftest OK — tuner regex reads, writes and round-trips; "
+        # group proximity: the gap to the next block must be >= the largest gap inside
+        # the group (role->org included). Synthetic: internal gaps 3pt; next head at
+        # 149 (1pt, tight -> FAIL) or 160 (12pt -> OK).
+        def _words(next_top):
+            def ln(top, h, txt):
+                return [(50.0, top, 90.0, top + h, w) for w in txt.split()]
+            return [ln(100, 10, "Role One") + ln(113, 9, "Acme Corp") + ln(125, 10, "first bullet")
+                    + ln(138, 10, "second bullet") + ln(next_top, 10, "Role Two") + ln(next_top + 13, 9, "Beta Inc")
+                    + ln(next_top + 25, 10, "only bullet") + ln(next_top + 38, 10, "last bullet")]
+        _flat = lambda ws: [w for part in ws for w in part]
+        _hd = [{"kind": "entry", "text": "Role One", "org": "Acme Corp", "page": 1, "x": 50.0, "y": 105.0},
+               {"kind": "entry", "text": "Role Two", "org": "Beta Inc", "page": 1, "x": 50.0, "y": 0.0}]
+        for top, want_fail in ((149, True), (160, False)):
+            hh = [dict(_hd[0]), dict(_hd[1], y=top + 5.0)]
+            got = check_group_proximity("", "", heads=hh, secs=[], pages=[_flat(_words(top))])
+            assert (got[0][0] == "FAIL") == want_fail, (top, got)
+        # raster path: the measured gap is OPTICAL (baseline -> x-height top), so the
+        # same layout with different words (no ascenders / descenders at all vs
+        # full of them) must give the same ratio; a squeezed layout must still FAIL.
+        if shutil.which("typst") and shutil.which("pdftoppm") and shutil.which("pdftotext"):
+            def _rast(last, squeeze=0):
+                with tempfile.TemporaryDirectory() as d:
+                    src = ('#set page(width: 240pt, height: 170pt, margin: 20pt)\n'
+                           '#set text(font: "Liberation Sans", size: 10pt)\n'
+                           '#set par(leading: 0.65em, spacing: 0.65em)\n'
+                           '*Role One*\n\nOrg Name\n\nFirst bullet line here\n\n' + last + '\n\n'
+                           f'#v({6 - squeeze}pt)\n*Role Two*\n\nOrg Two\n\nOnly bullet\n\nLast bullet\n')
+                    t, f = os.path.join(d, "x.typ"), os.path.join(d, "x.pdf")
+                    open(t, "w", encoding="utf-8").write(src)
+                    subprocess.run(["typst", "compile", t, f], check=True, capture_output=True)
+                    wb = word_boxes(f, with_text=True)
+                    pg = [(b[0], b[1], b[2], b[3], w) for b, w in wb[0]]
+                    hd = [{"kind": "entry", "text": txt, "org": "", "page": 1, "x": w[0], "y": w[1]}
+                          for txt, w in (("Role One", next(w for w in pg if w[4] == "One")),
+                                         ("Role Two", next(w for w in pg if w[4] == "Two")))]
+                    det = []
+                    got = check_group_proximity(t, f, heads=hd, secs=[], pages=[pg], detail=det)
+                    return [r for r in det if r["kind"] == "group"][0]["ratio"], got[-1][0]
+            _ra, _la = _rast("a sure sun runs very scarce, even once")        # x-height letters only
+            _rb, _lb = _rast("Kill Hill, ghj. Thick fly (gypsy) Jeff's pig")   # ascenders and descenders
+            assert abs(_ra - _rb) <= 0.1 and 0.85 <= _ra < 3, (_ra, _rb)
+            assert _la == _lb == "OK", (_la, _lb)
+            _rt, _lt = _rast("a sure sun runs very scarce, even once", squeeze=11)
+            assert _lt == "FAIL" and _rt < PROX_FAIL, (_rt, _lt)
+            print(f"selftest raster path: ratio {_ra:.2f} (x-height words) vs {_rb:.2f} (ascender words); squeezed {_rt:.2f} FAILs")
+        else:
+            print("selftest raster path SKIPPED (typst / pdftoppm / pdftotext not on PATH)")
+        _nh = check_group_proximity("", "", heads=[], secs=[], pages=[[]])[0]
+        assert _nh[0] == "WARN" and "not measured" in _nh[1], \
+            "a CV without head markers is WARN (not measured), not FAIL"
+        # rail-title pairing: skill row (single line) at the end of a section whose
+        # next section title sits in a left rail ~7pt above the next body line.
+        # Next block must be that in-column head, so the row has no sub-line (skipped),
+        # instead of the rail title matching one line too low and faking a 26pt "sub-line".
+        def _rail():
+            def ln(x, top, h, txt):
+                return [(x, top, x + 30.0, top + h, w) for w in txt.split()]
+            pg = (ln(100, 100, 10, "Methodologies Agile") + ln(100, 130, 10, "Label evidence drawn")
+                  + ln(100, 143, 10, "Mentoring example") + ln(20, 140, 10, "Strengths"))
+            hh = [{"kind": "skill", "text": "Methodologies", "org": "", "page": 1, "x": 100.0, "y": 105.0},
+                  {"kind": "skill", "text": "Label", "org": "", "page": 1, "x": 100.0, "y": 135.0},
+                  {"kind": "skill", "text": "Mentoring", "org": "", "page": 1, "x": 100.0, "y": 148.0}]
+            return hh, [{"text": "Strengths", "page": 1, "y": 129.0}], [pg]
+        _hh, _ss, _pp = _rail()
+        _rows, _sk = measure_groups(_hh, _ss, _pp)
+        assert not _rows, _rows
+
+        # date adjacency: measured from lib markers + pdftotext word ORDER, so every
+        # case is a real layout. `ok(...)` is lib `entry` (role -> date -> org)
+        # with a descriptor line reaching under the date, as every template has
+        # (an org line that stops short of a far-right date IS read before it:
+        # that is the trap);
+        # `bad(...)` keeps the markers but sets the org line 2pt under the role row,
+        # so the boxes overlap and pdftotext reads role, org, date (the trap);
+        # `inl(...)` puts the org on the head line and the date under it.
+        # Each case is one page of one document: one compile, one query.
+        if shutil.which("typst") and shutil.which("pdftotext"):
+            _lib = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates")
+            _pre = ('#import "lib.typ": *\n#set page(width: 14cm, height: 12cm, margin: 2cm)\n'
+                    '#set text(size: 10pt)\n'
+                    '#let ok(r, o, d, ..b) = { entry(r, o, d, [Montreal · what the employer is, in one clause · full-time, hybrid])\n'
+                    '  b.pos().map(x => list(x)).join() }\n'
+                    '#let bad(r, o, d, ..b) = block[#grid(columns: (1fr, auto), align: (left + bottom, right + bottom),\n'
+                    '  [#head-mark("entry", r, org: o, dated: true)#text(size: 11pt, weight: "bold", r)],\n'
+                    '  [#part-mark("date", text(size: 9pt, d))#text(size: 9pt, d)])\n'
+                    '  #v(-8pt)\n  #text(size: 9pt)[#part-mark("org", o)#o]\n'
+                    '  #b.pos().map(x => list(x)).join()]\n'
+                    '#let inl(r, o, d) = block[#head-mark("entry", r, org: o, dated: true)#r #part-mark("org", o)#o \\\n'
+                    '  #part-mark("date", d)#d]\n'
+                    '#let bare(r, d) = entry(r, [], d, none)\n'
+                    '#let old(r, o) = block[#context [#metadata((kind: "entry", text: r, org: o, page: here().page(),\n'
+                    '  x: 0, y: 0)) <vitae-head>]#r \\ #o \\ 2020 – 2023]\n')
+            # (name, typst body, expected: "fail" | "pass" | "warn")
+            _cases = [
+                ("lib order", 'ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "pass"),
+                ("trap order", 'bad("Backend Developer", "Acme Corp", "Mar 2024 – present")', "fail"),
+                ("org with year", 'bad("Engineer", "Vision 2020 Inc", "2021 – 2023")', "fail"),
+                ("org with year, lib", 'ok("Engineer", "Vision 2020 Inc", "2021 – 2023")', "pass"),
+                ("org address", 'bad("Engineer", "Acme, 1234 Main St", "2021 – 2023")', "fail"),
+                ("org Current", 'bad("Engineer", "Current", "2021 – 2023")', "fail"),
+                ("org Now", 'bad("Engineer", "Now", "2021 – 2023")', "fail"),
+                ("org Now, lib", 'ok("Engineer", "Now", "2021 – 2023")', "pass"),
+                ("org Currentware", 'bad("Eng", "Currentware", "2020 – 2021")', "fail"),
+                ("org 3M", 'bad("Engineer", "3M Corp", "2020 – 2023")', "fail"),
+                ("org 3M, lib", 'ok("Engineer", "3M Corp", "2020 – 2023")', "pass"),
+                ("org 10-15 staff", 'bad("Eng", "Acme, 10-15 staff", "03/20 – 04/22")', "fail"),
+                ("role Tier 2", 'bad("Tier 2 Support", "Acme Corp", "2020 – 2023")', "fail"),
+                ("role Tier 2, lib", 'ok("Tier 2 Support", "Acme Corp", "2020 – 2023")', "pass"),
+                ("role dash+year", 'bad("Eng – Tier 2024", "Acme", "2021 – 2022")', "fail"),
+                ("role with comma", 'bad("Engineer, Montreal", "Acme Corp", "2020 – 2023")', "fail"),
+                ("role with comma, lib", 'ok("Engineer, Montreal", "Acme Corp", "2020 – 2023")', "pass"),
+                ("4-word org on head line", 'inl("Engineer", "Acme Global Systems Ltd", "2020 – 2023")', "fail"),
+                ("same-line org with year", 'inl("Engineer", "Vision 2020 Inc", "2021 – 2023")', "fail"),
+                ("Jan to Present, trap", 'bad("Eng", "Acme", "Jan to Present")', "fail"),
+                ("Janvier présent, trap", 'bad("Eng", "Acme", "Janvier – présent")', "fail"),
+                ("Present alone", 'ok("Eng", "Acme", "Present")', "pass"),
+                ("empty role", 'ok("", "Acme", "2020 – 2023")', "warn"),
+                ("undated cert then dated w/ bullet year",
+                 'ok("AWS Cert", "", ""); ok("Dev", "Acme", "2020 – 2023", [Won award 2022])', "pass"),
+                ("org-less 2012, bullet short of the date, last on page",
+                 'bare("Engineer", "2012"); list([a long bullet that runs across])', "fail"),
+                ("org-less 2012, bullet wrapping under the date",
+                 'bare("Engineer", "2012"); list([a long bullet that runs across the whole line width of the page for sure, yes yes yes])', "pass"),
+                ("org-less 2012 before next section title",
+                 'bare("Engineer", "2012"); list([b]); v(1em); text(weight: "bold")[EDUCATION]; bare("BSc", "2010"); list([x])', "fail"),
+                ("next entry with empty role", 'ok("Engineer", "Acme", "2020 – 2023"); ok("", "Beta", "2019 – 2020")', "warn"),
+                ("bullet number then date", 'bad("Engineer", "Acme Corp", "2020 – 2023", [Led 3 years of work])', "fail"),
+                ("en cours, trap", 'bad("Eng", "Acme", "03/24 – en cours")', "fail"),
+                ("Jan - Mar no year, trap", 'bad("Eng", "Acme", "Jan – Mar")', "fail"),
+                ("Present alone, trap", 'bad("Eng", "Acme", "Present")', "fail"),
+                ("Sep 2011, trap", 'bad("Eng", "Acme", "Sep 2011 – Jun 2012")', "fail"),
+                ("en cours", 'ok("Eng", "Acme", "03/24 – en cours")', "pass"),
+                ("Janvier présent", 'ok("Eng", "Acme", "Janvier – présent")', "pass"),
+                ("arabic digits", 'ok("Eng", "Acme", "٢٠٢٤")', "pass"),
+                ("reiwa", 'ok("Eng", "Acme", "令和6年")', "pass"),
+                ("thai digits", 'ok("Eng", "Acme", "๒๕๖๗")', "pass"),
+                ("date on two lines", 'ok("Eng", "Acme", [Jan 2020 – \\ Dec 2021])', "pass"),
+                ("empty date", 'ok("Backend Developer", "Acme Corp", "")', "pass"),
+                ("undated, bullet year", 'ok("Engineer", "Acme", "", [Shipped in 2019 the thing])', "pass"),
+                ("undated, bullet 5000", 'ok("Engineer", "Acme", "", [Served 5000 users])', "pass"),
+                ("undated, wrapped now", 'ok("Engineer", "Acme", "", [Did the thing right ' + "x " * 60 + 'now])', "pass"),
+                ("undated, no org", 'ok("Engineer", "", "", [Cut cost 30%])', "pass"),
+                ("undated then dated w/ bullet years",
+                 'ok("Volunteer", "Club", ""); ok("Engineer", "Acme", "2020 – 2023", [Shipped in 2019 the thing], [Won award 2022])', "pass"),
+                ("undated then dated, trailing section",
+                 'ok("Volunteer", "Club", ""); ok("Engineer", "Acme", "2020 – 2023", [bullet]); [EDUCATION \\ BSc \\ 2012 \\ Cert 2020]', "pass"),
+                ("B.Sc. 2012 orphan", 'bare("B.Sc. Physics", "2012"); ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "fail"),
+                ("B.Sc. month range", 'ok("B.Sc. Physics", "Université Laval", "Sep 2008 – Jun 2012"); ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "pass"),
+                ("same role twice, one trap", 'ok("Engineer", "Acme", "2020 – 2023"); bare("Engineer", "2019"); ok("Engineer", "Beta", "2015 – 2019")', "fail"),
+                ("old lib heads", 'old("Engineer", "Acme")', "warn"),
+            ]
+            with tempfile.TemporaryDirectory(prefix="vitae-date-") as _td:
+                for _f in ("lib.typ", "icons.typ"):
+                    shutil.copy(os.path.join(_lib, _f), _td)
+                _src = os.path.join(_td, "t.typ")
+                with open(_src, "w", encoding="utf-8") as _fh:
+                    _fh.write(_pre + "\n#pagebreak()\n".join(f"#{{ {b} }}" for _, b, _ in _cases))
+                _pdf = os.path.join(_td, "t.pdf")
+                _r = subprocess.run(["typst", "compile", _src, _pdf], capture_output=True, text=True)
+                assert _r.returncode == 0, _r.stderr
+                _marks = _typst_query(_src, ENTRY_MARKS)
+                _words = word_boxes(_pdf, with_text=True)
+                assert _marks is not None and _words is not None and len(_words) == len(_cases)
+            for _p, (_n, _b, _exp) in enumerate(_cases, 1):
+                _w = []
+                _f = check_date_adjacency("", "", marks=[m for m in _marks if m.get("page") == _p],
+                                          warns=_w, words=_words)
+                _got = "fail" if _f else "warn" if _w else "pass"
+                assert _got == _exp, (_n, _got, _f or _w)
+                if _n == "B.Sc. 2012 orphan":
+                    assert len(_f) == 1 and "B.Sc. Physics" in _f[0] and "next entry starts" in _f[0], _f
+                if _n == "trap order":
+                    assert "month range" in _f[0] and "Backend Developer" in _f[0], _f
+                if _n == "same role twice, one trap":
+                    assert len(_f) == 1, _f
+                if _n.startswith("org-less 2012") and _exp == "fail":
+                    assert any("below the entry head" in m for m in _f), _f
+                if _n == "next entry with empty role":
+                    assert len(_w) == 1 and "head words not found" in _w[0], _w
+                if _n == "old lib heads":
+                    assert any("no lib markers" in m for m in _w), _w
+            print(f"selftest date adjacency: {len(_cases)} typst layouts measured")
+        else:
+            print("selftest date adjacency SKIPPED (typst / pdftotext not on PATH)")
+        # _first_word honours the column bound: a word right of x_end (the next
+        # entry's date cell, a sidebar) is never taken for a head / org line
+        _fw = [((300.0, 10.0, 330.0, 20.0), "2019"), ((50.0, 12.0, 90.0, 22.0), "Beta")]
+        assert _first_word(_fw, 50.0, 10.0, 40.0) == 1
+        assert _first_word(_fw[:1], 50.0, 10.0, 40.0) == 0
+        assert _first_word(_fw[:1], 50.0, 10.0, 40.0, x_end=299.0) is None
+        # date adjacency without word boxes / markers never crashes
+        assert not check_date_adjacency("", "", marks=[])
+        _w = []
+        assert not check_date_adjacency("", "", marks=[{"kind": "entry", "text": "A", "page": 1, "x": 0, "y": 0, "dated": True}],
+                                        warns=_w, words=[[]]) and _w
+        # comment stripping: nested blocks, stray quote, raw span
+        assert "lib.typ" not in _strip_typst_comments('/* a /* b */ #import "lib.typ" */\n')
+        assert "lib.typ" in _strip_typst_comments('a 6" pipe\n#import "lib.typ"\n')
+        assert "lib.typ" not in _strip_typst_comments('`#import "lib.typ"`\n')
+        assert "lib.typ" in _strip_typst_comments('#let u = "a//b"\n#import "lib.typ"\n')
+
+        # forced line break inside a bullet: a hard break mid-bullet FAILs,
+        # the same text wrapped by itself, or a break outside any bullet, does not.
+        assert check_forced_linebreak("- Led the migration \\ to the new stack\n")
+        assert check_forced_linebreak("- Led the migration #linebreak() to the new stack\n")
+        assert check_forced_linebreak("- Led the migration,\n  continued \\\n  here\n")
+        assert not check_forced_linebreak("- Led the migration to the new stack\n  and shipped it\n")
+        assert not check_forced_linebreak("Name \\ Title\n\n- Bullet one\n")
+        assert not check_forced_linebreak("- see https://example.com/a // and path C:\\\\dir\n")
+
+        # duplicate name: a section title reused as a row label (any case) FAILs
+        _sec = [{"text": "LANGUAGES", "page": 1, "y": 10.0}, {"text": "Skills", "page": 1, "y": 80.0}]
+        assert check_duplicate_names(_sec, [{"kind": "skill", "text": "Languages"}])
+        assert check_duplicate_names(_sec, [{"kind": "skill", "text": "languages:"}])
+        assert not check_duplicate_names(_sec, [{"kind": "skill", "text": "Programming languages"}])
+        assert not check_duplicate_names(_sec, [{"kind": "entry", "text": "Languages"}])
+
+        # lib.typ integrity: current / older release / rewritten / no import
+        with tempfile.TemporaryDirectory() as _d:
+            _sk = os.path.join(_d, "skill"); _cv = os.path.join(_d, "cv")
+            os.makedirs(os.path.join(_sk, "templates")); os.makedirs(_cv)
+            _w = lambda p, t: open(p, "w", encoding="utf-8").write(t)
+            _w(os.path.join(_sk, "templates", "lib.typ"), "#let derive() = 1\n")
+            _w(os.path.join(_cv, "cv.typ"), '#import "lib.typ": *\n')
+            _old = hashlib.sha256(b"#let old = 1\n").hexdigest()
+            _chk = lambda: check_lib_integrity(os.path.join(_cv, "cv.typ"), _sk, {_old})
+            _w(os.path.join(_cv, "lib.typ"), "#let derive() = 1\n")
+            assert _chk() == [], _chk()
+            _w(os.path.join(_cv, "lib.typ"), "#let old = 1\n")
+            assert [l for l, _ in _chk()] == ["WARN"], _chk()
+            _w(os.path.join(_cv, "lib.typ"), "#let mine = 1\n")
+            _r = _chk()
+            assert [l for l, _ in _r] == ["FAIL"] and "cp " in _r[0][1], _r
+            _w(os.path.join(_cv, "cv.typ"), "hello\n")
+            assert [l for l, _ in _chk()] == ["WARN"], _chk()      # lib next to CV, no import: never silent
+            os.remove(os.path.join(_cv, "lib.typ"))
+            assert _chk() == []
+            _w(os.path.join(_cv, "lib.typ"), "#let mine = 1\n")
+            # CRLF copy of the current lib is still current; commented / root-absolute imports
+            open(os.path.join(_cv, "lib.typ"), "wb").write(b"#let derive() = 1\r\n")
+            _w(os.path.join(_cv, "cv.typ"), '#import "lib.typ": *\n')
+            assert _chk() == [], _chk()
+            _w(os.path.join(_cv, "cv.typ"), '// #import "lib.typ": *\n/* #import "lib.typ" */\n')
+            assert [l for l, _ in _chk()] == ["WARN"], _chk()     # commented imports do not count
+            for _src, _exp in (('#{ import "lib.typ": * }\n', "FAIL"), ('#import("lib.typ")\n', "FAIL"),
+                               ('/* a /* b */ #import "lib.typ" */\n#set page()\n', "WARN"),
+                               ('a 6" pipe\n#import "lib.typ": *\n', "FAIL"),
+                               ('`#import "lib.typ"`\n', "WARN")):
+                _w(os.path.join(_cv, "lib.typ"), "#let mine = 1\n")
+                _w(os.path.join(_cv, "cv.typ"), _src)
+                assert [l for l, _ in _chk()] == [_exp], (_src, _chk())
+            open(os.path.join(_cv, "lib.typ"), "wb").write(b"\xef\xbb\xbf#let derive() = 1\n")
+            _w(os.path.join(_cv, "cv.typ"), '#import "lib.typ": *\n')
+            assert _chk() == [], "BOM lib must not false-FAIL"
+            open(os.path.join(_cv, "cv.typ"), "wb").write(b'// caf\xe9\n#import "lib.typ": *\n')
+            assert _chk() == [], "non-UTF-8 cv must not crash"
+            os.makedirs(os.path.join(_cv, "sub"))
+            _w(os.path.join(_cv, "sub", "cv.typ"), '#import "/lib.typ": *\n')
+            _w(os.path.join(_cv, "lib.typ"), "#let mine = 1\n")
+            _r = check_lib_integrity(os.path.join(_cv, "sub", "cv.typ"), _sk, {_old})
+            assert [l for l, _ in _r] == ["FAIL"], _r
+            assert "cp " in _r[0][1]
+        print("selftest OK — lib.typ integrity (current / older / rewritten); tuner regex reads, writes and round-trips; "
               "an unrecognised par declaration is reported, not guessed; "
               "a pale or short hairline AT a boundary reads as a device, while "
               "an underlined link away from one does not — empty-space-only "
@@ -1537,6 +2605,10 @@ def main():
     deps_ok, use_cli, use_poppler = preflight()
     if not deps_ok:
         sys.exit(1)
+
+    for level, msg in check_lib_integrity(typ):
+        print(f"{level}  {msg}")
+        fail |= level == "FAIL"
 
     ensure_icons(typ)
     ok, err = compile_pdf(typ, pdf, use_cli)
@@ -1661,6 +2733,14 @@ def main():
     bullets = check_bullet_chars(txt)
     if bullets:
         print(f'WARN  {len(bullets)} line(s) start with a bullet character in the extraction (e.g. "{bullets[0][:30]}") — ATS prints it or puts it alone on a line; draw list markers as vector shapes (references/ats.md)')
+
+    if use_cli:
+        fail |= run_new_gates(typ, pdf, txt, typ_text)
+    else:
+        print("WARN  grouping / date-adjacency / duplicate-name gates NOT checked (need the typst CLI)")
+        for msg in check_forced_linebreak(typ_text):
+            print("FAIL  " + msg)
+            fail = 1
 
     print("──── extraction (check reading order, orphaned dates, intact skill lines) ────")
     print(txt)

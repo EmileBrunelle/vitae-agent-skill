@@ -28,7 +28,7 @@
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.25cm, bottom: 1.2cm))
 #set page(..wd-page-x(1.6cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.575em, spacing: 0.695em)
+#set par(justify: false, leading: 0.545em, spacing: 0.665em)
 
 // device: a filled hue-A square, then the title in the MONO face. No rules.
 #let section(t, body, airy: false) = block(breakable: false,
@@ -37,8 +37,8 @@
   #box(width: 3pt, height: 6pt, fill: accent2, baseline: 0pt)
   #h(5pt)
   #text(font: dispf, size: 11.5pt, weight: "bold", fill: dark)[#t]
-  #v(5pt)
-  #body
+  #v(14pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // dates in the MONO face, hue B, right-flush (tabular alignment is this
@@ -114,7 +114,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Stack")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools", "Git (version control), Docker")

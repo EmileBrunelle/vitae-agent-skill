@@ -76,7 +76,10 @@ size.
   unregulated role name + degree in parentheses; the degree carries the
   professional signal legally.
 - **Gloss local institutions and diplomas** for foreign readers: keep the
-  original name + a short gloss rather than a lossy translation.
+  original name + a short gloss rather than a lossy translation. The gloss
+  may only restate what the fact sheet says; any explanation of your own
+  ("two-year pre-university program") is an addition — flag it to the user
+  for approval, never print it unapproved (SKILL.md: page text is facts only).
 - **Translation is adaptation, not word-mapping.** Watch for calques (FR→EN
   "within a team" → "on a team"); include a native-reviewer pass in the
   adversarial loop for any translated version.

@@ -34,7 +34,7 @@
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.3cm))
 #set page(..wd-page-x(1.6cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.786em, spacing: 0.876em)
+#set par(justify: false, leading: 0.762em, spacing: 0.852em)
 
 // DEVICE: the title KNOCKED OUT of a hard black slab, the slab only as wide as
 // its own title — nothing full-width anywhere in the document. Square corners,
@@ -57,11 +57,11 @@
 // inside a box resolves to the AVAILABLE width and silently reproduces the
 // banned full-width bar (same trap as `line(length: 100%)` — verified).
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 25pt } else { 20pt }, below: 0pt)[
+  above: if airy { 26.5pt } else { 21.5pt }, below: 0pt)[
   #box(fill: dark, inset: (x: 6pt, y: 2.5pt),
     text(font: dispf, size: 11.5pt, weight: "bold", fill: white)[#upper(t)])
-  #v(6pt)
-  #body
+  #v(12.5pt)
+  #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 // Dates and the employer descriptor in the MONO face — the metadata register.
@@ -100,7 +100,7 @@
 #let stag(cat) = chip(
   text(font: monof, size: 8pt, weight: "bold", fill: white)[#upper(cat)],
   fill: dark, extent: 1pt)
-#let skill(cat, items) = srow(stag(cat), items, above: 5pt, below: 0pt)
+#let skill(cat, items) = srow(stag(cat), items, above: auto, lift: -1.5pt, below: 0pt)
 #let sskill(cat, items) = skill(cat, items)
 
 // List marker: a hard-bordered SQUARE OUTLINE, drawn (emits no text). Nobody
@@ -163,7 +163,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
 #section("Technical Stack")[
-#skill("Languages", "Python, TypeScript, SQL, JavaScript, Bash")
+#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
 #skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
 #skill("Frontend", "React, accessibility-minded interface work")
 #skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2 and S3), continuous integration")
