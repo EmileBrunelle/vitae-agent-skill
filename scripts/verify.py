@@ -675,8 +675,9 @@ _MONTH_YEAR_RE = re.compile(
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _NUM_RE = re.compile(r"[$€£]?(\d+(?:[.,]\d+)*)\s?(%|[kKmM](?![^\W\d_])|)")
-_CAP = r"[A-ZÀ-ÖØ-Þ][\w'’.&-]*"
-_CAPSEQ_RE = re.compile(r"(?<![^\W\d_])%s(?:[ \t]+(?:(?:of|de|du|des|la|le|for|the)[ \t]+)?%s)+" % (_CAP, _CAP))
+_CAP = r"[A-ZÀ-ÖØ-Þ][\w'’&-]*(?:\.[\w'’&-]+)*"     # a dot only INSIDE a word (B.Sc, Node.js)
+_WORD_RE = re.compile(r"(?<![^\W\d_])%s" % _CAP)
+_CAPSEQ_RE = re.compile(r"(?<![^\W\d_])%s(?:[ \t]+(?:(?:of|de|du|des|la|le|for|the|and|et|au|aux|à|&)[ \t]+)?%s)+" % (_CAP, _CAP))
 _HEADING_WORDS = set("""work experience professional employment education skills technical profile summary
 languages language projects project certifications certification awards interests volunteer volunteering
 references publications contact about core competencies selected key highlights career objective
@@ -685,7 +686,36 @@ benevolat intérêts interets résumé resume parcours professionnel professionn
 and et of de the""".split())
 
 
-_LINKS = ("of", "de", "du", "des", "la", "le", "and", "et", "for", "the", "&")
+_LINKS = ("of", "de", "du", "des", "la", "le", "and", "et", "for", "the", "&", "à", "au", "aux")
+
+# Verbs that open a bullet ("Built Python services"): the only words dropped from the head
+# of a capitalized sequence. Anything else at the head is part of a name and is checked.
+_ACTION_VERB_SRC = """
+accelerated achieved acted adapted administered advised analysed analyzed anchored architected assembled assessed assisted
+audited authored automated balanced benchmarked boosted briefed brought budgeted built calculated captained chaired championed
+coached collaborated collected communicated compiled completed composed conceived conducted configured consolidated constructed
+consulted contributed controlled converted coordinated created cut debugged decreased defined delivered deployed derived
+designed detected developed devised diagnosed directed documented doubled drafted drove earned edited eliminated enabled
+engineered enhanced established estimated evaluated examined executed expanded expedited facilitated finalized fixed forecast
+formalized formulated founded generated grew guided handled headed helped identified implemented improved increased initiated
+installed instituted integrated introduced investigated launched led leveraged maintained managed mapped measured mentored
+merged migrated modeled modelled monitored negotiated onboarded operated optimized orchestrated organized oversaw owned
+partnered performed pioneered planned presented prioritized processed produced programmed prototyped provided published
+raised ran rebuilt recommended reconciled recruited redesigned reduced refactored reengineered refined released remodeled
+replaced reported researched resolved restructured retained revamped reviewed rewrote saved scaled scheduled secured selected
+served shaped shipped simplified sold solved sourced spearheaded standardized streamlined strengthened structured supervised
+supported surveyed taught tested tracked trained transformed translated tripled troubleshot tuned unified upgraded used
+validated visualized won worked wrote
+accompagné accéléré administré amélioré analysé animé appliqué assuré atteint audité automatisé bâti calculé chiffré collaboré
+conçu conduit configuré consolidé construit contribué contrôlé coordonné créé déployé dirigé diminué développé documenté
+élaboré encadré établi évalué exécuté fait formé généré géré identifié implanté implémenté initié installé intégré
+lancé livré maintenu mené mesuré migré mis modélisé négocié optimisé organisé orchestré participé piloté planifié produit
+rédigé réalisé rédigé redéfini réduit refactorisé rendu réorganisé résolu restructuré revu sécurisé standardisé suivi supervisé
+testé traduit transformé travaillé utilisé validé
+use used provision provisioned joined join daily from in on at with for to by using via after before during
+across through as my our their his her its this that these those each every all
+"""
+
 
 
 def _fold1(s: str) -> str:
@@ -701,6 +731,28 @@ def _fold(s: str) -> str:
     s = "".join(c for c in s if not unicodedata.combining(c)).lower()
     s = re.sub(r"[–—‒−]", "-", s).replace("’", "'")
     return re.sub(r"\s+", " ", s)
+
+
+_ACTION_VERBS = frozenset(_fold(_v) for _v in _ACTION_VERB_SRC.split())
+
+# A phone number is a contact detail, not a claim: its digit groups are neither years nor numbers.
+_PHONE_RE = re.compile(
+    r"(?<![\w])(?:\+?\d{1,2}[ .\-\u00a0]?)?(?:\(\d{3}\)|\d{3})[ .\-\u00a0]?\d{3}[ .\-\u00a0]?\d{4}(?!\d)")
+_NAME_SUFFIX_RE = re.compile(r"\b(?:inc|ltee|ltd|corp|llc|sa|sas|gmbh)\b")
+
+
+def _name_norm(s: str) -> str:
+    """Name comparison form: folded, punctuation dropped, company suffixes
+    (Inc., Ltée, Corp., LLC, SA, SAS, GmbH ...) removed, single spaces, padded."""
+    s = re.sub(r"[^\w&' ]", " ", _fold(s))
+    s = _NAME_SUFFIX_RE.sub(" ", s)
+    return " " + re.sub(r"\s+", " ", s).strip() + " "
+
+
+def _clean_word(w: str) -> str:
+    """Drop a possessive ('s), a French elision (J’, L’) and trailing punctuation."""
+    w = re.sub(r"['’]s$", "", w.rstrip(".,'’&-"))
+    return re.sub(r"^[A-ZÀ-Þa-zà-ÿ]['’](?=\w)", "", w)
 
 
 def _num_values(text: str) -> set[float]:
@@ -727,10 +779,13 @@ def _month_years(text: str) -> set[tuple[int, int]]:
 
 
 def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
-    """Rule 1, mechanically: WARN lines for every year, month+year, number or
-    capitalized multi-word name in the CV text that the facts file does not
-    contain (case, accents, whitespace and number formats are normalized)."""
+    """Rule 1, mechanically: WARN lines for every year, month+year, number,
+    capitalized name (multi-word, single mid-sentence word, acronym) in the CV
+    text that the facts file does not contain. Case, accents, whitespace, number
+    formats and company suffixes are normalized; phone numbers are ignored; a
+    sentence-start ACTION VERB is the only word dropped from a name's head."""
     facts = _fold(facts_text)
+    facts_n = _name_norm(facts_text)
     facts_years = set(_YEAR_RE.findall(facts))
     facts_my = _month_years(facts_text)
     facts_nums = _num_values(facts_text)
@@ -738,6 +793,9 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
     for raw in pdf_text.split("\n"):
         line = raw.strip()
         if not line:
+            continue
+        line = _PHONE_RE.sub(lambda m: " " * len(m.group(0)), line)
+        if not line.strip():
             continue
         fl = _fold1(line)                   # same length as `line`: spans carry over
         blank: list[tuple[int, int]] = []
@@ -759,6 +817,7 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
         for i, j in blank:
             chars[i:j] = " " * (j - i)
         rest = "".join(chars)
+        # "75%", "75 percent" and "75 pour cent" all compare as the value 75
         for m in _NUM_RE.finditer(re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", rest)):
             if not m.group(2) and len(m.group(1)) == 1:
                 continue                    # bare 0-9: "3 teams" vs "three" is not a signal
@@ -767,34 +826,101 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
                 found[m.group(0).strip()] = None
         if line.isupper():
             continue                        # section headings
+
+        def at_start(pos: int) -> bool:
+            before = rest[:pos].strip()
+            return not before or before[-1] in ".:;!?•·▪–—-|"
+
+        def known(name: str) -> bool:
+            parts = re.split(r"\s+(?:and|et|&|à|au|aux)\s+", name.strip())   # "Python and SQL": each side
+            if all(_name_norm(x).strip() == "" or _name_norm(x) in facts_n for x in parts):
+                return True
+            # every word is a known word ("API NestJS" vs facts "NestJS ... API"): no new name
+            ws = [x for x in re.split(r"[ \t]+", name) if x]
+            return len(ws) > 1 and all(_name_norm(x).strip() == "" or _name_norm(x) in facts_n
+                                       or _fold(x) in _LINKS for x in ws)
+
+        covered: list[tuple[int, int]] = []
         for m in _CAPSEQ_RE.finditer(rest):
-            tok = m.group(0).rstrip(".,'’&-")
-            words = re.split(r"[ \t]+", tok)
+            covered.append(m.span())
+            words = [_clean_word(x) for x in re.split(r"[ \t]+", m.group(0))]
+            tok = " ".join(words)
             if all(_fold(w) in _HEADING_WORDS for w in words):
                 continue
-            if _fold(tok) in facts:
+            if known(tok):                  # the WHOLE sequence first
                 continue
-            before = rest[:m.start()].strip()
-            if not before or before[-1] in ".:;!?•·▪–—-|":
-                tail = words[1:]            # sentence-start verb: "Built Python services"
+            if at_start(m.start()) and _fold(words[0]) in _ACTION_VERBS:
+                tail = words[1:]            # "Built Python services": drop the verb only
                 while tail and _fold(tail[0]) in _LINKS:
                     tail = tail[1:]
                 tok = " ".join(tail)
-                if not tok or _fold(tok) in facts or _fold(tok) in _HEADING_WORDS:
+                if not tok or known(tok) or _fold(tok) in _HEADING_WORDS:
                     continue
             found[tok] = None
+        for m in _WORD_RE.finditer(rest):
+            if any(i <= m.start() < j for i, j in covered):
+                continue
+            w = _clean_word(m.group(0))
+            if not w or not w[0].isupper():
+                continue
+            f = _fold(w)
+            if f in _HEADING_WORDS or known(w):
+                continue
+            if w.isupper() and len(w) >= 2 and w.isalpha():
+                found[w] = None             # acronym: UQAM, AWS — anywhere in the line
+            elif (len(w) >= 3 and not w.isupper() and not at_start(m.start())
+                  and f not in _ACTION_VERBS):
+                found[w] = None             # single name mid-sentence
     return [f'WARN  not in facts file: "{t}" — remove it or confirm it with the candidate (rule 1)'
             for t in found]
 
 
-def _drawn_fill(typ: str) -> tuple[int, int] | None:
-    """The fill target drawn by pick_design.py, from the cv.typ header."""
+_BANNER_RE = re.compile(r"^\s*//\s*FAMILY:\s*([\w-]+)", re.M)
+_HEADER1_RE = re.compile(r"//\s*vitae:\s*pages=(\d+)(?:\s+fill=(\d+)-(\d+))?")
+
+
+def _drawn_fill(typ: str) -> tuple[tuple[int, int] | None, list[str]]:
+    """The fill target pick_design.py drew, and WARN lines about the header.
+
+    The `// vitae:` header is editable, so it is NOT the authority when the family
+    is known (banner `// FAMILY:` or families/ directory): the target is that
+    family's `page.fill` in pick_design.FAMILIES, whatever the header says. The
+    header is used only when no family is known, and only on line 1."""
     try:
         with open(typ, encoding="utf-8") as fh:
-            m = HEADER_RE.search(fh.read(4096))
+            first = fh.readline()
+            head = first + "".join(fh.readline() for _ in range(2))
     except OSError:
-        return None
-    return (int(m.group(2)), int(m.group(3))) if m and m.group(2) else None
+        return None, []
+    hm = _HEADER1_RE.match(first.strip())
+    header = (int(hm.group(2)), int(hm.group(3))) if hm and hm.group(2) else None
+    family = family_from_path(typ)
+    table: tuple[int, int] | None = None
+    if family:
+        import pick_design as pd
+        fam = pd.FAMILIES.get(family)
+        if fam:
+            lo, hi = fam["page"]["fill"].split("-")
+            table = (int(lo), int(hi))
+    if table is None:
+        return header, []
+    warns = []
+    if _BANNER_RE.search(head) and header != table:
+        got = (f"{header[0]}-{header[1]}" if header
+               else "no `// vitae: pages=N fill=A-B` header on line 1")
+        warns.append(f"WARN  cv.typ header disagrees with family {family}: {got}; the drawn fill "
+                     f"target is {table[0]}-{table[1]} (pick_design.FAMILIES) and is what is "
+                     "enforced — restore the header, do not edit the target")
+    return table, warns
+
+
+def _fill_args_ok(*vals: str | None) -> bool:
+    """FAIL line + False when a fill/page argument is not a plain integer."""
+    for v in vals:
+        if v is not None and not re.fullmatch(r"\d+", v):
+            print(f"FAIL  fill args must be integers (got {v!r}) — e.g. verify.py cv.typ 1 94 96")
+            return False
+    return True
 
 
 # A degree token next to a non-completion marker: the Eightfold-class parsers
@@ -2740,6 +2866,46 @@ def _selftest() -> NoReturn:
     assert len(check_facts_coverage("Globex Industries\nGlobex Industries\n", _facts)) == 1
     assert check_facts_coverage("Sep 2020", "septembre 2020") == []
     assert check_facts_coverage("Sep 2020", "2020-09") == []
+    # review fixes: whole-sequence lookup first, verb list only, acronyms, phones, suffixes, %
+    _f2 = "Analyst, Acme Corp, 2020-2022\nUQAM\nPython 3.11, 75 percent, Beta Inc.\nMontréal\n"
+    for _t in ("Analyst — Globex Corp", "Analyst | Globex Corp", "Globex Corp"):
+        assert any('"Globex Corp"' in x for x in check_facts_coverage(_t + "\n", _f2)), _t
+    assert check_facts_coverage("Built Acme Corp pipelines\nManaged Acme Corp\nDéveloppé Acme Corp\n", _f2) == []
+    assert any('"Globex Corp"' in x for x in check_facts_coverage("Built Globex Corp pipelines\n", _f2))
+    assert any('"AWS"' in x for x in check_facts_coverage("Used AWS daily\n", _f2))
+    assert check_facts_coverage("Studied at UQAM\n", _f2) == []
+    assert any('"Globex"' in x for x in check_facts_coverage("Worked with Globex daily\n", _f2))
+    assert check_facts_coverage("Worked in Montréal\nAnalyst\n", _f2) == []
+    for _ph in ("(514) 555-1234", "1 800 555 1234", "+1 514 555 1234", "514-555-1234"):
+        assert check_facts_coverage("Contact " + _ph + "\n", _f2) == [], _ph
+    assert check_facts_coverage("Analyst à Acme Corp, 2020-2022\nAnalyst au Acme Corp\n", _f2) == []
+    assert check_facts_coverage("Analyst, Acme Inc., 2020\nAnalyst, Acme Corp. Ltée\n", _f2) == []
+    assert check_facts_coverage("Grew by 75%\nGrew 75 percent\nCroissance de 75 pour cent\n", _f2) == []
+    assert any('"3.12"' in x for x in check_facts_coverage("Python 3.12\n", _f2))
+    assert check_facts_coverage("Python 3.11\n", _f2) == []
+    # drawn fill target: family table wins over header; no/disagreeing header WARNs
+    with tempfile.TemporaryDirectory(prefix="vitae-drawn-") as _td:
+        import pick_design as _pd
+        _fam = next(iter(_pd.FAMILIES))
+        _exp = tuple(int(_x) for _x in _pd.FAMILIES[_fam]["page"]["fill"].split("-"))
+        _ft = os.path.join(_td, "cv.typ")
+        for _body, _want_t, _want_w in (
+                (f"// vitae: pages=1 fill={_exp[0]}-{_exp[1]}\n// FAMILY: {_fam}\n", _exp, 0),
+                (f"// FAMILY: {_fam}\n", _exp, 1),
+                (f"// vitae: pages=1 fill=50-60\n// FAMILY: {_fam}\n", _exp, 1),
+                (f"// FAMILY: {_fam}\n\n\n\n// vitae: pages=1 fill=50-60\n", _exp, 1),
+                ("// vitae: pages=1 fill=91-93\n", (91, 93), 0),
+                ("// vitae: pages=1\n", None, 0),
+                ("\n// vitae: pages=1 fill=91-93\n", None, 0)):
+            with open(_ft, "w", encoding="utf-8") as _fh:
+                _fh.write(_body)
+            _dt, _dw = _drawn_fill(_ft)
+            assert _dt == _want_t and len(_dw) == _want_w, (_body, _dt, _dw)
+            assert all(str(_exp[0]) in _w and str(_exp[1]) in _w for _w in _dw), _dw
+    _r = subprocess.run([sys.executable, "-I", os.path.abspath(__file__), "x.typ", "1", "9x", "96"],
+                        capture_output=True, text=True)
+    assert _r.returncode != 0 and "FAIL  fill args must be integers" in _r.stdout, (_r.stdout, _r.stderr)
+    assert "Traceback" not in _r.stderr, _r.stderr
     assert pages_from_name("a/resume.typ") == "1"
     for n in ("CV_X_2p.typ", "cv_2page.typ", "cv_2pages.typ", "cv-2p.typ",
               "cv-2pages.typ", "CV-2 page.typ"):
@@ -3661,7 +3827,7 @@ def _selftest() -> NoReturn:
     sys.exit(0)
 
 
-_LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} (cv.typ header) — allowed ONLY if "
+_LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} — allowed ONLY if "
                  "the facts are exhausted; tell the user the page is under-filled and which "
                  "facts would fill it; never pad or invent to reach it (rule 1)")
 
@@ -3674,12 +3840,16 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     fail = 0
     # The drawn fill target lives in the cv.typ header; the command line may
     # not quietly lower it (a lowered target is a WARN carried to the PASS line).
-    drawn = _drawn_fill(typ)
+    if not _fill_args_ok(fmin, fmax):
+        sys.exit(1)
+    drawn, drawn_warns = _drawn_fill(typ)
+    for w in drawn_warns:
+        print(w)
     lowered = ""
     if drawn:
         if not (fmin and fmax):
             fmin, fmax = str(drawn[0]), str(drawn[1])
-            print(f"INFO  fill target {fmin}-{fmax}% read from the cv.typ header")
+            print(f"INFO  fill target {fmin}-{fmax}% drawn for this CV (family table / cv.typ header)")
         elif int(fmin) < drawn[0]:
             lowered = f"{drawn[0]}-{drawn[1]} → {fmin}-{fmax}"
             print(_LOWERED_WARN.format(a=f"{drawn[0]}-{drawn[1]}"))
@@ -3922,6 +4092,8 @@ def main() -> None:
         ap.add_argument("lo", nargs="?")
         ap.add_argument("hi", nargs="?")
         ta = ap.parse_known_args(["--"] + argv[1:])[0]
+        if not _fill_args_ok(ta.pages, ta.fill_min, ta.fill_max):
+            sys.exit(1)
         # LO alone is ignored: the bounds come as a pair or not at all
         bounds = ((float(ta.lo), float(ta.hi)) if ta.hi is not None else (None, None))
         sys.exit(tune(ta.typ, int(ta.pages), int(ta.fill_min), int(ta.fill_max),
