@@ -23,9 +23,8 @@ several stems are refused (exit 2).
 same output. Built for small local models that lose items in a long list. Calls = one per `pages`/`crops`
 item, plus one per page for each `page` item (2 pages, 10 page items = 20 calls + the others). Checklist
 items read `L<n> (<scope>) <question>`, scope = page (one call per page, FAIL if any page fails, zone
-prefixed p<N>) | pages (all pages in one call) | crops (the zoomed crops relevant to the item: icon
-crops for an icon/chip item, fill crops for a text-on-band item, all crops otherwise; the pages when
-no relevant crop was given, so a crops item is never judged on nothing). An untagged item counts as `pages`.
+prefixed p<N>) | pages (all pages in one call) | crops (all zoomed crops) | crops:fill / crops:icon (only that crop type);
+the pages when no crop of that type was given, so a crops item is never judged on nothing). An untagged item counts as `pages`.
 
 --timeout is per HTTP call (default 600 s). A full run on a local model can take many minutes:
 agents should run it in the background or with a long Bash timeout. --list-models prints the ids
@@ -47,7 +46,7 @@ PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
 ITEM_RE = re.compile(r"^[\s>*#\-|`_\d.)]*(L\d+)\b", re.M)
 ITEM_LINE_RE = re.compile(
-    r"^[\s>*#\-|`_\d.)]*\*{0,2}(L\d+)\*{0,2}[\s*]*(?:\((pages?|crops)\))?[\s*:]*(.*?)\s*$", re.I)
+    r"^[\s>*#\-|`_\d.)]*\*{0,2}(L\d+)\*{0,2}[\s*]*(?:\((pages?|crops(?::(?:fill|icon))?)\))?[\s*:]*(.*?)\s*$", re.I)
 LEAD_RE = re.compile(r"^[\s>#|*_\-]*(?:\d+[.)]\s+)?[\s>#|*_\-]*")
 ANS_A = re.compile(r"^(PASS|FAIL)\b[\s:\-–—]*L0*(\d+)\b\s*(?:\([^)]*\))?\s*(?:[—–:\-]+\s*)?(.*)$", re.I)
 ANS_B = re.compile(r"^L0*(\d+)\b\s*(?:\([^)]*\))?\s*[:\-–—]*\s*(PASS|FAIL)\b\s*(?:[—–:\-]+\s*)?(.*)$", re.I)
@@ -298,15 +297,6 @@ def classify(pngs: Sequence[str]) -> tuple[list[tuple[str, str]], list[str]]:
     return [(lab, p) for _, lab, p in pages], crops
 
 
-def crop_kind(text: str) -> str:
-    """Which crop type an item needs: icon | fill | any (by its wording)."""
-    if re.search(r"\b(icons?|chips?)\b", text, re.I):
-        return "icon"
-    if re.search(r"\btext on a (?:coloured |colored )?(?:band|fill)\b", text, re.I):
-        return "fill"
-    return "any"
-
-
 def check_one_stem(pngs: Sequence[str]) -> None:
     stems = {m.group(1) for m in (STEM_RE.match(os.path.basename(p)) for p in pngs)
              if m and (PAGE_RE.match(m.string) or CROP_RE.match(m.string))}
@@ -345,8 +335,8 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
             verdicts[it.id] = ("FAIL", "; ".join(fails)) if fails else ("PASS", "; ".join(oks))
         else:
             imgs = [p for _, p in pages]
-            if it.scope == "crops":
-                kind = crop_kind(it.text)
+            if it.scope.startswith("crops"):
+                kind = it.scope.partition(":")[2] or "any"
                 sel = [c for c in crops if kind == "any" or f"-{kind}" in os.path.basename(c).lower()]
                 imgs = sel or imgs
             v, _ = one(imgs)

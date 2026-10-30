@@ -76,7 +76,7 @@ ok(look.parse_items(UNTAGGED)[0].text == "No text is cut off.")
 real = look.parse_items(open(look.DEFAULT_CHECKLIST, encoding="utf-8").read())
 scopes = {i.id: i.scope for i in real}
 ok(len(real) == 15 and [i.id for i in real] == [f"L{n}" for n in range(1, 16)], [i.id for i in real])
-ok({k for k, v in scopes.items() if v == "crops"} == {"L1", "L2", "L14"}, scopes)
+ok({k for k, v in scopes.items() if v == "crops:fill"} == {"L1", "L2"} and scopes["L14"] == "crops:icon", scopes)
 ok({k for k, v in scopes.items() if v == "pages"} == {"L7", "L15"}, scopes)
 ok(sum(v == "page" for v in scopes.values()) == 10, scopes)
 
@@ -280,8 +280,8 @@ c, _, e = cli("--checklist", CL_OLD, P1, mkpng("other-p1.png"), resp=all_pass)
 ok(c == 2 and "stems" in e and not REQS, (c, e))
 # per-item: crops item falls back to pages when only the wrong crop type exists; icon/fill selection
 CL_CROPS = os.path.join(tmp, "crops.md")
-open(CL_CROPS, "w").write("L1 (crops) Is all text whole?\nL2 (crops) Is every text on a coloured band or fill legible?\n"
-                          "L3 (crops) Is every icon whole?\nL4 (page) Is it even?\n")
+open(CL_CROPS, "w").write("L1 (crops) Is all text whole?\nL2 (crops:fill) Is every text on a coloured band legible?\n"
+                          "L3 (crops:icon) Is every icon whole?\nL4 (page) Is it even?\n")
 c, o, _ = cli("--checklist", CL_CROPS, "--per-item", P1, P2, C2, resp=per_item_resp())
 calls = [(re.search(r"\bL\d+\b", text_of(r).split("Item:")[1]).group(0), images_of(r)) for r in REQS]  # type: ignore[union-attr]
 ok(calls == [("L1", ["cv-p2-icon3.png"]), ("L2", ["cv-p1.png", "cv-p2.png"]), ("L3", ["cv-p2-icon3.png"]),
