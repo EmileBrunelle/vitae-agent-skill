@@ -129,6 +129,18 @@ doctor_pip_only() {
 }
 check doctor-pip-only doctor_pip_only
 
+# pip-only, but the stub exposes Compiler.query/.eval and Fonts: query, eval and fonts
+# work through the Python API, so typst is OK and names no skipped check.
+doctor_pip_query() {
+  local d="$out/doctor-sim-q"; doctor_env "$d" python3
+  printf 'class Compiler:\n    def query(self): pass\n    def eval(self): pass\nclass Fonts: pass\n__version__ = "9.9.9"\n' > "$d/py/typst.py"
+  local txt; txt="$(PATH="$d/bin" PYTHONPATH="$d/py" python3 scripts/verify.py --doctor 2>&1)" || true
+  echo "$txt" | grep -q '^OK    typst 9.9.9 (Python API: compile, query, fonts)' || { echo "$txt"; echo "no OK typst Python API line"; return 1; }
+  echo "$txt" | grep -q '^DEGRADED  typst' && { echo "typst still DEGRADED"; return 1; }
+  return 0
+}
+check doctor-pip-query doctor_pip_query
+
 # pdfinfo + pdftotext but no pdftoppm: the poppler line is DEGRADED.
 if command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null; then
   doctor_no_pdftoppm() {

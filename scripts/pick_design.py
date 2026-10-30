@@ -689,10 +689,17 @@ MIN_POOL = 5        # a profile that draws from fewer than 5 families collides
 
 
 def _fonts_available() -> set[str] | None:
-    """Set of family names `typst fonts` reports, or None if typst is absent."""
+    """Set of family names `typst fonts` reports (typst-py if no CLI), or None if neither."""
     try:
         out = subprocess.run(["typst", "fonts"], capture_output=True,
                              text=True, timeout=20)
+    except FileNotFoundError:   # no CLI: typst-py reports the same families
+        try:
+            import importlib
+            typst: Any = importlib.import_module("typst")
+            return set(typst.Fonts(include_system_fonts=True).families())
+        except Exception:
+            return None
     except (OSError, subprocess.SubprocessError):
         return None
     if out.returncode != 0:
