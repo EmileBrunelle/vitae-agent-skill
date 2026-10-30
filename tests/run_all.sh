@@ -23,7 +23,7 @@ start=$(date +%s); fails=0; total=0
 
 # Scratch copy; cp -L turns the families' lib.typ symlinks into real files.
 cp -rL "$root/templates" "$root/scripts" "$root/references" "$S"/
-mkdir -p "$S/tests"; cp -rL "$root/tests/fixtures" "$S/tests/"
+mkdir -p "$S/tests"; cp -rL "$root/tests/fixtures" "$root/tests/compare_backends.py" "$S/tests/"
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
@@ -260,6 +260,12 @@ check lowered-fill-warns lowered_fill
 if [ "$quick" -eq 0 ]; then
   fx="$out/fixtures"; mkdir -p "$fx"
   check fixtures-render tests/fixtures/render.sh "$fx"
+  # poppler vs pypdfium2 line by line (SKIPs unless both are installed)
+  if command -v pdftotext >/dev/null && python3 -c "import pypdfium2" 2>/dev/null; then
+    check backends/lines python3 -I tests/compare_backends.py "$fx"/*.pdf
+  else
+    echo "SKIP backends/lines (needs pdftotext and pypdfium2)"
+  fi
   for f in tests/fixtures/*.typ; do
     nm="$(basename "$f" .typ)"
     if [ -f "$fx/$nm.pdf" ]; then

@@ -501,13 +501,55 @@ def count_pages(pdf: str, backend: PdfBackend) -> str | None:
     return str(len(pypdf.PdfReader(pdf).pages))
 
 
+LINE_GAP = 1.0
+
+
+def _pdfium_page_text(pg: Any) -> str:
+    """pypdfium2's page text with its lines cut like pdftotext's. pdfium joins cells that
+    share a baseline (a contact row, a left-flushed role and its right-flushed date) into one
+    line; pdftotext starts a new line where the gap to the previous character exceeds 1.5 x
+    the box height, which is the cut `_reading_order` makes. A gap with whitespace in it
+    becomes the newline; a gap without any gets one inserted. Trailing blanks are dropped."""
+    tp = pg.get_textpage()
+    if not tp.count_chars():
+        return ""
+    text = tp.get_text_range()
+    out: list[str] = []
+    prev: tuple[float, float, float, float] | None = None
+    idx = 0
+    pending = ""                                   # whitespace seen since the last glyph
+    for ch in text:
+        i, idx = idx, idx + (2 if ord(ch) > 0xFFFF else 1)
+        if ch.isspace() or ord(ch) < 0x20:
+            if ch in "\r\n":
+                prev = None
+            pending += ch
+            continue
+        box = tp.get_charbox(i, loose=True)
+        if box[2] <= box[0] or box[3] <= box[1]:
+            out.append(pending + ch)
+            pending = ""
+            continue
+        if prev is not None and "\n" not in pending:
+            height = min(prev[3] - prev[1], box[3] - box[1])
+            same_row = abs((prev[1] + prev[3]) / 2 - (box[1] + box[3]) / 2) <= 0.4 * height
+            if same_row and box[0] - prev[2] > LINE_GAP * height:
+                pending = "\n"
+        out.append(pending.rstrip(" \t") if "\n" in pending else pending)
+        out.append(ch)
+        pending = ""
+        prev = (box[0], box[1], box[2], box[3])
+    out.append(pending)
+    return "".join(out)
+
+
 def extract_text(pdf: str, backend: PdfBackend) -> str:
     if backend == "poppler":
         return subprocess.run(["pdftotext", pdf, "-"], capture_output=True, text=True).stdout
     if backend == "pdfium":
         # pdftotext's shape: pages end with \f (a blank line before it), lines with \n
         return "".join(t.replace("\r\n", "\n").rstrip("\n") + "\n\n\f"
-                       for t in (pg.get_textpage().get_text_range() for pg in _pdfium_doc(pdf)))
+                       for t in (_pdfium_page_text(pg) for pg in _pdfium_doc(pdf)))
     pypdf: Any = importlib.import_module("pypdf")
     reader = pypdf.PdfReader(pdf)
     return "\n".join(page.extract_text() or "" for page in reader.pages)
