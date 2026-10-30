@@ -92,7 +92,7 @@ import tempfile
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Literal, NoReturn, TypedDict, cast, overload
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fill  # noqa: E402
@@ -1694,6 +1694,133 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
             paths.append(os.path.join(out_dir, f"{stem}-p{n}.png"))
             shutil.move(f, paths[-1])
     return paths
+
+
+CROP_PPI = 300             # crops are cut from their own 300 ppi render (the page PNGs stay at --ppi)
+CROP_SCAN_PPI = 150       # band detection scans the same 150 ppi raster the hidden-text gate uses (HIDDEN_PPI)
+CROP_DELTA = 24           # a pixel is non-background when any channel differs this much from the page's modal colour
+CROP_ERODE = 9            # px at 150 ppi: strokes and glyph ink vanish, a solid aplat survives
+CROP_FILL_MIN_IN = (0.5, 0.1)   # smallest aplat worth a look (inches, w x h)
+CROP_ICON_MIN_IN = 0.06   # a mark smaller than this (a bullet dot, a speck) is not a glyph
+CROP_ICON_MAX_IN = 0.45   # larger than this and it is a rule or a block, not an icon
+CROP_PAD_IN = 0.08        # context around every crop
+CROP_CAP = 8              # crops per page; fills first, then icons, both in reading order
+
+
+def _components(grid: Image.Image, merge: int = 0) -> list[tuple[int, int, int, int]]:
+    """8-connected blobs of the non-zero cells of a small 'L' grid, as (x0, y0, x1, y1) cell
+    boxes (inclusive); `merge` cells of dilation first so a glyph's parts read as one blob."""
+    if merge:
+        grid = grid.filter(ImageFilter.MaxFilter(2 * merge + 1))
+    gw, gh = grid.size
+    on = grid.point(lambda v: 255 if v > 0 else 0).tobytes()
+    seen = bytearray(gw * gh)
+    boxes = []
+    for start in range(gw * gh):
+        if not on[start] or seen[start]:
+            continue
+        stack, seen[start] = [start], 1
+        x0 = x1 = start % gw
+        y0 = y1 = start // gw
+        while stack:
+            i = stack.pop()
+            x, y = i % gw, i // gw
+            x0, x1, y0, y1 = min(x0, x), max(x1, x), min(y0, y), max(y1, y)
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < gw and 0 <= ny < gh and on[ny * gw + nx] and not seen[ny * gw + nx]:
+                        seen[ny * gw + nx] = 1
+                        stack.append(ny * gw + nx)
+        boxes.append((x0, y0, x1, y1))
+    return boxes
+
+
+def crop_bands(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, tuple[int, int, int, int]]]:
+    """[(kind, (x0, y0, x1, y1) px of `im`), ...] in reading order: kind 'fill' (a solid colour band
+    that text or marks sit on) or 'icon' (a small vector mark outside every word box).
+    Raster pass on the CROP_SCAN_PPI render: none of the gates keeps regions (the hidden-text gate
+    only reads the colour behind each word box), so what is reused is its raster and its word
+    boxes; `words` None (no word boxes) skips icons rather than calling every glyph an icon."""
+    im = im.convert("RGB")
+    w, h = im.size
+    colours = im.getcolors(maxcolors=w * h)
+    bg = cast(tuple[int, ...], max(colours or [(1, (255, 255, 255))])[1])
+    ink = ImageChops.difference(im, Image.new("RGB", im.size, bg)).convert("L").point(
+        lambda v: 255 if v >= CROP_DELTA else 0)
+    k = CROP_SCAN_PPI
+    e = CROP_ERODE // 2
+    fills = []
+    solid = ink.filter(ImageFilter.MinFilter(CROP_ERODE))
+    for x0, y0, x1, y1 in _components(solid.reduce(3).point(lambda v: 255 if v > 64 else 0)):
+        box = (max(0, x0 * 3 - e), max(0, y0 * 3 - e), min(w, x1 * 3 + 3 + e), min(h, y1 * 3 + 3 + e))
+        if box[2] - box[0] >= CROP_FILL_MIN_IN[0] * k and box[3] - box[1] >= CROP_FILL_MIN_IN[1] * k:
+            fills.append(("fill", box))
+    icons = []
+    if words is not None:
+        rest = ink.copy()
+        d = ImageDraw.Draw(rest)
+        pt = k / 72.0
+        for wx0, wy0, wx1, wy1 in words:
+            d.rectangle((int((wx0 - 1) * pt), int((wy0 - 1) * pt), int((wx1 + 1) * pt) + 1, int((wy1 + 1) * pt) + 1), fill=0)
+        for _, fb in fills:
+            d.rectangle(fb, fill=0)
+        for x0, y0, x1, y1 in _components(rest.reduce(3), merge=1):
+            bw, bh = (x1 - x0 + 1) * 3, (y1 - y0 + 1) * 3
+            if CROP_ICON_MIN_IN * k <= max(bw, bh) <= CROP_ICON_MAX_IN * k and min(bw, bh) >= CROP_ICON_MIN_IN * k / 2:
+                icons.append(("icon", (x0 * 3, y0 * 3, min(w, x1 * 3 + 3), min(h, y1 * 3 + 3))))
+    return sorted(fills + icons, key=lambda b: (b[1][1], b[1][0]))
+
+
+def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
+    """One RGB PIL image per page, the way render_pages picks its backend; [] when neither is there."""
+    if _importable("pypdfium2"):
+        return _pdfium_render(pdf, ppi)
+    if not shutil.which("pdftoppm"):
+        return []
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "c")],
+                       capture_output=True, text=True)
+        files = sorted(glob.glob(os.path.join(tmp, "c*.png")),
+                       key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1)))
+        out = []
+        for f in files:
+            with Image.open(f) as fh:
+                out.append(fh.convert("RGB"))
+        return out
+
+
+def render_crops(pdf: str, out_dir: str) -> tuple[list[str], list[str]]:
+    """`<stem>-p<N>-<band>.png` at CROP_PPI for the bands at visual risk (solid fills, icons),
+    band = fill1, icon2, ... counted per kind in reading order. At most CROP_CAP per page, fills
+    first. Returns (paths, notes naming the bands dropped by the cap)."""
+    stem = os.path.splitext(os.path.basename(pdf))[0]
+    scan = _page_rasters(pdf, CROP_SCAN_PPI)
+    if not scan:
+        return [], []
+    boxes = word_boxes(pdf)
+    big = _page_rasters(pdf, CROP_PPI)
+    paths: list[str] = []
+    notes: list[str] = []
+    r = CROP_PPI / CROP_SCAN_PPI
+    pad = CROP_PAD_IN * CROP_PPI
+    for n, (sm, lg) in enumerate(zip(scan, big), 1):
+        bands = crop_bands(sm, boxes[n - 1] if boxes and n <= len(boxes) else None)
+        count = {"fill": 0, "icon": 0}
+        named = []
+        for kind, box in bands:
+            count[kind] += 1
+            named.append((f"{kind}{count[kind]}", kind, box))
+        keep = ([b for b in named if b[1] == "fill"] + [b for b in named if b[1] == "icon"])[:CROP_CAP]
+        if len(named) > len(keep):
+            notes.append(f"NOTE  crops: p.{n} capped at {CROP_CAP}, dropped "
+                         + ", ".join(b[0] for b in named if b not in keep))
+        for name, _, (x0, y0, x1, y1) in sorted(keep, key=lambda b: (b[2][1], b[2][0])):
+            crop = lg.crop((max(0, int(x0 * r - pad)), max(0, int(y0 * r - pad)),
+                            min(lg.size[0], int(x1 * r + pad)), min(lg.size[1], int(y1 * r + pad))))
+            paths.append(os.path.join(out_dir, f"{stem}-p{n}-{name}.png"))
+            crop.save(paths[-1])
+    return paths, notes
 
 
 def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] | None = None,
@@ -4553,12 +4680,14 @@ def main() -> None:
         sys.exit(rc)
     if argv and argv[0] in ("--render", "--text"):
         # agent-facing look/read helpers, so no instruction has to name pdftoppm or pdftotext
-        ap = _Parser("usage: verify.py --render cv.pdf [--out DIR] [--ppi N]   one PNG per page, <stem>-p<N>.png\n"
+        ap = _Parser("usage: verify.py --render cv.pdf [--out DIR] [--ppi N] [--crops]   one PNG per page, <stem>-p<N>.png\n"
+                     "         --crops: also 300 ppi crops of the fills and icons, <stem>-p<N>-<band>.png\n"
                      "       verify.py --text cv.pdf                          the text the gates read",
                      code=1, plain=True)
         ap.add_argument("pdf")
         ap.add_argument("--out", default=None)
         ap.add_argument("--ppi", type=int, default=HIDDEN_PPI)
+        ap.add_argument("--crops", action="store_true")
         ra = ap.parse_known_args(argv[1:])[0]
         if not os.path.isfile(ra.pdf):
             sys.exit(f"FAIL  {argv[0]}: cannot read {ra.pdf}")
@@ -4570,10 +4699,17 @@ def main() -> None:
             sys.exit(0)
         if ra.ppi < 1:
             sys.exit("FAIL  --render: --ppi must be a positive number")
-        pngs = render_pages(ra.pdf, ra.out or tempfile.mkdtemp(prefix="vitae-render-"), ra.ppi)
+        out_dir = ra.out or tempfile.mkdtemp(prefix="vitae-render-")
+        pngs = render_pages(ra.pdf, out_dir, ra.ppi)
         if not pngs:
             sys.exit("FAIL  --render: no rasterizer (`pip install pypdfium2`, or install poppler-utils for pdftoppm)")
         print("\n".join(pngs))
+        if ra.crops:
+            crops, notes = render_crops(ra.pdf, out_dir)
+            if crops:
+                print("\n".join(crops))
+            for note in notes:
+                print(note, file=sys.stderr)
         sys.exit(0)
     if argv and argv[0] == "--doctor":
         ok, _, _ = preflight()

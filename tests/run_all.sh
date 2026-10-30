@@ -356,6 +356,27 @@ text_render() {
   [ "$(basename "$r" | head -1)" = "$(basename "$pdf" .pdf)-p1.png" ] && [ -s "$(echo "$r" | head -1)" ] || { echo "bad --render output: $r"; return 1; }
 }
 check text-render text_render
+# --render --crops: a solid band and a vector mark each get a <stem>-p<N>-<band>.png; plain --render is unchanged.
+render_crops() {
+  local d="$S/crops" r
+  rm -rf "$d"; mkdir -p "$d"
+  cat > "$d/c.typ" <<'TYP'
+#set page(width: 21cm, height: 29.7cm, margin: 2cm)
+#set text(size: 11pt)
+#block(fill: rgb("#1b4965"), width: 100%, inset: 12pt)[#text(fill: white)[Band title]]
+#v(1cm)
+#grid(columns: 2, gutter: 8pt, circle(radius: 5pt, fill: black), [mail\@example.org])
+TYP
+  if command -v typst >/dev/null; then typst compile "$d/c.typ" "$d/c.pdf"
+  else python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/c.typ" "$d/c.pdf"; fi || return 1
+  [ "$(python3 -I scripts/verify.py --render "$d/c.pdf" --out "$d/a" | wc -l)" -eq 1 ] || { echo "plain --render printed more than the page PNG"; return 1; }
+  r="$(python3 -I scripts/verify.py --render "$d/c.pdf" --out "$d/b" --crops)" || return 1
+  [ "$(echo "$r" | sed -n 1p | xargs basename)" = "c-p1.png" ] || { echo "page PNG not first: $r"; return 1; }
+  echo "$r" | sed -n 2p | grep -q '/c-p1-fill1\.png$' || { echo "no fill1 crop: $r"; return 1; }
+  echo "$r" | grep -q '/c-p1-icon1\.png$' || { echo "no icon1 crop: $r"; return 1; }
+  echo "$r" | while read -r f; do [ -s "$f" ] || exit 1; done || { echo "empty or missing file in: $r"; return 1; }
+}
+check render-crops render_crops
 
 if [ "$quick" -eq 0 ]; then
   fx="$out/fixtures"; mkdir -p "$fx"
