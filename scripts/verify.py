@@ -778,6 +778,26 @@ def _month_years(text: str) -> set[tuple[int, int]]:
     return out
 
 
+_EN_STOP = frozenset("the and of with to in for on by from at is are was".split())
+_FR_STOP = frozenset("le la les et des du de avec pour dans sur par au aux est sont une un en".split())
+_LANG_NAMES = {"en": "English", "fr": "French"}
+_ALNUM_TOKEN_RE = re.compile(r"(?<![\w.])(?=[^\W\d_]*\d)(?=\d*[^\W\d_])[\w]{2,}(?![\w.])")
+
+
+def _guess_lang(text: str) -> str | None:
+    """'en' or 'fr' by stopword counts, None when unclear or too short."""
+    words = re.findall(r"[^\W\d_]+", text.lower())
+    en = sum(w in _EN_STOP for w in words)
+    fr = sum(w in _FR_STOP for w in words)
+    if en + fr < 8:
+        return None
+    if en >= 2 * fr:
+        return "en"
+    if fr >= 2 * en:
+        return "fr"
+    return None
+
+
 def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
     """Rule 1, mechanically: WARN lines for every year, month+year, number,
     capitalized name (multi-word, single mid-sentence word, acronym) in the CV
@@ -790,6 +810,12 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
     facts_my = _month_years(facts_text)
     facts_nums = _num_values(facts_text)
     found: dict[str, None] = {}
+    lf, lc = _guess_lang(facts_text), _guess_lang(pdf_text)
+    cross = lf is not None and lc is not None and lf != lc
+    facts_w = " " + re.sub(r"[\W_]+", " ", facts) + " "    # words only: "d'IP" holds "ip"
+    info = ([f"INFO  facts file is {_LANG_NAMES[lf]}, CV is {_LANG_NAMES[lc]}: coverage limited to dates, "
+             "numbers and acronyms — names and titles are not cross-checked across languages"]
+            if cross and lf and lc else [])
     for raw in pdf_text.split("\n"):
         line = raw.strip()
         if not line:
@@ -826,6 +852,18 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
                 found[m.group(0).strip()] = None
         if line.isupper():
             continue                        # section headings
+        if cross:
+            # language-independent tokens only: acronyms and letter+digit tokens (S3, EC2)
+            for m in _WORD_RE.finditer(rest):
+                w = _clean_word(m.group(0))
+                if (w.isupper() and len(w) >= 2 and w.isalpha() and _fold(w) not in _HEADING_WORDS
+                        and _name_norm(w) not in facts_n
+                        and f" {_fold(w)} " not in facts_w):
+                    found[w] = None
+            for m in _ALNUM_TOKEN_RE.finditer(rest):
+                if f" {_fold(m.group(0))} " not in facts_w:
+                    found[m.group(0)] = None
+            continue
 
         def at_start(pos: int) -> bool:
             before = rest[:pos].strip()
@@ -871,8 +909,8 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
             elif (len(w) >= 3 and not w.isupper() and not at_start(m.start())
                   and f not in _ACTION_VERBS):
                 found[w] = None             # single name mid-sentence
-    return [f'WARN  not in facts file: "{t}" — remove it or confirm it with the candidate (rule 1)'
-            for t in found]
+    return info + [f'WARN  not in facts file: "{t}" — remove it or confirm it with the candidate (rule 1)'
+                   for t in found]
 
 
 _BANNER_RE = re.compile(r"^\s*//\s*FAMILY:\s*([\w-]+)", re.M)
@@ -2881,6 +2919,17 @@ def _selftest() -> NoReturn:
     assert check_facts_coverage("Analyst à Acme Corp, 2020-2022\nAnalyst au Acme Corp\n", _f2) == []
     assert check_facts_coverage("Analyst, Acme Inc., 2020\nAnalyst, Acme Corp. Ltée\n", _f2) == []
     assert check_facts_coverage("Grew by 75%\nGrew 75 percent\nCroissance de 75 pour cent\n", _f2) == []
+    # facts in another language: names/titles skipped, dates/numbers/acronyms still checked
+    _fr = ("Développeur logiciel à Montréal, Acme Corp, avec les équipes pour des projets dans le nuage "
+           "et des services de la plateforme. Python 3.11, 75 %, UQAM, sept. 2020, d'IP\n")
+    _en = ("Software Developer in Montreal, Acme Corp, with the teams for projects in the cloud and "
+           "the services of the platform. Python 3.11, 75%, UQAM, Sep 2020, IP\n")
+    _x = check_facts_coverage(_en, _fr)
+    assert _x and _x[0].startswith("INFO  facts file is French, CV is English") and len(_x) == 1, _x
+    _x = check_facts_coverage(_en.replace("Sep 2020", "Jul 2019").replace("UQAM", "UML").replace("3.11", "3.12"), _fr)
+    assert not any('"Software Developer"' in w or '"Montreal"' in w for w in _x), _x
+    assert sum(w.startswith("WARN") for w in _x) == 4, _x   # + bare 2019
+    assert any('"Jul 2019"' in w for w in _x) and any('"UML"' in w for w in _x) and any('"3.12"' in w for w in _x), _x
     assert any('"3.12"' in x for x in check_facts_coverage("Python 3.12\n", _f2))
     assert check_facts_coverage("Python 3.11\n", _f2) == []
     # drawn fill target: family table wins over header; no/disagreeing header WARNs
