@@ -408,10 +408,13 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
         check_fonts()
     pdf_ok, backend = check_pdf_tools()
     all_ok = pillow_ok and typst_ok and pdf_ok
-    if (all_ok and not use_cli and backend == "pdfium" and typst_py() is not None
+    pypdf_missing = backend in ("poppler", "pdfium") and not _importable("pypdf")
+    if pypdf_missing:
+        print("DEGRADED  pypdf: not installed. The tiny-text check of the hidden-text gate will NOT run (WARN \"tiny-text check not run (pypdf missing)\"). Fix: pip install pypdf")
+    if (all_ok and not pypdf_missing and not use_cli and backend == "pdfium" and typst_py() is not None
             and _ver_tuple(_typst_py_probe()[1]) >= TYPST_MIN):
         print("OK (Python)  no typst CLI, no poppler: compile, query, fonts, text, boxes and raster all run in Python "
-              "(typst-py + pypdfium2 + Pillow); academic mode still needs poppler")
+              "(typst-py + pypdfium2 + pypdf + Pillow); academic mode still needs poppler")
     return all_ok, use_cli, backend
 
 

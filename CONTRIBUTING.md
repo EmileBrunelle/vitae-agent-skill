@@ -17,7 +17,7 @@ Every claim must be verifiable, with a source or a command that reproduces it. "
 
 ## Before opening a PR
 
-Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow and pypdf, and the fonts in [`references/fonts.md`](references/fonts.md)):
+Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow, pypdfium2 and pypdf, and the fonts in [`references/fonts.md`](references/fonts.md)):
 
 1. Everything except spec validation, in one command:
    ```

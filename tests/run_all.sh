@@ -198,6 +198,23 @@ if "$PY" -c "import typst, pypdfium2" 2>/dev/null; then
     return 0
   }
   check doctor-pip-full doctor_pip_full
+  # same environment without pypdf: OK (Python) must not hide the skipped tiny-text check
+  if "$PY" -c "import pypdf" 2>/dev/null; then
+    doctor_no_pypdf() {
+      local d="$out/doctor-sim-nopypdf" txt rc=0; doctor_env "$d" python3
+      txt="$(PATH="$d/bin" "$PY" -c "
+import sys, runpy
+sys.modules['pypdf'] = None
+sys.argv = ['verify.py', '--doctor']
+runpy.run_path('scripts/verify.py', run_name='__main__')" 2>&1)" || rc=$?
+      echo "$txt"
+      [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
+      echo "$txt" | grep -q '^DEGRADED  pypdf: not installed.*tiny-text.*pip install pypdf' || { echo "no DEGRADED pypdf line"; return 1; }
+      echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) hides the missing pypdf"; return 1; }
+      return 0
+    }
+    check doctor-no-pypdf doctor_no_pypdf
+  fi
 else
   echo "SKIP doctor-pip-full (needs typst-py and pypdfium2 in $PY)"
 fi
