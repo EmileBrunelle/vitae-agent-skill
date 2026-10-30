@@ -31,7 +31,7 @@
    then compiles with no icons and its contact URLs in plain text. `verify.py`
    copies the empty fallback in if the folder has none, so the gate never
    fails for a missing `icons.typ`, load the field pack if one exists, keep the design system's
-   invariants (`references/design.md`). All fourteen family files
+   invariants (`references/design.md` — read its shared sections plus ONLY the recipe of the family `pick_design.py` drew, via offset/limit; its "Design families — jump to your family" index gives the lines; never the whole file). All fourteen family files
    (`templates/families/<family>/resume.typ`) are gate-passing, with
    `resume-pair-b.typ` beside each showing the same recipe on its second font
    pair.

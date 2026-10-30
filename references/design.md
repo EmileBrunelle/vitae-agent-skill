@@ -2,6 +2,25 @@
 
 Goal: modern (2020s), distinctive but sober, equally strong printed in grayscale.
 
+## Design families — jump to your family
+
+**Do not read this file whole.** Read the shared sections (Invariants, The destination support, Rules common to every family) plus ONLY the recipe of the family `pick_design.py` drew (it prints the family name), with offset/limit reads. Line numbers rot: they are approximate, grep the exact heading text.
+
+- ~line 266: `### 1. swiss-grid — International Typographic Style · register: neutral`
+- ~line 280: `### 2. editorial-serif — contemporary editorial · register: classic`
+- ~line 294: `### 3. color-band — reversed-out masthead · register: modern`
+- ~line 308: `### 4. humanist-quiet — restraint, no rules at all · register: neutral`
+- ~line 322: `### 5. keyline-corporate — contemporary corporate report · register: modern`
+- ~line 336: `### 6. bold-display — geometric display, heavy contrast · register: modern`
+- ~line 350: `### 7. margin-index — classic marginalia · register: classic`
+- ~line 364: `### 8. quiet-luxury — warm restrained minimalism · register: neutral`
+- ~line 378: `### 9. mono-technical — technical-documentation aesthetic · register: modern`
+- ~line 393: `### 10. engraved-card — engraved stationery · register: classic`
+- ~line 409: `### 11. clause-index — numbered-clause standard document · register: neutral`
+- ~line 425: `### 12. hard-edge — neo-brutalist · register: **creative** (duotone)`
+- ~line 444: `### 13. avant-poster — constructivist poster · register: **creative** (duotone)`
+- ~line 461: `### 14. gutter-rail — the themed developer environment · register: **creative** (duotone)`
+
 ## Invariants — never change
 
 Verified mechanics, identical in every family: single text column; unbreakable sections; **section boundaries that read at arm's length — measured, not eyeballed** (see below, and the gate FAILs on it); no `tracking` on any text an ATS reads; skills as linear paragraphs, never data grids; measured fill; body ≥ 10pt (target 10.5-11); section headings ≥ 1.15× the body size; margins ≥ 1.5cm horizontal / ≥ 1.2cm vertical; every colour pair at contrast `(L1+0.05)/(L2+0.05) ≥ 4.5`; no hue in the muddy band (40-70°) on text; one accent doing few jobs; no trap from `ats.md`.

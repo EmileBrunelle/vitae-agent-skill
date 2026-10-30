@@ -34,7 +34,7 @@ Files in `scripts/` are run, never opened; `templates/lib.typ` is copied with `c
 
 **Academic mode.** If the document is an academic CV (faculty application, promotion or tenure dossier, academic nomination), read `references/academic-mode.md` now and follow `references/field-academic.md`'s workflow instead of the steps below. It replaces rule 5 and step 4; it does not relax them. Everything else in SKILL.md (rules 0-4, steps 0-3 and 5-8) still applies.
 
-Each step below is a skeleton. Before doing anything for a step, read its file in full — the step body lives there, not here.
+Each step below is a skeleton. Before doing anything for a step, read its file in full — the step body lives there, not here. Load step N's file only when you reach step N — do not read ahead.
 
 **0. Check the environment.** Confirm the toolchain (typst, Python, poppler, fonts) before touching any file. → Read `references/steps/0-env.md` now, before doing anything for this step. `scripts/verify.py --doctor`: run it, never open its source. Ask the user before installing anything. If `.vitae-manifest` exists, check it first (see 0-env.md).
 

@@ -66,6 +66,15 @@ Two equivalent ways, both giving the same OFL files:
 
 Variable fonts are fine and are what Google now ships for most families — a single `Family[wght].ttf` covers every weight the recipes ask for. Note that a variable build sometimes reports a different family name than the specimen page suggests: `Bricolage Grotesque` installs as **`Bricolage Grotesque 96pt`**, and that longer string is what has to appear in the `#let dispf = (...)` tuple. Always trust `typst fonts` over the download page.
 
+## When the Google Fonts host is filtered — npm `@fontsource`
+
+Sandboxed web agents sometimes cannot reach `fonts.google.com` or `fonts.gstatic.com`. The same OFL families are published on npm as `@fontsource/<family>` (lowercase, hyphenated: `@fontsource/sora`). This route worked in a Claude Code Web run; it is not part of the test suite.
+
+1. Fetch the package: `npm pack @fontsource/sora`, or, if curl and npm are blocked, download the tarball from `registry.npmjs.org/@fontsource/sora` (metadata gives `dist.tarball`) with Python `urllib`.
+2. Take the weights the recipe needs from `package/files/`: `<family>-latin-<weight>-normal.woff2`. @fontsource splits each family into per-script subsets (`latin`, `latin-ext`, `cyrillic`, …); if the CV has accented letters beyond Latin-1 (Polish, Czech, Romanian, Turkish…), also take the matching `latin-ext` files. Check the file names in the package rather than trusting this list.
+3. Convert with fonttools (`pip install fonttools brotli`): `python3 -c "from fontTools.ttLib import TTFont; f=TTFont('x.woff2'); f.flavor=None; f.save('x.ttf')"`.
+4. Install the `.ttf` files with Route 1 or Route 2, then confirm with `typst fonts` that the family name is the one the recipe uses.
+
 ## The faces
 
 Family names below are written **exactly as `typst fonts` reports them** — that string is what goes in a recipe. All OFL 1.1 unless noted.
