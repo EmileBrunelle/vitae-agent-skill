@@ -1131,6 +1131,17 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
 # does not give).
 
 
+
+
+# poppler keeps reading a column down before it moves to the right-flushed cell beside the head
+# (a date) at gaps far beyond one line: measured on a Typst grid head + date over an org line,
+# the org is read first at every head-to-org gap tried up to 40 pt. A gap under 3.5 x the
+# height of the line above (28 pt under an 11 pt head) joins the two here; a smaller multiple
+# missed the 12-20 pt spacings, and measuring against the line below (instead of above)
+# started to join running heads to section titles, which poppler does not.
+BLOCK_GAP = 3.5
+
+
 def _reading_order(words: list[WordBox]) -> list[WordBox]:
     """pdftotext's reading order, approximated: pdfium lists words in content-stream
     order, poppler in layout order. Words on one baseline form a line, cut where the gap
@@ -1178,7 +1189,7 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
     for lo in range(len(pieces)):
         for up in range(len(pieces)):
             if piece_row[up] == piece_row[lo] - 1 and geo[up][0] < geo[lo][1] and geo[lo][0] < geo[up][1] \
-                    and geo[lo][2] - geo[up][3] <= geo[lo][3] - geo[lo][2]:
+                    and geo[lo][2] - geo[up][3] <= BLOCK_GAP * (geo[up][3] - geo[up][2]):
                 parent[find(up)] = find(lo)
     blocks: dict[int, list[int]] = {}
     for n in range(len(pieces)):
@@ -3723,6 +3734,10 @@ def _selftest() -> NoReturn:
                 '  [#part-mark("date", text(size: 9pt, d))#text(size: 9pt, d)])\n'
                 '  #v(-8pt)\n  #text(size: 9pt)[#part-mark("org", o)#o]\n'
                 '  #b.pos().map(x => list(x)).join()]\n'
+                '#let wide(g, r, o, d) = block[#grid(columns: (1fr, auto), align: (left + bottom, right + bottom),\n'
+                '  [#head-mark("entry", r, org: o, dated: true)#text(size: 11pt, weight: "bold", r)],\n'
+                '  [#part-mark("date", text(size: 9pt, d))#text(size: 9pt, d)])\n'
+                '  #v(g)\n  #text(size: 9pt)[#part-mark("org", o)#o]]\n'
                 '#let inl(r, o, d) = block[#head-mark("entry", r, org: o, dated: true)#r #part-mark("org", o)#o \\\n'
                 '  #part-mark("date", d)#d]\n'
                 '#let bare(r, d) = entry(r, [], d, none)\n'
@@ -3735,6 +3750,9 @@ def _selftest() -> NoReturn:
         _dcases: list[tuple[str, str, str]] = [
             ("lib order", 'ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "pass"),
             ("trap order", 'bad("Backend Developer", "Acme Corp", "Mar 2024 – present")', "fail"),
+            ("trap order, 12pt under the head", 'wide(12pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
+            ("trap order, 16pt under the head", 'wide(16pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
+            ("trap order, 20pt under the head", 'wide(20pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
             ("org with year", 'bad("Engineer", "Vision 2020 Inc", "2021 – 2023")', "fail"),
             ("org with year, lib", 'ok("Engineer", "Vision 2020 Inc", "2021 – 2023")', "pass"),
             ("org address", 'bad("Engineer", "Acme, 1234 Main St", "2021 – 2023")', "fail"),
