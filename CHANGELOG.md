@@ -5,6 +5,12 @@ Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
 ## Unreleased
 
+- `verify.py` FAILs hidden text: any word pdftotext extracts that is not visibly inked
+  at its box (white-on-white, background-coloured, under a shape, hidden keyword
+  layers such as brilliant-cv's), whose box is under 5.5pt high or crosses the page
+  edge (and, with pypdf, text wholly off the page); WARNs on stuffed PDF Keywords
+  (> 15 terms or repeats). Calibrated on the 29 templates: weakest legit ink step
+  136/255 vs floor 50, smallest legit box 7.98pt vs floor 5.5; about 0.3 s per page.
 - `entry()` (and every family's `job()`) sets the date inline after the role
   ("Role — Mar 2024 – present") unless the entry's org/descriptor line reaches
   under where a right-flushed date would sit; pdftotext/ATS read geometry, so a
