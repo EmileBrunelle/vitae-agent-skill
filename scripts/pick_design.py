@@ -965,6 +965,12 @@ def _icon_colour(icons: str) -> str:
     return "ink"
 
 
+def _vitae_header(pg: Any) -> str:
+    """The FIRST line of a drawn cv.typ: verify.py reads the drawn fill target
+    from it, so a lowered target on the command line cannot pass unnoticed."""
+    return "// vitae: pages=1 fill=%s" % pg["fill"]
+
+
 def emit_typ(p: Pick, market: str) -> str:
     """A ready-to-paste PREAMBLE for the drawn recipe — not a whole CV, and
     deliberately not the devices (those are the recipe: design.md)."""
@@ -974,7 +980,8 @@ def emit_typ(p: Pick, market: str) -> str:
         from gen_palette import DUOTONE
     except ImportError:
         DUOTONE = {}
-    o = ["// %s — %s / %s, drawn for key %r"
+    o = [_vitae_header(pg),
+         "// %s — %s / %s, drawn for key %r"
          % (p["family"], p["career"], market, p["key"]),
          "// PREAMBLE ONLY. The hand-off is TWO files: this .typ and lib.typ "
          "beside it.",
@@ -1203,7 +1210,7 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
     # one comment line: the full call form of the family's entry wrapper
     src = re.sub(r'^(#job\()', r'// job(role, org, dates, note) - 4 positional args, "note" required; '
                  r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.M)
-    _write_nofollow(out, src.encode("utf-8"))
+    _write_nofollow(out, (_vitae_header(pg) + "\n" + src).encode("utf-8"))
     lo, hi = pg["fill"].split("-")
     print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "
           "byte-for-byte)" % (out, fam, fam, pick_file))

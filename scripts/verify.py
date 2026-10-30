@@ -605,6 +605,147 @@ def check_year_only_dates(txt: str) -> list[str]:
     return out
 
 
+def _year_only_msg(line: str) -> str:
+    return (f'year-only date range ("{line}") — if the facts file has no month for it, '
+            'KEEP it year-only and report the gap; NEVER invent or estimate months '
+            '(SKILL.md rule 1)')
+
+
+_MONTHS: dict[str, int] = {}
+for _i, _names in enumerate([
+        "jan january janvier janv", "feb february fevrier fev febr", "mar march mars",
+        "apr april avril avr", "may mai", "jun june juin", "jul july juillet juil",
+        "aug august aout", "sep sept september septembre", "oct october octobre",
+        "nov november novembre", "dec december decembre"], 1):
+    for _n in _names.split():
+        _MONTHS[_n] = _i
+_MONTH_YEAR_RE = re.compile(
+    r"(?<![^\W\d_])(%s)\.?\s+((?:19|20)\d{2})(?!\d)" % "|".join(sorted(_MONTHS, key=len, reverse=True)))
+_NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
+_YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
+_NUM_RE = re.compile(r"[$€£]?(\d+(?:[.,]\d+)*)\s?(%|[kKmM](?![^\W\d_])|)")
+_CAP = r"[A-ZÀ-ÖØ-Þ][\w'’.&-]*"
+_CAPSEQ_RE = re.compile(r"(?<![^\W\d_])%s(?:[ \t]+(?:(?:of|de|du|des|la|le|for|the)[ \t]+)?%s)+" % (_CAP, _CAP))
+_HEADING_WORDS = set("""work experience professional employment education skills technical profile summary
+languages language projects project certifications certification awards interests volunteer volunteering
+references publications contact about core competencies selected key highlights career objective
+experience expérience formation compétences competences profil langues projets certifications bénévolat
+benevolat intérêts interets résumé resume parcours professionnel professionnelle technique techniques
+and et of de the""".split())
+
+
+_LINKS = ("of", "de", "du", "des", "la", "le", "and", "et", "for", "the", "&")
+
+
+def _fold1(s: str) -> str:
+    """Length-preserving fold (one output char per input char)."""
+    import unicodedata
+    return "".join(unicodedata.normalize("NFKD", c)[0] for c in s).lower()
+
+
+def _fold(s: str) -> str:
+    """Lower-case, accents stripped, dashes unified, whitespace collapsed."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c)).lower()
+    s = re.sub(r"[–—‒−]", "-", s).replace("’", "'")
+    return re.sub(r"\s+", " ", s)
+
+
+def _num_values(text: str) -> set[float]:
+    text = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", text)
+    out: set[float] = set()
+    for m in _NUM_RE.finditer(text):
+        raw = re.sub(r",(?=\d{3}(?!\d))", "", m.group(1)).replace(",", ".")
+        try:
+            v = float(raw)
+        except ValueError:
+            continue
+        u = m.group(2).lower()
+        out.add(v * (1000 if u == "k" else 1_000_000 if u == "m" else 1))
+    return out
+
+
+def _month_years(text: str) -> set[tuple[int, int]]:
+    f = _fold(text)
+    out = {(_MONTHS[m.group(1)], int(m.group(2))) for m in _MONTH_YEAR_RE.finditer(f)}
+    for m in _NUM_MY_RE.finditer(f):
+        y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+        out.add((int(mo), int(y)))
+    return out
+
+
+def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
+    """Rule 1, mechanically: WARN lines for every year, month+year, number or
+    capitalized multi-word name in the CV text that the facts file does not
+    contain (case, accents, whitespace and number formats are normalized)."""
+    facts = _fold(facts_text)
+    facts_years = set(_YEAR_RE.findall(facts))
+    facts_my = _month_years(facts_text)
+    facts_nums = _num_values(facts_text)
+    found: dict[str, None] = {}
+    for raw in pdf_text.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        fl = _fold1(line)                   # same length as `line`: spans carry over
+        blank: list[tuple[int, int]] = []
+        for m in _MONTH_YEAR_RE.finditer(fl):
+            blank.append(m.span())
+            if (_MONTHS[m.group(1)], int(m.group(2))) not in facts_my:
+                found[line[m.start():m.end()]] = None
+        for m in _NUM_MY_RE.finditer(fl):
+            blank.append(m.span())
+            y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+            if (int(mo), int(y)) not in facts_my:
+                found[m.group(0)] = None
+        for m in _YEAR_RE.finditer(fl):
+            blank.append(m.span())
+            if m.group(0) not in facts_years:
+                found[m.group(0)] = None
+        # dates feed neither the number nor the name scan
+        chars = list(line)
+        for i, j in blank:
+            chars[i:j] = " " * (j - i)
+        rest = "".join(chars)
+        for m in _NUM_RE.finditer(re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", rest)):
+            if not m.group(2) and len(m.group(1)) == 1:
+                continue                    # bare 0-9: "3 teams" vs "three" is not a signal
+            vals = _num_values(m.group(0))
+            if vals and not vals & facts_nums:
+                found[m.group(0).strip()] = None
+        if line.isupper():
+            continue                        # section headings
+        for m in _CAPSEQ_RE.finditer(rest):
+            tok = m.group(0).rstrip(".,'’&-")
+            words = re.split(r"[ \t]+", tok)
+            if all(_fold(w) in _HEADING_WORDS for w in words):
+                continue
+            if _fold(tok) in facts:
+                continue
+            before = rest[:m.start()].strip()
+            if not before or before[-1] in ".:;!?•·▪–—-|":
+                tail = words[1:]            # sentence-start verb: "Built Python services"
+                while tail and _fold(tail[0]) in _LINKS:
+                    tail = tail[1:]
+                tok = " ".join(tail)
+                if not tok or _fold(tok) in facts or _fold(tok) in _HEADING_WORDS:
+                    continue
+            found[tok] = None
+    return [f'WARN  not in facts file: "{t}" — remove it or confirm it with the candidate (rule 1)'
+            for t in found]
+
+
+def _drawn_fill(typ: str) -> tuple[int, int] | None:
+    """The fill target drawn by pick_design.py, from the cv.typ header."""
+    try:
+        with open(typ, encoding="utf-8") as fh:
+            m = HEADER_RE.search(fh.read(4096))
+    except OSError:
+        return None
+    return (int(m.group(2)), int(m.group(3))) if m and m.group(2) else None
+
+
 # A degree token next to a non-completion marker: the Eightfold-class parsers
 # read "B.Eng. program" as a degree HELD (ats.md). Wording that says what it is
 # ("Undergraduate coursework") carries no degree token and passes.
@@ -660,7 +801,8 @@ def family_from_path(path: str) -> str | None:
     file whose banner was edited away."""
     try:
         with open(path, encoding="utf-8") as fh:
-            m = re.match(r"\s*//\s*FAMILY:\s*([\w-]+)", fh.readline())
+            head = "".join(fh.readline() for _ in range(3))   # line 1 may be the `// vitae:` header
+        m = re.search(r"^\s*//\s*FAMILY:\s*([\w-]+)", head, re.M)
         if m:
             return m.group(1)
     except OSError:
@@ -2508,6 +2650,28 @@ def _selftest() -> NoReturn:
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"
+    # Rule 1 gates: the year-only WARN must tell the model to keep it year-only,
+    # never to add months; the facts check must flag what the facts do not say.
+    _yo = _year_only_msg("Acme 2019 – 2021")
+    assert "KEEP it year-only" in _yo and "NEVER invent or estimate months" in _yo, _yo
+    assert "month+year both ends" not in _yo, _yo
+    _facts = ("Jane Roe\nAnalyst, Acme Corp, 2020–2022 (year only, no months known)\n"
+              "- Cut reporting time by 40%, saving $50,000 across 12 teams. Python, SQL.\n"
+              "Education: B.Sc. Université de Montréal, 2018\n")
+    _good = ("Jane Roe\nPROFESSIONAL EXPERIENCE\nAnalyst, Acme Corp  2020 – 2022\n"
+             "Cut reporting time by 40%, saving $50k across 12 teams\n"
+             "Built Python and SQL pipelines\nUniversite de Montreal  2018\n")
+    assert check_facts_coverage(_good, _facts) == [], check_facts_coverage(_good, _facts)
+    _w = check_facts_coverage("Analyst, Acme Corp  Sep 2020 – May 2022\n", _facts)
+    assert len(_w) == 2 and all(x.startswith("WARN  not in facts file:") for x in _w), _w
+    assert '"Sep 2020"' in _w[0] and '"May 2022"' in _w[1], _w
+    assert "remove it or confirm it with the candidate (rule 1)" in _w[0], _w
+    _w = check_facts_coverage("Analyst, Globex Industries  2020 – 2022\nGrew revenue 75% in 1999\n", _facts)
+    assert any('"Globex Industries"' in x for x in _w) and any('"75%"' in x for x in _w) \
+        and any('"1999"' in x for x in _w), _w
+    assert len(check_facts_coverage("Globex Industries\nGlobex Industries\n", _facts)) == 1
+    assert check_facts_coverage("Sep 2020", "septembre 2020") == []
+    assert check_facts_coverage("Sep 2020", "2020-09") == []
     assert pages_from_name("a/resume.typ") == "1"
     for n in ("CV_X_2p.typ", "cv_2page.typ", "cv_2pages.typ", "cv-2p.typ",
               "cv-2pages.typ", "CV-2 page.typ"):
@@ -3430,11 +3594,28 @@ def _selftest() -> NoReturn:
     sys.exit(0)
 
 
-def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None) -> NoReturn:
-    """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX]."""
+_LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} (cv.typ header) — allowed ONLY if "
+                 "the facts are exhausted; tell the user the page is under-filled and which "
+                 "facts would fill it; never pad or invent to reach it (rule 1)")
+
+
+def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
+              facts: str | None = None) -> NoReturn:
+    """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]."""
     global _footer
     pdf = re.sub(r"\.typ$", "", typ) + ".pdf"
     fail = 0
+    # The drawn fill target lives in the cv.typ header; the command line may
+    # not quietly lower it (a lowered target is a WARN carried to the PASS line).
+    drawn = _drawn_fill(typ)
+    lowered = ""
+    if drawn:
+        if not (fmin and fmax):
+            fmin, fmax = str(drawn[0]), str(drawn[1])
+            print(f"INFO  fill target {fmin}-{fmax}% read from the cv.typ header")
+        elif int(fmin) < drawn[0]:
+            lowered = f"{drawn[0]}-{drawn[1]} → {fmin}-{fmax}"
+            print(_LOWERED_WARN.format(a=f"{drawn[0]}-{drawn[1]}"))
 
     deps_ok, use_cli, use_poppler = preflight()
     if not deps_ok:
@@ -3571,9 +3752,19 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None) -> No
             print("OK    " + msg)
 
     for line in check_year_only_dates(txt):
-        print(f'WARN  year-only date range ("{line}") — month+year both ends unless the candidate cannot supply months (SKILL.md rule 1; references/ats.md)')
+        print(f'WARN  {_year_only_msg(line)}')
     for line in check_degree_tokens(txt):
         print(f'WARN  degree token beside a non-completion marker ("{line}") — ATS (Eightfold) read "B.Eng. program" as a degree held; say "coursework" (references/ats.md)')
+
+    if facts:
+        try:
+            facts_text = open(facts, encoding="utf-8").read()
+        except OSError as e:
+            print(f"FAIL  --facts: cannot read {facts} ({e.strerror})")
+            fail = 1
+        else:
+            for w in check_facts_coverage(txt, facts_text):
+                print(w)
 
     bullets = check_bullet_chars(txt)
     if bullets:
@@ -3592,7 +3783,10 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None) -> No
     print(txt)
 
     if fail == 0:
-        if fmin and fmax:
+        if lowered:
+            print(f"PASS (fill target lowered: {lowered}) all mechanical checks — now LOOK at the PNGs")
+            print(_LOWERED_WARN.format(a=lowered.split(" ")[0]))
+        elif fmin and fmax:
             print("PASS  all mechanical checks — now LOOK at the PNGs")
         else:
             print("PASS  mechanical checks except fill (no FILL_MIN FILL_MAX "
@@ -3666,7 +3860,15 @@ def main() -> None:
         sys.exit(tune(ta.typ, int(ta.pages), int(ta.fill_min), int(ta.fill_max),
                       lo=bounds[0], hi=bounds[1]))
 
-    ap = _Parser(f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]\n"
+    facts_path: str | None = None
+    if "--facts" in argv:                   # pulled out first: the parser below treats every word as positional
+        i = argv.index("--facts")
+        if i + 1 >= len(argv):
+            sys.exit("usage: verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] --facts facts.md")
+        facts_path = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+    ap = _Parser(f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md]\n"
+                 f"         --facts: WARN on every year / month+year / number / proper name in the CV absent from the facts file\n"
                  f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]\n"
                  f"       {prog} --all DIR\n"
                  f"       {prog} --doctor\n"
@@ -3676,7 +3878,7 @@ def main() -> None:
     ap.add_argument("fill_min", nargs="?")
     ap.add_argument("fill_max", nargs="?")
     ca = ap.parse_known_args(["--"] + argv)[0]
-    _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max)
+    _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path)
 
 
 def _run() -> None:

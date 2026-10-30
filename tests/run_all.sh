@@ -206,6 +206,27 @@ while read -r f a b; do
 done <<< "$targets"
 if [ "$quick" -eq 0 ]; then tpl swiss-grid resume-2page 2 94 96; fi
 
+# Drawn fill target (cv.typ header). pick_design --init writes it as line 1;
+# verify.py then reads it, and lowered FILL_MIN args are a loud WARN (exit 0),
+# never silent. The worked file stands in for the starter, whose filler may not fill.
+drawn_header() {
+  python3 -I scripts/pick_design.py --name "Jane Roe" --field accounting --market ca --init "$S/drawn" --no-font-check >/dev/null 2>&1 || return 1
+  head -1 "$S/drawn/cv.typ" | grep -Eq '^// vitae: pages=1 fill=[0-9]+-[0-9]+$' || { echo "no header on line 1"; return 1; }
+}
+check drawn-header drawn_header
+lowered_fill() {
+  local f a b d
+  read -r f a b <<< "$(echo "$targets" | head -1)"
+  d="templates/families/$f"
+  { printf '// vitae: pages=1 fill=%s-%s\n' "$a" "$b"; cat "$d/resume.typ"; } > "$d/_drawn.typ"
+  python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$a" "$b" | grep -q '^PASS ' || { echo "header target did not pass"; return 1; }
+  local lo=$((a - 6)) log; log="$(mktemp)"
+  python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$lo" 100 >"$log" || { echo "exit non-zero"; cat "$log"; return 1; }
+  grep -q '^WARN  fill target lowered below drawn target' "$log" || { echo "no WARN"; return 1; }
+  grep -q '^PASS (fill target lowered: ' "$log" || { echo "no PASS summary"; return 1; }
+}
+check lowered-fill-warns lowered_fill
+
 if [ "$quick" -eq 0 ]; then
   fx="$out/fixtures"; mkdir -p "$fx"
   check fixtures-render tests/fixtures/render.sh "$fx"
