@@ -3,6 +3,11 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first.
 Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- CI: runner back to `ubuntu-latest` (currently Ubuntu 24.04), reverting the
+  `ubuntu-26.04` pin from 0.7.0.
+
 ## 0.7.0 - 2026-10-30
 
 - Context diet: `SKILL.md` goes from 46,647 B (~11.7k tokens, read whole by every
