@@ -4,6 +4,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Visual pass can no longer be skipped silently: `references/look-checklist.md` (14 PASS/FAIL items), four-route fallback in step 6 and the layout reviewer (self, vision subagent, local model via `scripts/look.py`, user), required `Visual pass:` / `Layout review:` report lines.
+- `verify.py --render --crops`: 300 ppi crops of solid-fill bands and vector icons (`<stem>-p<N>-<fill|icon><n>.png`, <=8 per page, dropped bands named on stderr), both backends.
+- `scripts/look.py`: stdlib-only local-vision route (OpenAI-compatible /chat/completions; LM Studio/ollama), one PASS|FAIL line per checklist item, exit 0/1/2.
+- Review fixes: CI pins typst-py separately (0.15.0, no 0.15.1 on PyPI); `--facts` year-crossing ranges and FR month abbreviations; doctor never prints OK after a DEGRADED; `--text`/`--render` clear error on a corrupt PDF.
 - `--doctor`: typst-py is probed by running it (`BROKEN` if it fails); typst older than 0.15 is `DEGRADED` (the fill targets are calibrated on 0.15); `TYPST_FONT_PATHS` is passed to typst-py as `font_paths`; a pip-only environment reports `OK (Python)`; typst-py compile warnings are no longer dropped. With poppler or pypdfium2 but no `pypdf`, it prints `DEGRADED  pypdf: not installed` naming the tiny-text check that will not run (no `OK (Python)` in that case); the pip-only install line is now `pip install typst pypdfium2 Pillow pypdf`. New `tests/run_all.sh` case `doctor-no-pypdf`.
 - `verify.py --render <pdf> [--out DIR] [--ppi N]` writes one `<stem>-p<N>.png` per page (pypdfium2 or pdftoppm, 150 ppi by default) and `verify.py --text <pdf>` prints the text the gates read, so the agent instructions no longer name pdftotext / pdftoppm. `--facts` no longer flags `Jul 2019` against `juillet – août 2019`.
 - Docs: README banner for AI agents; pip-only install line; step 6 uses `verify.py --render`; `allowed-tools` gains `cp`.

@@ -991,8 +991,8 @@ def _month_years(text: str) -> set[tuple[int, int]]:
     f = _fold(text)
     out = {(_MONTHS[m.group(1)], int(m.group(2))) for m in _MONTH_YEAR_RE.finditer(f)}
     for m in _RANGE_MY_RE.finditer(f):
-        m1, m2, y = _MONTHS[m.group(1)], _MONTHS[m.group(2)], int(m.group(3))
-        out.add((m1, y - 1 if m1 > m2 else y))
+        m1, m2, yr = _MONTHS[m.group(1)], _MONTHS[m.group(2)], int(m.group(3))
+        out.add((m1, yr - 1 if m1 > m2 else yr))
     for m in _NUM_MY_RE.finditer(f):
         y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
         out.add((int(mo), int(y)))

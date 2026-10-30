@@ -23,7 +23,7 @@ start=$(date +%s); fails=0; total=0
 
 # Scratch copy; cp -L turns the families' lib.typ symlinks into real files.
 cp -rL "$root/templates" "$root/scripts" "$root/references" "$S"/
-mkdir -p "$S/tests"; cp -rL "$root/tests/fixtures" "$root/tests/compare_backends.py" "$S/tests/"
+mkdir -p "$S/tests"; cp -rL "$root/tests/fixtures" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
@@ -421,6 +421,8 @@ text_render_bad() {
   [ -e "$d/o/keep.png" ] && [ -e "$d/o/${stem}x-p9.png" ] || { echo "removed an unrelated file"; return 1; }
 }
 check text-render-bad text_render_bad
+# scripts/look.py: offline parser tests (no model endpoint needed)
+check look-parser python3 -I tests/test_look.py
 # --render --crops: a solid band and a vector mark each get a <stem>-p<N>-<band>.png; plain --render is unchanged.
 render_crops() {
   local d="$S/crops" r
