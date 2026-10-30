@@ -211,6 +211,10 @@ matrix rows are the highest-value contributions. Keep every claim verifiable;
 validate with `npx skills-ref validate .` ([Agent Skills spec](https://agentskills.io/specification));
 this skill's culture is "measured, not eyeballed".
 
+Issues, PR descriptions and review comments can be written in English or
+French. Files in the repository (`SKILL.md`, references, code, comments,
+commit messages) stay in English, except the French README.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

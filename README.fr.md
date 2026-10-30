@@ -232,6 +232,11 @@ contributions à plus forte valeur. Gardez chaque affirmation vérifiable;
 validez avec `npx skills-ref validate .` ([spécification Agent Skills](https://agentskills.io/specification));
 la culture de ce skill est « mesuré, pas estimé à l'œil ».
 
+Les issues, les descriptions de PR et les commentaires de revue peuvent être
+rédigés en français ou en anglais. Les fichiers du dépôt (`SKILL.md`,
+références, code, commentaires, messages de commit) restent en anglais, sauf
+ce README en français.
+
 ## Licence
 
 MIT — voir [LICENSE](LICENSE).
