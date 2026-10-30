@@ -1,0 +1,34 @@
+Adwaita Mono
+Adwaita Sans
+Big Shoulders Display
+C059
+Caladea
+Cantarell
+Chivo
+DejaVu Sans Mono
+Familjen Grotesk
+Fira Mono
+Fira Sans
+Geist
+Geist Mono
+Hanken Grotesk
+Instrument Sans
+Liberation Sans
+Libertinus Serif
+Nimbus Sans
+Noto Sans
+Noto Sans Mono
+Noto Serif
+Onest
+Open Sans
+P052
+PT Sans
+Public Sans
+Red Hat Display
+Red Hat Mono
+Red Hat Text
+Schibsted Grotesk
+Source Code Pro
+Space Grotesk
+STIX Two Text
+Vazirmatn

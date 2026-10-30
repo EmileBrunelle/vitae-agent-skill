@@ -1,0 +1,72 @@
+name: Fonts
+description: >-
+  The distro and pinned-download fonts the templates name (references/fonts.md), and fc-cache.
+  Shared by every CI job so the two cannot drift. Pins live here (used by the cache key too).
+runs:
+  using: composite
+  steps:
+    # Pins: google/fonts and GNOME/adwaita-fonts, so a font update cannot silently move the fill
+    # targets. Exported so the cache key below and the download step read the same values.
+    - name: Font pins
+      shell: bash
+      run: |
+        {
+          echo "GOOGLE_FONTS_SHA=6157dfaa640ca5738b4d1a7070fe389c3036d7fc"
+          echo "ADWAITA_FONTS_SHA=0c79765f2bef25b38902fd8497616ac28185254c"  # tag 51.0
+          echo "STIX_SHA=744a22a4dd626cd14d75728aef34fc8ad7c85db0"  # stipub/stixfonts v2.13b171
+        } >> "$GITHUB_ENV"
+
+    # Distro-packaged faces (references/fonts.md, "Prefer the distro package").
+    # Not packaged on Ubuntu 24.04: Libertinus Serif (embedded in Typst),
+    # Fira, PT Sans (Ubuntu's is the older PTF build), STIX Two Text (Ubuntu's
+    # fonts-stix is STIX 1) and Source Code Pro; those come from pinned
+    # downloads below, the same files as the maintainer's Fedora packages.
+    - name: Fonts from apt
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends fontconfig \
+          fonts-liberation fonts-noto-core fonts-open-sans fonts-urw-base35 \
+          fonts-crosextra-caladea fonts-cantarell \
+          fonts-vazirmatn fonts-dejavu-core
+
+    # Google-Fonts-only faces and Adwaita (no Ubuntu package): Route 1 of
+    # references/fonts.md, from pinned commits. Cached by those pins.
+    - name: Restore downloaded fonts
+      id: fonts-cache
+      uses: actions/cache@v6
+      with:
+        path: ~/.local/share/fonts/vitae
+        key: fonts-${{ env.GOOGLE_FONTS_SHA }}-${{ env.ADWAITA_FONTS_SHA }}
+
+    - name: Download Google Fonts + Adwaita
+      if: steps.fonts-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        dest="$HOME/.local/share/fonts/vitae"; mkdir -p "$dest"
+        git init -q "$RUNNER_TEMP/gf"; cd "$RUNNER_TEMP/gf"
+        git remote add origin https://github.com/google/fonts
+        git config core.sparseCheckout true
+        printf 'ofl/%s\n' firasans firamono ptsans geist geistmono onest instrumentsans publicsans \
+          schibstedgrotesk spacegrotesk hankengrotesk familjengrotesk chivo \
+          bigshouldersdisplay redhatdisplay redhattext redhatmono \
+          > .git/info/sparse-checkout
+        git fetch -q --depth 1 origin "$GOOGLE_FONTS_SHA"
+        git checkout -q FETCH_HEAD
+        find ofl -name '*.ttf' -exec cp {} "$dest"/ \;
+        git init -q "$RUNNER_TEMP/ad"; cd "$RUNNER_TEMP/ad"
+        git remote add origin https://github.com/GNOME/adwaita-fonts
+        git fetch -q --depth 1 origin "$ADWAITA_FONTS_SHA"
+        git checkout -q FETCH_HEAD
+        find sans mono -name '*.ttf' -exec cp {} "$dest"/ \;
+        for w in Regular Italic Medium MediumItalic SemiBold SemiBoldItalic Bold BoldItalic; do
+          curl -fsSL -o "$dest/STIXTwoText-$w.otf" \
+            "https://raw.githubusercontent.com/stipub/stixfonts/$STIX_SHA/fonts/static_otf/STIXTwoText-$w.otf"
+        done
+        curl -fsSL -o "$RUNNER_TEMP/scp.zip" \
+          "https://github.com/adobe-fonts/source-code-pro/releases/download/2.042R-u/1.062R-i/1.026R-vf/OTF-source-code-pro-2.042R-u_1.062R-i.zip"
+        unzip -q -j "$RUNNER_TEMP/scp.zip" 'OTF/*.otf' -d "$dest"
+
+    - name: Refresh the font cache
+      shell: bash
+      run: fc-cache -f
