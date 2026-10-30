@@ -33,9 +33,6 @@ ROOT = os.path.abspath(os.path.join(HERE, ".."))
 
 # Known, explained divergences: (case glob, gate-key glob) -> reason. Anything else is a failure.
 ALLOW: dict[tuple[str, str], str] = {
-    # pdfium returns RTL runs in logical order (more correct than poppler's visual order), so
-    # line-start and word-order gates may read an RTL line differently. Only the synthetic RTL case.
-    ("fixtures/rtl-*", "*"): "RTL: pdfium logical order is the more correct reading",
     # Hard-edge draws a group boundary at the proximity threshold; pdfium's ink gap is 1 px
     # (antialiasing) different from poppler's. Allowed only if it still diverges.
     ("fixtures/hard-edge", "group proximity"): "1 px antialiasing at the threshold",
