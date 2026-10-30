@@ -526,6 +526,40 @@ PY
 }
 check render-crops-marks render_crops_marks
 
+# A filled LinkedIn square and a filled mail (both fill 0.87-0.90 of their box) beside their values at the
+# default 7 pt are kept; a frame stroked at the page edge is not the paper: the marks inside are found and
+# no whole-page fill comes out.
+render_crops_solid() {
+  local d="$S/crops-solid" r
+  rm -rf "$d"; mkdir -p "$d"
+  cat > "$d/s.typ" <<'TYP'
+#set page(width: 21cm, height: 29.7cm, margin: 2cm)
+#set text(size: 10pt)
+#let svg(vb, p) = box(image(bytes("<svg xmlns='http://www.w3.org/2000/svg' viewBox='" + vb + "'><path fill='#1b4965' d='" + p + "'/></svg>"), format: "svg", height: 7pt))
+#let li = svg("0 0 16 16", "M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854zm4.943 12.248V6.169H2.542v7.225zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248c-.015-.709-.52-1.248-1.342-1.248S2.4 3.226 2.4 3.934c0 .694.521 1.248 1.327 1.248zm4.908 8.212V9.359c0-.216.016-.432.08-.586c.173-.431.568-.878 1.232-.878c.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252c-1.274 0-1.845.7-2.165 1.193v.025h-.016l.016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225z")
+#let mail = svg("0 0 24 24", "M22 7.535V17a3 3 0 0 1-2.824 2.995L19 20H5a3 3 0 0 1-2.995-2.824L2 17V7.535l9.445 6.297l.116.066a1 1 0 0 0 .878 0l.116-.066z M19 4c1.08 0 2.027.57 2.555 1.427L12 11.797l-9.555-6.37a3 3 0 0 1 2.354-1.42L5 4z")
+#align(center)[#li#sym.space.nobreak in/someone #h(14pt) #mail#sym.space.nobreak someone\@example.org]
+TYP
+  typst compile "$d/s.typ" "$d/s.pdf" 2>/dev/null || python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/s.typ" "$d/s.pdf" || return 1
+  r="$(python3 -I scripts/verify.py --render "$d/s.pdf" --out "$d/o" --crops)" || return 1
+  [ "$(echo "$r" | grep -c -- '-icon[0-9]*\.png$')" -eq 2 ] || { echo "want the filled LinkedIn and mail kept, got: $r"; return 1; }
+  cat > "$d/f.typ" <<'TYP'
+#set page(width: 21cm, height: 29.7cm, margin: 2cm)
+#set text(size: 11pt)
+#place(top + left, dx: -2cm, dy: -2cm, rect(width: 21cm, height: 29.7cm, stroke: 0.5cm + rgb("#1b4965")))
+#let tel = box(width: 6pt, height: 10pt, fill: rgb("#1b4965"))
+#let mail = box(width: 11pt, height: 8pt, stroke: 1pt + rgb("#1b4965"))
+#let pin = circle(radius: 4pt, fill: rgb("#1b4965"))
+#let web = circle(radius: 4.5pt, stroke: 1pt + rgb("#1b4965"))
+#tel#sym.space.nobreak (555) 555-0100  #h(1em) #mail#sym.space.nobreak me\@example.com  #h(1em) #pin#sym.space.nobreak City  #h(1em) #web#sym.space.nobreak example.com
+TYP
+  typst compile "$d/f.typ" "$d/f.pdf" 2>/dev/null || python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/f.typ" "$d/f.pdf" || return 1
+  r="$(python3 -I scripts/verify.py --render "$d/f.pdf" --out "$d/fo" --crops)" || return 1
+  [ "$(echo "$r" | grep -c -- '-icon[0-9]*\.png$')" -eq 4 ] || { echo "frame at the page edge: want the 4 marks, got: $r"; return 1; }
+  [ "$(echo "$r" | grep -c -- '-fill[0-9]*\.png$')" -eq 0 ] || { echo "frame at the page edge became a fill: $r"; return 1; }
+}
+check render-crops-solid render_crops_solid
+
 if [ "$quick" -eq 0 ]; then
   fx="$out/fixtures"; mkdir -p "$fx"
   check fixtures-render tests/fixtures/render.sh "$fx"

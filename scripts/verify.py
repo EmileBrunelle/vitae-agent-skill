@@ -1770,11 +1770,15 @@ CROP_ICON_MAX_IN = 0.45   # larger than this and it is a rule or a block, not an
 CROP_ICON_GAP_IN = 0.01   # ink closer than this to a word box on its line is part of the text (glyph piece); the one no-break
                           # space between a mark and its value is 0.02 in, so a real mark clears it
 CROP_ICON_SOLID = 0.85    # ink filling more of its box than this is a solid chip or square bullet, not a drawing...
-CROP_ICON_SOLID_ASPECT = (1.3, 2.0)   # ...unless its proportions sit in this range (a solid phone glyph: not a square, not a bar) and text follows it
+CROP_ICON_CHIP = 0.97     # ...unless it has text beside it and is not a pure block: a drawn solid mark (a filled mail or phone, the LinkedIn square with its letters knocked out) fills 0.85-0.95 of its box, a bullet square or chip fills all of it
 CROP_ICON_TEXT_IN = 0.12  # a mark this close to a word on its line sits beside its value (ranks first when the cap bites)
+CROP_ICON_BLOCK = (1.3, 2.0)   # a pure block with text beside it passes when its proportions are neither a square nor a bar (a solid phone)
+CROP_ICON_PEER_IN = 0.5   # a mark with another mark this close on its line, no text between, is one of a row (social links)
 CROP_ICON_RANK = 10**6    # added to the score of a mark beside its value, so it outranks any loose ink when the cap bites
 CROP_REPEAT = 3           # the same shape this many times on a page is a decoration (heading square, divider, bullet), not a mark
-CROP_EDGE_SHARE = 0.9     # one colour covering this share of the page's border is the paper, whatever else the page holds
+CROP_EDGE_SHARE = 0.9     # one colour covering this share of a ring inside the page is the paper, whatever else the page holds
+CROP_RING_INSET = (0.02, 0.05)   # the rings sampled besides the one 4 px from the edge, as shares of the short side
+CROP_FRAME_FILL = 0.35    # a 'fill' spanning the page whose solid core covers less than this is a frame stroke, not an aplat
 CROP_ICON_ASPECT = 3.0    # longer than this many times its short side: a rule or a stem, not an icon
 CROP_WHITE_PAPER = 0.2    # white covering this share of the page makes white the background, not the modal colour
 CROP_PAD_IN = 0.08        # context around every crop
@@ -1818,25 +1822,34 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
     Raster pass on the CROP_SCAN_PPI render: none of the gates keeps regions (the hidden-text gate
     only reads the colour behind each word box), so what is reused is its raster and its word
     boxes; `words` None (no word boxes) skips icons rather than calling every glyph an icon.
-    Background: the colour that fills CROP_EDGE_SHARE of the page border (a dark page under a white
-    card keeps its own colour), else white when white covers CROP_WHITE_PAPER of the page (a >50%
+    Background: the colour that fills CROP_EDGE_SHARE of the innermost uniform ring (the edge, then 2% and
+    5% in: a frame at the page edge does not become the paper, a dark page under a white card keeps its
+    own colour), else white when white covers CROP_WHITE_PAPER of the page (a >50%
     sidebar must not become the 'paper'), else the modal colour (a tinted or dark page)."""
     im = im.convert("RGB")
     w, h = im.size
     colours = im.getcolors(maxcolors=w * h) or [(1, (255, 255, 255))]
     white = sum(n for n, c in colours if min(cast(tuple[int, ...], c)) >= 250)
-    border: Counter[Any] = Counter()
     m = min(4, w // 4, h // 4)          # 4 px inside: poppler leaves a white last row and column on some page sizes
-    for strip in ((0, m, w, m + 1), (0, h - m - 1, w, h - m), (m, 0, m + 1, h), (w - m - 1, 0, w - m, h)):
-        for n, c in im.crop(strip).getcolors(maxcolors=w * h) or []:
-            border[c] += n
-    edge, edge_n = border.most_common(1)[0]
-    if edge_n >= CROP_EDGE_SHARE * sum(border.values()):
-        bg: tuple[int, ...] = cast(tuple[int, ...], edge)       # a dark or tinted page keeps its own colour under a white card
-    elif white >= CROP_WHITE_PAPER * w * h:
-        bg = (255, 255, 255)
-    else:
-        bg = cast(tuple[int, ...], max(colours)[1])
+    bg: tuple[int, ...] | None = None
+    for inset in sorted({m, round(CROP_RING_INSET[0] * min(w, h)), round(CROP_RING_INSET[1] * min(w, h))}, reverse=True):
+        # The paper is what the innermost uniform ring shows: a frame stroked at the page edge colours
+        # the outer rings, the paper lies inside it; a dark page keeps its colour under a white card
+        # further in than the rings; a sidebar or a header band leaves every ring mixed.
+        inset = min(inset, w // 4, h // 4)
+        ring: Counter[Any] = Counter()
+        for strip in ((0, inset, w, inset + 1), (0, h - inset - 1, w, h - inset), (inset, 0, inset + 1, h), (w - inset - 1, 0, w - inset, h)):
+            for n, c in im.crop(strip).getcolors(maxcolors=w * h) or []:
+                ring[c] += n
+        top, top_n = ring.most_common(1)[0]
+        if top_n >= CROP_EDGE_SHARE * sum(ring.values()):
+            bg = cast(tuple[int, ...], top)
+            break
+    if bg is None:
+        if white >= CROP_WHITE_PAPER * w * h:
+            bg = (255, 255, 255)        # a >50% sidebar must not become the 'paper'
+        else:
+            bg = cast(tuple[int, ...], max(colours)[1])
     ink = ImageChops.difference(im, Image.new("RGB", im.size, bg)).convert("L").point(
         lambda v: 255 if v >= CROP_DELTA else 0)
     k = CROP_SCAN_PPI
@@ -1846,7 +1859,11 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
     for x0, y0, x1, y1 in _components(solid.reduce(3).point(lambda v: 255 if v > 64 else 0)):
         box = (max(0, x0 * 3 - e), max(0, y0 * 3 - e), min(w, x1 * 3 + 3 + e), min(h, y1 * 3 + 3 + e))
         if box[2] - box[0] >= CROP_FILL_MIN_IN[0] * k and box[3] - box[1] >= CROP_FILL_MIN_IN[1] * k:
-            fills.append(("fill", box, (box[2] - box[0]) * (box[3] - box[1])))
+            area = (box[2] - box[0]) * (box[3] - box[1])
+            if box[2] - box[0] >= 0.8 * w and box[3] - box[1] >= 0.8 * h and \
+                    sum(1 for v in solid.crop(box).tobytes() if v) < CROP_FRAME_FILL * area:
+                continue        # a frame stroked around the page, not a fill
+            fills.append(("fill", box, area))
     icons: list[tuple[str, tuple[int, int, int, int], int]] = []
     if words is not None:
         rest = ink.copy()
@@ -1871,6 +1888,7 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             twins = sum(1 for _, w2, h2, n2 in parts if abs(w2 - tw) <= 1 and abs(h2 - th) <= 1 and abs(n2 - n) <= 0.15 * max(n, n2))
             if twins >= CROP_REPEAT:
                 d.rectangle((box[0], box[1], box[2] - 1, box[3] - 1), fill=0)
+        marks: list[tuple[tuple[int, int, int, int], tuple[int, int, int, int], int]] = []
         for x0, y0, x1, y1 in _components(rest.reduce(3), merge=1):
             bw, bh = (x1 - x0 + 1) * 3, (y1 - y0 + 1) * 3
             if not (CROP_ICON_MIN_IN * k <= max(bw, bh) <= CROP_ICON_MAX_IN * k and min(bw, bh) >= CROP_ICON_MIN_IN * k / 2):
@@ -1880,13 +1898,18 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             if tight is None:
                 continue
             n = sum(1 for v in rest.crop(box).tobytes() if v)
-            tx0, ty0, tx1, ty1 = box[0] + tight[0], box[1] + tight[1], box[0] + tight[2], box[1] + tight[3]
+            ink_box = (box[0] + tight[0], box[1] + tight[1], box[0] + tight[2], box[1] + tight[3])
+            marks.append((box, ink_box, n))
+        for box, (tx0, ty0, tx1, ty1), n in marks:
             tw, th = tx1 - tx0, ty1 - ty0
             if max(tw, th) < CROP_ICON_MIN_IN * k or max(tw, th) > CROP_ICON_ASPECT * min(tw, th):
                 continue        # a speck, a bullet dot, a rule or a stem
             beside = [wx0 - tx1 if wx0 >= tx1 else tx0 - wx1 for wx0, wy0, wx1, wy1 in wpx
                       if wy0 < ty1 and wy1 > ty0 and max(wx0 - tx1, tx0 - wx1, 0) < CROP_ICON_TEXT_IN * k]
-            if n > CROP_ICON_SOLID * tw * th and not (beside and CROP_ICON_SOLID_ASPECT[0] * min(tw, th) < max(tw, th) <= CROP_ICON_SOLID_ASPECT[1] * min(tw, th)):
+            # a row of marks with no text (social links): the neighbours on its line vouch for it, as a word would
+            peers = any(o[1] < ty1 and o[3] > ty0 and max(o[0] - tx1, tx0 - o[2], 0) < CROP_ICON_PEER_IN * k
+                        for _, o, _ in marks if o != (tx0, ty0, tx1, ty1))
+            if n > CROP_ICON_SOLID * tw * th and not ((beside or peers) and (n <= CROP_ICON_CHIP * tw * th or (beside and CROP_ICON_BLOCK[0] * min(tw, th) < max(tw, th) <= CROP_ICON_BLOCK[1] * min(tw, th)))):
                 continue        # a solid square or chip (bullet marker, white-on-black letter)
             if any(wy0 < ty1 and wy1 > ty0 and max(wx0 - tx1, tx0 - wx1, 0) < CROP_ICON_GAP_IN * k
                    for wx0, wy0, wx1, wy1 in wpx):
