@@ -5,6 +5,9 @@ Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
 ## Unreleased
 
+- `tests/run_all.sh` runs the self-tests, the 29 templates against their fill
+  targets and the spacing fixtures with their gates in one command; a GitHub
+  Actions workflow runs it on every PR and push to `main` and attaches the PDFs.
 - `entry()` (and every family's `job()`) sets the date inline after the role
   ("Role — Mar 2024 – present") unless the entry's org/descriptor line reaches
   under where a right-flushed date would sit; pdftotext/ATS read geometry, so a

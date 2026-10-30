@@ -22,37 +22,21 @@ Every claim must be verifiable, with a source or a command that reproduces it.
 
 ## Before opening a PR
 
-Run from the repository root (needs `typst`, `pdftotext`, Python 3).
+Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow
+and pypdf, and the fonts in [`references/fonts.md`](references/fonts.md)):
 
-1. Self-tests:
+1. Everything except spec validation, in one command:
    ```
-   python3 -I scripts/verify.py --selftest
-   python3 -I scripts/pick_design.py --selftest
+   tests/run_all.sh            # add --quick for selftests + 3 templates
    ```
-2. The 29 templates against their fill targets. The target is
-   `pick_design.FAMILIES[f]['page']['fill']`. The templates are
-   `templates/families/<f>/resume.typ` and `resume-pair-b.typ` at 1 page, plus
-   `swiss-grid/resume-2page.typ` at `2 94 96`. `verify.py` writes PDFs next to
-   the `.typ`, so work on a scratch copy:
-   ```
-   S=$(mktemp -d); cp -r templates scripts references "$S"/; cd "$S"
-   for f in $(ls templates/families); do
-     fill=$(python3 -I -c "import sys; sys.path.insert(0,'scripts'); import pick_design as p; print(p.FAMILIES['$f']['page']['fill'].replace('-',' '))")
-     for t in resume resume-pair-b; do
-       python3 -I scripts/verify.py templates/families/$f/$t.typ 1 $fill | tail -1
-     done
-   done
-   python3 -I scripts/verify.py templates/families/swiss-grid/resume-2page.typ 2 94 96 | tail -1
-   ```
-   Every line must start with `PASS`.
-3. Spacing fixtures, then the gates on each:
-   ```
-   tests/fixtures/render.sh /tmp/fx
-   for f in tests/fixtures/*.typ; do n=$(basename "$f" .typ)
-     python3 -I scripts/verify.py --gates "$f" /tmp/fx/$n.pdf --root .; done
-   ```
-   No `FAIL` line may appear.
-4. Spec validation, from a directory named `vitae` (the validator requires the
+   It runs both self-tests, the 29 templates against their fill targets
+   (`pick_design.FAMILIES[f]['page']['fill']`; `swiss-grid/resume-2page.typ` at
+   `2 94 96`) and the spacing fixtures with their gates, on a scratch copy so
+   the repo stays clean. It prints one `PASS`/`FAIL` line per check, keeps going
+   after a failure and exits non-zero if any failed. Every line must be `PASS`.
+   CI runs the same script on every PR and attaches the 29 PDFs and PNGs as an
+   artifact.
+2. Spec validation, from a directory named `vitae` (the validator requires the
    directory name to match the skill name):
    ```
    npx skills-ref validate .
