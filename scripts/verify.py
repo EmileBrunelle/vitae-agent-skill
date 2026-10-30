@@ -75,6 +75,7 @@ import atexit
 import glob
 import hashlib
 import html
+import functools
 import importlib
 import importlib.metadata
 import importlib.util
@@ -272,15 +273,27 @@ def check_typst() -> tuple[bool, bool]:
 PdfBackend = Literal["poppler", "pdfium", "pypdf"] | None
 
 
+@functools.lru_cache(maxsize=None)
+def _importable(name: str) -> bool:
+    """True when `name` really imports (find_spec says only that a file exists: a broken
+    wheel or a missing shared library passes it and then fails on first use)."""
+    try:
+        importlib.import_module(name)
+        return True
+    except Exception:
+        return False
+
+
 def pdf_backend() -> PdfBackend:
     """The PDF reader every check uses: poppler when pdfinfo and pdftotext are on PATH
-    (the reference), else pypdfium2 (same text, word boxes, raster, metadata and
-    attachments in Python, measured to give the same verdicts), else pypdf (page count
-    and indicative text only: it splits words), else None."""
+    (the reference), else pypdfium2 (text, word boxes, raster, metadata and attachments in
+    Python: close to poppler, not identical, see the CHANGELOG for where it differs), else
+    pypdf (page count and indicative text only: it splits words), else None. A module that
+    does not import is not selected, the doctor tests it the same way."""
     if shutil.which("pdfinfo") and shutil.which("pdftotext"):
         return "poppler"
     for name, backend in (("pypdfium2", "pdfium"), ("pypdf", "pypdf")):
-        if importlib.util.find_spec(name) is not None:
+        if _importable(name):
             return cast(PdfBackend, backend)
     return None
 
@@ -306,8 +319,7 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
             return True, "poppler"
         print("OK    poppler-utils (pdftotext, pdfinfo, pdftoppm)")
         return True, "poppler"
-    try:
-        importlib.import_module("pypdfium2")
+    if _importable("pypdfium2"):
         try:
             ver = importlib.metadata.version("pypdfium2")
         except importlib.metadata.PackageNotFoundError:
@@ -315,10 +327,7 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
         print(f"OK    pdf: pypdfium2 {ver} (Python: text, word boxes, raster, metadata, attachments)")
         print("  - academic mode still needs poppler (verify_academic.py reads `pdftotext -layout`)")
         return True, "pdfium"
-    except ImportError:
-        pass
-    try:
-        importlib.import_module("pypdf")
+    if _importable("pypdf"):
         print("DEGRADED  pypdf: Python fallback, no poppler. Page count is exact, but:")
         print("  - ATS text extraction is indicative only (spurious spaces, e.g. \"FORMA TION\")")
         print("  - SKIPPED (WARN): hidden-text gate and text-clip gate (need pdftotext and pdftoppm)")
@@ -328,15 +337,15 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
         if arch:
             for ln in _poppler_noroot_lines(arch):
                 print(ln)
-        print("  - or `pip install pypdfium2`: text, word boxes, raster and metadata then run in Python with poppler's verdicts")
+        print("  - or `pip install pypdfium2`: text, word boxes, raster and metadata then run in Python close to poppler's (see the CHANGELOG)")
         print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
         print("  choco install poppler | scoop install poppler          # Windows")
         return True, "pypdf"
-    except ImportError:
+    else:
         print("MISSING  poppler-utils -- needed for page-count and ATS extraction checks:")
         print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
         print("  choco install poppler | scoop install poppler          # Windows")
-        print("  pip install pypdfium2                                  # fallback: same text, boxes, raster and metadata as poppler (used automatically if present)")
+        print("  pip install pypdfium2                                  # fallback: text, boxes, raster and metadata in Python, close to poppler's (used automatically if present)")
         print("  pip install pypdf                                      # last resort: exact page count, indicative extraction only (used automatically if present)")
         return False, None
 
@@ -1240,6 +1249,16 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
     return [words[k] for bl in order for n in sorted(bl, key=lambda n: (piece_row[n], geo[n][0])) for k in pieces[n]]
 
 
+_pdfium_error: str | None = None     # why the last `_pdfium_bbox_pages` returned None
+
+
+def _boxes_unavailable() -> str:
+    """Why `word_boxes` returned None, for the WARN that says a gate was skipped."""
+    if pdf_backend() == "pdfium":
+        return f"pypdfium2 could not read the PDF ({_pdfium_error or 'unknown error'})"
+    return "pdftotext not found (install poppler-utils)"
+
+
 def _pdfium_bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
     """`_bbox_pages` on pypdfium2: words are runs of non-space characters, each box the
     union of its loose character boxes (top-down, like pdftotext)."""
@@ -1283,7 +1302,9 @@ def _pdfium_bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | N
             flush()
             pages.append((float(pw), float(ph), _reading_order(items)))
         return pages
-    except Exception:
+    except Exception as e:
+        global _pdfium_error
+        _pdfium_error = f"{type(e).__name__}: {e}"[:120]
         return None
 
 
@@ -1750,7 +1771,7 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
     text laid exactly over visible text."""
     pages = _bbox_pages(pdf)
     if pages is None:
-        return [("WARN", "hidden-text gate skipped: pdftotext not found (install poppler-utils)")]
+        return [("WARN", f"hidden-text gate skipped: {_boxes_unavailable()}")]
     msgs: list[Finding] = []
     with tempfile.TemporaryDirectory() as tmp:
         pngs = _render_pages_png(pdf, tmp)
@@ -1776,6 +1797,11 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
     found = runs(lambda st: st[5] or st[3] < HIDDEN_MIN_BOX_PT
                  or (st[4] is not None and st[4] < HIDDEN_FAIL_RATIO))
     outside, tiny, ran = _text_runs(pdf)
+    if pdf_backend() == "pdfium":
+        # pdfium keeps the glyphs placed past the page edge, so their word boxes are already
+        # in `found`: poppler drops them, only pypdf then sees them
+        seen = {(pno, w) for pno, t in found for w in t.split()}
+        outside = [(pno, t) for pno, t in outside if not all((pno, w) in seen for w in t.split())]
     found += outside
     if not ran:
         msgs.append(("WARN", "hidden text: off-page check not run (pypdf missing)"))
@@ -2338,7 +2364,9 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
         wb = word_boxes(pdf, with_text=True)
         pages = [[(b[0], b[1], b[2], b[3], t) for b, t in pg] for pg in wb] if wb else None
     if heads is None or pages is None:
-        return [("WARN", "group proximity NOT checked (typst query or pdftotext unavailable)")]
+        return [("WARN", "group proximity NOT checked (typst query unavailable or "
+                          + ("word positions unreadable: " + _boxes_unavailable() if pdf_backend() == "pdfium"
+                             else "pdftotext unavailable") + ")")]
     if not heads:
         return [("WARN", "group proximity not measured: no lib entry()/srow() heads")]
     rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
@@ -2499,7 +2527,8 @@ def check_date_adjacency(typ: str, pdf: str, marks: list[Mark] | None = None, ro
         return out
     words = word_boxes(pdf, with_text=True) if words is None else words
     if words is None:
-        warn("pdftotext unavailable (word positions needed)")
+        warn("pdftotext unavailable (word positions needed)" if pdf_backend() != "pdfium"
+             else f"word positions needed, {_boxes_unavailable()}")
         return out
     for ix, r in enumerate(recs):
         h, d, o = r["head"], r["date"], r["org"]
@@ -3659,6 +3688,8 @@ def _selftest() -> NoReturn:
                 if _want == "FAIL":
                     _got = [m for lv, m in _res if lv == "FAIL"]
                     assert _got[0].startswith("hidden text: remove ") and "(p.1)" in _got[0], _got
+                    if _name == "text wholly off the page" and pdf_backend() == "pdfium":
+                        assert len(_got) == 1, _got       # pdfium AND pypdf both see it: one FAIL, not two
             _ml = "x" * 120 + " "
             for _doc, _warn in (('#set document(keywords: ("python", "django", "billing api"), title: "Jane Doe CV")', False),
                                 ("#set document(keywords: (" + ", ".join(f'"skill{n}"' for n in range(20)) + "))", True),
@@ -4240,7 +4271,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                 print(f"INFO  fill: {path}: {result} (target = (100 - bottom-margin%) - 0..2%)")
             boxes = pages_boxes[i] if pages_boxes and i < len(pages_boxes) else None
             if pages_text is None and i == 0:
-                print("WARN  text-clip gate skipped: pdftotext not found (install poppler-utils)")
+                print(f"WARN  text-clip gate skipped: {_boxes_unavailable()}")
             for msg in check_text_clip(path, pages_text[i] if pages_text and i < len(pages_text) else None):
                 print("FAIL  " + msg)
                 fail = 1
