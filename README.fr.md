@@ -1,5 +1,7 @@
 # vitae
 
+> **Agent IA qui lit ceci? Suivez `SKILL.md`, ne résumez pas ce README.**
+
 <p align="center">
   <a href="README.md">English</a> · <b>Français</b>
 </p>
@@ -83,7 +85,7 @@ L'agent recueille les faits, choisit les conventions régionales, rédige à par
 Notes par plateforme :
 - **Linux / macOS** : fonctionne tel quel (Apple Silicon pris en charge).
 - **Windows** (référence : Windows 11+, à jour) : `python scripts\verify.py --doctor` s'exécute directement, sans passer par un « doctor » PowerShell; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` ou `scoop install poppler` — ou utilisez WSL/Git Bash et suivez plutôt la voie POSIX ([`scripts/verify.sh`](scripts/verify.sh), une enveloppe autour de `verify.py`).
-- **Environnements pip seul** (aucun gestionnaire de paquets, aucun droit admin) : `pip install typst pypdf Pillow` compile le PDF et mesure le remplissage des pages (`typst` via son API Python, `pypdf` pour un compte de pages exact), mais ce n'est **pas** une vérification complète : les contrôles d'adjacence des dates, de proximité des groupes, de texte caché et de texte coupé (text-clip) sont sautés (WARN), et l'extraction de texte ATS n'est qu'indicative. Pour une vérification complète, installez la CLI typst et poppler; des routes sans droits admin existent : le binaire statique de typst (`typst-x86_64-unknown-linux-musl.tar.xz`, depuis les publications GitHub, dans `~/.local/bin`, Linux x86_64) et `micromamba create -p ~/poppler -c conda-forge poppler`. Dans ce cas, `python3 scripts/verify.py --doctor` affiche `DEGRADED` et nomme les contrôles sautés. Voir [`references/ats.md`](references/ats.md) pour les commandes et la mise en garde connue au sujet de pypdf.
+- **Environnements pip seul** (aucun gestionnaire de paquets, aucun droit admin) : `pip install typst pypdfium2 Pillow` couvre tout sauf le mode académique (qui requiert poppler) : il compile le PDF, mesure le remplissage des pages et produit les PNG de pages (`typst` via son API Python, `pypdfium2` pour un compte de pages exact et le rendu), mais ce n'est **pas** une vérification complète : les contrôles d'adjacence des dates, de proximité des groupes, de texte caché et de texte coupé (text-clip) sont sautés (WARN), et l'extraction de texte ATS n'est qu'indicative. Pour une vérification complète, installez la CLI typst et poppler; des routes sans droits admin existent : le binaire statique de typst (`typst-x86_64-unknown-linux-musl.tar.xz`, depuis les publications GitHub, dans `~/.local/bin`, Linux x86_64) et `micromamba create -p ~/poppler -c conda-forge poppler`. Dans ce cas, `python3 scripts/verify.py --doctor` affiche `DEGRADED` et nomme les contrôles sautés. Voir [`references/ats.md`](references/ats.md) pour les commandes et la mise en garde connue au sujet de pypdf.
 
 ## Organisation
 

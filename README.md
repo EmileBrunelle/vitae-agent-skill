@@ -1,5 +1,7 @@
 # vitae
 
+> **AI agent reading this? Follow `SKILL.md`, do not summarize this README.**
+
 <p align="center">
   <b>English</b> · <a href="README.fr.md">Français</a>
 </p>
@@ -83,7 +85,7 @@ The agent will collect facts, pick the regional conventions, draft from the temp
 Platform notes:
 - **Linux / macOS**: works as-is (Apple Silicon handled).
 - **Windows** (baseline: Windows 11+, up to date): `python scripts\verify.py --doctor` runs directly, no PowerShell doctor involved; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` or `scoop install poppler` — or use WSL/Git Bash and follow the POSIX path ([`scripts/verify.sh`](scripts/verify.sh), a wrapper around `verify.py`) instead.
-- **pip-only environments** (no package manager, no admin rights): `pip install typst pypdf Pillow` compiles the PDF and measures page fill (`typst` via its Python API, `pypdf` for exact page counts), but it is **not** full verification: the date-adjacency, group-proximity, hidden-text and text-clip gates are skipped (WARN) and ATS text extraction is indicative only. For full verification, install the typst CLI and poppler; no-root routes exist: the typst static binary (`typst-x86_64-unknown-linux-musl.tar.xz` from the GitHub releases, into `~/.local/bin`, Linux x86_64) and `micromamba create -p ~/poppler -c conda-forge poppler`. In that situation `python3 scripts/verify.py --doctor` prints `DEGRADED` and names the skipped checks. See [`references/ats.md`](references/ats.md) for the commands and the known pypdf caveat.
+- **pip-only environments** (no package manager, no admin rights): `pip install typst pypdfium2 Pillow` covers everything except academic mode (which needs poppler): it compiles the PDF, measures page fill and renders page PNGs (`typst` via its Python API, `pypdfium2` for exact page counts and rendering), but it is **not** full verification: the date-adjacency, group-proximity, hidden-text and text-clip gates are skipped (WARN) and ATS text extraction is indicative only. For full verification, install the typst CLI and poppler; no-root routes exist: the typst static binary (`typst-x86_64-unknown-linux-musl.tar.xz` from the GitHub releases, into `~/.local/bin`, Linux x86_64) and `micromamba create -p ~/poppler -c conda-forge poppler`. In that situation `python3 scripts/verify.py --doctor` prints `DEGRADED` and names the skipped checks. See [`references/ats.md`](references/ats.md) for the commands and the known pypdf caveat.
 
 ## Layout
 
