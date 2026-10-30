@@ -49,7 +49,3 @@ Python scripts must type-check with mypy (config in `mypy.ini`, run `python3 -m 
 ## Version bump
 
 A user-visible change bumps all three together: `version:` in `SKILL.md`, the README badges (`assets/badges/status-beta.svg` and `statut-beta.svg`, regenerated from shields.io), and a [`CHANGELOG.md`](CHANGELOG.md) entry.
-
-## En français
-
-Les issues, descriptions de PR et commentaires de revue peuvent être en français ou en anglais; les fichiers du dépôt restent en anglais (sauf `README.fr.md`). Les contributions les plus utiles sont les packs de domaine et les lignes de la matrice régionale, chaque pays vérifié séparément à la source. Tout doit être mesuré et vérifiable. Avant une PR : les deux `--selftest`, les 29 gabarits contre leurs cibles de remplissage, les fixtures avec `verify.py --gates`, et `npx skills-ref validate .`. Ne modifiez jamais les `lib.typ` des familles (liens vers `templates/lib.typ`). `main` contient toujours la dernière version publiée et testée (`npx skills` installe la branche par défaut) : forkez, travaillez sur une branche thématique, ouvrez la PR vers `main`; les PR sont fusionnées à la publication, avec le changement de version, sans branche dev durable. Le détail des étapes va dans `references/steps/`, jamais dans `SKILL.md` (limite de 13000 octets vérifiée par `tests/run_all.sh`). Une version change `SKILL.md`, les badges et `CHANGELOG.md` ensemble.
