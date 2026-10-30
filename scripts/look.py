@@ -21,7 +21,7 @@ several stems are refused (exit 2).
 
 --per-item: fresh context per request (that item's text + only the images it needs), aggregated into the
 same output. Built for small local models that lose items in a long list. Calls = one per `pages`/`crops`
-item, plus one per page for each `page` item (2 pages, 10 page items = 20 calls + the others). Checklist
+item, plus one per page for each `page` item (calls = page items x pages + all other items). Checklist
 items read `L<n> (<scope>) <question>`, scope = page (one call per page, FAIL if any page fails, zone
 prefixed p<N>) | pages (all pages in one call) | crops (all zoomed crops) | crops:fill / crops:icon (only that crop type);
 the pages when no crop of that type was given, so a crops item is never judged on nothing). An untagged item counts as `pages`.
@@ -298,8 +298,20 @@ def classify(pngs: Sequence[str]) -> tuple[list[tuple[str, str]], list[str]]:
 
 
 def check_one_stem(pngs: Sequence[str]) -> None:
-    stems = {m.group(1) for m in (STEM_RE.match(os.path.basename(p)) for p in pngs)
-             if m and (PAGE_RE.match(m.string) or CROP_RE.match(m.string))}
+    seen: dict[str, str] = {}
+    names: dict[str, str] = {}
+    stems: set[str] = set()
+    for p in pngs:
+        name = os.path.basename(p)
+        m = STEM_RE.match(name)
+        if not m or not (PAGE_RE.match(name) or CROP_RE.match(name)):
+            die(f"{p}: not named <stem>-p<N>.png or <stem>-p<N>-(fill|icon)<n>.png")
+        real = os.path.realpath(p)
+        if real in seen or name in names:
+            die(f"duplicate image {name} ({names.get(name, p)} and {p}): pass each page/crop once")
+        seen[real] = p
+        names[name] = p
+        stems.add(m.group(1))
     if len(stems) > 1:
         die(f"PNGs come from {len(stems)} different stems ({', '.join(sorted(stems))}): pass one PDF's "
             f"images only (dedicated dir per PDF, or `<dir>/<stem>-*.png`)")

@@ -278,6 +278,14 @@ ok(code == 2 and "Traceback" not in err.getvalue() and "ERROR" in err.getvalue()
 # mixed stems -> exit 2, nothing sent
 c, _, e = cli("--checklist", CL_OLD, P1, mkpng("other-p1.png"), resp=all_pass)
 ok(c == 2 and "stems" in e and not REQS, (c, e))
+# duplicates / bad names -> exit 2, nothing sent
+c, _, e = cli("--checklist", CL_OLD, P1, P1, resp=all_pass)
+ok(c == 2 and "duplicate" in e and not REQS, (c, e))
+os.makedirs(os.path.join(tmp, "d2"), exist_ok=True)
+c, _, e = cli("--checklist", CL_OLD, P1, mkpng("d2/cv-p1.png"), resp=all_pass)
+ok(c == 2 and "duplicate" in e and not REQS, (c, e))
+c, _, e = cli("--checklist", CL_OLD, P1, mkpng("notes.png"), resp=all_pass)
+ok(c == 2 and "not named" in e and not REQS, (c, e))
 # per-item: crops item falls back to pages when only the wrong crop type exists; icon/fill selection
 CL_CROPS = os.path.join(tmp, "crops.md")
 open(CL_CROPS, "w").write("L1 (crops) Is all text whole?\nL2 (crops:fill) Is every text on a coloured band legible?\n"
