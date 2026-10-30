@@ -871,34 +871,65 @@ def check_pdf_keywords(pdf):
     return msgs[0] if msgs else None
 
 
-def _text_outside_page(pdf):
-    """([(page_no, text)], ran) for text runs the PDF places outside the page box.
+TINY_TEXT_PT = 5.0   # real font size under which a run is "tiny" (WARN): nobody reads it
+
+
+def _text_runs(pdf):
+    """([(page_no, text, off_page)], [(page_no, text, real_size_pt)], ran): text runs the
+    PDF places outside the page box, and runs set under TINY_TEXT_PT.
+
     Poppler drops every glyph past the page edge, so a run placed wholly off the page is
     invisible to pdftotext; pypdf (optional) sees it. Geometry only (the run's origin
     through its text matrix and CTM against the CropBox) — never a text comparison, which
-    breaks on every script pypdf shapes differently from poppler (Arabic, Thai...)."""
+    breaks on every script pypdf shapes differently from poppler (Arabic, Thai...). The
+    real size is the Tf size times the matrices' scale (the box height varies with the
+    font, up to 2x the size). A run that is a superscript or subscript — smaller than a
+    neighbouring run on the same line, raised or lowered, at or right of it — is not tiny."""
     try:
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             import pypdf
             reader = pypdf.PdfReader(pdf)
-            out = []
+            off, tiny = [], []
             for pno, pg in enumerate(reader.pages, 1):
                 box = pg.cropbox
                 x0, y0, x1, y1 = float(box.left), float(box.bottom), float(box.right), float(box.top)
+                runs = []   # (text, x, y, real size)
 
-                def visit(text, cm, tm, fd, fs, pno=pno, x0=x0, y0=y0, x1=x1, y1=y1):
+                def visit(text, cm, tm, fd, fs, runs=runs):
                     if not text.strip() or not cm or not tm:
                         return
                     x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
                     y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
-                    if x < x0 - 0.5 or x > x1 + 0.5 or y < y0 - 0.5 or y > y1 + 0.5:
-                        out.append((pno, " ".join(text.split())))
+                    det = abs((tm[0] * tm[3] - tm[1] * tm[2]) * (cm[0] * cm[3] - cm[1] * cm[2]))
+                    runs.append((" ".join(text.split()), x, y, (fs or 0) * det ** 0.5))
                 pg.extract_text(visitor_text=visit)
-        return out, True
+
+                def script_of(i):
+                    t, x, y, sz = runs[i]
+                    for step in (-1, 1):
+                        j = i + step
+                        # walk over neighbours that are scripts too (same size, same baseline)
+                        while 0 <= j < len(runs) and runs[j][3] < 1.15 * sz and abs(runs[j][2] - y) < 0.5:
+                            j += step
+                        if 0 <= j < len(runs):
+                            _, xn, yn, szn = runs[j]
+                            if (szn >= 1.15 * sz and 0.05 * szn < abs(yn - y) < 0.6 * szn
+                                    and (x >= xn if step < 0 else xn >= x)):
+                                return True
+                    return False
+                for i, (t, x, y, sz) in enumerate(runs):
+                    if x < x0 - 0.5 or x > x1 + 0.5 or y < y0 - 0.5 or y > y1 + 0.5:
+                        off.append((pno, t))
+                    elif 0 < sz < TINY_TEXT_PT and not script_of(i):
+                        if tiny and tiny[-1][0] == pno and tiny[-1][3] == i - 1:
+                            tiny[-1] = (pno, tiny[-1][1] + " " + t, min(tiny[-1][2], sz), i)
+                        else:
+                            tiny.append((pno, t, sz, i))
+        return off, [(p_, t, sz) for p_, t, sz, _ in tiny], True
     except Exception as e:
-        return [], not isinstance(e, ImportError)
+        return [], [], not isinstance(e, ImportError)
 
 
 HIDDEN_TAIL = ("text a reader cannot see is still read by ATS and recruiters' tools, "
@@ -940,7 +971,7 @@ def check_hidden_text(pdf, detail=None):
 
     found = runs(lambda st: st[5] or st[3] < HIDDEN_MIN_BOX_PT
                  or (st[4] is not None and st[4] < HIDDEN_FAIL_RATIO))
-    outside, ran = _text_outside_page(pdf)
+    outside, tiny, ran = _text_runs(pdf)
     found += outside
     if not ran:
         msgs.append(("WARN", "hidden text: off-page check not run (pypdf missing)"))
@@ -955,6 +986,11 @@ def check_hidden_text(pdf, detail=None):
             break
         msgs.append(("WARN", f'low contrast: "{text[:60]}" (p.{pno}) — barely visible (under {HIDDEN_WARN_RATIO:g}:1), '
                              "raise its contrast or remove it"))
+    for n, (pno, text, sz) in enumerate(tiny):
+        if n == 3:
+            break
+        msgs.append(("WARN", f'tiny text: "{text[:60]}" (p.{pno}) is set at {sz:.1f}pt — below {TINY_TEXT_PT:g}pt '
+                             "nobody reads it; if it is a keyword block, remove it"))
     for m in check_pdf_metadata(pdf):
         msgs.append(("WARN", m))
     return msgs
@@ -2635,6 +2671,10 @@ def main():
                     '#rect(width: 100%, fill: rgb("#767676"), inset: 4pt)[#text(fill: white)[Skills and tools]]\n', ""),
                 "superscripts in small grey body": (
                     '#text(size: 7.5pt, fill: rgb("#767676"))[Fig#super[1] 5#super[th] 1#super[er] m#super[2] H#sub[2]O]', ""),
+                "superscripts in 9pt body": (
+                    '#text(size: 9pt)[Fig#super[1] 5#super[th] 1#super[er] #super[a] m#super[2] H#sub[2]O]', ""),
+                "4.5pt black keyword block": (
+                    '#text(size: 4.5pt)[Keywords: Kubernetes, AWS, Terraform, Docker, Python, Django, React]', "WARN"),
                 "single-stem words": ('#text(size: 8pt)[i l I 1 | il Il 二 I. i,]', ""),
                 "rotated visible text": ('#place(top + left, dx: 250pt, dy: 40pt, rotate(90deg, origin: top + left, [Senior software engineer]))', ""),
                 "white 1pt text": (f'#text(size: 1pt, fill: white)[{_lure}]', "FAIL"),

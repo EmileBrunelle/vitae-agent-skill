@@ -9,7 +9,7 @@ Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
   extracts whose box has under 1.5:1 WCAG contrast against its background (white-on-white,
   background-coloured, under a shape, hidden keyword layers such as brilliant-cv's), a box under
   4pt, or a box crossing the page edge (with pypdf, runs placed wholly off the page, by geometry).
-  WARNs on contrast under 3:1, stuffed Keywords/Title/Author/Subject, embedded attachments, and
+  WARNs on contrast under 3:1, text set under 5pt (real font size via pypdf; superscripts exempt), stuffed Keywords/Title/Author/Subject, embedded attachments, and
   when pypdf is missing. Calibrated on the 29 templates + 294 palette renders: weakest legit
   contrast 4.55:1, smallest legit box 5.49pt (a superscript); about 0.3 s per page.
 - `entry()` (and every family's `job()`) sets the date inline after the role
