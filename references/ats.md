@@ -53,13 +53,19 @@ same extracted text.
   **Fix — keep the grid, add text after the date** (verified on the template
   in every family): what anchors the date is *something following it in the
   extraction order*, not the absence of the grid. So an education entry uses
-  the SAME entry helper as the jobs (title + right-flushed date on the grid
-  row, institution + descriptor on the line under it) and extracts as
+  the SAME entry helper as the jobs (title + date inline after it, or
+  right-flushed when the descriptor reaches under it; institution + descriptor on the line under it) and extracts as
   `Degree Name` / `2015 – 2019` / `Institution — City · …` — no floating year.
   **Two conditions, both required** (verified by bisection): (a) a line of text
   *after* the date in the emission order — the institution + descriptor line;
-  and (b) a date run about as **wide** as the other right-flushed dates on the
+  and (b) a date run about as **wide** as the other dates on the
   page.
+  **The lib now decides this itself**: `entry()` / `job()` set the date inline
+  after the role ("Role — Mar 2024 – present") unless the org/descriptor line
+  reaches under where a right-flushed date would sit, so nearly every date is
+  inline and the trap cannot arise on lib entries. Never override it (no
+  hand-built date grids, no custom date alignment); the gate only fails
+  hand-built or overridden heads.
   **Refinement, measured on `gutter-rail`, and it is what the
   "position-dependent" part actually is**: condition (a) is not "a line of text
   follows", it is **a line that reaches under the date's own x-range**. Same
@@ -81,7 +87,7 @@ same extracted text.
   older workaround (re-rendering the entry as a linear
   `Degree, Institution — 2019 · City` line) is **retired**: it fixed the
   extraction and broke the page, putting that one date mid-line while every
-  other date on the CV was flush right. One date convention per document
+  other date on the CV followed the lib's convention. One date convention per document
   (`design.md`). The trap is POSITION-DEPENDENT (verified): it can also hit a
   normal grid entry that lands last before a page break, and it moves when
   content shifts — so re-run the date grep after every layout change; if a
@@ -107,7 +113,7 @@ same extracted text.
   fragile tokens in `#box[…]` as anywhere else. Calibration lesson: this
   failure does not reproduce on a short synthetic test page — a two-row test
   that fits one line each extracts cleanly both ways. It needs a real dense
-  page (six rows, several wrapping, a right-flushed date column above) to
+  page (six rows, several wrapping, a column of dates above) to
   appear, so "chips are fine, I tested it" on a toy page is worthless — test
   extraction on the real page. The safe primitive is `chip()` in
   `templates/lib.typ`; it is a creative-register device, not a default.
@@ -329,7 +335,7 @@ Python API compiles both formats (verified):
   bolded, start of the most relevant experience.
 - Off-target current role → split sections so target-field experience leads
   (see SKILL.md step 4; skip the split when every job is on target).
-- Dates right-aligned, bold, dark: recency is the most-checked datum.
+- Dates bold, dark (inline after the role; the lib decides): recency is the most-checked datum.
 - 1-page vs 2-page is an audience *and region* decision, not a content
   decision — regional norms win (SKILL.md step 3).
 - **File name of the sent PDF**: `Firstname_Lastname_CV.pdf` (localized

@@ -564,7 +564,7 @@ no family draw and no palette generation either: one neutral gabarit, from
   a QR code, and any skill/language meter drawn as a bar or a dot rating.
 - A bullet-less entry's date floats to the end of the extraction unless BOTH
   hold: text follows it in emission order (the institution/descriptor line)
-  and the date run is as wide as the other right-flushed dates (verified).
+  and the date run is as wide as the other dates (verified; the lib now inlines dates, so this only bites hand-built entries).
 - A `line(length: 100%)` inside a `box` resolves to the *available* width, not
   the box content's — a "short underline" silently becomes a full-width rule.
   Use `box(stroke: (bottom: ...))`, or `context measure()` to size a drawn

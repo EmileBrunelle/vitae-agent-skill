@@ -590,13 +590,13 @@ that passes goes in with its proof. The same rule governs § Guided creation.
 
 **One date convention per document.** Whatever the family, every date on the
 page sits in the same place — the experience entries and the education entry
-use the *same* entry helper, dates right-flushed. The old workaround for the
+use the *same* entry helper; the lib sets the date inline after the role unless the org line reaches under it (automatic, never override). The old workaround for the
 orphaned-date extraction trap (rendering the bullet-less education entry as a
 linear "Degree, Institution — 2019 · City" line) is **retired**: it put that
-one date mid-line while every other date was flush right. What actually fixes
+one date mid-line while every other date followed the lib's convention. What actually fixes
 the trap is (a) *text after the date in the extraction order* — the institution
 + descriptor line under the entry — and (b) a date run as **wide** as the other
-right-flushed dates: `2015 – 2019` extracts in place, a bare `2019` does not.
+dates: `2015 – 2019` extracts in place, a bare `2019` does not.
 The grid keeps the visual alignment either way (verified: `pdftotext` emits
 degree → 2015 – 2019 → institution, no floating year). See
 `references/ats.md`.
@@ -641,7 +641,7 @@ enters the dictionary:
 3. real italics if the family's register uses italics (a synthesised oblique
    fails);
 4. correct figures — lining or old-style *by design*, unambiguous 0/O and 1/l,
-   and tabular figures where dates are right-flushed;
+   and tabular figures where dates sit in columns;
 5. professional register: no fantasy, no display-only quirks in a body face;
 6. licence verified free (SIL OFL / GPL+font exception / Apache) and the
    provenance recorded;
@@ -1605,8 +1605,7 @@ hues with jobs, not a theme), no tab bar, no minimap.
   dates) — the § Tokens trap verbatim — and it hands the page's thinnest
   elements its *weakest* ink: pine is 6.11 on white, sitting on the floor, while
   hue B's whole job is small marks that want more contrast than the 0.9pt rails,
-  not the same. Routing the dates to body ink instead is worse: right-aligned
-  near-black dates stop being a register and start competing with the bold role
+  not the same. Routing the dates to body ink instead is worse: near-black dates stop being a register and start competing with the bold role
   title on their own baseline (visible in the 300dpi date crop). And the source
   tradition is not monochrome — an opinionated rice reserves **one** accent,
   outside the theme system, for whatever is live. Monochrome here is an editor

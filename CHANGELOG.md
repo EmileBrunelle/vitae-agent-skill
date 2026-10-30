@@ -5,9 +5,13 @@ Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
 ## Unreleased
 
-- In progress (`9869cc0`): `entry()` inlines the date after the role when a
-  right-flushed date on a bullet-less entry would be read at the end of the page
-  by ATS; date-adjacency FAIL messages now say what to do.
+- `entry()` (and every family's `job()`) sets the date inline after the role
+  ("Role — Mar 2024 – present") unless the entry's org/descriptor line reaches
+  under where a right-flushed date would sit; pdftotext/ATS read geometry, so a
+  right-flushed date past a short org line landed at the end of the page. The
+  decision is automatic and layout always converges; the date-adjacency gate
+  FAILs only hand-built/overridden heads; Typst non-convergence is now a FAIL
+  (`ff5da87`).
 - README links are relative to the files they mention (`b8187db`).
 - `tests/fixtures/README.md`: states that fixtures are not templates (`43e8b9a`).
 - README: contributions welcome in English or French (`2ecab8c`); see `CONTRIBUTING.md`.
