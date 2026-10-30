@@ -1315,8 +1315,8 @@ def _entry_records(marks):
             cur[k] = m
             if cur["date_first"] is None:
                 cur["date_first"] = k == "date"
-        elif k not in ("date", "org"):
-            cur = None
+        elif k == "skill":
+            cur = None                     # other part kinds ("date-col") are ignored
     return recs
 
 
@@ -1349,14 +1349,32 @@ def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None
     marks = _typst_query(typ, ENTRY_MARKS, root) if marks is None else marks
     out = []
     warn = (lambda m: warns.append(m)) if warns is not None else (lambda m: None)
-    fix = ('fix: give the date a month range ("Sep 2011 – Jun 2012", rule: month+year) '
-           "or put a line of text after the date inside the same entry "
-           "(institution / descriptor line), so the date is not alone at the end "
-           "of the entry (references/ats.md, Entry-with-no-bullets trap)")
-    late = ("— a parser then reads the date as missing. Most common cause: a narrow "
-            "date (bare year such as \"2012\") right-flushed on the role row whose "
-            "following lines do not reach under it, so pdftotext clusters it alone and "
-            "emits it late. ")
+    why = (" (pdftotext, like the ATS extractors that cluster lines the same way, reads a "
+           "right-flushed date in place only when a text line under it overlaps its x-range; "
+           "references/ats.md, Entry-with-no-bullets trap)")
+
+    def action(name, h, d, o):
+        """The FIRST clause of a FAIL: what to change in cv.typ that clears it."""
+        if "anchor" not in h:
+            return (f"rebuild {name} with the current lib's entry() / the family's job() "
+                    "(recopy the skill's lib.typ if the CV's copy is older): its markers come "
+                    "from a lib whose entry() does not anchor the date of a bullet-less entry")
+        if d.get("inline"):
+            return (f"nothing to change in the content of {name}: lib entry() already set its "
+                    "date inline after the role and pdftotext still reads it late \u2014 rebuild "
+                    "the entry with the family's unmodified job(); if it already is, report the "
+                    ".typ and PDF")
+        if o is None:
+            return (f"give {name} an org or descriptor (the org/note argument of job()/entry()): "
+                    "it has no line under the role to anchor its date \u2014 with no bullets, lib "
+                    "entry() then sets the date inline when that line does not reach under it; "
+                    "with bullets, make that line long enough to run under the date")
+        short = d["x"] - (o["x"] + o.get("w", 0)) + 3
+        return (f"lengthen the org/descriptor line of {name} by at least {max(short, 3):.0f}pt so it "
+                "runs under the date: lib entry() anchors the date of a bullet-less entry "
+                "itself, but leaves an entry with bullets (or followed by text reaching under "
+                "the date) to that text, and here it does not hold")
+
     recs = _entry_records(marks)
     st = stats if stats is not None else {}
     st.update(measured=0, undated=0, unmeasured=0)
@@ -1384,23 +1402,32 @@ def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None
             warn(f"{name}: dated but no date marker")
             continue
         if o is not None and not r["date_first"]:
-            out.append(f"{name}: the employer line is EMITTED before the date (entry "
-                       "rebuilt out of lib order?) " + late + fix)
+            out.append(f"rebuild {name} with the family's job() / lib entry(), cells in lib "
+                       "order: its employer line is EMITTED before its date (hand-built or "
+                       "reordered entry), so a parser reads the date as missing")
             continue
         pg = h.get("page") or 1
         if d.get("page") != pg:
-            out.append(f"{name}: its date is set on page {d.get('page')}, its head on page {pg} "
-                       "— the date is read with the wrong entry. " + fix)
+            out.append(f"rebuild {name} with the family's job() / lib entry(): its date is set "
+                       f"on page {d.get('page')}, its head on page {pg}, so the date is read with "
+                       "the wrong entry")
             continue
         if not 0 < pg <= len(words):
             warn(f"{name}: page {pg} not in the PDF")
             continue
         pw = words[pg - 1]
-        oy = o["y"] if o is not None and o.get("page") == pg and o["y"] > d["y"] else None
-        d_end = oy if oy is not None else d["y"] + 4 * max(d.get("h", 0), 6)
+        # the org line's first word: it starts exactly at the marker's x (the
+        # lib's date anchor may have set the line flush right); nearest in y
+        oi = None
+        if o is not None and o.get("page") == pg and o["y"] > d["y"]:
+            tol = max(o.get("h", 0), 6) + 10
+            c = [i for i, w in enumerate(pw) if abs(w[0][0] - o["x"]) <= 1.5
+                 and abs(_yc(w) - o["y"]) <= tol and _yc(w) > d["y"]]
+            oi = min(c, key=lambda i: abs(_yc(pw[i]) - o["y"])) if c else None
+        d_end = pw[oi][0][1] if oi is not None else d["y"] + 4 * max(d.get("h", 0), 6)
         di = [i for i, w in enumerate(pw)
               if w[0][0] >= d["x"] - 1.5 and w[0][2] <= d["x"] + d.get("w", 0) + 1.5
-              and d["y"] - 2 <= _yc(w) < d_end]
+              and min(d["y"], h["y"]) - 2 <= _yc(w) < d_end]
         hi = _first_word(pw, h["x"], h["y"], d_end, x_end=d["x"] - 1)
         if not di or hi is None:
             warn(f"{name}: {'date' if not di else 'head'} words not found at the marker position")
@@ -1415,8 +1442,6 @@ def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None
         n_end = (nr["date"]["x"] - 1 if nr is not None and nr["date"] is not None
                  and nr["date"].get("page") == pg else cr)
         ni = _first_word(pw, nxt["x"], nxt["y"], nxt["y"] + 40, x_end=n_end) if nxt is not None else None
-        oi = (_first_word(pw, o["x"], o["y"], o["y"] + max(o.get("h", 0), 6) + 4, x_end=cr)
-              if oy is not None else None)
         # first word READ of anything set below the head block in this column
         # (org line, bullet, next head, next section title)
         bi = min((i for i, w in enumerate(pw)
@@ -1424,17 +1449,15 @@ def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None
         st["unmeasured"] -= 1
         st["measured"] += 1
         if ni is not None and last > ni:
-            out.append(f"{name}: its date is emitted AFTER the next entry starts "
-                       "— a narrow date (bare year such as \"2012\") right-flushed on the role "
-                       "row, with no line under it reaching below the date, is clustered alone by "
-                       "pdftotext and emitted late. " + fix)
+            out.append(action(name, h, d, o) + f" — measured: {name}'s date is emitted AFTER "
+                       "the next entry starts, so it is read with the wrong entry" + why)
         elif oi is not None and last > oi:
-            out.append(f"{name}: the extracted text reads the employer line "
-                       "BEFORE the date (role/org boxes overlap? raise the in-head gap in lib.typ entry) "
-                       + late + fix)
+            out.append(action(name, h, d, o) + f" — measured: the extracted text reads "
+                       f"{name}'s employer line BEFORE its date, so a parser reads the date as "
+                       "missing" + why)
         elif bi is not None and last > bi:
-            out.append(f"{name}: its date is emitted AFTER text set below the entry head "
-                       f'(read first: "{pw[bi][1][:30]}") ' + late + fix)
+            out.append(action(name, h, d, o) + f" — measured: {name}'s date is emitted "
+                       f'AFTER text set below the entry head (read first: "{pw[bi][1][:30]}")' + why)
         elif o is not None and oi is None:
             warn(f"{name}: employer line words not found at the marker position")
     return out
@@ -1792,6 +1815,7 @@ KNOWN_LIB_SHA256 = {
     "5cf956d8341d41f9970e23074ac362cdf52d6d79f649d8f620a53b31e5a2989f",
     "7f50222c3394eee82bbfc1ac470c691c4b3756da0c0615d91e23d6d1394af8f9",
     "c037a4309decb8dfcf10058624f0b0ded8d466606bcabf9e327766bb99e6a99b",
+    "817c4ec76e6e55e5767ecb402b2c2ff44ae167f91416ca40f573b42d87e2d76e",
 }
 
 
@@ -2489,37 +2513,94 @@ def main():
                 ("same role twice, one trap", 'ok("Engineer", "Acme", "2020 – 2023"); bare("Engineer", "2019"); ok("Engineer", "Beta", "2015 – 2019")', "fail"),
                 ("old lib heads", 'old("Engineer", "Acme")', "warn"),
             ]
-            with tempfile.TemporaryDirectory(prefix="vitae-date-") as _td:
-                for _f in ("lib.typ", "icons.typ"):
-                    shutil.copy(os.path.join(_lib, _f), _td)
-                _src = os.path.join(_td, "t.typ")
-                with open(_src, "w", encoding="utf-8") as _fh:
-                    _fh.write(_pre + "\n#pagebreak()\n".join(f"#{{ {b} }}" for _, b, _ in _cases))
-                _pdf = os.path.join(_td, "t.pdf")
-                _r = subprocess.run(["typst", "compile", _src, _pdf], capture_output=True, text=True)
-                assert _r.returncode == 0, _r.stderr
-                _marks = _typst_query(_src, ENTRY_MARKS)
-                _words = word_boxes(_pdf, with_text=True)
-                assert _marks is not None and _words is not None and len(_words) == len(_cases)
-            for _p, (_n, _b, _exp) in enumerate(_cases, 1):
-                _w = []
-                _f = check_date_adjacency("", "", marks=[m for m in _marks if m.get("page") == _p],
-                                          warns=_w, words=_words)
-                _got = "fail" if _f else "warn" if _w else "pass"
+            def _layouts(pre, cases):
+                """Compile one page per case; yield (name, expected, got, fails, warns, marks, words)."""
+                with tempfile.TemporaryDirectory(prefix="vitae-date-") as _td:
+                    for _f in ("lib.typ", "icons.typ"):
+                        shutil.copy(os.path.join(_lib, _f), _td)
+                    _src = os.path.join(_td, "t.typ")
+                    with open(_src, "w", encoding="utf-8") as _fh:
+                        _fh.write(pre + "\n#pagebreak()\n".join(f"#{{ {b} }}" for _, b, _ in cases))
+                    _pdf = os.path.join(_td, "t.pdf")
+                    _r = subprocess.run(["typst", "compile", _src, _pdf], capture_output=True, text=True)
+                    assert _r.returncode == 0 and "converge" not in _r.stderr, _r.stderr
+                    _marks = _typst_query(_src, ENTRY_MARKS)
+                    _words = word_boxes(_pdf, with_text=True)
+                    assert _marks is not None and _words is not None and len(_words) == len(cases)
+                for _p, (_n, _b, _exp) in enumerate(cases, 1):
+                    _w, _pm = [], [m for m in _marks if m.get("page") == _p]
+                    _f = check_date_adjacency("", "", marks=_pm, warns=_w, words=_words)
+                    yield _n, _exp, "fail" if _f else "warn" if _w else "pass", _f, _w, _pm, _words[_p - 1]
+            for _n, _exp, _got, _f, _w, _pm, _pw in _layouts(_pre, _cases):
                 assert _got == _exp, (_n, _got, _f or _w)
-                if _n == "B.Sc. 2012 orphan":
-                    assert len(_f) == 1 and "B.Sc. Physics" in _f[0] and "next entry starts" in _f[0], _f
+                if _n == "B.Sc. 2012 orphan":   # no line under the role: the action is to add one
+                    assert (len(_f) == 1 and _f[0].startswith('give entry "B.Sc. Physics" an org')
+                            and "next entry starts" in _f[0]), _f
                 if _n == "trap order":
-                    assert "month range" in _f[0] and "Backend Developer" in _f[0], _f
+                    assert _f[0].startswith('lengthen the org/descriptor line of entry "Backend Developer"'), _f
                 if _n == "same role twice, one trap":
                     assert len(_f) == 1, _f
                 if _n.startswith("org-less 2012") and _exp == "fail":
-                    assert any("below the entry head" in m for m in _f), _f
+                    assert any("below the entry head" in m and m.startswith("give ") for m in _f), _f
                 if _n == "next entry with empty role":
                     assert len(_w) == 1 and "head words not found" in _w[0], _w
                 if _n == "old lib heads":
                     assert any("no lib markers" in m for m in _w), _w
-            print(f"selftest date adjacency: {len(_cases)} typst layouts measured")
+            # DATE ANCHOR (lib entry): a bullet-less entry whose org line stops short of
+            # its right-flushed date, with nothing further down reaching under it, sets
+            # the date inline after the role. Letter width, so short lines stay short.
+            # run6f (local-model run, color-band): with the 0.6.11 lib its B.Sc. date was
+            # emitted last on the page; here it must read B.Sc. -> date -> org.
+            _pre2 = ('#import "lib.typ": *\n#set page(width: 21.59cm, height: 14cm, margin: 1.5cm)\n'
+                     '#set text(size: 10pt)\n'
+                     '#let sec(t, body) = wd-section((t, b) => block(above: 9pt)[#strong(upper(t)) #b])(t, body)\n'
+                     '#let job(r, o, d, n) = entry(r, o, d, n)\n'
+                     '#let sk(l, i) = srow(strong(l), i, brk: true, brk-gap: 2pt, above: auto, below: 0pt)\n')
+            _long = ("Montréal · what the employer is, in one clause · full-time, hybrid, on-site three days "
+                     "a week, remote otherwise")
+            _cases2 = [
+                ("run6f education",
+                 'sec("Education")[#job("B.Sc. Computer Science", "Université de Montréal", '
+                 '"Sep 2022 – May 2026 (expected)", "Montréal · GPA 3.6/4.3")\n'
+                 '#job("DEC in Science", "Collège Riverside", "", "Laval · 2020 – 2022")]; '
+                 'sec("Technical Stack")[#sk("PROGRAMMING", [Python, Go, SQL, Rust, Bash]) '
+                 '#sk("BACKEND", [FastAPI, PostgreSQL])]; '
+                 'sec("Languages")[Bilingual — English (fluent), French (native)]', "pass"),
+                ("short org, no note, last on page",
+                 'sec("Certifications")[#job("AWS Solutions Architect", "Amazon", "Mar 2023 – Mar 2026", none)]', "pass"),
+                ("empty note", 'sec("Education")[#job("B.Sc.", "Uni", "Sep 2019 – May 2023", "")]', "pass"),
+                ("long org reaches", f'sec("Education")[#job("B.Sc.", "Université de Montréal", "Sep 2019 – May 2023", "{_long}")]', "pass"),
+                ("long role wraps",
+                 'sec("Education")[#job("Senior Staff Principal Distinguished Software Engineering Architect and '
+                 'Technical Lead for the Platform Group", "Acme", "Sep 2022 – May 2026 (expected)", "")]', "pass"),
+                ("long role + long date, bullets",
+                 'sec("Experience")[#job("Senior Staff Principal Distinguished Software Engineering Architect and '
+                 'Technical Lead", "Acme Corporation International", "September 2022 – May 2026 (expected, part-time)", '
+                 f'"{_long}")\n- Led the migration of the billing platform to an event-driven design used by every team]', "pass"),
+                ("two-column family",
+                 'grid(columns: (4.2cm, 1fr), column-gutter: 14pt, sec("Contact")[a\@b.c \\ 555-0100 \\ Montréal], '
+                 'sec("Education")[#job("B.Sc. Computer Science", "Université de Montréal", "Sep 2022 – May 2026", "Montréal")\n'
+                 '#job("DEC in Science", "Collège Riverside", "Aug 2020 – May 2022", "Laval")])', "pass"),
+                ("bullets that do not reach", 'sec("Experience")[#job("Engineer", "Acme", "Jan 2020 – Mar 2021", "")\n- b]', "fail"),
+                ("same, descriptor lengthened",
+                 f'sec("Experience")[#job("Engineer", "Acme", "Jan 2020 – Mar 2021", "{_long}, twice a month")\n- b]', "pass"),
+            ]
+            _inline = {"run6f education": True, "short org, no note, last on page": True, "empty note": True,
+                       "long org reaches": False, "long role wraps": True,
+                       "long role + long date, bullets": False, "bullets that do not reach": False}
+            for _n, _exp, _got, _f, _w, _pm, _pw in _layouts(_pre2, _cases2):
+                assert _got == _exp, (_n, _got, _f or _w)
+                _dm = [m for m in _pm if m.get("kind") == "date"]
+                if _n in _inline:
+                    assert bool(_dm[0].get("inline")) == _inline[_n], (_n, _dm)
+                if _n == "bullets that do not reach":
+                    assert _f[0].startswith('lengthen the org/descriptor line of entry "Engineer"'), _f
+                # never two words colliding on one line (role vs date, wrapped or not)
+                _bx = [b for b, _t in _pw]
+                assert not any(abs((a[1] + a[3]) - (b[1] + b[3])) < 6 and a[0] < b[2] - 0.5 and b[0] < a[2] - 0.5
+                               for i, a in enumerate(_bx) for b in _bx[i + 1:]), _n
+            print(f"selftest date adjacency: {len(_cases) + len(_cases2)} typst layouts measured "
+                  "(date anchor: run6f education reads in place)")
         else:
             print("selftest date adjacency SKIPPED (typst / pdftotext not on PATH)")
         # _first_word honours the column bound: a word right of x_end (the next

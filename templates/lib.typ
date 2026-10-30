@@ -163,15 +163,27 @@
 // the entry was given no date, so "no date marker" is told apart from "a lib
 // without part markers".
 #let head-plain(c) = if type(c) == str { c } else if c == [ ] { " " } else if c.has("text") { c.text } else if c.has("body") { head-plain(c.body) } else if c.has("child") { head-plain(c.child) } else if c.has("children") { c.children.map(head-plain).join("") } else { "" }
-#let head-mark(kind, label, org: none, dated: none) = context [#metadata((
+#let head-mark(kind, label, org: none, dated: none, reach: none) = context [#metadata((
   kind: kind, text: head-plain(label), org: if org == none { "" } else { head-plain(org) },
   page: here().position().page, x: here().position().x.pt(), y: here().position().y.pt())
-  + if dated == none { (:) } else { (dated: dated) }) <vitae-head>]
-#let part-mark(kind, c) = context {
+  + if dated == none { (:) } else { (dated: dated, anchor: true) }
+  + if reach == none { (:) } else { (reach: calc.max(..reach.map(c => measure(c).width.pt()))) }) <vitae-head>]
+#let part-mark(kind, c, extra: (:)) = context {
   let p = here().position()
   let m = measure(c)
   [#metadata((kind: kind, text: head-plain(c), page: p.page, x: p.x.pt(), y: p.y.pt(),
-    w: m.width.pt(), h: m.height.pt())) <vitae-part>]
+    w: m.width.pt(), h: m.height.pt()) + extra) <vitae-part>]
+}
+// `list-reach` tags every list inside a `wd-section` body (<vitae-list>) with
+// its left x and the natural width each item reaches from there, and a skill
+// row's head carries `reach` the same way, so an `entry` can tell whether any
+// text set below its right-flushed date will reach under it (see `entry`).
+// Pure metadata, no layout effect.
+#let list-reach(it) = context {
+  let ws = it.children.map(i => measure(i.body).width)
+  let off = measure(it).width - calc.max(0pt, ..ws)
+  [#metadata((kind: "list", page: here().page(), x: here().position().x.pt(),
+    y: here().position().y.pt(), reach: calc.max(0, ..ws.map(w => (w + off).pt())))) <vitae-list>]
 }
 #let has-text(c) = { let t = if c == none { none } else { head-plain(c) }; type(t) == str and t.trim() != "" }
 #let sec-mark(t) = context [#metadata((
@@ -182,7 +194,7 @@
 //     #let section = wd-section(section)
 // Identity when the flag is absent.
 #let wd-section(f) = if not workday {
-  (t, body, ..args) => { sec-mark(t); f(t, body, ..args) }
+  (t, body, ..args) => { sec-mark(t); f(t, { show list: it => { list-reach(it); it }; body }, ..args) }
 } else {
   (t, body, ..args) => if wd-norm(t) in wd-omit or (wd-norm(t) in wd-projects and wd-norm(t) not in wd-keep-names) { none } else {
     wd-section-name.update(t)
@@ -233,9 +245,9 @@
   // role row's descender box and the org line's ascender box (what pdftotext
   // boxes) do not touch; `gap` is the clearance kept on top of it. Both
   // reading-order conditions depend on that box gap staying > 0.
-  let h(c) = measure(c).height
-  let dsc(st) = h(st(text(top-edge: "baseline", bottom-edge: "descender")[gy]))
-  let o(t) = h(text(size: meta-size, org-st(text(top-edge: t, bottom-edge: "baseline")[Hd])))
+  let ht(c) = measure(c).height
+  let dsc(st) = ht(st(text(top-edge: "baseline", bottom-edge: "descender")[gy]))
+  let o(t) = ht(text(size: meta-size, org-st(text(top-edge: t, bottom-edge: "baseline")[Hd])))
   let clr = calc.max(dsc(role-st), dsc(date-st)) + o("ascender") - o("cap-height")
   // Gap ABOVE the entry (to the previous entry's last line): at least the
   // body leading (the gap between two wrapped lines inside the entry), and at
@@ -247,12 +259,58 @@
   }
   let dated = has-text(dates)
   let line = [#org-st(org)#if note != none [#note-st([#sep#note])]]
+  let has-line = has-text(org) or has-text(note)
+  // DATE ANCHOR (call inside `context`; both head cells ask, same answer).
+  // pdftotext — and the ATS extractors that cluster lines the same way —
+  // reads a right-flushed date in place only when a text line set below it
+  // overlaps its x-range; otherwise the date is a column of its own, emitted
+  // after the org line, the next entry, or at the very end of the page
+  // (references/ats.md, Entry-with-no-bullets trap). No layout that keeps a
+  // short entry's date right-flushed can force that: a right-aligned org line
+  // just becomes a second line of the date's column. So a BULLET-LESS entry
+  // whose org line stops short of the date, with no list, skill row or org
+  // line further down the page reaching under it either (all measured from
+  // the markers, never guessed), sets its date INLINE after the role, on the
+  // role line: one line, which every extractor reads in order. An entry with
+  // bullets keeps its look (its bullets and the text column bind the date;
+  // the gate verifies it). Inputs are markers whose x never depends on this
+  // answer (the column's right edge is the date marker's end, or the
+  // `date-col` marker an inline entry leaves in the empty right cell), so the
+  // layout converges.
+  let inline-date() = {
+    let hd = query(selector(<vitae-head>).before(here())).rev().find(m => m.value.kind == "entry")
+    if hd == none { return false }
+    let hd = hd.value
+    let after = query(selector(<vitae-head>).or(<vitae-part>).or(<vitae-list>).or(<vitae-sec>)
+      .after(here())).map(m => m.value)
+    let cut = after.position(v => v.at("kind", default: "sec") in ("entry", "skill", "list", "sec"))
+    let (own, rest) = if cut == none { (after, ()) } else { (after.slice(0, cut), after.slice(cut)) }
+    let col = own.find(v => v.kind == "date-col")
+    let dm = own.find(v => v.kind == "date")
+    let colr = if col != none { col.x } else if dm != none and not dm.at("inline", default: false) {
+      dm.x + dm.w } else { return false }
+    let dx = colr - measure(date-st(dates)).width.pt()
+    let under(x, r) = x < colr and x + r >= dx + 0.5
+    if under(hd.x, measure(text(size: meta-size, line)).width.pt()) { return false }
+    if (rest.len() > 0 and rest.first().at("kind", default: none) == "list"
+        and rest.first().page == hd.page) { return false }
+    not rest.filter(v => v.page == hd.page and v.y > hd.y).any(v =>
+      if v.at("kind", default: none) == "org" { under(v.x, v.w) }
+      else { "reach" in v and under(v.x, v.reach) })
+  }
+  let date-mark(inline) = part-mark("date", date-st(dates), extra: if inline { (inline: true) } else { (:) })
   let plain = block(above: ab, below: below, sticky: true)[
     #block(spacing: 0pt, grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
-      [#head-mark("entry", role, org: org, dated: dated)#role-st(role)],
-      if dated [#part-mark("date", date-st(dates))#date-st(dates)] else { date-st(dates) }))
+      [#head-mark("entry", role, org: org, dated: dated)#if dated and has-line { context {
+        if inline-date() [#role-st(role)#sep#date-mark(true)#date-st(dates)] else { role-st(role) }
+      } } else { role-st(role) }],
+      if dated and has-line { context {
+        if inline-date() [#context [#metadata((kind: "date-col", page: here().page(),
+          x: here().position().x.pt(), y: here().position().y.pt())) <vitae-part>]]
+        else [#date-mark(false)#date-st(dates)]
+      } } else if dated [#date-mark(false)#date-st(dates)] else { date-st(dates) }))
     #v(clr + gap)
-    #text(size: meta-size)[#if has-text(org) or has-text(note) { part-mark("org", line) }#line]
+    #text(size: meta-size)[#if has-line { part-mark("org", line) }#line]
   ]
   if not workday { plain } else {
     // Workday parse-only copy: one field per line, Employer / Title / Dates
@@ -294,9 +352,10 @@
     // `brk-gap` over its items (tighter than the leading), so the label reads
     // as the head of ITS items, not as the tail of the row above. Same
     // emission order as the one-paragraph form: label, then items.
-    block[#set par(spacing: 0pt); #par[#head-mark("skill", label)#label]#v(brk-gap)#par(hanging-indent: hang, items)]
+    block[#set par(spacing: 0pt); #par[#head-mark("skill", label, reach: (label, items))#label]#v(brk-gap)#par(hanging-indent: hang, items)]
   } else {
-    let body = if brk { [#head-mark("skill", label)#label \ #items] } else { [#head-mark("skill", label)#label #items] }
+    let body = if brk { [#head-mark("skill", label, reach: (label, items))#label \ #items] } else {
+      [#head-mark("skill", label, reach: ([#label #items],))#label #items] }
     par(hanging-indent: hang, body)
   }
   if above == none and below == none { row } else if above == auto {
