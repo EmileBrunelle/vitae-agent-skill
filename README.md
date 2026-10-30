@@ -7,7 +7,7 @@
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/license-mit.svg" alt="License: MIT"></a>
   <img src="assets/badges/status-beta.svg" alt="Status: beta 0.7.0">
-  <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst"></a>
+  <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst 0.15+"></a>
   <a href="https://www.python.org/downloads/"><img src="assets/badges/python.svg" alt="Python 3.11+"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills.svg" alt="Agent Skills open standard"></a>
 </p>
@@ -78,7 +78,7 @@ The agent will collect facts, pick the regional conventions, draft from the temp
 
 ## Requirements
 
-`typst` (0.13+, verified on 0.15) and Python 3.11+ with Pillow for the fill measurement. `pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdf` automatically when only that is installed. Run `python3 scripts/verify.py --doctor` (any platform) to diagnose — read-only, prints the right install command per platform, official repos first. LibreOffice/soffice is optional, only needed to generate editable copies (.docx/.odt) derived from the compiled PDF.
+`typst` 0.15+ (older versions lay the templates out differently and miss their fill targets) and Python 3.11+ with Pillow for the fill measurement. `pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdf` automatically when only that is installed. Run `python3 scripts/verify.py --doctor` (any platform) to diagnose — read-only, prints the right install command per platform, official repos first. LibreOffice/soffice is optional, only needed to generate editable copies (.docx/.odt) derived from the compiled PDF.
 
 Platform notes:
 - **Linux / macOS**: works as-is (Apple Silicon handled).

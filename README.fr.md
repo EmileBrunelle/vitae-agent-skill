@@ -7,7 +7,7 @@
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/licence-mit.svg" alt="Licence : MIT"></a>
   <img src="assets/badges/statut-beta.svg" alt="Statut : bêta 0.7.0">
-  <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst"></a>
+  <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst 0.15+"></a>
   <a href="https://www.python.org/downloads/"><img src="assets/badges/python.svg" alt="Python 3.11+"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills-fr.svg" alt="Standard ouvert Agent Skills"></a>
 </p>
@@ -78,7 +78,7 @@ L'agent recueille les faits, choisit les conventions régionales, rédige à par
 
 ## Prérequis
 
-`typst` (0.13+, vérifié sur 0.15) et Python 3.11+ avec Pillow pour la mesure du remplissage. `pdfinfo`/`pdftotext` (poppler-utils) recommandés; se replie automatiquement sur `pypdf` si seul celui-ci est installé. Lancez `python3 scripts/verify.py --doctor` (toute plateforme) pour diagnostiquer — en lecture seule, affiche la bonne commande d'installation par plateforme, dépôts officiels en premier. LibreOffice/soffice est optionnel, requis seulement pour générer des copies éditables (.docx/.odt) dérivées du PDF compilé.
+`typst` 0.15+ (les versions antérieures mettent les gabarits en page autrement et ratent leurs cibles de remplissage) et Python 3.11+ avec Pillow pour la mesure du remplissage. `pdfinfo`/`pdftotext` (poppler-utils) recommandés; se replie automatiquement sur `pypdf` si seul celui-ci est installé. Lancez `python3 scripts/verify.py --doctor` (toute plateforme) pour diagnostiquer — en lecture seule, affiche la bonne commande d'installation par plateforme, dépôts officiels en premier. LibreOffice/soffice est optionnel, requis seulement pour générer des copies éditables (.docx/.odt) dérivées du PDF compilé.
 
 Notes par plateforme :
 - **Linux / macOS** : fonctionne tel quel (Apple Silicon pris en charge).
