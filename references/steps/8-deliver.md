@@ -1,6 +1,6 @@
 # Step 8 — Deliver
 
-8. **Deliver.** PDFs plus `.typ` sources (one-minute retailoring per application is a selling point). For a hand-off to the candidate, build the self-contained archive per `references/companion-guide.md`'s Delivery package section (rebuild/package scripts, README, final fact-sheet validation step). When the person commissioning the CV is not the candidate:
+8. **Deliver.** Precondition: the final report carries `Visual pass: …` (step 6) and, on the full path or after a redesign, `Layout review: …` (step 7). Deliver only if `Visual pass:` is present and not `skipped`, and every FAIL from it was fixed or explicitly reported to the user; otherwise go back to step 6. PDFs plus `.typ` sources (one-minute retailoring per application is a selling point). For a hand-off to the candidate, build the self-contained archive per `references/companion-guide.md`'s Delivery package section (rebuild/package scripts, README, final fact-sheet validation step). When the person commissioning the CV is not the candidate:
    - Every deliverable aimed at the candidate (guide, README, emails, file and asset names) is written in the candidate's language, never the requester's.
    - Questions for the candidate are diffed against the fact sheet before sending (never ask what is already known), rephrased in plain language (never a raw reviewer finding), kept short, and sent in the candidate's language.
    - Do not hand off the final package while open questions could still change its content.
