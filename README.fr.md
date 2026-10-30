@@ -228,14 +228,9 @@ assets/example-1page.png         # rendu d'exemple du gabarit
 
 Les issues et les PR sont bienvenues — les packs de domaine (soins
 infirmiers, finance, métiers…) et les lignes de la matrice régionale sont les
-contributions à plus forte valeur. Gardez chaque affirmation vérifiable;
-validez avec `npx skills-ref validate .` ([spécification Agent Skills](https://agentskills.io/specification));
-la culture de ce skill est « mesuré, pas estimé à l'œil ».
-
-Les issues, les descriptions de PR et les commentaires de revue peuvent être
-rédigés en français ou en anglais. Les fichiers du dépôt (`SKILL.md`,
-références, code, commentaires, messages de commit) restent en anglais, sauf
-ce README en français.
+contributions à plus forte valeur. Voir [CONTRIBUTING.md](CONTRIBUTING.md)
+(en anglais, avec un résumé en français) pour la langue, les vérifications et
+le changement de version.
 
 ## Licence
 

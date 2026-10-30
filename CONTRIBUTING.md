@@ -1,0 +1,95 @@
+# Contributing to vitae
+
+Thanks for helping. This project is bilingual (English and French).
+
+## Language
+
+Issues, PR descriptions and review comments can be written in English or French.
+Files in the repository (`SKILL.md`, references, code, comments, commit
+messages) stay in English, except `README.fr.md`.
+
+## What helps most
+
+- **Field packs** — like [`references/field-software-dev.md`](references/field-software-dev.md), for other
+  fields (nursing, finance, trades, ...).
+- **Regional matrix rows** — every country is verified individually, from a
+  source. Never generalise one candidate's experience to a country.
+
+## Culture: measured, not eyeballed
+
+Every claim must be verifiable, with a source or a command that reproduces it.
+"It looks fine" is not evidence; a gate that passes is.
+
+## Before opening a PR
+
+Run from the repository root (needs `typst`, `pdftotext`, Python 3).
+
+1. Self-tests:
+   ```
+   python3 -I scripts/verify.py --selftest
+   python3 -I scripts/pick_design.py --selftest
+   ```
+2. The 29 templates against their fill targets. The target is
+   `pick_design.FAMILIES[f]['page']['fill']`. The templates are
+   `templates/families/<f>/resume.typ` and `resume-pair-b.typ` at 1 page, plus
+   `swiss-grid/resume-2page.typ` at `2 94 96`. `verify.py` writes PDFs next to
+   the `.typ`, so work on a scratch copy:
+   ```
+   S=$(mktemp -d); cp -r templates scripts references "$S"/; cd "$S"
+   for f in $(ls templates/families); do
+     fill=$(python3 -I -c "import sys; sys.path.insert(0,'scripts'); import pick_design as p; print(p.FAMILIES['$f']['page']['fill'].replace('-',' '))")
+     for t in resume resume-pair-b; do
+       python3 -I scripts/verify.py templates/families/$f/$t.typ 1 $fill | tail -1
+     done
+   done
+   python3 -I scripts/verify.py templates/families/swiss-grid/resume-2page.typ 2 94 96 | tail -1
+   ```
+   Every line must start with `PASS`.
+3. Spacing fixtures, then the gates on each:
+   ```
+   tests/fixtures/render.sh /tmp/fx
+   for f in tests/fixtures/*.typ; do n=$(basename "$f" .typ)
+     python3 -I scripts/verify.py --gates "$f" /tmp/fx/$n.pdf --root .; done
+   ```
+   No `FAIL` line may appear.
+4. Spec validation, from a directory named `vitae` (the validator requires the
+   directory name to match the skill name):
+   ```
+   npx skills-ref validate .
+   ```
+
+## Branching
+
+`main` always holds the latest released, tested version: `npx skills add/update`
+installs the default branch, so anything merged to `main` ships to every user at
+once. Fork, work on a topic branch, open the PR against `main`. PRs are merged at
+release time with the version bump and CHANGELOG entry, not one by one. There is
+no long-lived dev branch.
+
+## Rules for templates
+
+- Never edit `templates/families/*/lib.typ`: they are symlinks to
+  `templates/lib.typ`.
+- A change to `templates/lib.typ` must keep the 29 templates pixel-identical,
+  or the PR must say why not.
+
+## Version bump
+
+A user-visible change bumps all three together:
+`version:` in `SKILL.md`, the README badges (`assets/badges/status-beta.svg` and
+`statut-beta.svg`, regenerated from shields.io), and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+
+## En français
+
+Les issues, descriptions de PR et commentaires de revue peuvent être en
+français ou en anglais; les fichiers du dépôt restent en anglais (sauf
+`README.fr.md`). Les contributions les plus utiles sont les packs de domaine et
+les lignes de la matrice régionale, chaque pays vérifié séparément à la
+source. Tout doit être mesuré et vérifiable. Avant une PR : les deux
+`--selftest`, les 29 gabarits contre leurs cibles de remplissage, les fixtures
+avec `verify.py --gates`, et `npx skills-ref validate .`. Ne modifiez jamais
+les `lib.typ` des familles (liens vers `templates/lib.typ`). `main` contient toujours la dernière version publiée et testée
+(`npx skills` installe la branche par défaut) : forkez, travaillez sur une
+branche thématique, ouvrez la PR vers `main`; les PR sont fusionnées à la
+publication, avec le changement de version, sans branche dev durable. Une version
+change `SKILL.md`, les badges et `CHANGELOG.md` ensemble.

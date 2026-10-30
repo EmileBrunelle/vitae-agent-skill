@@ -207,13 +207,8 @@ assets/example-1page.png         # rendered template example
 ## Contributing
 
 Issues and PRs welcome — field packs (nursing, finance, trades…) and regional
-matrix rows are the highest-value contributions. Keep every claim verifiable;
-validate with `npx skills-ref validate .` ([Agent Skills spec](https://agentskills.io/specification));
-this skill's culture is "measured, not eyeballed".
-
-Issues, PR descriptions and review comments can be written in English or
-French. Files in the repository (`SKILL.md`, references, code, comments,
-commit messages) stay in English, except the French README.
+matrix rows are the highest-value contributions. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the language rule, the checks to run and the version-bump rule.
 
 ## License
 
