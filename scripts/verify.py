@@ -516,8 +516,10 @@ LINE_GAP = 1.0
 def _pdfium_page_text(pg: Any) -> str:
     """pypdfium2's page text with its lines cut like pdftotext's. pdfium joins cells that
     share a baseline (a contact row, a left-flushed role and its right-flushed date) into one
-    line; pdftotext starts a new line where the gap to the previous character exceeds 1.5 x
-    the box height, which is the cut `_reading_order` makes. A gap with whitespace in it
+    line; a new line starts where the gap to the previous character exceeds LINE_GAP (1.0) x the
+    box height. That value was picked by search against pdftotext's line counts: poppler's own
+    cut is not purely geometric, and `_reading_order` cuts its pieces at 1.5 x for a different
+    purpose (reading order). A gap with whitespace in it
     becomes the newline; a gap without any gets one inserted. Trailing blanks are dropped."""
     tp = pg.get_textpage()
     if not tp.count_chars():
@@ -1809,7 +1811,13 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
         outside = [(pno, t) for pno, t in outside if not all((pno, w) in seen for w in t.split())]
     found += outside
     if not ran:
-        msgs.append(("WARN", "hidden text: off-page check not run (pypdf missing)"))
+        if pdf_backend() == "pdfium":
+            # pdfium keeps off-page glyphs, so the word-box check above covered them; the
+            # tiny-text check is pypdf's alone
+            msgs.append(("WARN", "hidden text: off-page check ran on pdfium word boxes only; tiny-text "
+                                 "check not run (pypdf missing)"))
+        else:
+            msgs.append(("WARN", "hidden text: off-page check not run (pypdf missing)"))
     for n, (pno, text) in enumerate(found):
         if n == 5:
             msgs.append(("FAIL", f"hidden text: remove all {len(found) - 5} other hidden run(s) too — " + HIDDEN_TAIL))
@@ -2369,9 +2377,10 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
         wb = word_boxes(pdf, with_text=True)
         pages = [[(b[0], b[1], b[2], b[3], t) for b, t in pg] for pg in wb] if wb else None
     if heads is None or pages is None:
-        return [("WARN", "group proximity NOT checked (typst query unavailable or "
-                          + ("word positions unreadable: " + _boxes_unavailable() if pdf_backend() == "pdfium"
-                             else "pdftotext unavailable") + ")")]
+        if pdf_backend() == "pdfium":
+            return [("WARN", "group proximity NOT checked (typst query unavailable or word positions "
+                             "unreadable: " + _boxes_unavailable() + ")")]
+        return [("WARN", "group proximity NOT checked (typst query or pdftotext unavailable)")]
     if not heads:
         return [("WARN", "group proximity not measured: no lib entry()/srow() heads")]
     rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
@@ -3724,7 +3733,8 @@ def _selftest() -> NoReturn:
                     del sys.modules["pypdf"]
                 else:
                     sys.modules["pypdf"] = _saved
-            assert ("WARN", "hidden text: off-page check not run (pypdf missing)") in _res, _res
+            assert ("WARN", "hidden text: off-page check not run (pypdf missing)") in _res if pdf_backend() != "pdfium" \
+                else any("ran on pdfium word boxes only" in m for _, m in _res), _res
         print(f"selftest hidden text: {len(_cases)} layouts + 6 metadata sets + attachment + no-pypdf measured")
     else:
         print("selftest hidden text SKIPPED (typst / pdftoppm / pdftotext not on PATH)")
