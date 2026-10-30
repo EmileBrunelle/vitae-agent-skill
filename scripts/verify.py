@@ -1546,19 +1546,24 @@ def tune(typ, expected, fmin, fmax, lo=None, hi=None, step=0.005):
     deps_ok, use_cli, use_poppler = preflight()
     if not deps_ok:
         return 1
+    global _footer
+    _footer = _FOOTER_TUNE
     original = open(typ, encoding="utf-8").read()
     cur = _read_par(original)
     if cur is None:
+        _footer = _FOOTER_TUNE_NOPAR
         print("FAIL  no `#set par(... leading: Xem, spacing: Yem)` line to tune "
               "— the tuner edits that one declaration and nothing else")
         return 2
     l0, s0 = cur
     delta = s0 - l0                       # the family's own rhythm, preserved
+    lo_arg = lo
     lo = l0 * 0.80 if lo is None else lo
     # The default ceiling is relative, but a family with an already-tight
     # leading gets a range too narrow to ever reach the fill target, so the
     # ceiling never sits below 1.10em.
     hi = max(l0 * 1.30, 1.10) if hi is None else hi
+    hi_arg = hi
     print("tuning %s: leading %.3fem (spacing %+.3fem), searching [%.3f, %.3f], "
           "target %s pages / fill %s-%s%%"
           % (typ, l0, delta, lo, hi, expected, fmin, fmax))
@@ -1600,6 +1605,8 @@ def tune(typ, expected, fmin, fmax, lo=None, hi=None, step=0.005):
             # rhythm the family was designed with. Put the original back and
             # let the caller decide.
             open(typ, "w", encoding="utf-8").write(original)
+            if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
+                _footer = _FOOTER_TUNE_WIDE
             print("FAIL  best leading %.3fem / spacing %.3fem -> fill %s%% "
                   "(target %s-%s%%); restored the original %.3fem/%.3fem"
                   % (best, best + delta, best_fill, fmin, fmax, l0, s0))
@@ -1880,6 +1887,24 @@ def check_lib_integrity(typ_path, skill_dir=None, known=None):
                      f"— recopy it byte-for-byte: {cp}")]
 
 
+# The last lines printed when a run ends on a FAIL. A reader (human or model)
+# acts on what it sees LAST, so the instruction is here, not only in the header.
+# Armed (set non-None) only after preflight succeeded, per mode, so a missing
+# dependency or a usage error never gets a footer that blames cv.typ.
+_NO_READ = ("      Do not open verify.py or lib.typ: their code is not the fix, and "
+            "reading them costs your context.")
+_FOOTER_GATE = ("NEXT  Apply the fix each FAIL above names, then re-run the same command. "
+                "Edit cv.typ only; a lib.typ FAIL is fixed by the printed `cp` command "
+                "(recopy it, never edit it).\n" + _NO_READ)
+_FOOTER_TUNE = ("NEXT  Run the command printed above (wider range), or add real content / "
+                "change the page count in cv.typ; do not edit leading by hand.\n" + _NO_READ)
+_FOOTER_TUNE_NOPAR = ("NEXT  Add the `#set par(leading: Xem, spacing: Yem)` line to cv.typ "
+                      "(copy it from the template), then re-run the same command.\n" + _NO_READ)
+_FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Add real content "
+                     "or change the page count in cv.typ.\n" + _NO_READ)
+_footer = None
+
+
 def main():
     argv = sys.argv[1:]
 
@@ -1893,6 +1918,8 @@ def main():
         if len(argv) < 3:
             sys.exit("usage: verify.py --gates cv.typ cv.pdf [--root DIR]")
         root = argv[argv.index("--root") + 1] if "--root" in argv else None
+        global _footer
+        _footer = _FOOTER_GATE
         rows = []
         rc = run_new_gates(argv[1], argv[2], extract_text(argv[2], True),
                            open(argv[1], encoding="utf-8").read(), root=root, detail=rows)
@@ -2605,6 +2632,7 @@ def main():
     deps_ok, use_cli, use_poppler = preflight()
     if not deps_ok:
         sys.exit(1)
+    _footer = _FOOTER_GATE
 
     for level, msg in check_lib_integrity(typ):
         print(f"{level}  {msg}")
@@ -2624,7 +2652,8 @@ def main():
     if pages == expected:
         print(f"OK    pages: {pages}")
     else:
-        print(f"FAIL  pages: {pages} (expected {expected})")
+        print(f"FAIL  pages: {pages} (expected {expected}) — cut or add real content in cv.typ "
+              f"(or, if {expected} was the wrong target, re-run with the right page count)")
         fail = 1
 
     family = family_from_path(typ)
@@ -2655,7 +2684,9 @@ def main():
                     continue
                 y = int(m.group(1))
                 if y < int(fmin) or y > int(fmax):
-                    print(f"FAIL  fill: {path}: {result} (target {fmin}-{fmax}%)")
+                    print(f"FAIL  fill: {path}: {result} (target {fmin}-{fmax}%) — "
+                          f"run `scripts/verify.py --tune {typ} {expected} {fmin} {fmax}` "
+                          "(adjusts leading), or add/cut real content")
                     fail = 1
                 else:
                     print(f"OK    fill: {path}: {result}")
@@ -2756,5 +2787,14 @@ def main():
     sys.exit(fail)
 
 
+def _run():
+    try:
+        main()
+    except SystemExit as e:
+        if _footer and isinstance(e.code, int) and e.code != 0:
+            print(_footer, flush=True)
+        raise
+
+
 if __name__ == "__main__":
-    main()
+    _run()
