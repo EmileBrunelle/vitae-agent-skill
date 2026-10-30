@@ -1,9 +1,6 @@
 # Font provenance and installation
 
-`scripts/pick_design.py` is the single source of truth for **which** faces each
-design family may draw (its `FONTS` table). This file answers the other
-question: when the script prints a face with provenance **`GF`**, where does it
-come from, what is its licence, and how do you install it.
+`scripts/pick_design.py` is the single source of truth for **which** faces each design family may draw (its `FONTS` table). This file answers the other question: when the script prints a face with provenance **`GF`**, where does it come from, what is its licence, and how do you install it.
 
 Provenance in `pick_design.py` takes exactly three forms:
 
@@ -13,21 +10,15 @@ Provenance in `pick_design.py` takes exactly three forms:
 | `GF · Linux: <package>` | on Google Fonts AND packaged on some Linux distros: either download it (routes below) or install the named package |
 | `GF (...)` | Google Fonts only. Not installed anywhere by default — one of the two routes below |
 
-Every face in every pool is under the **SIL Open Font License 1.1 (OFL)**
-except where the table says otherwise. OFL permits redistribution and embedding
-in a PDF without attribution in the document, which is why the pools are
-restricted to it: a CV is a file you hand to strangers, and a font you cannot
-legally embed is a font that will be substituted on their machine.
+Every face in every pool is under the **SIL Open Font License 1.1 (OFL)** except where the table says otherwise. OFL permits redistribution and embedding in a PDF without attribution in the document, which is why the pools are restricted to it: a CV is a file you hand to strangers, and a font you cannot legally embed is a font that will be substituted on their machine.
 
-**None of these files are vendored in this repository.** The skill ships
-recipes, not binaries. That keeps the repo small and the licences unambiguous.
+**None of these files are vendored in this repository.** The skill ships recipes, not binaries. That keeps the repo small and the licences unambiguous.
 
 ## The two installation routes
 
 ### Route 1 — install into the user font directory (persistent, recommended)
 
-Once per machine. Every Typst run then sees the face, with no flags, and so
-does every other application.
+Once per machine. Every Typst run then sees the face, with no flags, and so does every other application.
 
 ```sh
 # Linux / BSD
@@ -42,62 +33,42 @@ cp /path/to/downloaded/*.ttf ~/Library/Fonts/
 #   copy the .ttf files into %LOCALAPPDATA%\Microsoft\Windows\Fonts
 ```
 
-Verify — this is the check that matters, because Typst matches on the family
-name that `typst fonts` reports and nothing else:
+Verify — this is the check that matters, because Typst matches on the family name that `typst fonts` reports and nothing else:
 
 ```sh
 typst fonts | grep -i "geist"
 ```
 
-If the family does not appear, Typst will silently fall back to the next entry
-in the family's pool. A missing font is only a *warning* in Typst, never an
-error, so an unverified install shows up as a CV in the wrong typeface rather
-than as a failure. `scripts/verify.py` surfaces the compile warning, but
-`typst fonts` is the direct answer.
+If the family does not appear, Typst will silently fall back to the next entry in the family's pool. A missing font is only a *warning* in Typst, never an error, so an unverified install shows up as a CV in the wrong typeface rather than as a failure. `scripts/verify.py` surfaces the compile warning, but `typst fonts` is the direct answer.
 
 ### Route 2 — `--font-path`, no installation
 
-Useful in CI, in a container, or when you do not want to touch the user
-profile. Keep the files anywhere and point Typst at the directory:
+Useful in CI, in a container, or when you do not want to touch the user profile. Keep the files anywhere and point Typst at the directory:
 
 ```sh
 typst compile --font-path ./fonts cv.typ cv.pdf
 ```
 
-The environment variable `TYPST_FONT_PATHS` does the same thing for every
-invocation in a shell session (colon-separated on Unix, semicolon on Windows):
+The environment variable `TYPST_FONT_PATHS` does the same thing for every invocation in a shell session (colon-separated on Unix, semicolon on Windows):
 
 ```sh
 export TYPST_FONT_PATHS=$PWD/fonts
 ```
 
-Caveat: `--font-path` is *additive* to the system fonts, and it is per-command.
-Anything that shells out to `typst` without passing the flag — including a
-plain `typst compile` you type later — will not see those faces. Route 1 is the
-one that survives.
+Caveat: `--font-path` is *additive* to the system fonts, and it is per-command. Anything that shells out to `typst` without passing the flag — including a plain `typst compile` you type later — will not see those faces. Route 1 is the one that survives.
 
 ## Downloading from Google Fonts
 
 Two equivalent ways, both giving the same OFL files:
 
-- Web: `https://fonts.google.com/specimen/<Family+Name>` → *Get font* →
-  *Download all*. The zip contains the static instances and/or a variable
-  build.
-- Git, for all of them at once:
-  `git clone --depth 1 https://github.com/google/fonts` then take
-  `ofl/<familyname>/` (lowercased, no spaces).
+- Web: `https://fonts.google.com/specimen/<Family+Name>` → *Get font* → *Download all*. The zip contains the static instances and/or a variable build.
+- Git, for all of them at once: `git clone --depth 1 https://github.com/google/fonts` then take `ofl/<familyname>/` (lowercased, no spaces).
 
-Variable fonts are fine and are what Google now ships for most families — a
-single `Family[wght].ttf` covers every weight the recipes ask for. Note that a
-variable build sometimes reports a different family name than the specimen page
-suggests: `Bricolage Grotesque` installs as **`Bricolage Grotesque 96pt`**, and
-that longer string is what has to appear in the `#let dispf = (...)` tuple.
-Always trust `typst fonts` over the download page.
+Variable fonts are fine and are what Google now ships for most families — a single `Family[wght].ttf` covers every weight the recipes ask for. Note that a variable build sometimes reports a different family name than the specimen page suggests: `Bricolage Grotesque` installs as **`Bricolage Grotesque 96pt`**, and that longer string is what has to appear in the `#let dispf = (...)` tuple. Always trust `typst fonts` over the download page.
 
 ## The faces
 
-Family names below are written **exactly as `typst fonts` reports them** — that
-string is what goes in a recipe. All OFL 1.1 unless noted.
+Family names below are written **exactly as `typst fonts` reports them** — that string is what goes in a recipe. All OFL 1.1 unless noted.
 
 ### Faces with a distro package as well as a Google Fonts entry
 
@@ -149,25 +120,12 @@ These are the faces that genuinely require one of the two routes above.
 | Unbounded | `Unbounded` | heavy display |
 | Work Sans | `Work+Sans` | |
 
-Note that `Red Hat Display` and `Red Hat Text` (used by `color-band`) ship in
-the same Google Fonts family group as Red Hat Mono and are packaged as
-`fonts-redhat-text` / `redhat-text-fonts` on some distros.
+Note that `Red Hat Display` and `Red Hat Text` (used by `color-band`) ship in the same Google Fonts family group as Red Hat Mono and are packaged as `fonts-redhat-text` / `redhat-text-fonts` on some distros.
 
 ## The three families with no local display face
 
-Documented exemption to the pools' "at least one local member per role" rule:
-**avant-poster**, **gutter-rail** and **hard-edge** have no display-pool member
-in a standard Linux font set. Their registers — a wonky/heavy grotesque, a
-ruled technical grotesque, a condensed poster face — have no equivalent there,
-and substituting a neo-grotesque erases the family. Their *body* pools do carry
-a local member. If you draw one of these three, installing its display face is
-not optional; `pick_design.py` names the face and this file says where it comes
-from.
+Documented exemption to the pools' "at least one local member per role" rule: **avant-poster**, **gutter-rail** and **hard-edge** have no display-pool member in a standard Linux font set. Their registers — a wonky/heavy grotesque, a ruled technical grotesque, a condensed poster face — have no equivalent there, and substituting a neo-grotesque erases the family. Their *body* pools do carry a local member. If you draw one of these three, installing its display face is not optional; `pick_design.py` names the face and this file says where it comes from.
 
 ## Adding a face to a pool
 
-Vet it first — `references/design.md` § Font pools has the checklist (licence,
-figure sets, weight coverage, no over-used display defaults, extraction
-behaviour). Then add it to `FONTS` in `scripts/pick_design.py`, which is the
-only list; adding it here as well would create a second list that drifts. This
-file documents *provenance and installation*, never which family may use what.
+Vet it first — `references/design.md` § Font pools has the checklist (licence, figure sets, weight coverage, no over-used display defaults, extraction behaviour). Then add it to `FONTS` in `scripts/pick_design.py`, which is the only list; adding it here as well would create a second list that drifts. This file documents *provenance and installation*, never which family may use what.

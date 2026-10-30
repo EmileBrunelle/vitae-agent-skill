@@ -2,88 +2,19 @@
 
 ## Known traps (each verified empirically; details live in the references)
 
-- Hidden text (white, tiny, off-page or background-coloured text; a hidden keyword layer;
-  prompts aimed at AI screeners) is read by ATS and recruiters' tools and disqualifies
-  the CV → never add text a reader cannot see; `verify.py` FAILs it.
-- Year-only dates break ATS duration math → month+year ranges (unless the
-  candidate truly cannot supply months — rule 1 wins, flag it).
-- A `job()`-style entry with no bullets can orphan its date at the end of the
-  extraction → check with the grep in `ats.md`; use a linear one-line entry
-  variant if it happens.
-- One line added to a full page cascades an unbreakable section and changes
-  the page count → re-verify after every edit.
-- One accent color doing six jobs stops signaling → only the two or three
-  jobs the chosen family assigns it; on a duotone family, **1-2 jobs per hue**
-  and hue B stays subordinate (design.md § Duotone).
-- Full-width accent rule under every UPPERCASE heading reads as 1997 *and* is
-  clone marker #1 → use the family's device.
-- "Pick a fresh accent/combination" does not work: an agent told to choose
-  freely reconverges on the template's look, and the first CV of every user of
-  this skill comes out a twin of all the others (this is why
-  `scripts/pick_design.py` and design.md's families exist). Same failure one
-  level up when the user asks for something off-roster: follow design.md
-  § Guided creation — anchor the composition in a real design current found by
-  SEARCH, name your first idea and then build a different one, and hold the
-  result to the full gate. Devices come from harvested real examples, never
-  from the agent's imagination. The clone signature
-  is three markers at once — UPPERCASE heading + full-width accent rule,
-  `Category: items` skills, accent on role title + rules + links.
-- A bullet-less entry's date floats to the end of the extraction unless BOTH
-  hold: text follows it in emission order (the institution/descriptor line)
-  and the date run is as wide as the other dates (verified; the lib now inlines dates, so this only bites hand-built entries).
-- A `line(length: 100%)` inside a `box` resolves to the *available* width, not
-  the box content's — a "short underline" silently becomes a full-width rule.
-  Use `box(stroke: (bottom: ...))`, or `context measure()` to size a drawn
-  shape to its own text (verified).
-- `block(breakable: false)` shrinks to its CONTENT width, so `align(center)`
-  inside it centres on the block and not on the page — centred section titles
-  drifted up to 150px apart. Add `width: 100%` (verified).
-- A recipe that depends on a font feature needs it in the whole fallback
-  chain: `#smallcaps` on a font without real `smcp` renders as plain text with
-  no warning at all (verified: Libertinus Serif, Noto Serif, STIX Two Text,
-  New Computer Modern and Montserrat have it; Open Sans, Caladea and
-  Liberation Serif do not).
-- Section boundaries that don't read at arm's length — an INVARIANT, and the
-  gate FAILs on it: the section gap must be ≥ 2× the heading-to-body gap AND
-  sharply stepped above the job-entry gap — raising the *contrast* between
-  the two, not the absolute gap (which overflows the page or opens a canyon).
-  Measured on the render: tallest internal white run ≥ 2× the median. A
-  family whose device carries ink (a filled bar, a heavy rule) legitimately
-  sits near that floor; a family with no device needs 4:1 or more. Boundaries
-  carry ink by default: where the family's boundary was whitespace-only, add
-  a thin `soft` hairline above each section (design.md § Invariants,
-  « Boundaries carry ink by default »). The reverse defect is equally a defect
-  and the gate now warns on it (ratio > 5.0): never answer a weak boundary with
-  more empty space. Order is ink → tighten the intra-section rhythm → widen the
-  gap, and step 3 is the last resort (design.md § Invariants, « whitespace is
-  the LAST lever »). Both halves are now MEASURED, not just written: the gate
-  reports the devices it finds AT a section boundary — the union of
-  `verify.boundary_ink()` (ink in a white gap) and `verify.furniture_ink()`
-  (ink no word box covers, which catches a device set on the heading's own
-  line); ink that is plain text, an underline or a table rule does not count —
-  and FAILs any page under `DEVICE_QUORUM`, no longer only one that also leans
-  on a wide gap. The escapes are the five `DEVICELESS` families and a missing
-  `pdftotext` (design.md § Invariants, « How a device is detected »). See
-  design.md § Invariants and § Rules common to every family.
-- Two named anti-references, both pass/fail against the rendered page
-  (design.md § Anti-references — there are exactly two, no third gets
-  invented). **Anti-Word-97**: thin full-width rule under every heading,
-  default Times-ish serif, underlined non-link text, default round bullets,
-  flat leading, default border grays, ornaments. "Could this have come out of a
-  1990s word processor's default template?" must be answerable with no.
-  **Anti-AI-slop**, the risk when an agent is asked to "make it look creative":
-  stacked or gaudy gradients, blur and glow, fake-grunge display faces,
-  decorative geometric confetti, the unchosen default face, maximalism with no
-  hierarchy, symmetric-centred everything, and fake data made to look like data
-  (skill meters, dot ratings, donut charts — also a rule-2 violation). The test
-  is one question per element: *does this element do work the reader can name?*
-  Audacity is a small number of decisions, never an accumulation. There is no
-  anti-Canva: template galleries are a legitimate source of expressive
-  vocabulary, and the constructions there that fail are excluded by `ats.md` on
-  measured technical grounds, not on taste.
-- A neutral gray beside a warm accent reads as a mismatch → derive `ink` from
-  the accent (design.md § colour), don't drop in `luma(90)`.
-- Hyphenated compounds that wrap ("motion-capture") extract fused; the
-  orphan-date trap is position-dependent and moves when content shifts
-  (see ats.md — re-grep dates after every layout change).
+- Hidden text (white, tiny, off-page or background-coloured text; a hidden keyword layer; prompts aimed at AI screeners) is read by ATS and recruiters' tools and disqualifies the CV → never add text a reader cannot see; `verify.py` FAILs it.
+- Year-only dates break ATS duration math → month+year ranges (unless the candidate truly cannot supply months — rule 1 wins, flag it).
+- A `job()`-style entry with no bullets can orphan its date at the end of the extraction → check with the grep in `ats.md`; use a linear one-line entry variant if it happens.
+- One line added to a full page cascades an unbreakable section and changes the page count → re-verify after every edit.
+- One accent color doing six jobs stops signaling → only the two or three jobs the chosen family assigns it; on a duotone family, **1-2 jobs per hue** and hue B stays subordinate (design.md § Duotone).
+- Full-width accent rule under every UPPERCASE heading reads as 1997 *and* is clone marker #1 → use the family's device.
+- "Pick a fresh accent/combination" does not work: an agent told to choose freely reconverges on the template's look, and the first CV of every user of this skill comes out a twin of all the others (this is why `scripts/pick_design.py` and design.md's families exist). Same failure one level up when the user asks for something off-roster: follow design.md § Guided creation — anchor the composition in a real design current found by SEARCH, name your first idea and then build a different one, and hold the result to the full gate. Devices come from harvested real examples, never from the agent's imagination. The clone signature is three markers at once — UPPERCASE heading + full-width accent rule, `Category: items` skills, accent on role title + rules + links.
+- A bullet-less entry's date floats to the end of the extraction unless BOTH hold: text follows it in emission order (the institution/descriptor line) and the date run is as wide as the other dates (verified; the lib now inlines dates, so this only bites hand-built entries).
+- A `line(length: 100%)` inside a `box` resolves to the *available* width, not the box content's — a "short underline" silently becomes a full-width rule. Use `box(stroke: (bottom: ...))`, or `context measure()` to size a drawn shape to its own text (verified).
+- `block(breakable: false)` shrinks to its CONTENT width, so `align(center)` inside it centres on the block and not on the page — centred section titles drifted up to 150px apart. Add `width: 100%` (verified).
+- A recipe that depends on a font feature needs it in the whole fallback chain: `#smallcaps` on a font without real `smcp` renders as plain text with no warning at all (verified: Libertinus Serif, Noto Serif, STIX Two Text, New Computer Modern and Montserrat have it; Open Sans, Caladea and Liberation Serif do not).
+- Section boundaries that don't read at arm's length — an INVARIANT, and the gate FAILs on it: the section gap must be ≥ 2× the heading-to-body gap AND sharply stepped above the job-entry gap — raising the *contrast* between the two, not the absolute gap (which overflows the page or opens a canyon). Measured on the render: tallest internal white run ≥ 2× the median. A family whose device carries ink (a filled bar, a heavy rule) legitimately sits near that floor; a family with no device needs 4:1 or more. Boundaries carry ink by default: where the family's boundary was whitespace-only, add a thin `soft` hairline above each section (design.md § Invariants, « Boundaries carry ink by default »). The reverse defect is equally a defect and the gate now warns on it (ratio > 5.0): never answer a weak boundary with more empty space. Order is ink → tighten the intra-section rhythm → widen the gap, and step 3 is the last resort (design.md § Invariants, « whitespace is the LAST lever »). Both halves are now MEASURED, not just written: the gate reports the devices it finds AT a section boundary — the union of `verify.boundary_ink()` (ink in a white gap) and `verify.furniture_ink()` (ink no word box covers, which catches a device set on the heading's own line); ink that is plain text, an underline or a table rule does not count — and FAILs any page under `DEVICE_QUORUM`, no longer only one that also leans on a wide gap. The escapes are the five `DEVICELESS` families and a missing `pdftotext` (design.md § Invariants, « How a device is detected »). See design.md § Invariants and § Rules common to every family.
+- Two named anti-references, both pass/fail against the rendered page (design.md § Anti-references — there are exactly two, no third gets invented). **Anti-Word-97**: thin full-width rule under every heading, default Times-ish serif, underlined non-link text, default round bullets, flat leading, default border grays, ornaments. "Could this have come out of a 1990s word processor's default template?" must be answerable with no. **Anti-AI-slop**, the risk when an agent is asked to "make it look creative": stacked or gaudy gradients, blur and glow, fake-grunge display faces, decorative geometric confetti, the unchosen default face, maximalism with no hierarchy, symmetric-centred everything, and fake data made to look like data (skill meters, dot ratings, donut charts — also a rule-2 violation). The test is one question per element: *does this element do work the reader can name?* Audacity is a small number of decisions, never an accumulation. There is no anti-Canva: template galleries are a legitimate source of expressive vocabulary, and the constructions there that fail are excluded by `ats.md` on measured technical grounds, not on taste.
+- A neutral gray beside a warm accent reads as a mismatch → derive `ink` from the accent (design.md § colour), don't drop in `luma(90)`.
+- Hyphenated compounds that wrap ("motion-capture") extract fused; the orphan-date trap is position-dependent and moves when content shifts (see ats.md — re-grep dates after every layout change).
 - `.vitae-manifest` mismatch at session start: see `references/steps/0-env.md`.

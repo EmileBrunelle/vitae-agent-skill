@@ -1,29 +1,3 @@
 # Step 1 — Gather facts
 
-1. **Gather facts.** Source documents (old CV, LinkedIn, user answers).
-   **Track provenance per fact** from the start, one tag per line
-   (`- <fact> — src: original-cv|linkedin|user|verified-in-work`): a fact
-   relayed by the person commissioning the CV is not a fact confirmed by
-   the candidate. If a source is not plain text (`.docx`, an exported PDF),
-   convert it first — `pdftotext` for PDFs, `pandoc -t markdown` for
-   `.docx`, or ask the user to paste the text — and eyeball the converted
-   output before extracting facts: reading binary or scrambled content
-   invites hallucinated facts (rule 1). Build a fact sheet: identity,
-   links, jobs (title, org, dates month+year, mode, bullets), education,
-   skills, languages. Ask for gaps; never fill them yourself. If only a
-   year is known, ask for months; keep year-only and flag it if the
-   candidate cannot supply them — but first try the institution's known
-   academic calendar to bound the months, confirmed by the user (the
-   regional file lists known cases). LinkedIn PDF exports are unreliable
-   artifacts (mixed languages, mojibake in place names, page markers):
-   verify on the live profile before flagging "profile errors" to the user.
-   Verify organizations' official name spelling on their own site — clubs
-   and events especially. When two sources spell the same fact differently
-   (diacritics, a degree's casing or wording), keep the most recent/
-   authoritative source's wording and flag the discrepancy to the user —
-   never merge silently; for credential names specifically, the issuing
-   institution's official wording outranks recency. Application history
-   needs precise verbs (applied ≠ was offered ≠ received). When the
-   candidate has verifiable public work product (code repos, publications,
-   a case log), check claims against it directly — strongest anchor
-   available; the field pack gives the specifics.
+1. **Gather facts.** Source documents (old CV, LinkedIn, user answers). **Track provenance per fact** from the start, one tag per line (`- <fact> — src: original-cv|linkedin|user|verified-in-work`): a fact relayed by the person commissioning the CV is not a fact confirmed by the candidate. If a source is not plain text (`.docx`, an exported PDF), convert it first — `pdftotext` for PDFs, `pandoc -t markdown` for `.docx`, or ask the user to paste the text — and eyeball the converted output before extracting facts: reading binary or scrambled content invites hallucinated facts (rule 1). Build a fact sheet: identity, links, jobs (title, org, dates month+year, mode, bullets), education, skills, languages. Ask for gaps; never fill them yourself. If only a year is known, ask for months; keep year-only and flag it if the candidate cannot supply them — but first try the institution's known academic calendar to bound the months, confirmed by the user (the regional file lists known cases). LinkedIn PDF exports are unreliable artifacts (mixed languages, mojibake in place names, page markers): verify on the live profile before flagging "profile errors" to the user. Verify organizations' official name spelling on their own site — clubs and events especially. When two sources spell the same fact differently (diacritics, a degree's casing or wording), keep the most recent/ authoritative source's wording and flag the discrepancy to the user — never merge silently; for credential names specifically, the issuing institution's official wording outranks recency. Application history needs precise verbs (applied ≠ was offered ≠ received). When the candidate has verifiable public work product (code repos, publications, a case log), check claims against it directly — strongest anchor available; the field pack gives the specifics.

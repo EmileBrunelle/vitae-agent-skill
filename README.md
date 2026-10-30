@@ -12,99 +12,40 @@
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills.svg" alt="Agent Skills open standard"></a>
 </p>
 
-An agent skill for building résumés and CVs
-in [Typst](https://typst.app) that pass **both** filters: automated screening
-(ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
-scan.
+An agent skill for building résumés and CVs in [Typst](https://typst.app) that pass **both** filters: automated screening (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second scan.
 
-**Status: beta (0.7.0)** — the method is battle-tested, but the skill's file
-layout and script interfaces may still change before 1.0.
+**Status: beta (0.7.0)** — the method is battle-tested, but the skill's file layout and script interfaces may still change before 1.0.
 
-Battle-tested method distilled from a real end-to-end résumé project that went
-through six simulated adversarial hiring reviews (recruiter, hiring manager,
-ATS expert, bank, startup, consulting firm) and a native-speaker language
-review — then hardened by adversarial reviews of the skill itself (execution,
-open-source, recruiting-expert) and cross-field integration simulations
-(a French nurse's CV, a UK analyst's CV) run by agents using only these files.
+Battle-tested method distilled from a real end-to-end résumé project that went through six simulated adversarial hiring reviews (recruiter, hiring manager, ATS expert, bank, startup, consulting firm) and a native-speaker language review — then hardened by adversarial reviews of the skill itself (execution, open-source, recruiting-expert) and cross-field integration simulations (a French nurse's CV, a UK analyst's CV) run by agents using only these files.
 
 ![Example render](assets/example-1page.png)
 
 ## What it does
 
-- **Exact page control**: 1-page and 2-page versions, deterministic page
-  breaks, no section ever split across pages — enforced by unbreakable
-  blocks and **verified on the rendered PDF** by the gate, not by eye.
-- **Measured page fill**: last-ink target derived from the actual margins,
-  verified by a pixel measurement script — with an explicit anti-filler rule.
-- **Machine-parseable layout**: linear skill lines, month+year dates, clean
-  `pdftotext` extraction, verified per build; covers legacy positional
-  parsers and the newer semantic/LLM ATS layer.
-- **Workday-optimised parse-only copy**: a `--input workday=1` build that
-  Workday's résumé autofill reads correctly — employer, title, dates and the
-  "I currently work here" box — measured on two real Workday tenants; Eightfold
-  quirks are documented too.
-- **Honesty-first content rules**: no invented facts (the rule outranks every
-  layout guideline), no unproven keywords, no interview-fatal verb inflation,
-  protected-title compliance.
-- **Regional & multilingual**: paper size, photo policy (CV vs LinkedIn),
-  verb and spelling conventions, section names, title law per market — six
-  region files (Canada/Québec, USA, France,
-  UK/Ireland, Germany/Austria/Switzerland, Indonesia, Malaysia, Singapore,
-  the Philippines, Vietnam, Thailand, Morocco, Algeria, Tunisia), and a
-  verify-don't-guess rule for everything else.
-- **Adversarial review loop**: parallel reviewer personas, invented-but-
-  realistic job postings per market segment, findings applied only when they
-  survive cross-examination.
-- **Field packs**: the generic method plus per-field depth;
-  [`references/field-software-dev.md`](references/field-software-dev.md) ships first — contributions welcome for
-  other fields.
-- **Anti-clone design system**: fourteen design families across four
-  registers (modern, neutral, classic, creative) anchored in real design
-  currents, drawn deterministically per candidate ([`scripts/pick_design.py`](scripts/pick_design.py));
-  generative palettes validated for contrast ([`scripts/gen_palette.py`](scripts/gen_palette.py)); font
-  pairs drawn from open-license pools — so the tool never converges on one
-  recognizable look. The creative register is never in the default draw pool
-  — unlocked by a creative target field or an explicit request, and capped
-  back out by a conservative market. One family (`gutter-rail`) carries a
-  second lock on top of that one: its ruled gutter is a code gutter, so it
-  also requires a technical target field, and the creative unlock alone never
-  draws it for a non-technical trade. Reference implementations of all
-  fourteen families live in [`templates/families/`](templates/families/).
-- **Academic CV mode**: a separate track for the exhaustive multi-page genre
-  (faculty applications, tenure/promotion, qualification dossiers) — its own
-  neutral gabarit ([`templates/academic/`](templates/academic/)), no fill target or design draw, and
-  its own gate ([`scripts/verify_academic.py`](scripts/verify_academic.py)) checking a different invariant
-  ("no entry straddles a page break" instead of "no section is ever split"),
-  round-tripped against the declared `FAITS.md`-derived TOML data file rather
-  than the résumé fill/separation thresholds.
-- **Cover letters**: one per posting, never a generic one, from
-  [`templates/letter.typ`](templates/letter.typ) — a reduced letterhead reusing the same CV's accent,
-  font and name/contact line, three paragraphs (why this employer, proofs
-  from `FAITS.md`, availability), gated by [`scripts/verify_letter.py`](scripts/verify_letter.py) (one
-  page; employer and exact job title both present in the extracted text).
-- Optional companion deliverables (job-search guide, LinkedIn checklist) via
-  [`references/companion-guide.md`](references/companion-guide.md).
+- **Exact page control**: 1-page and 2-page versions, deterministic page breaks, no section ever split across pages — enforced by unbreakable blocks and **verified on the rendered PDF** by the gate, not by eye.
+- **Measured page fill**: last-ink target derived from the actual margins, verified by a pixel measurement script — with an explicit anti-filler rule.
+- **Machine-parseable layout**: linear skill lines, month+year dates, clean `pdftotext` extraction, verified per build; covers legacy positional parsers and the newer semantic/LLM ATS layer.
+- **Workday-optimised parse-only copy**: a `--input workday=1` build that Workday's résumé autofill reads correctly — employer, title, dates and the "I currently work here" box — measured on two real Workday tenants; Eightfold quirks are documented too.
+- **Honesty-first content rules**: no invented facts (the rule outranks every layout guideline), no unproven keywords, no interview-fatal verb inflation, protected-title compliance.
+- **Regional & multilingual**: paper size, photo policy (CV vs LinkedIn), verb and spelling conventions, section names, title law per market — six region files (Canada/Québec, USA, France, UK/Ireland, Germany/Austria/Switzerland, Indonesia, Malaysia, Singapore, the Philippines, Vietnam, Thailand, Morocco, Algeria, Tunisia), and a verify-don't-guess rule for everything else.
+- **Adversarial review loop**: parallel reviewer personas, invented-but- realistic job postings per market segment, findings applied only when they survive cross-examination.
+- **Field packs**: the generic method plus per-field depth; [`references/field-software-dev.md`](references/field-software-dev.md) ships first — contributions welcome for other fields.
+- **Anti-clone design system**: fourteen design families across four registers (modern, neutral, classic, creative) anchored in real design currents, drawn deterministically per candidate ([`scripts/pick_design.py`](scripts/pick_design.py)); generative palettes validated for contrast ([`scripts/gen_palette.py`](scripts/gen_palette.py)); font pairs drawn from open-license pools — so the tool never converges on one recognizable look. The creative register is never in the default draw pool — unlocked by a creative target field or an explicit request, and capped back out by a conservative market. One family (`gutter-rail`) carries a second lock on top of that one: its ruled gutter is a code gutter, so it also requires a technical target field, and the creative unlock alone never draws it for a non-technical trade. Reference implementations of all fourteen families live in [`templates/families/`](templates/families/).
+- **Academic CV mode**: a separate track for the exhaustive multi-page genre (faculty applications, tenure/promotion, qualification dossiers) — its own neutral gabarit ([`templates/academic/`](templates/academic/)), no fill target or design draw, and its own gate ([`scripts/verify_academic.py`](scripts/verify_academic.py)) checking a different invariant ("no entry straddles a page break" instead of "no section is ever split"), round-tripped against the declared `FAITS.md`-derived TOML data file rather than the résumé fill/separation thresholds.
+- **Cover letters**: one per posting, never a generic one, from [`templates/letter.typ`](templates/letter.typ) — a reduced letterhead reusing the same CV's accent, font and name/contact line, three paragraphs (why this employer, proofs from `FAITS.md`, availability), gated by [`scripts/verify_letter.py`](scripts/verify_letter.py) (one page; employer and exact job title both present in the extracted text).
+- Optional companion deliverables (job-search guide, LinkedIn checklist) via [`references/companion-guide.md`](references/companion-guide.md).
 
 ## Design families
 
-Fourteen reference implementations, one per family, live under
-`templates/families/<name>/`, across four categories (neutral, classic,
-modern, creative). Full recipes (heading device, header composition, fonts,
-boundary treatment) are in [`references/design.md`](references/design.md); full-page renders of all
-fourteen are in [GALLERY.md](GALLERY.md).
+Fourteen reference implementations, one per family, live under `templates/families/<name>/`, across four categories (neutral, classic, modern, creative). Full recipes (heading device, header composition, fonts, boundary treatment) are in [`references/design.md`](references/design.md); full-page renders of all fourteen are in [GALLERY.md](GALLERY.md).
 
-The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never
-drawn by default — see § Design families in `references/design.md`.
+The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in `references/design.md`.
 
-[`templates/academic/**`](templates/academic) (the academic-CV mode's gabarit) is **out of this
-industry calibration**: the fill targets, section-separation devices, and the
-fourteen-family roster above describe industry résumés only and say nothing
-about academic dossiers.
+[`templates/academic/**`](templates/academic) (the academic-CV mode's gabarit) is **out of this industry calibration**: the fill targets, section-separation devices, and the fourteen-family roster above describe industry résumés only and say nothing about academic dossiers.
 
 ## Install
 
-With the [skills CLI](https://skills.sh) (Claude Code, Codex, Cursor,
-opencode and other agents):
+With the [skills CLI](https://skills.sh) (Claude Code, Codex, Cursor, opencode and other agents):
 
 ```
 npx skills add EmileBrunelle/vitae-agent-skill
@@ -116,17 +57,13 @@ Updates are not automatic — to get a new version, run:
 npx skills update
 ```
 
-Or copy this folder into the directory your agent loads skills from, either
-user-wide or per-project:
+Or copy this folder into the directory your agent loads skills from, either user-wide or per-project:
 
 ```
 <skills-dir>/vitae/
 ```
 
-Consult your agent's own documentation for where that directory is. Nothing
-here is tied to one vendor: [`SKILL.md`](SKILL.md) is the entry point and the rest is
-Typst templates plus Python scripts, so an agent with no skills directory at
-all can simply be pointed at `SKILL.md`.
+Consult your agent's own documentation for where that directory is. Nothing here is tied to one vendor: [`SKILL.md`](SKILL.md) is the entry point and the rest is Typst templates plus Python scripts, so an agent with no skills directory at all can simply be pointed at `SKILL.md`.
 
 ## Usage
 
@@ -137,32 +74,16 @@ Just ask naturally — the skill triggers on résumé/CV work:
   Toronto. One-page and two-page versions, English.
 ```
 
-The agent will collect facts, pick the regional conventions, draft from the
-template, verify page count / fill / extraction mechanically, and offer an
-adversarial review pass before delivering PDFs + editable `.typ` sources.
+The agent will collect facts, pick the regional conventions, draft from the template, verify page count / fill / extraction mechanically, and offer an adversarial review pass before delivering PDFs + editable `.typ` sources.
 
 ## Requirements
 
-`typst` (0.13+, verified on 0.15) and Python 3.11+ with Pillow for the fill measurement.
-`pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdf`
-automatically when only that is installed. Run `python3 scripts/verify.py
---doctor` (any platform) to diagnose — read-only, prints the right install
-command per platform, official repos first. LibreOffice/soffice is optional,
-only needed to generate editable copies (.docx/.odt) derived from the
-compiled PDF.
+`typst` (0.13+, verified on 0.15) and Python 3.11+ with Pillow for the fill measurement. `pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdf` automatically when only that is installed. Run `python3 scripts/verify.py --doctor` (any platform) to diagnose — read-only, prints the right install command per platform, official repos first. LibreOffice/soffice is optional, only needed to generate editable copies (.docx/.odt) derived from the compiled PDF.
 
 Platform notes:
 - **Linux / macOS**: works as-is (Apple Silicon handled).
-- **Windows** (baseline: Windows 11+, up to date): `python scripts\verify.py
-  --doctor` runs directly, no PowerShell doctor involved; typst via
-  `winget install --id Typst.Typst`; poppler via `choco install poppler` or
-  `scoop install poppler` — or use WSL/Git Bash and follow the POSIX path
-  ([`scripts/verify.sh`](scripts/verify.sh), a wrapper around `verify.py`) instead.
-- **pip-only environments** (no package manager, no admin rights):
-  `pip install typst pypdf Pillow` covers everything — `typst` compiles PDF
-  and PNG through its Python API (no CLI), `pypdf` counts pages and gives an
-  indicative text extraction. See [`references/ats.md`](references/ats.md) for the commands and
-  the known pypdf caveat.
+- **Windows** (baseline: Windows 11+, up to date): `python scripts\verify.py --doctor` runs directly, no PowerShell doctor involved; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` or `scoop install poppler` — or use WSL/Git Bash and follow the POSIX path ([`scripts/verify.sh`](scripts/verify.sh), a wrapper around `verify.py`) instead.
+- **pip-only environments** (no package manager, no admin rights): `pip install typst pypdf Pillow` covers everything — `typst` compiles PDF and PNG through its Python API (no CLI), `pypdf` counts pages and gives an indicative text extraction. See [`references/ats.md`](references/ats.md) for the commands and the known pypdf caveat.
 
 ## Layout
 
@@ -210,31 +131,10 @@ assets/example-1page.png         # rendered template example
 
 ## Contributing
 
-Issues and PRs welcome — field packs (nursing, finance, trades…) and regional
-matrix rows are the highest-value contributions. See [CONTRIBUTING.md](CONTRIBUTING.md)
-for the language rule, the checks to run and the version-bump rule.
+Issues and PRs welcome — field packs (nursing, finance, trades…) and regional matrix rows are the highest-value contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for the language rule, the checks to run and the version-bump rule.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
 
-**Third-party.** None ships here. The contact and platform marks (LinkedIn,
-GitHub, email, phone, pin, website) are path data owned by their icon
-projects — [Bootstrap Icons](https://github.com/twbs/icons),
-[Tabler Icons](https://github.com/tabler/tabler-icons),
-[Phosphor](https://github.com/phosphor-icons/core), all MIT — so this repo
-stores the address, not the drawing: `scripts/harvest_icons.py <cv folder>`
-fetches them from the [Iconify API](https://iconify.design) into an
-`icons.typ` **in the deliverable folder**, beside the `lib.typ` copied there,
-at the moment a CV is built. The [`templates/icons.typ`](templates/icons.typ) in this repo is the
-committed fallback with every mark EMPTY, so `#import "icons.typ": *` always
-resolves — a clone with no network and no script run still compiles. Nothing
-to vendor, nothing to keep in sync with upstream, and no tag to track. When
-the API is unreachable the script says so on stderr and writes empty marks:
-the CV compiles with no icons and its contact URLs in plain text — still
-valid, still ATS-readable. Note that a licence covers the
-drawing, never the trademark: using a logo on a CV is nominative use, a
-separate question from redistributing the path. No font binaries ship either:
-the pools name faces packaged by common Linux distributions or available from
-Google Fonts under the SIL Open Font License 1.1 — see
-[`references/fonts.md`](references/fonts.md) for provenance and installation.
+**Third-party.** None ships here. The contact and platform marks (LinkedIn, GitHub, email, phone, pin, website) are path data owned by their icon projects — [Bootstrap Icons](https://github.com/twbs/icons), [Tabler Icons](https://github.com/tabler/tabler-icons), [Phosphor](https://github.com/phosphor-icons/core), all MIT — so this repo stores the address, not the drawing: `scripts/harvest_icons.py <cv folder>` fetches them from the [Iconify API](https://iconify.design) into an `icons.typ` **in the deliverable folder**, beside the `lib.typ` copied there, at the moment a CV is built. The [`templates/icons.typ`](templates/icons.typ) in this repo is the committed fallback with every mark EMPTY, so `#import "icons.typ": *` always resolves — a clone with no network and no script run still compiles. Nothing to vendor, nothing to keep in sync with upstream, and no tag to track. When the API is unreachable the script says so on stderr and writes empty marks: the CV compiles with no icons and its contact URLs in plain text — still valid, still ATS-readable. Note that a licence covers the drawing, never the trademark: using a logo on a CV is nominative use, a separate question from redistributing the path. No font binaries ship either: the pools name faces packaged by common Linux distributions or available from Google Fonts under the SIL Open Font License 1.1 — see [`references/fonts.md`](references/fonts.md) for provenance and installation.

@@ -1,88 +1,16 @@
 # Step 6 — Verify mechanically
 
-6. **Verify mechanically** (loop until all pass; re-run after EVERY edit).
-   Run the MECHANICAL subset in one command — `scripts/verify.sh cv.typ
-   EXPECTED_PAGES [FILL_MIN FILL_MAX]` (POSIX wrapper, two lines, execs
-   into verify.py) on Linux/macOS/WSL/Git Bash, or `python scripts/verify.py
-   cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]` directly on bare Windows — it
-   exits non-zero if any check fails; `verify.sh --all DIR` checks every CV in DIR (page count from a `// vitae: pages=N` header, else from `_2p`/`-2page` in the name) and gates every .typ, printing `SKIP` only for files whose name contains guide, lettre, letter, cover, lisez-moi or readme (case-insensitive, whole word) and that carry no `// vitae:` header (a header always opts in). Never skip it after an edit. **Paste
-   the gate's full output verbatim into the session before delivering** —
-   this is the anti-circumvention check: a summary ("gate passed") is not
-   proof, and a result that was never run cannot be pasted. Either way, the
-   items further down this list (contrast recompute, date order, the
-   fact-sheet diff, the visual look) are never covered by the script and
-   stay manual:
-   - The gate also WARNs (never fails) on year-only date ranges and on a
-     degree token beside a non-completion marker ("B.Eng. program").
-   - The gate also FAILs text a filled region hides or cuts (`check_text_clip`: a
-     header band shorter than its own text, white text left on white paper past
-     the band's end). Prefer the `masthead()` function of lib.typ (call it, don't open the file) for new or edited header
-     bands (it grows with its content); a fixed-height band must still pass
-     `check_text_clip` at the tuned leading.
+6. **Verify mechanically** (loop until all pass; re-run after EVERY edit). Run the MECHANICAL subset in one command — `scripts/verify.sh cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]` (POSIX wrapper, two lines, execs into verify.py) on Linux/macOS/WSL/Git Bash, or `python scripts/verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]` directly on bare Windows — it exits non-zero if any check fails; `verify.sh --all DIR` checks every CV in DIR (page count from a `// vitae: pages=N` header, else from `_2p`/`-2page` in the name) and gates every .typ, printing `SKIP` only for files whose name contains guide, lettre, letter, cover, lisez-moi or readme (case-insensitive, whole word) and that carry no `// vitae:` header (a header always opts in). Never skip it after an edit. **Paste the gate's full output verbatim into the session before delivering** — this is the anti-circumvention check: a summary ("gate passed") is not proof, and a result that was never run cannot be pasted. Either way, the items further down this list (contrast recompute, date order, the fact-sheet diff, the visual look) are never covered by the script and stay manual:
+   - The gate also WARNs (never fails) on year-only date ranges and on a degree token beside a non-completion marker ("B.Eng. program").
+   - The gate also FAILs text a filled region hides or cuts (`check_text_clip`: a header band shorter than its own text, white text left on white paper past the band's end). Prefer the `masthead()` function of lib.typ (call it, don't open the file) for new or edited header bands (it grows with its content); a fixed-height band must still pass `check_text_clip` at the tuned leading.
    - If the fill needs re-measuring or tuning (after recopying `lib.typ`, or `measure_fill.py` off target), read `references/steps/6-tune.md` now.
-   - `typst compile cv.typ` then `pdfinfo cv.pdf | grep Pages` — exact count.
-     (`icons.typ` must sit beside `lib.typ` first — step 4; the empty
-     fallback compiles, it just draws no marks.)
-   - `pdftotext cv.pdf -` — reading order sane, no orphaned dates, skill lines
-     intact, and dates within each section in reverse-chronological order.
-     Full checklist and known extraction traps: `references/ats.md`.
-     Portal-specific quirks: Eightfold in `references/ats.md`, Workday in
-     `references/workday.md` (parse-only copy: `typst compile --input workday=1 …`).
-   - **No section split across a page break** (rule 5's first half) — checked
-     by the gate since 2026-09-13, not by eye. Reduced to its contrapositive,
-     which is what a PDF can actually answer: every page after the first must
-     OPEN on a section heading, so that every break lands exactly on a
-     boundary. The heading list comes from the `#section("...")` call sites in
-     the source, and lib.typ's `runhead` band is skipped by its `n / total`
-     token. `breakable: false` on the section block states the INTENT; this
-     states the outcome. A source with no `#section(...)` call reports NOT
-     CHECKED rather than passing.
-   - Recompute the contrast of the accent as actually rendered (not the
-     hex you intended) against its background, with design.md's formula —
-     must still clear 4.5:1.
-   - Diff every bullet against the fact sheet again — step 5's check, but the
-     drafting agent self-checking once is not enough; re-verify it here.
-     (The hiring manager's fact diff in step 7's review is the third
-     checkpoint — deliberate, not drift.)
-   - Confirm the document actually carries the design family that
-     `pick_design.py` drew (or the family the user imposed explicitly): the
-     family's heading device, its skills-block shape, its accent role, its
-     contact-icon style, its font pair, its **gabarit** (margins, body size and
-     the fill target derived from them), its **section order** and its
-     specialities line if it has one — not just the accent. Re-run the script
-     with the same arguments and diff its output against the `.typ`. None of the three
-     clone markers may survive: UPPERCASE headings over a full-width accent
-     rule, a `Category: items` skills block, accent on role title + rules +
-     links.
-   - Render PNGs and *look at them* — open each PNG with your own image-viewing
-     capability (e.g. read the image file so it appears in your context; any
-     tool, any model). Pixel statistics (PIL, `measure_fill.py`) are not a
-     substitute, and deleting the PNG unviewed fails this step. Check by name:
-     each sub-line sits closer to its own head than to the next block; every
-     section bar clears the block above it; no text is clipped. Also: no ugly breaks, consistent apostrophes,
-     no widows, body text comfortably readable at printed size, accent
-     crisp against white and still legible converted to grayscale.
-     Wherever a **painted surface meets a vector mark** (a chip or badge beside
-     an icon), crop that band at 300dpi (`pdftoppm -r 300 -png -x -y -W -H`) and
-     look again: a tint edge slicing through an icon is invisible at page scale
-     and no gate check can see it (measured on `gutter-rail`'s statusline —
-     design.md § 14, Header).
-   - **Line integrity** (design.md § Line integrity): on the render, no
-     **structured** line wraps onto a second line — every skills/stack row,
-     the education entry's descriptor line, the Languages line, the
-     header/contact lines, the specialities line. Fix by splitting one row
-     into two with fewer items each (preferred — it costs the page nothing),
-     by shortening the label, or by the row's measure. Prose and bullets are
-     step 5's business, not this check's.
-     This one is a **visual** check on the PNG (the LOOK pass above), not a
-     gate check: `verify.py` cannot see a wrap and will pass a file that has one.
-   - **Non-recognition, brand clause** (design.md § The final bar): look at
-     the page and ask *could a reader name a company from this?* A recipe
-     that reproduces one brand's signature combination of border, shadow,
-     shape and palette fails the bar exactly as a stock template does.
-   - **One date convention per document**: every date on the page sits where
-     the family puts it — the education entry uses the same entry helper as
-     the jobs, and its date is a *wide* run ("2015 – 2019", not a bare
-     "2019", which drops out of the date column in extraction:
-     `references/ats.md`). A date placed differently from the others is a bug,
-     not a variant.
+   - `typst compile cv.typ` then `pdfinfo cv.pdf | grep Pages` — exact count. (`icons.typ` must sit beside `lib.typ` first — step 4; the empty fallback compiles, it just draws no marks.)
+   - `pdftotext cv.pdf -` — reading order sane, no orphaned dates, skill lines intact, and dates within each section in reverse-chronological order. Full checklist and known extraction traps: `references/ats.md`. Portal-specific quirks: Eightfold in `references/ats.md`, Workday in `references/workday.md` (parse-only copy: `typst compile --input workday=1 …`).
+   - **No section split across a page break** (rule 5's first half) — checked by the gate since 2026-09-13, not by eye. Reduced to its contrapositive, which is what a PDF can actually answer: every page after the first must OPEN on a section heading, so that every break lands exactly on a boundary. The heading list comes from the `#section("...")` call sites in the source, and lib.typ's `runhead` band is skipped by its `n / total` token. `breakable: false` on the section block states the INTENT; this states the outcome. A source with no `#section(...)` call reports NOT CHECKED rather than passing.
+   - Recompute the contrast of the accent as actually rendered (not the hex you intended) against its background, with design.md's formula — must still clear 4.5:1.
+   - Diff every bullet against the fact sheet again — step 5's check, but the drafting agent self-checking once is not enough; re-verify it here. (The hiring manager's fact diff in step 7's review is the third checkpoint — deliberate, not drift.)
+   - Confirm the document actually carries the design family that `pick_design.py` drew (or the family the user imposed explicitly): the family's heading device, its skills-block shape, its accent role, its contact-icon style, its font pair, its **gabarit** (margins, body size and the fill target derived from them), its **section order** and its specialities line if it has one — not just the accent. Re-run the script with the same arguments and diff its output against the `.typ`. None of the three clone markers may survive: UPPERCASE headings over a full-width accent rule, a `Category: items` skills block, accent on role title + rules + links.
+   - Render PNGs and *look at them* — open each PNG with your own image-viewing capability (e.g. read the image file so it appears in your context; any tool, any model). Pixel statistics (PIL, `measure_fill.py`) are not a substitute, and deleting the PNG unviewed fails this step. Check by name: each sub-line sits closer to its own head than to the next block; every section bar clears the block above it; no text is clipped. Also: no ugly breaks, consistent apostrophes, no widows, body text comfortably readable at printed size, accent crisp against white and still legible converted to grayscale. Wherever a **painted surface meets a vector mark** (a chip or badge beside an icon), crop that band at 300dpi (`pdftoppm -r 300 -png -x -y -W -H`) and look again: a tint edge slicing through an icon is invisible at page scale and no gate check can see it (measured on `gutter-rail`'s statusline — design.md § 14, Header).
+   - **Line integrity** (design.md § Line integrity): on the render, no **structured** line wraps onto a second line — every skills/stack row, the education entry's descriptor line, the Languages line, the header/contact lines, the specialities line. Fix by splitting one row into two with fewer items each (preferred — it costs the page nothing), by shortening the label, or by the row's measure. Prose and bullets are step 5's business, not this check's. This one is a **visual** check on the PNG (the LOOK pass above), not a gate check: `verify.py` cannot see a wrap and will pass a file that has one.
+   - **Non-recognition, brand clause** (design.md § The final bar): look at the page and ask *could a reader name a company from this?* A recipe that reproduces one brand's signature combination of border, shadow, shape and palette fails the bar exactly as a stock template does.
+   - **One date convention per document**: every date on the page sits where the family puts it — the education entry uses the same entry helper as the jobs, and its date is a *wide* run ("2015 – 2019", not a bare "2019", which drops out of the date column in extraction: `references/ats.md`). A date placed differently from the others is a bug, not a variant.

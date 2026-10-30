@@ -1,15 +1,5 @@
 # Academic mode
 
-**Academic mode.** If the document is an academic CV (a university faculty
-application, a promotion or tenure/qualification dossier, an academic
-nomination), load `references/field-academic.md` and follow **its** workflow
-instead of step 4 and rule 5 of SKILL.md. Academic mode **replaces rule 5 and step 4, it
-does not relax them** — it has its own measured invariants, checked by
-`scripts/verify_academic.py`. The replacement invariant in one line: **the
-atom is the entry, not the section** — "no entry straddles a page break"
-stands in for "no section is ever split." There is no fill target at all in
-academic mode, not even a last-page floor — dropped, not loosened. There is
-no family draw and no palette generation either: one neutral gabarit, from
-`templates/academic/`. Everything else in SKILL.md (rules 0-4, steps 0-3 and 5-8) still applies.
+**Academic mode.** If the document is an academic CV (a university faculty application, a promotion or tenure/qualification dossier, an academic nomination), load `references/field-academic.md` and follow **its** workflow instead of step 4 and rule 5 of SKILL.md. Academic mode **replaces rule 5 and step 4, it does not relax them** — it has its own measured invariants, checked by `scripts/verify_academic.py`. The replacement invariant in one line: **the atom is the entry, not the section** — "no entry straddles a page break" stands in for "no section is ever split." There is no fill target at all in academic mode, not even a last-page floor — dropped, not loosened. There is no family draw and no palette generation either: one neutral gabarit, from `templates/academic/`. Everything else in SKILL.md (rules 0-4, steps 0-3 and 5-8) still applies.
 
 At step 6, academic CVs are checked with `scripts/verify_academic.py` (run it, never open it) instead of the family-diff and fill checks of `6-verify.md`.

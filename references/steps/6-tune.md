@@ -1,13 +1,4 @@
 # Step 6 — Re-tuning and measuring fill
 
-   - After recopying `lib.typ` into an existing CV (to take a skill update),
-     re-run `verify.py --tune`: the shared mechanics changed, so leading and
-     fill must be re-measured. If it fails with "even the floor…", give the
-     tuner an explicit lower range (`--tune cv.typ 1 94 96 0.45 1.0`).
-   - `python3 scripts/measure_fill.py page.png` on rendered PNGs — target per
-     rule 5, and it is the **family's own** target, derived from the family's
-     bottom margin (94-96% for the dense gabarits, 92-94% for the airy ones):
-     `pick_design.py` prints it. `verify.py --tune` reaches it by bisection. Tune leading/spacing/section gaps, never `v(1fr)` canyons. The
-     same script reports the white-gap spectrum the gate judges: section
-     boundaries must be the tallest internal white runs and measure ≥ 2× the
-     median run, no run may pass 5% of page height, and a run over 3.5% is a hole unless it is a boundary (design.md § Invariants).
+   - After recopying `lib.typ` into an existing CV (to take a skill update), re-run `verify.py --tune`: the shared mechanics changed, so leading and fill must be re-measured. If it fails with "even the floor…", give the tuner an explicit lower range (`--tune cv.typ 1 94 96 0.45 1.0`).
+   - `python3 scripts/measure_fill.py page.png` on rendered PNGs — target per rule 5, and it is the **family's own** target, derived from the family's bottom margin (94-96% for the dense gabarits, 92-94% for the airy ones): `pick_design.py` prints it. `verify.py --tune` reaches it by bisection. Tune leading/spacing/section gaps, never `v(1fr)` canyons. The same script reports the white-gap spectrum the gate judges: section boundaries must be the tallest internal white runs and measure ≥ 2× the median run, no run may pass 5% of page height, and a run over 3.5% is a hole unless it is a boundary (design.md § Invariants).

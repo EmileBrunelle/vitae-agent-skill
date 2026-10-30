@@ -1,14 +1,6 @@
 # Step 4 — Draft from the family's worked file
 
-4. **Draft from the family's worked file — never from scratch. One command:**
-   `python3 <skill>/scripts/pick_design.py --name "<candidate>" --field <field>
-   --market <market> --career early|mid|senior [--photo] [--conservative]
-   [--creative] --init <cv folder>` — it prints the design report (family, fonts,
-   palette, leading, fill target), then writes `<cv folder>/lib.typ` and
-   `icons.typ` (byte copies), and `<cv folder>/cv.typ` = the drawn family's worked
-   file with the drawn palette, fonts, leading and mark kit already substituted.
-   `pick_design.py --init` refuses to overwrite an existing `cv.typ` (`--force` to replace) and prints
-   the next commands (`harvest_icons.py <folder>`, `verify.py --tune <folder>/cv.typ 1
+4. **Draft from the family's worked file — never from scratch. One command:** `python3 <skill>/scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --career early|mid|senior [--photo] [--conservative] [--creative] --init <cv folder>` — it prints the design report (family, fonts, palette, leading, fill target), then writes `<cv folder>/lib.typ` and `icons.typ` (byte copies), and `<cv folder>/cv.typ` = the drawn family's worked file with the drawn palette, fonts, leading and mark kit already substituted. `pick_design.py --init` refuses to overwrite an existing `cv.typ` (`--force` to replace) and prints the next commands (`harvest_icons.py <folder>`, `verify.py --tune <folder>/cv.typ 1
    <lo> <hi>`, then `verify.py <folder>/cv.typ 1 <lo> <hi>`) — run them verbatim, but
    on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
    replace the filler with the candidate's facts, then read

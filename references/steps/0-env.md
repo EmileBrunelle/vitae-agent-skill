@@ -1,21 +1,5 @@
 # Step 0 — Check the environment
 
-0. **Check the environment.** Run `python3 scripts/verify.py --doctor` (any
-   platform) — a read-only dependency preflight that prints the exact install
-   command per platform, official repos first; get
-   the user's go-ahead before running any install. Fonts are **not** chosen by
-   hand here: step 4's `pick_design.py` draws the pair from the chosen
-   family's pool and checks it against `typst fonts` for you — never assume a
-   face is installed, and never let its warning stand. Prefer open-license fonts (Google
-   Fonts / SIL OFL) over pure system fonts: their provenance (the distro
-   package name, or the Google Fonts link) is easy to document in the
-   hand-off; bundle the font files themselves (`fonts/` dir +
-   `typst compile --font-path`, or upload alongside the source on
-   typst.app) only when the recipient cannot install fonts locally. After
-   each compile, glance at stderr: a missing font only warns and silently
-   falls back.
+0. **Check the environment.** Run `python3 scripts/verify.py --doctor` (any platform) — a read-only dependency preflight that prints the exact install command per platform, official repos first; get the user's go-ahead before running any install. Fonts are **not** chosen by hand here: step 4's `pick_design.py` draws the pair from the chosen family's pool and checks it against `typst fonts` for you — never assume a face is installed, and never let its warning stand. Prefer open-license fonts (Google Fonts / SIL OFL) over pure system fonts: their provenance (the distro package name, or the Google Fonts link) is easy to document in the hand-off; bundle the font files themselves (`fonts/` dir + `typst compile --font-path`, or upload alongside the source on typst.app) only when the recipient cannot install fonts locally. After each compile, glance at stderr: a missing font only warns and silently falls back.
 
-- A `.vitae-manifest` mismatch at session start (or any known edit by another
-  tool/session) voids every previous PASS → re-run the verify gate on every
-  version and the cross-file consistency audit (`references/reviews.md`)
-  before re-delivering.
+- A `.vitae-manifest` mismatch at session start (or any known edit by another tool/session) voids every previous PASS → re-run the verify gate on every version and the cross-file consistency audit (`references/reviews.md`) before re-delivering.

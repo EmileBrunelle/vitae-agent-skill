@@ -1,32 +1,17 @@
 # Regional and language conventions — router
 
-Apply the conventions of the market being applied to, not the user's locale.
-When the region is ambiguous, ask. Send the version in the language *and
-spelling variant* of the job posting.
+Apply the conventions of the market being applied to, not the user's locale. When the region is ambiguous, ask. Send the version in the language *and spelling variant* of the job posting.
 
-**Load only what you need:** this file gives the overview and the universal
-rules; the per-market depth lives in `regional/<market>.md` — read ONLY the
-file for the target market:
+**Load only what you need:** this file gives the overview and the universal rules; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
 
 - `regional/north-america.md` — Canada, Québec, USA
 - `regional/france.md`
 - `regional/uk-ireland.md`
 - `regional/dach.md` — Germany, Austria, Switzerland
-- `regional/southeast-asia.md` — Indonesia, Malaysia, Singapore,
-  Philippines, Vietnam, Thailand (one file, six *non-interchangeable*
-  markets — read the country section, never the file average)
-- `regional/maghreb.md` — Morocco, Algeria, Tunisia (one file, three
-  *non-interchangeable* markets — same warning)
+- `regional/southeast-asia.md` — Indonesia, Malaysia, Singapore, Philippines, Vietnam, Thailand (one file, six *non-interchangeable* markets — read the country section, never the file average)
+- `regional/maghreb.md` — Morocco, Algeria, Tunisia (one file, three *non-interchangeable* markets — same warning)
 
-**If the target market has no file, do not infer from training data** —
-markets outside this set (Middle East, East Asia, Latin America…) do not form
-a bloc: conventions vary more inside that group than between Europe and North
-America (Japan's rirekisho is a rigid form with photo and age; China expects
-photos for domestic employers but not multinationals; Brazil/Mexico track US
-norms). Verify with a current local source or ask, label the assumption in
-the deliverable — and consider contributing the file. The same warning applies
-*inside* a multi-market file: Singapore and Thailand share one and disagree on
-nearly every axis of the matrix below.
+**If the target market has no file, do not infer from training data** — markets outside this set (Middle East, East Asia, Latin America…) do not form a bloc: conventions vary more inside that group than between Europe and North America (Japan's rirekisho is a rigid form with photo and age; China expects photos for domestic employers but not multinationals; Brazil/Mexico track US norms). Verify with a current local source or ask, label the assumption in the deliverable — and consider contributing the file. The same warning applies *inside* a multi-market file: Singapore and Thailand share one and disagree on nearly every axis of the matrix below.
 
 ## Quick matrix (orientation only — details in the market files)
 
@@ -48,52 +33,19 @@ The market files carry only their deltas from this table.
 | Algeria | a4 | Quasi-expected | FR private; AR public | Maximalist custom (birth, marital, service national) — warn user | French mechanics, detailed CVs | 2-3 p. normal |
 | Tunisia | a4 | Common in local models | FR private; EN valued in finance/multinationals | Modern guides say omit | French mechanics; « notions/courant/bilingue » for languages | 1 p. |
 
-Cautions the matrix compresses: **paper is us-letter in exactly two places**
-(North America, and Philippines print); **a national ID number never belongs
-on a CV in any market listed**; a **Thai** document's Buddhist-Era year
-(B.E. = CE + 543) must be converted before it reaches a foreign reader; and
-where a photo is expected, the DACH mechanics apply (formal, front-facing,
-plain background) — Indonesia and the Philippines additionally fix a print
-size.
+Cautions the matrix compresses: **paper is us-letter in exactly two places** (North America, and Philippines print); **a national ID number never belongs on a CV in any market listed**; a **Thai** document's Buddhist-Era year (B.E. = CE + 543) must be converted before it reaches a foreign reader; and where a photo is expected, the DACH mechanics apply (formal, front-facing, plain background) — Indonesia and the Philippines additionally fix a print size.
 
 ## Universal rules (every market)
 
-- In every tense-based convention, the **current role is written in the
-  present tense**, finished roles in the convention's past form.
-- Anti-discrimination norms shift everywhere toward *no photo, no personal
-  data* on the CV; when in doubt, omit and tell the user the local custom.
-  **The CV photo rule never applies to LinkedIn** — a profile photo is
-  expected on LinkedIn in every market.
-- Employment gaps: present honestly — real month+year dates, no camouflage
-  via year-only ranges; a short neutral mention beats an unexplained hole,
-  and the candidate decides the wording.
-- Hobbies/interests: personality signal in France/Germany, filler in the
-  US/UK unless directly relevant — see the market file.
-- **Protected titles exist in many fields and jurisdictions** (health, law,
-  finance, engineering…). The market files give known cases; the list is
-  never exhaustive — check the target country's professional regulator for
-  any regulated-sounding field. Rule of thumb everywhere: header title =
-  unregulated role name + degree in parentheses; the degree carries the
-  professional signal legally.
-- **Gloss local institutions and diplomas** for foreign readers: keep the
-  original name + a short gloss rather than a lossy translation. The gloss
-  may only restate what the fact sheet says; any explanation of your own
-  ("two-year pre-university program") is an addition — flag it to the user
-  for approval, never print it unapproved (SKILL.md: page text is facts only).
-- **Translation is adaptation, not word-mapping.** Watch for calques (FR→EN
-  "within a team" → "on a team"); include a native-reviewer pass in the
-  adversarial loop for any translated version.
-- Set `lang:` on `#set text(...)` per document — it drives hyphenation and
-  smart-quote behavior.
-- **The target market caps the visual audacity dial, never raises it.** A
-  conservative target market forces `sober` (`references/design.md` § colour;
-  `scripts/pick_design.py --conservative`), whatever the candidate's field or
-  the design family. Whether a market is conservative for this purpose is
-  established the same way as everything else in this file — the market's own
-  file, current sources, or the user — never assumed from training data, and
-  the assumption gets labelled in the deliverable when it cannot be verified.
-  A market may also cap it *below* the candidate's request; the dial is only
-  ever raised by the explicit request of the candidate or user.
+- In every tense-based convention, the **current role is written in the present tense**, finished roles in the convention's past form.
+- Anti-discrimination norms shift everywhere toward *no photo, no personal data* on the CV; when in doubt, omit and tell the user the local custom. **The CV photo rule never applies to LinkedIn** — a profile photo is expected on LinkedIn in every market.
+- Employment gaps: present honestly — real month+year dates, no camouflage via year-only ranges; a short neutral mention beats an unexplained hole, and the candidate decides the wording.
+- Hobbies/interests: personality signal in France/Germany, filler in the US/UK unless directly relevant — see the market file.
+- **Protected titles exist in many fields and jurisdictions** (health, law, finance, engineering…). The market files give known cases; the list is never exhaustive — check the target country's professional regulator for any regulated-sounding field. Rule of thumb everywhere: header title = unregulated role name + degree in parentheses; the degree carries the professional signal legally.
+- **Gloss local institutions and diplomas** for foreign readers: keep the original name + a short gloss rather than a lossy translation. The gloss may only restate what the fact sheet says; any explanation of your own ("two-year pre-university program") is an addition — flag it to the user for approval, never print it unapproved (SKILL.md: page text is facts only).
+- **Translation is adaptation, not word-mapping.** Watch for calques (FR→EN "within a team" → "on a team"); include a native-reviewer pass in the adversarial loop for any translated version.
+- Set `lang:` on `#set text(...)` per document — it drives hyphenation and smart-quote behavior.
+- **The target market caps the visual audacity dial, never raises it.** A conservative target market forces `sober` (`references/design.md` § colour; `scripts/pick_design.py --conservative`), whatever the candidate's field or the design family. Whether a market is conservative for this purpose is established the same way as everything else in this file — the market's own file, current sources, or the user — never assumed from training data, and the assumption gets labelled in the deliverable when it cannot be verified. A market may also cap it *below* the candidate's request; the dial is only ever raised by the explicit request of the candidate or user.
 
 ## Section names per language
 
@@ -107,14 +59,9 @@ size.
 | Soft skills | Compétences générales | Core Strengths |
 | Languages | Langues | Languages |
 
-Derive the target-field section name with the same pattern for any field
-("Expérience en soins infirmiers", "Nursing Experience"). Keep names close to
-conventional stems — a qualifier after a conventional stem is safe; fully
-exotic names risk ATS misclassification.
+Derive the target-field section name with the same pattern for any field ("Expérience en soins infirmiers", "Nursing Experience"). Keep names close to conventional stems — a qualifier after a conventional stem is safe; fully exotic names risk ATS misclassification.
 
-**Accepted variants** (the lexical skeleton is part of the anti-clone system —
-`references/design.md` § Section labels; each design family carries its own
-defaults and `scripts/pick_design.py` draws a variant per candidate):
+**Accepted variants** (the lexical skeleton is part of the anti-clone system — `references/design.md` § Section labels; each design family carries its own defaults and `scripts/pick_design.py` draws a variant per candidate):
 
 | | FR | EN |
 |---|---|---|
@@ -122,6 +69,4 @@ defaults and `scripts/pick_design.py` draws a variant per candidate):
 | Skills | Compétences techniques · Compétences et outils · Expertise | Technical Skills · Skills & Tools · Skills · Expertise · Technical Stack |
 | Soft skills | Compétences générales · Forces · *(omise)* | Core Strengths · Strengths · Working Style · *(dropped)* |
 
-**Education**, **Languages** and the experience sections do NOT vary: their
-stems are what ATS section classifiers key on. Where a market file names one
-convention explicitly, that wins over the draw.
+**Education**, **Languages** and the experience sections do NOT vary: their stems are what ATS section classifiers key on. Where a market file names one convention explicitly, that wins over the draw.
