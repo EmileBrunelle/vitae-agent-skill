@@ -1007,6 +1007,17 @@ def _sub1(src, pat, repl, what, family, required=True):
     return new
 
 
+def _write_nofollow(path, data):
+    """Write bytes to `path`, refusing to follow a symlink at the final component."""
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags, 0o644)
+    except OSError as e:
+        raise SystemExit("--init: cannot write %s (%s)" % (path, e.strerror))
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(data)
+
+
 def init_folder(p, folder, force=False):
     """One executed command -> a compiling starting point in `folder`.
 
@@ -1020,6 +1031,12 @@ def init_folder(p, folder, force=False):
     fam, d, fp = p["family"], p["recipe"], FONTS[p["family"]]
     fdir = os.path.join(root, "templates", "families", fam)
     out = os.path.join(folder, "cv.typ")
+    for _n in ("cv.typ", "lib.typ", "icons.typ"):
+        _d = os.path.join(folder, _n)
+        if os.path.islink(_d):
+            raise SystemExit("--init: %s is a symlink — refusing to write "
+                             "through it (replace it with a regular file or "
+                             "remove it first)" % _d)
     if os.path.exists(out) and not force:
         raise SystemExit("--init: %s exists — refusing to overwrite (re-run "
                          "with --force to replace it)" % out)
@@ -1100,14 +1117,13 @@ def init_folder(p, folder, force=False):
             if f == "lib.typ" and open(dst, "rb").read() != open(srcf, "rb").read():
                 kept.append("kept existing %s (differs from the skill's) — a lib "
                             "update is deliberate: cp %s %s"
-                            % (dst, q(srcf), q(dst)))
+                            % (q(dst), q(srcf), q(dst)))
                 continue
             if f == "icons.typ" and os.path.getsize(dst) > 0:
-                kept.append("kept existing %s (harvested icons)" % dst)
+                kept.append("kept existing %s (harvested icons)" % q(dst))
                 continue
-        shutil.copyfile(srcf, dst)
-    with open(out, "w", encoding="utf-8") as fh:
-        fh.write(src)
+        _write_nofollow(dst, open(srcf, "rb").read())
+    _write_nofollow(out, src.encode("utf-8"))
     lo, hi = pg["fill"].split("-")
     print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "
           "byte-for-byte)" % (out, fam, fam, pick_file))

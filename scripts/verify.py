@@ -73,6 +73,7 @@ import html
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -164,12 +165,20 @@ def ensure_icons(typ):
     """
     d = os.path.dirname(os.path.abspath(typ))
     dst = os.path.join(d, "icons.typ")
-    if not os.path.exists(dst):        # a broken symlink counts as missing
+    if os.path.islink(dst):            # never write through a symlink
+        if not os.path.exists(dst):
+            print(f"WARN  {dst} is a dangling symlink — not writing through it; "
+                  f"replace it with a regular file")
+        return
+    if not os.path.exists(dst):
         src = os.path.join(os.path.dirname(os.path.dirname(
             os.path.abspath(__file__))), "templates", "icons.typ")
         if not os.path.exists(src):    # no repo fallback (nothing to copy)
             return
-        shutil.copyfile(src, dst)
+        fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                     | getattr(os, "O_NOFOLLOW", 0), 0o644)
+        with os.fdopen(fd, "wb") as fh, open(src, "rb") as sf:
+            fh.write(sf.read())
         print(f"NOTE  copied the empty fallback icons.typ into {d} — run "
               f"scripts/harvest_icons.py there for the real marks")
 
@@ -177,7 +186,7 @@ def ensure_icons(typ):
 def compile_pdf(typ, pdf, use_cli):
     """Returns (ok, stderr_text)."""
     if use_cli:
-        r = subprocess.run(["typst", "compile", typ, pdf], capture_output=True, text=True)
+        r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)], capture_output=True, text=True)
         return r.returncode == 0, (r.stdout + r.stderr)
     try:
         import typst
@@ -190,7 +199,7 @@ def compile_pdf(typ, pdf, use_cli):
 def render_pngs(typ, tmp_dir, use_cli):
     pattern = os.path.join(tmp_dir, "p{p}.png")
     if use_cli:
-        subprocess.run(["typst", "compile", typ, pattern, "--format", "png", "--ppi", "90"],
+        subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pattern), "--format", "png", "--ppi", "90"],
                         capture_output=True, text=True)
     else:
         import typst
@@ -2669,7 +2678,7 @@ def main():
             fail = 1
         if not (fmin and fmax):
             print("WARN  fill NOT checked (no FILL_MIN FILL_MAX given) — rerun "
-                  f"as scripts/verify.py {typ} {expected} FILL_MIN FILL_MAX; "
+                  f"as scripts/verify.py {shlex.quote(typ)} {expected} FILL_MIN FILL_MAX; "
                   "the targets come from the pick_design.py report "
                   '("fill target : NN-NN%") and differ per family')
         for i, path in enumerate(pngs):
@@ -2685,7 +2694,7 @@ def main():
                 y = int(m.group(1))
                 if y < int(fmin) or y > int(fmax):
                     print(f"FAIL  fill: {path}: {result} (target {fmin}-{fmax}%) — "
-                          f"run `scripts/verify.py --tune {typ} {expected} {fmin} {fmax}` "
+                          f"run `scripts/verify.py --tune {shlex.quote(typ)} {expected} {fmin} {fmax}` "
                           "(adjusts leading), or add/cut real content")
                     fail = 1
                 else:
