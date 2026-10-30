@@ -35,7 +35,10 @@ def check(name: str, content: Any, want_bad: int, want_lines: list[str]) -> None
     ok(bad == want_bad, name, lines)
     for w in want_lines:
         ok(w in lines, name, w, lines)
-    ok(lines[-1] == "Visual pass: other-model m", lines[-1])
+    if want_bad:
+        ok(lines[-1].startswith("Visual pass: FAIL other-model m (") and f"({want_bad} items:" in lines[-1], lines[-1])
+    else:
+        ok(lines[-1] == "Visual pass: other-model m", lines[-1])
 
 
 # ---- parser -------------------------------------------------------------------------------
@@ -258,5 +261,34 @@ c, o, _ = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat("I ca
 ok(c == 1 and o.count("no answer from model") == 3, (c, o))
 c, o, e = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat("PASS L1 — x", "length"))
 ok(c == 2, (c, e))
+
+# FAIL final line is never the clean line
+c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — a\nFAIL L2 — b\nPASS L3 — c"))
+ok(c == 1 and o.splitlines()[-1] == "Visual pass: FAIL other-model m (1 items: L2)" and "Visual pass: other-model" not in o, o)
+# invalid base url -> exit 2, no traceback
+REQS.clear()
+out, err = io.StringIO(), io.StringIO()
+code = 0
+with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+    try:
+        look.main(["--base-url", "http://[::1", "--model", "m", "--checklist", CL_OLD, P1])
+    except SystemExit as ex:
+        code = int(ex.code or 0)
+ok(code == 2 and "Traceback" not in err.getvalue() and "ERROR" in err.getvalue(), (code, err.getvalue()))
+# mixed stems -> exit 2, nothing sent
+c, _, e = cli("--checklist", CL_OLD, P1, mkpng("other-p1.png"), resp=all_pass)
+ok(c == 2 and "stems" in e and not REQS, (c, e))
+# per-item: crops item falls back to pages when only the wrong crop type exists; icon/fill selection
+CL_CROPS = os.path.join(tmp, "crops.md")
+open(CL_CROPS, "w").write("L1 (crops) Is all text whole?\nL2 (crops) Is every text on a coloured band or fill legible?\n"
+                          "L3 (crops) Is every icon whole?\nL4 (page) Is it even?\n")
+c, o, _ = cli("--checklist", CL_CROPS, "--per-item", P1, P2, C2, resp=per_item_resp())
+calls = [(re.search(r"\bL\d+\b", text_of(r).split("Item:")[1]).group(0), images_of(r)) for r in REQS]  # type: ignore[union-attr]
+ok(calls == [("L1", ["cv-p2-icon3.png"]), ("L2", ["cv-p1.png", "cv-p2.png"]), ("L3", ["cv-p2-icon3.png"]),
+             ("L4", ["cv-p1.png"]), ("L4", ["cv-p2.png"])] and len(REQS) == 5, calls)
+c, o, _ = cli("--checklist", CL_CROPS, "--per-item", P1, C1, C2, resp=per_item_resp())
+calls = [(re.search(r"\bL\d+\b", text_of(r).split("Item:")[1]).group(0), images_of(r)) for r in REQS]  # type: ignore[union-attr]
+ok(calls[:3] == [("L1", ["cv-p1-fill1.png", "cv-p2-icon3.png"]), ("L2", ["cv-p1-fill1.png"]),
+                 ("L3", ["cv-p2-icon3.png"])], calls)
 
 print(f"test_look: all ok ({N} assertions)")

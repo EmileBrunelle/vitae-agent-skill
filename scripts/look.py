@@ -8,18 +8,24 @@ usage: look.py --base-url http://host:1234/v1 --model ID [--checklist references
 Sends the PNG(s) (base64 data URLs) + the checklist to an OpenAI-compatible /chat/completions
 endpoint (LM Studio, ollama) and prints one normalized line per checklist item:
     PASS|FAIL <id> — <zone>
-A missing, unparsable or self-contradicting item counts FAIL. Last line: `<label>: other-model <model>`
-(--label default `Visual pass`; the layout reviewer passes `--label "Layout review"`).
+A missing, unparsable or self-contradicting item counts FAIL. Last line, all PASS only:
+`<label>: other-model <model>` (--label default `Visual pass`; the layout reviewer passes
+`--label "Layout review"`). On any FAIL the last line is instead
+`<label>: FAIL other-model <model> (<n> items: L…)`, which is NOT a reportable line: fix and re-run.
 Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output).
 
 Inputs: PNG files only (magic bytes checked), each <= 20 MB (shrink with `verify.py --render --ppi`).
 Pages are named <stem>-p<N>.png, zoomed crops <stem>-p<N>-<fill|icon><n>.png (verify.py --render --crops).
+All PNGs must come from ONE stem (one PDF): pass a dedicated dir per PDF or `<dir>/<stem>-*.png`; PNGs from
+several stems are refused (exit 2).
 
---per-item: one request per checklist item, fresh context each (that item's text + only the images
-it needs), aggregated into the same output. Built for small local models that lose items in a long
-list. Checklist items read `L<n> (<scope>) <question>`, scope = page (one call per page, FAIL if any
-page fails, zone prefixed p<N>) | pages (all pages in one call) | crops (all crops; pages if none
-given). An untagged item counts as `pages`.
+--per-item: fresh context per request (that item's text + only the images it needs), aggregated into the
+same output. Built for small local models that lose items in a long list. Calls = one per `pages`/`crops`
+item, plus one per page for each `page` item (2 pages, 10 page items = 20 calls + the others). Checklist
+items read `L<n> (<scope>) <question>`, scope = page (one call per page, FAIL if any page fails, zone
+prefixed p<N>) | pages (all pages in one call) | crops (the zoomed crops relevant to the item: icon
+crops for an icon/chip item, fill crops for a text-on-band item, all crops otherwise; the pages when
+no relevant crop was given, so a crops item is never judged on nothing). An untagged item counts as `pages`.
 
 --timeout is per HTTP call (default 600 s). A full run on a local model can take many minutes:
 agents should run it in the background or with a long Bash timeout. --list-models prints the ids
@@ -51,6 +57,7 @@ CLOSED_THINK_RE = re.compile(r"<think(?:ing)?>.*?</think(?:ing)?>", re.S | re.I)
 OPEN_THINK_RE = re.compile(r"<think(?:ing)?>.*\Z", re.S | re.I)
 STRAY_CLOSE_RE = re.compile(r"</think(?:ing)?>", re.I)
 PAGE_RE = re.compile(r"^.+-p(\d+)\.png$", re.I)
+STEM_RE = re.compile(r"^(.+?)(?:-p\d+(?:-(?:fill|icon)\d+)?)?\.png$", re.I)
 CROP_RE = re.compile(r"^.+-p(\d+)-(?:fill|icon)\d+\.png$", re.I)
 
 PROMPT = (
@@ -187,7 +194,11 @@ def render(ids: Sequence[str], verdicts: dict[str, tuple[str, str]], model: str,
         else:
             lines.append(f"{v[0]} {i} — {v[1] or '(no zone given)'}")
             bad += v[0] == "FAIL"
-    lines.append(f"{label}: other-model {model}")
+    if bad:
+        failed = ", ".join(i for i in ids if verdicts.get(i, ("FAIL", ""))[0] == "FAIL")
+        lines.append(f"{label}: FAIL other-model {model} ({bad} items: {failed})")
+    else:
+        lines.append(f"{label}: other-model {model}")
     return lines, bad
 
 
@@ -287,6 +298,23 @@ def classify(pngs: Sequence[str]) -> tuple[list[tuple[str, str]], list[str]]:
     return [(lab, p) for _, lab, p in pages], crops
 
 
+def crop_kind(text: str) -> str:
+    """Which crop type an item needs: icon | fill | any (by its wording)."""
+    if re.search(r"\b(icons?|chips?)\b", text, re.I):
+        return "icon"
+    if re.search(r"\btext on a (?:coloured |colored )?(?:band|fill)\b", text, re.I):
+        return "fill"
+    return "any"
+
+
+def check_one_stem(pngs: Sequence[str]) -> None:
+    stems = {m.group(1) for m in (STEM_RE.match(os.path.basename(p)) for p in pngs)
+             if m and (PAGE_RE.match(m.string) or CROP_RE.match(m.string))}
+    if len(stems) > 1:
+        die(f"PNGs come from {len(stems)} different stems ({', '.join(sorted(stems))}): pass one PDF's "
+            f"images only (dedicated dir per PDF, or `<dir>/<stem>-*.png`)")
+
+
 def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> tuple[dict[str, tuple[str, str]], int, int]:
     pages, crops = classify(pngs)
     if not pages:
@@ -316,7 +344,11 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
                     oks.append(f"{lab}: {v[1] or '(no zone given)'}")
             verdicts[it.id] = ("FAIL", "; ".join(fails)) if fails else ("PASS", "; ".join(oks))
         else:
-            imgs = [p for _, p in pages] if it.scope == "pages" or not crops else crops
+            imgs = [p for _, p in pages]
+            if it.scope == "crops":
+                kind = crop_kind(it.text)
+                sel = [c for c in crops if kind == "any" or f"-{kind}" in os.path.basename(c).lower()]
+                imgs = sel or imgs
             v, _ = one(imgs)
             if v is not None:
                 verdicts[it.id] = v
@@ -324,6 +356,13 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
+    try:
+        _main(argv)
+    except Exception as e:  # SystemExit/KeyboardInterrupt pass through
+        die(f"{type(e).__name__}: {e}")
+
+
+def _main(argv: Optional[Sequence[str]] = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base-url", required=True)
     ap.add_argument("--model")
@@ -331,8 +370,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     ap.add_argument("--max-tokens", type=int, default=8192)
     ap.add_argument("--timeout", type=float, default=600, help="seconds per HTTP call (default 600); run in the "
                     "background or with a long Bash timeout")
-    ap.add_argument("--label", default="Visual pass", help="final line is `<label>: other-model <model>`")
-    ap.add_argument("--per-item", action="store_true", help="one request per checklist item, fresh context each")
+    ap.add_argument("--label", default="Visual pass", help="final line is `<label>: other-model <model>` (all PASS) or `<label>: FAIL other-model ...`")
+    ap.add_argument("--per-item", action="store_true", help="fresh request per checklist item (and per page for page-scope items)")
     ap.add_argument("--list-models", action="store_true", help="print the model ids served at <base-url>/models")
     ap.add_argument("png", nargs="*")
     a = ap.parse_args(argv)
@@ -354,6 +393,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     if not ids:
         die(f"no L<n> items found in {a.checklist}")
     check_images(a.png)
+    check_one_stem(a.png)
     if a.per_item:
         verdicts, tp, tc = per_item(a, items, a.png)
         calls = "per-item"
