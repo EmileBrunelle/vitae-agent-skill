@@ -442,8 +442,45 @@ TYP
   echo "$r" | sed -n 2p | grep -q '/c-p1-fill1\.png$' || { echo "no fill1 crop: $r"; return 1; }
   echo "$r" | grep -q '/c-p1-icon1\.png$' || { echo "no icon1 crop: $r"; return 1; }
   echo "$r" | while read -r f; do [ -s "$f" ] || exit 1; done || { echo "empty or missing file in: $r"; return 1; }
+  # Stale crops: recompile without the band, re-render into the same --out: the old -fill1/-icon1 go,
+  # a sibling stem's crops (<stem>x-...) stay.
+  touch "$d/b/cx-p1-fill1.png"
+  cat > "$d/c.typ" <<'TYP'
+#set page(width: 21cm, height: 29.7cm, margin: 2cm)
+#set text(size: 11pt)
+Plain text only.
+TYP
+  if command -v typst >/dev/null; then typst compile "$d/c.typ" "$d/c.pdf"
+  else python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/c.typ" "$d/c.pdf"; fi || return 1
+  python3 -I scripts/verify.py --render "$d/c.pdf" --out "$d/b" --crops >/dev/null || return 1
+  ls "$d/b" | grep -Eq '^c-p1-(fill|icon)[0-9]+\.png$' && { echo "stale crop kept: $(ls "$d/b")"; return 1; }
+  [ -e "$d/b/cx-p1-fill1.png" ] && [ -e "$d/b/c-p1.png" ] || { echo "removed too much: $(ls "$d/b")"; return 1; }
 }
 check render-crops render_crops
+
+# A sidebar covering most of the page (70%) must not become the "paper": one fill of the sidebar's own
+# width, not a whole-page fill.
+render_crops_sidebar() {
+  local d="$S/crops-sb"
+  rm -rf "$d"; mkdir -p "$d"
+  cat > "$d/s.typ" <<'TYP'
+#set page(width: 21cm, height: 29.7cm, margin: 0pt, fill: white)
+#set text(size: 11pt)
+#place(top + left, rect(width: 70%, height: 100%, fill: rgb("#1e5631"), inset: 2cm)[#text(fill: white)[Sidebar text]])
+#place(top + right, box(width: 30%, inset: 1cm)[Main column text])
+TYP
+  if command -v typst >/dev/null; then typst compile "$d/s.typ" "$d/s.pdf"
+  else python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/s.typ" "$d/s.pdf"; fi || return 1
+  python3 -I scripts/verify.py --render "$d/s.pdf" --out "$d/o" --crops >/dev/null || return 1
+  python3 -I - "$d/o/s-p1-fill1.png" <<'PY' || return 1
+import sys
+from PIL import Image
+w = Image.open(sys.argv[1]).size[0]
+# 70% of 21 cm at 300 ppi = 1736 px (+ padding); a whole-page fill is 2480
+sys.exit(0 if 1600 <= w <= 2000 else "sidebar fill is %d px wide" % w)
+PY
+}
+check render-crops-sidebar render_crops_sidebar
 
 if [ "$quick" -eq 0 ]; then
   fx="$out/fixtures"; mkdir -p "$fx"

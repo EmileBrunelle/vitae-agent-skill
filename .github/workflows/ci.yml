@@ -33,7 +33,7 @@ jobs:
       - name: Python dependencies
         # typst + pypdfium2 are what run_all's compare_backends step and the equivalence bench
         # need next to the CLI/poppler; typst-py is pinned to its own PyPI version.
-        run: pip install Pillow pypdf mypy pypdfium2 "typst==$TYPST_PY_VERSION"
+        run: pip install Pillow pypdf mypy==2.4.1 pypdfium2 "typst==$TYPST_PY_VERSION"
 
       - name: Typst ${{ env.TYPST_VERSION }}
         run: |

@@ -392,7 +392,7 @@ def check_fonts() -> None:
         return
     pools = pd.FONTS
     usable = sum(1 for fp in pools.values()
-                 if all(any(pd._installed(f[0], have) for f in fp[role])        # type: ignore[literal-required]
+                 if all(any(pd._installed(f[0], have) for f in cast(Any, fp)[role])
                         for role in ("display", "body", "mono") if role in fp))
     if usable < pd.MIN_POOL:
         print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
@@ -1502,7 +1502,8 @@ def furniture_ink(png: str, boxes: Sequence[Box] | None) -> list[Band]:
         return best
 
     rows = [uncovered_dark_run(y) / w for y in range(h)]
-    bands, cur = [], None
+    bands: list[tuple[int, int]] = []
+    cur: list[int] | None = None
     for y, r in enumerate(rows):
         if r >= FURNITURE_FLOOR:
             cur = [y, y] if cur is None else [cur[0], y]
@@ -1763,8 +1764,12 @@ CROP_SCAN_PPI = 150       # band detection scans the same 150 ppi raster the hid
 CROP_DELTA = 24           # a pixel is non-background when any channel differs this much from the page's modal colour
 CROP_ERODE = 9            # px at 150 ppi: strokes and glyph ink vanish, a solid aplat survives
 CROP_FILL_MIN_IN = (0.5, 0.1)   # smallest aplat worth a look (inches, w x h)
-CROP_ICON_MIN_IN = 0.06   # a mark smaller than this (a bullet dot, a speck) is not a glyph
+CROP_ICON_MIN_IN = 0.08   # the ink of a mark smaller than this (a bullet dot, a speck) is not a glyph
 CROP_ICON_MAX_IN = 0.45   # larger than this and it is a rule or a block, not an icon
+CROP_ICON_GAP_IN = 0.03   # ink closer than this to a word box on its line is part of the text (glyph piece, chip)
+CROP_ICON_SOLID = 0.85    # ink filling more of its box than this is a solid chip or square bullet, not a drawing
+CROP_ICON_ASPECT = 3.0    # longer than this many times its short side: a rule or a stem, not an icon
+CROP_WHITE_PAPER = 0.2    # white covering this share of the page makes white the background, not the modal colour
 CROP_PAD_IN = 0.08        # context around every crop
 CROP_CAP = 8              # crops per page; fills first, then icons, both in reading order
 
@@ -1798,40 +1803,68 @@ def _components(grid: Image.Image, merge: int = 0) -> list[tuple[int, int, int, 
     return boxes
 
 
-def crop_bands(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, tuple[int, int, int, int]]]:
-    """[(kind, (x0, y0, x1, y1) px of `im`), ...] in reading order: kind 'fill' (a solid colour band
-    that text or marks sit on) or 'icon' (a small vector mark outside every word box).
+def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, tuple[int, int, int, int], int]]:
+    """[(kind, (x0, y0, x1, y1) px of `im`, score), ...] in reading order: kind 'fill' (a solid colour
+    band that text or marks sit on) or 'icon' (a small vector mark outside every word box). The score
+    is the ink pixel count (what ranks icons when the per-page cap bites; a fill scores its area).
     Raster pass on the CROP_SCAN_PPI render: none of the gates keeps regions (the hidden-text gate
     only reads the colour behind each word box), so what is reused is its raster and its word
-    boxes; `words` None (no word boxes) skips icons rather than calling every glyph an icon."""
+    boxes; `words` None (no word boxes) skips icons rather than calling every glyph an icon.
+    Background: white when white covers CROP_WHITE_PAPER of the page (a >50% sidebar must not become
+    the 'paper'), else the modal colour (a tinted or dark page)."""
     im = im.convert("RGB")
     w, h = im.size
-    colours = im.getcolors(maxcolors=w * h)
-    bg = cast(tuple[int, ...], max(colours or [(1, (255, 255, 255))])[1])
+    colours = im.getcolors(maxcolors=w * h) or [(1, (255, 255, 255))]
+    white = sum(n for n, c in colours if min(cast(tuple[int, ...], c)) >= 250)
+    if white >= CROP_WHITE_PAPER * w * h:
+        bg: tuple[int, ...] = (255, 255, 255)
+    else:
+        bg = cast(tuple[int, ...], max(colours)[1])
     ink = ImageChops.difference(im, Image.new("RGB", im.size, bg)).convert("L").point(
         lambda v: 255 if v >= CROP_DELTA else 0)
     k = CROP_SCAN_PPI
     e = CROP_ERODE // 2
-    fills = []
+    fills: list[tuple[str, tuple[int, int, int, int], int]] = []
     solid = ink.filter(ImageFilter.MinFilter(CROP_ERODE))
     for x0, y0, x1, y1 in _components(solid.reduce(3).point(lambda v: 255 if v > 64 else 0)):
         box = (max(0, x0 * 3 - e), max(0, y0 * 3 - e), min(w, x1 * 3 + 3 + e), min(h, y1 * 3 + 3 + e))
         if box[2] - box[0] >= CROP_FILL_MIN_IN[0] * k and box[3] - box[1] >= CROP_FILL_MIN_IN[1] * k:
-            fills.append(("fill", box))
-    icons = []
+            fills.append(("fill", box, (box[2] - box[0]) * (box[3] - box[1])))
+    icons: list[tuple[str, tuple[int, int, int, int], int]] = []
     if words is not None:
         rest = ink.copy()
         d = ImageDraw.Draw(rest)
         pt = k / 72.0
+        wpx = [(wx0 * pt, wy0 * pt, wx1 * pt, wy1 * pt) for wx0, wy0, wx1, wy1 in words]
         for wx0, wy0, wx1, wy1 in words:
             d.rectangle((int((wx0 - 1) * pt), int((wy0 - 1) * pt), int((wx1 + 1) * pt) + 1, int((wy1 + 1) * pt) + 1), fill=0)
-        for _, fb in fills:
+        for _, fb, _ in fills:
             d.rectangle(fb, fill=0)
         for x0, y0, x1, y1 in _components(rest.reduce(3), merge=1):
             bw, bh = (x1 - x0 + 1) * 3, (y1 - y0 + 1) * 3
-            if CROP_ICON_MIN_IN * k <= max(bw, bh) <= CROP_ICON_MAX_IN * k and min(bw, bh) >= CROP_ICON_MIN_IN * k / 2:
-                icons.append(("icon", (x0 * 3, y0 * 3, min(w, x1 * 3 + 3), min(h, y1 * 3 + 3))))
+            if not (CROP_ICON_MIN_IN * k <= max(bw, bh) <= CROP_ICON_MAX_IN * k and min(bw, bh) >= CROP_ICON_MIN_IN * k / 2):
+                continue
+            box = (x0 * 3, y0 * 3, min(w, x1 * 3 + 3), min(h, y1 * 3 + 3))
+            tight = rest.crop(box).getbbox()      # the ink itself, without the blob's dilation margin
+            if tight is None:
+                continue
+            n = sum(1 for v in rest.crop(box).tobytes() if v)
+            tx0, ty0, tx1, ty1 = box[0] + tight[0], box[1] + tight[1], box[0] + tight[2], box[1] + tight[3]
+            tw, th = tx1 - tx0, ty1 - ty0
+            if max(tw, th) < CROP_ICON_MIN_IN * k or max(tw, th) > CROP_ICON_ASPECT * min(tw, th):
+                continue        # a speck, a bullet dot, a rule or a stem
+            if n > CROP_ICON_SOLID * tw * th:
+                continue        # a solid square or chip (bullet marker, white-on-black letter)
+            if any(wy0 < ty1 and wy1 > ty0 and max(wx0 - tx1, tx0 - wx1, 0) < CROP_ICON_GAP_IN * k
+                   for wx0, wy0, wx1, wy1 in wpx):
+                continue        # touching a word on its line: a glyph piece, not a mark of its own
+            icons.append(("icon", box, n))
     return sorted(fills + icons, key=lambda b: (b[1][1], b[1][0]))
+
+
+def crop_bands(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, tuple[int, int, int, int]]]:
+    """crop_candidates without the score: [(kind, (x0, y0, x1, y1)), ...] in reading order."""
+    return [(kind, box) for kind, box, _ in crop_candidates(im, words)]
 
 
 def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
@@ -1855,6 +1888,7 @@ def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
 def render_crops(pdf: str, out_dir: str) -> tuple[list[str], list[str]]:
     """`<stem>-p<N>-<band>.png` at CROP_PPI for the bands at visual risk (solid fills, icons),
     band = fill1, icon2, ... counted per kind in reading order. At most CROP_CAP per page, fills
+    first, then the icons with the most ink. Crops of this stem from an earlier run are removed
     first. Returns (paths, notes naming the bands dropped by the cap)."""
     stem = os.path.splitext(os.path.basename(pdf))[0]
     scan = _page_rasters(pdf, CROP_SCAN_PPI)
@@ -1862,18 +1896,27 @@ def render_crops(pdf: str, out_dir: str) -> tuple[list[str], list[str]]:
         return [], []
     boxes = word_boxes(pdf)
     big = _page_rasters(pdf, CROP_PPI)
+    old_crops = re.compile(r"%s-p\d+-(?:fill|icon)\d+\.png" % re.escape(stem))
+    if os.path.isdir(out_dir):
+        for f in os.listdir(out_dir):        # a run with fewer bands must not leave the old ones beside it
+            if old_crops.fullmatch(f):
+                os.remove(os.path.join(out_dir, f))
     paths: list[str] = []
     notes: list[str] = []
     r = CROP_PPI / CROP_SCAN_PPI
     pad = CROP_PAD_IN * CROP_PPI
     for n, (sm, lg) in enumerate(zip(scan, big), 1):
-        bands = crop_bands(sm, boxes[n - 1] if boxes and n <= len(boxes) else None)
+        bands = crop_candidates(sm, boxes[n - 1] if boxes and n <= len(boxes) else None)
         count = {"fill": 0, "icon": 0}
         named = []
-        for kind, box in bands:
+        score = {}
+        for kind, box, sc in bands:
             count[kind] += 1
             named.append((f"{kind}{count[kind]}", kind, box))
-        keep = ([b for b in named if b[1] == "fill"] + [b for b in named if b[1] == "icon"])[:CROP_CAP]
+            score[count[kind], kind] = sc
+        ranked = [b for b in named if b[1] == "icon"]
+        ranked.sort(key=lambda b: -score[int(b[0][4:]), "icon"])
+        keep = ([b for b in named if b[1] == "fill"] + ranked)[:CROP_CAP]
         if len(named) > len(keep):
             notes.append(f"NOTE  crops: p.{n} capped at {CROP_CAP}, dropped "
                          + ", ".join(b[0] for b in named if b not in keep))
@@ -4232,8 +4275,8 @@ def _selftest() -> NoReturn:
                 _pm: list[Mark] = [m for m in _marks if m.get("page") == _p]
                 _f = check_date_adjacency("", "", marks=_pm, warns=_w, words=_words)
                 yield _n, _exp, "fail" if _f else "warn" if _w else "pass", _f, _w, _pm, _words[_p - 1]
-        for _n, _exp, _gt, _fl, _wl, _pm, _pw in _layouts(_pre, _dcases):
-            assert _gt == _exp, (_n, _gt, _fl or _wl)
+        for _n, _lexp, _gt, _fl, _wl, _pm, _pw in _layouts(_pre, _dcases):
+            assert _gt == _lexp, (_n, _gt, _fl or _wl)
             if _n in ("B.Sc. 2012 orphan", "org-less 2012, bullet short of the date, last on page"):
                 # lib entry() with nothing under its date: the date goes inline
                 assert [m for m in _pm if m.get("kind") == "date"][0].get("inline"), _pm
@@ -4319,8 +4362,8 @@ def _selftest() -> NoReturn:
                    "own bullets reach": True, "long role, sep stays on the role line": True,
                    "wrapping org line": True, "long unbreakable word in the note": True,
                    "wrapping role, reaching org line": True}
-        for _n, _exp, _gt, _fl, _wl, _pm, _pw in _layouts(_pre2, _cases2):
-            assert _gt == _exp, (_n, _gt, _fl or _wl)
+        for _n, _lexp, _gt, _fl, _wl, _pm, _pw in _layouts(_pre2, _cases2):
+            assert _gt == _lexp, (_n, _gt, _fl or _wl)
             _dm = [m for m in _pm if m.get("kind") == "date"]
             if _n in _inline:
                 assert bool(_dm[0].get("inline")) == _inline[_n], (_n, _dm)
@@ -4381,9 +4424,9 @@ def _selftest() -> NoReturn:
     assert _first_word(_fw[:1], 50.0, 10.0, 40.0, x_end=299.0) is None
     # date adjacency without word boxes / markers never crashes
     assert not check_date_adjacency("", "", marks=[])
-    _w: list[str] = []
+    _ww: list[str] = []
     assert not check_date_adjacency("", "", marks=[{"kind": "entry", "text": "A", "page": 1, "x": 0, "y": 0, "dated": True}],
-                                    warns=_w, words=[[]]) and _w
+                                    warns=_ww, words=[[]]) and _ww
     # comment stripping: nested blocks, stray quote, raw span
     assert "lib.typ" not in _strip_typst_comments('/* a /* b */ #import "lib.typ" */\n')
     assert "lib.typ" in _strip_typst_comments('a 6" pipe\n#import "lib.typ"\n')
@@ -4433,13 +4476,13 @@ def _selftest() -> NoReturn:
         assert _li_chk() == [], _li_chk()
         _li_w(os.path.join(_li_cv, "cv.typ"), '// #import "lib.typ": *\n/* #import "lib.typ" */\n')
         assert [l for l, _ in _li_chk()] == ["WARN"], _li_chk()     # commented imports do not count
-        for _src, _exp in (('#{ import "lib.typ": * }\n', "FAIL"), ('#import("lib.typ")\n', "FAIL"),
+        for _src, _lexp in (('#{ import "lib.typ": * }\n', "FAIL"), ('#import("lib.typ")\n', "FAIL"),
                            ('/* a /* b */ #import "lib.typ" */\n#set page()\n', "WARN"),
                            ('a 6" pipe\n#import "lib.typ": *\n', "FAIL"),
                            ('`#import "lib.typ"`\n', "WARN")):
             _li_w(os.path.join(_li_cv, "lib.typ"), "#let mine = 1\n")
             _li_w(os.path.join(_li_cv, "cv.typ"), _src)
-            assert [l for l, _ in _li_chk()] == [_exp], (_src, _li_chk())
+            assert [l for l, _ in _li_chk()] == [_lexp], (_src, _li_chk())
         open(os.path.join(_li_cv, "lib.typ"), "wb").write(b"\xef\xbb\xbf#let derive() = 1\n")
         _li_w(os.path.join(_li_cv, "cv.typ"), '#import "lib.typ": *\n')
         assert _li_chk() == [], "BOM lib must not false-FAIL"
@@ -4469,14 +4512,14 @@ def _selftest() -> NoReturn:
                 with contextlib.redirect_stdout(_b):
                     _rc = tune(_f, 1, fmin, 96, *rng)
                 return _rc, _b.getvalue(), _footer, _read_par(open(_f).read())
-        _rc, _o, _ft, _par = _tune_doc(15, 0.40, 1.60)
-        assert _rc == 1 and "UNDER-FILLED" in _o and "never invent" in _o, _o
-        assert "clamped to 1.100em" in _o and "searching [0.400, 1.100]" in _o, _o
-        assert "Widen the range" not in _o and _ft is not None and "under-filled" in _ft and _par == (0.6, 0.7), (_o, _ft)
-        _rc, _o, _ft, _par = _tune_doc(70)
-        assert _rc == 1 and "UNDER-FILLED" not in _o, _o
-        _rc, _o, _ft, _par = _tune_doc(38, fmin=88)
-        assert _rc == 0 and _par is not None and _par[0] <= LEADING_CAP + 1e-9, (_o, _par)
+        _trc, _to, _tft, _tpar = _tune_doc(15, 0.40, 1.60)
+        assert _trc == 1 and "UNDER-FILLED" in _to and "never invent" in _to, _to
+        assert "clamped to 1.100em" in _to and "searching [0.400, 1.100]" in _to, _to
+        assert "Widen the range" not in _to and _tft is not None and "under-filled" in _tft and _tpar == (0.6, 0.7), (_to, _tft)
+        _trc, _to, _tft, _tpar = _tune_doc(70)
+        assert _trc == 1 and "UNDER-FILLED" not in _to, _to
+        _trc, _to, _tft, _tpar = _tune_doc(38, fmin=88)
+        assert _trc == 0 and _tpar is not None and _tpar[0] <= LEADING_CAP + 1e-9, (_to, _tpar)
     print("selftest OK — lib.typ integrity (current / older / rewritten); tuner regex reads, writes and round-trips; "
           "an unrecognised par declaration is reported, not guessed; "
           "a pale or short hairline AT a boundary reads as a device, while "
