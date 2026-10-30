@@ -290,10 +290,11 @@ no family draw and no palette generation either: one neutral gabarit, from
    drawn variant too. A different font pair shifts the fill: re-run the tuning loop with
    `scripts/verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX`, which bisects
    `#set par(leading:, spacing:)` instead of you guessing — the printed
-   leading/spacing is a starting point. If `--tune` says the target is
-   unreachable, widen its bounds before you touch any device — the bounds are
-   two positional arguments after `FILL_MAX`, e.g.
-   `scripts/verify.py --tune cv.typ 1 88 96 0.45 1.40`. A losing search leaves
+   leading/spacing is a starting point. If `--tune` says the page is under-filled, a fact is missing: add a
+   real one from the candidate's facts (or ask the user; never invent). Leading is capped
+   at 1.10em, so widening the bounds cannot inflate it; fewer pages or a lower target only
+   once the facts are exhausted, and tell the user. Bounds are two positional arguments
+   after `FILL_MAX`, for an over-full page (e.g. `0.45 1.0`). A losing search leaves
    the file untouched, so a failed `--tune` never costs you the family's own
    rhythm. Don't override `entry()`/`srow()` `above`/`gap` per entry to win fill (their `auto` is derived from leading and the measured role/org clearance): tune leading via `--tune`; the proximity gate (`check_group_proximity`) FAILs a sub-line closer to the next block than to its own head.
    Every dated entry must use lib `entry()`: a hand-built grid is not measured by the date-adjacency gate. Check that verify.py's `INFO  date adjacency: N lib entries measured, …` line counts every dated entry in the CV.

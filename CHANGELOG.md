@@ -8,6 +8,10 @@ Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 - `tests/run_all.sh` runs the self-tests, the 29 templates against their fill
   targets and the spacing fixtures with their gates in one command; a GitHub
   Actions workflow runs it on every PR and push to `main` and attaches the PDFs.
+- `verify.py --tune` caps upward leading at 1.10em and spacing at 1.24em (largest shipped
+  0.96em / 1.075em plus 15%), clamping and reporting any wider range passed. An
+  under-filled page now FAILs with content advice (add a real fact, ask the user, never
+  invent or pad) instead of "widen the range"; over-full behaviour unchanged.
 - `entry()` (and every family's `job()`) sets the date inline after the role
   ("Role — Mar 2024 – present") unless the entry's org/descriptor line reaches
   under where a right-flushed date would sit; pdftotext/ATS read geometry, so a

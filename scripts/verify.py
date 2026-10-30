@@ -849,6 +849,12 @@ def check_whitespace(path, boxes=None, family=None, degraded=False):
 # spacing relative to its leading has a different rhythm, not just a different
 # density), and tuning them independently would silently redesign the family.
 #
+# UPWARD CAP. An under-filled page means a fact is missing, not whitespace to
+# inflate. The 29 shipped templates use body leading 0.42-0.96em and paragraph
+# spacing up to 1.075em; the tuner never goes above LEADING_CAP (0.96 x 1.15,
+# the largest shipped leading plus a modest 15%) or SPACING_CAP (1.075 x 1.15)
+# whatever range the caller passes. Downward (over-full) search is unchanged.
+#
 # If the fill at L* is still under the target, no leading value reaches it:
 # that is the anti-filler clause (SKILL.md rule 5) speaking — the content does
 # not honestly fill that pagination. The tuner says so instead of inventing a
@@ -1586,6 +1592,10 @@ def _probe(typ, text, leading, spacing, expected, use_cli, use_poppler):
         return True, (int(m.group(1)) if m else None)
 
 
+LEADING_CAP = 1.10     # em; largest shipped body leading 0.96 x 1.15
+SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
+
+
 def tune(typ, expected, fmin, fmax, lo=None, hi=None, step=0.005):
     deps_ok, use_cli, use_poppler = preflight()
     if not deps_ok:
@@ -1608,9 +1618,18 @@ def tune(typ, expected, fmin, fmax, lo=None, hi=None, step=0.005):
     # ceiling never sits below 1.10em.
     hi = max(l0 * 1.30, 1.10) if hi is None else hi
     hi_arg = hi
+    cap = max(min(LEADING_CAP, SPACING_CAP - delta), l0)
+    clamped = hi > cap + 1e-9
+    if clamped:
+        hi = cap
+    lo = min(lo, hi)
     print("tuning %s: leading %.3fem (spacing %+.3fem), searching [%.3f, %.3f], "
           "target %s pages / fill %s-%s%%"
           % (typ, l0, delta, lo, hi, expected, fmin, fmax))
+    if clamped:
+        print("NOTE  upper bound clamped to %.3fem: the shipped templates never exceed "
+              "%.2fem leading (cap %.2f); an under-filled page needs a real fact, "
+              "not more air" % (cap, 0.96, LEADING_CAP))
     try:
         ok_lo, fill_lo = _probe(typ, original, lo, lo + delta, expected,
                                 use_cli, use_poppler)
@@ -1649,20 +1668,31 @@ def tune(typ, expected, fmin, fmax, lo=None, hi=None, step=0.005):
             # rhythm the family was designed with. Put the original back and
             # let the caller decide.
             open(typ, "w", encoding="utf-8").write(original)
-            if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
-                _footer = _FOOTER_TUNE_WIDE
+            under = best_fill is not None and best_fill < fmin
             print("FAIL  best leading %.3fem / spacing %.3fem -> fill %s%% "
                   "(target %s-%s%%); restored the original %.3fem/%.3fem"
                   % (best, best + delta, best_fill, fmin, fmax, l0, s0))
-            print("      no leading in the searched range reaches the target at "
-                  "%s page(s). Widen the range by passing the bounds "
-                  "positionally after FILL_MAX, e.g.\n"
-                  "        verify.py --tune %s %s %s %s %.2f %.2f\n"
-                  "      or take the space out of the section gap / add real "
-                  "content / change the page count (anti-filler clause, "
-                  "SKILL.md rule 5)."
-                  % (expected, typ, expected, fmin, fmax,
-                     max(0.40, l0 * 0.65), max(1.40, l0 * 1.60)))
+            if under:
+                _footer = _FOOTER_TUNE_UNDER
+                print("      the page is UNDER-FILLED: a fact is missing, not whitespace. "
+                      "Leading is capped at %.2fem (never widen the range). Add a real fact "
+                      "from the candidate's facts (a bullet with a measurable result, a "
+                      "project, a certification) — never pad. If the facts are not in "
+                      "hand, ASK the user for them; never invent. Alternative, only if the "
+                      "facts are exhausted: drop to fewer pages or accept a lower fill "
+                      "target, and say so to the user." % cap)
+            else:
+                if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
+                    _footer = _FOOTER_TUNE_WIDE
+                print("      no leading in the searched range reaches the target at "
+                      "%s page(s). Widen the range by passing the bounds "
+                      "positionally after FILL_MAX, e.g.\n"
+                      "        verify.py --tune %s %s %s %s %.2f %.2f\n"
+                      "      or take the space out of the section gap / add real "
+                      "content / change the page count (anti-filler clause, "
+                      "SKILL.md rule 5)."
+                      % (expected, typ, expected, fmin, fmax,
+                         max(0.40, l0 * 0.65), max(1.40, l0 * 1.60)))
             return 1
         open(typ, "w", encoding="utf-8").write(
             _write_par(original, best, best + delta))
@@ -1943,6 +1973,11 @@ _FOOTER_GATE = ("NEXT  Apply the fix each FAIL above names, then re-run the same
                 "(recopy it, never edit it).\n" + _NO_READ)
 _FOOTER_TUNE = ("NEXT  Run the command printed above (wider range), or add real content / "
                 "change the page count in cv.typ; do not edit leading by hand.\n" + _NO_READ)
+_FOOTER_TUNE_UNDER = ("NEXT  The page is under-filled: do not re-run --tune or widen the range "
+                      "(leading is capped). Add a real fact from the candidate's facts (a bullet "
+                      "with a measurable result, a project, a certification); never pad or invent "
+                      "— if the facts are not in hand, ask the user. Only if the facts are "
+                      "exhausted: fewer pages or a lower fill target, and tell the user.\n" + _NO_READ)
 _FOOTER_TUNE_NOPAR = ("NEXT  Add the `#set par(leading: Xem, spacing: Yem)` line to cv.typ "
                       "(copy it from the template), then re-run the same command.\n" + _NO_READ)
 _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Add real content "
@@ -2769,6 +2804,31 @@ def main():
             _r = check_lib_integrity(os.path.join(_cv, "sub", "cv.typ"), _sk, {_old})
             assert [l for l, _ in _r] == ["FAIL"], _r
             assert "cp " in _r[0][1]
+        # Tuner cap: an under-filled doc must FAIL with content advice, the
+        # leading clamped at the cap even when the caller passes 0.40 1.60; an
+        # over-full doc keeps the old advice; a normal doc converges in the cap.
+        if preflight()[0]:
+            import io, contextlib
+            def _tune_doc(nlines, *rng, fmin=94):
+                with tempfile.TemporaryDirectory() as _d:
+                    _f = os.path.join(_d, "t.typ")
+                    _body = "".join("Line %d of body text.\\\n" % i for i in range(nlines))
+                    open(_f, "w", encoding="utf-8").write(
+                        '#set page(paper: "us-letter", margin: 0.75in)\n'
+                        '#set text(size: 10pt)\n'
+                        '#set par(leading: 0.6em, spacing: 0.7em)\n' + _body)
+                    _b = io.StringIO()
+                    with contextlib.redirect_stdout(_b):
+                        _rc = tune(_f, 1, fmin, 96, *rng)
+                    return _rc, _b.getvalue(), _footer, _read_par(open(_f).read())
+            _rc, _o, _ft, _par = _tune_doc(15, 0.40, 1.60)
+            assert _rc == 1 and "UNDER-FILLED" in _o and "never invent" in _o, _o
+            assert "clamped to 1.100em" in _o and "searching [0.400, 1.100]" in _o, _o
+            assert "Widen the range" not in _o and "under-filled" in _ft and _par == (0.6, 0.7), (_o, _ft)
+            _rc, _o, _ft, _par = _tune_doc(70)
+            assert _rc == 1 and "UNDER-FILLED" not in _o, _o
+            _rc, _o, _ft, _par = _tune_doc(38, fmin=88)
+            assert _rc == 0 and _par[0] <= LEADING_CAP + 1e-9, (_o, _par)
         print("selftest OK — lib.typ integrity (current / older / rewritten); tuner regex reads, writes and round-trips; "
               "an unrecognised par declaration is reported, not guessed; "
               "a pale or short hairline AT a boundary reads as a device, while "
