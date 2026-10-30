@@ -48,7 +48,7 @@ Each step below is a skeleton. Before doing anything for a step, read its file i
 
 **5. Write bullets.** Write the evidence-anchored, keyword-bearing bullets from the fact sheet. → Read `references/steps/5-bullets.md` now, before doing anything for this step.
 
-**6. Verify mechanically.** Loop until every gate passes, re-running after every edit; deliverable is the gate's full output pasted verbatim. → Read `references/steps/6-verify.md` now, before doing anything for this step. `scripts/verify.py`, `scripts/verify.sh`, `scripts/measure_fill.py`: run them, never open their source. If verify fails, grep `references/known-traps.md` for the symptom.
+**6. Verify mechanically.** Loop until every gate passes, re-running after every edit; deliverable is the gate's full output pasted verbatim. → Read `references/steps/6-verify.md` now, before doing anything for this step. `scripts/verify.py`, `scripts/verify.sh`, `scripts/measure_fill.py`: run them, never open their source. If verify fails, grep `references/known-traps.md` for the symptom. The visual pass is never skippable: no vision → subagent, local vision model, or the user (`references/look-checklist.md`); the report needs a `Visual pass:` line.
 
 **7. Adversarial review.** Never deliver without this pass. → Read `references/steps/7-review.md` now, before doing anything for this step.
 
