@@ -30,7 +30,7 @@ import verify  # noqa: E402 — reuse compile_pdf/count_pages/extract_text only
 
 def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tuple[bool | None, str]]]:
     """Returns (ok, messages) — messages are (is_fail, text) pairs."""
-    ok, use_cli, use_poppler = verify.preflight()
+    ok, use_cli, backend = verify.preflight()
     if not ok:
         return False, [(True, "missing dependency — see --doctor output above")]
 
@@ -43,14 +43,14 @@ def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tu
         if not compiled:
             return False, [(True, f"compile failed: {err}")]
 
-        pages = verify.count_pages(pdf, use_poppler)
+        pages = verify.count_pages(pdf, backend)
         if pages != "1":
             fail = True
             msgs.append((True, f"letter is {pages} page(s), must be exactly 1"))
         else:
             msgs.append((False, "1 page"))
 
-        txt = verify.extract_text(pdf, use_poppler)
+        txt = verify.extract_text(pdf, backend)
         for label, needle in (("employer", employer), ("job title", job_title)):
             if needle.lower() not in txt.lower():
                 fail = True

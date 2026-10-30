@@ -2,7 +2,7 @@
 # Run every check the repo has: self-tests, the 29 templates against their fill
 # targets, the spacing fixtures and their gates. Keeps going after a failure.
 # Usage: tests/run_all.sh [--quick] [outdir]
-# Needs typst, poppler-utils (pdftotext), python3 + Pillow + pypdf.
+# Needs typst, poppler-utils (pdftotext) or pypdfium2, python3 + Pillow + pypdf.
 # Works on a scratch copy: verify.py writes PDFs next to the .typ, and the
 # repo must stay clean. PDFs/PNGs of the templates are left in <outdir>/pdf.
 set -euo pipefail
@@ -121,7 +121,8 @@ doctor_pip_only() {
   echo "$txt" | grep -q '^DEGRADED  typst' || { echo "no DEGRADED typst line"; return 1; }
   echo "$txt" | grep -q 'date adjacency' || { echo "typst block names no skipped check"; return 1; }
   echo "$txt" | grep -q '^OK    typst' && { echo "typst reported OK"; return 1; }
-  if python3 -c "import pypdf" 2>/dev/null; then   # pypdf may be absent on the host
+  # pypdf may be absent on the host; with pypdfium2 present the backend is pdfium, not DEGRADED
+  if python3 -c "import pypdf" 2>/dev/null && ! python3 -c "import pypdfium2" 2>/dev/null; then
     echo "$txt" | grep -q '^DEGRADED  pypdf' || { echo "no DEGRADED pypdf line"; return 1; }
     echo "$txt" | grep -q 'hidden-text gate' || { echo "pypdf block names no skipped check"; return 1; }
   fi
@@ -153,6 +154,23 @@ if command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pd
   check doctor-no-pdftoppm doctor_no_pdftoppm
 else
   echo "SKIP doctor-no-pdftoppm (needs typst, pdfinfo, pdftotext on the host)"
+fi
+
+# no poppler on PATH, pypdfium2 importable: every poppler check runs on pdfium (OK line, no
+# DEGRADED), and the doctor says academic mode still needs poppler.
+if command -v typst >/dev/null && python3 -c "import pypdfium2" 2>/dev/null; then
+  doctor_pdfium() {
+    local d="$out/doctor-sim5"; doctor_env "$d" python3 typst
+    local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
+    echo "$txt"
+    echo "$txt" | grep -q '^OK    pdf: pypdfium2 .* (Python: text, word boxes, raster, metadata, attachments)' || { echo "no OK pypdfium2 line"; return 1; }
+    echo "$txt" | grep -q 'academic mode still needs poppler' || { echo "no academic-mode line"; return 1; }
+    echo "$txt" | grep -q '^DEGRADED  pypdf\|^MISSING' && { echo "unexpected DEGRADED/MISSING"; return 1; }
+    return 0
+  }
+  check doctor-pdfium doctor_pdfium
+else
+  echo "SKIP doctor-pdfium (needs typst and pypdfium2 on the host)"
 fi
 
 # typst CLI whose font list has only DejaVu: fonts line DEGRADED; with a font

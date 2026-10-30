@@ -370,7 +370,7 @@ def hidden_text_msgs(pdf: str) -> list[tuple[bool | None, str]]:
 
 
 def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, str]], list[str]]:
-    ok, use_cli, use_poppler = verify.preflight()
+    ok, use_cli, backend = verify.preflight()
     if not shutil.which("pdftotext"):
         ok = False
     if not ok:
@@ -397,7 +397,7 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
         # ---- reported-only metrics (never failed): page count, last-page
         # fill, and a rough prose/list share. academic-mode.md §3.3/§3.4.
         reported = [f'{total_pages} page(s)']
-        pages_from_cli = verify.count_pages(pdf, use_poppler)
+        pages_from_cli = verify.count_pages(pdf, backend)
         if pages_from_cli and str(pages_from_cli) != str(total_pages):
             reported.append(f'note: pdfinfo reports {pages_from_cli} page(s)')
         pngs = verify.render_pngs(typ, tmp, use_cli)
