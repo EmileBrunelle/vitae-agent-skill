@@ -137,6 +137,21 @@ doctor_pip_broken() {
 }
 check doctor-pip-broken doctor_pip_broken
 
+# imports and runs, but its Compiler lacks compile_with_warnings (typst-py 0.11.x): "too old", not "reinstall".
+doctor_pip_too_old() {
+  local d="$out/doctor-sim-too-old"; doctor_env "$d" python3
+  printf 'class Compiler:\n    def __init__(self, *a, **k): pass\n    def compile(self, **k): return b"%%PDF-1"\n__version__ = "0.11.1"\n' > "$d/py/typst.py"
+  local txt rc=0
+  txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
+  echo "$txt"
+  [ "$rc" -eq 1 ] || { echo "doctor exit $rc, expected 1"; return 1; }
+  echo "$txt" | grep -q '^BROKEN  typst.*too old' || { echo "no too-old line"; return 1; }
+  echo "$txt" | grep -q 'pip install -U typst' || { echo "no upgrade advice"; return 1; }
+  echo "$txt" | grep -q 'force-reinstall' && { echo "advises reinstall for an old wheel"; return 1; }
+  return 0
+}
+check doctor-pip-too-old doctor_pip_too_old
+
 # compiles but has no query/eval/Fonts (old typst-py): DEGRADED, and names the skipped checks.
 doctor_pip_compile_only() {
   local d="$out/doctor-sim-c"; doctor_env "$d" python3; stub_typst "$d/py/typst.py" compile-only
@@ -209,12 +224,28 @@ sys.argv = ['verify.py', '--doctor']
 runpy.run_path('scripts/verify.py', run_name='__main__')" 2>&1)" || rc=$?
       echo "$txt"
       [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
-      echo "$txt" | grep -q '^DEGRADED  pypdf: not installed.*tiny-text.*pip install pypdf' || { echo "no DEGRADED pypdf line"; return 1; }
+      # the line names what the gate really skips on this backend (pdfium: tiny-text; poppler: off-page)
+      if echo "$txt" | grep -q '^OK    pdf: pypdfium2'; then want='tiny-text'; else want='off-page'; fi
+      echo "$txt" | grep -q "^DEGRADED  pypdf: not installed.*$want.*pip install pypdf" || { echo "no DEGRADED pypdf line naming $want"; return 1; }
       echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) hides the missing pypdf"; return 1; }
       return 0
     }
     check doctor-no-pypdf doctor_no_pypdf
   fi
+  # any DEGRADED line (here: fonts) withholds the OK (Python) summary
+  doctor_degraded_no_ok() {
+    local d="$out/doctor-sim-degfonts" txt rc=0; doctor_env "$d" python3
+    txt="$(PATH="$d/bin" "$PY" -c "
+import sys; sys.path.insert(0, 'scripts')
+import verify, pick_design
+pick_design._fonts_available = lambda: {'DejaVu Sans'}
+verify.preflight()" 2>&1)" || rc=$?
+    echo "$txt"
+    echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
+    echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) after a DEGRADED line"; return 1; }
+    return 0
+  }
+  check doctor-degraded-no-ok doctor_degraded_no_ok
 else
   echo "SKIP doctor-pip-full (needs typst-py and pypdfium2 in $PY)"
 fi
@@ -348,6 +379,23 @@ assert len(w) == 1 and '"Jun 2019"' in w[0], f"invented month not flagged: {w}"
 PY
 }
 check facts-month-range facts_month_range
+# a year-crossing range with one closing year: the first month is the year before; FR abbreviations parse.
+facts_year_cross() {
+  python3 -I - <<'PY' || return 1
+import sys; sys.path.insert(0, "scripts")
+import verify
+f = "Stage, Acme, déc. – janv. 2020\n"
+for ok in ("Dec 2019", "Jan 2020"):
+    w = verify.check_facts_coverage(f"Intern  {ok}\n", f)
+    assert w == [], f"{ok}: false positive {w}"
+w = verify.check_facts_coverage("Intern  Dec 2020\n", f)
+assert len(w) == 1 and '"Dec 2020"' in w[0], f"Dec 2020 hidden: {w}"
+for abbr in ("févr.", "janv.", "avr.", "juil.", "sept.", "oct.", "nov.", "déc."):
+    w = verify.check_facts_coverage("Intern  %s 2021\n" % abbr, "Stage, Acme, %s 2021\n" % abbr)
+    assert w == [], f"{abbr}: {w}"
+PY
+}
+check facts-year-cross facts_year_cross
 text_render() {
   local pdf r
   pdf="$(ls "$out"/pdf/*.pdf 2>/dev/null | head -1)"; [ -n "$pdf" ] || { echo "no PDF from the template runs"; return 1; }
@@ -356,6 +404,23 @@ text_render() {
   [ "$(basename "$r" | head -1)" = "$(basename "$pdf" .pdf)-p1.png" ] && [ -s "$(echo "$r" | head -1)" ] || { echo "bad --render output: $r"; return 1; }
 }
 check text-render text_render
+# corrupt or non-PDF input: one FAIL line and exit 1, never silence, a traceback or "no rasterizer"; a re-render drops its stale pages.
+text_render_bad() {
+  local d="$S/bad" rc txt
+  rm -rf "$d"; mkdir -p "$d"; printf 'this is not a pdf\n' > "$d/bad.pdf"
+  for m in --text --render; do
+    rc=0; txt="$(python3 -I scripts/verify.py $m "$d/bad.pdf" --out "$d/o" 2>&1)" || rc=$?
+    [ "$rc" -eq 1 ] || { echo "$m exit $rc, expected 1: $txt"; return 1; }
+    [ "$(echo "$txt" | wc -l)" -eq 1 ] && echo "$txt" | grep -q '^FAIL  .*not a readable PDF' || { echo "$m: bad message: $txt"; return 1; }
+  done
+  local pdf; pdf="$(ls "$out"/pdf/*.pdf 2>/dev/null | head -1)"; [ -n "$pdf" ] || return 1
+  mkdir -p "$d/o"; local stem; stem="$(basename "$pdf" .pdf)"
+  touch "$d/o/$stem-p9.png" "$d/o/keep.png" "$d/o/${stem}x-p9.png"
+  python3 -I scripts/verify.py --render "$pdf" --out "$d/o" --ppi 40 >/dev/null || return 1
+  [ ! -e "$d/o/$stem-p9.png" ] || { echo "stale page kept"; return 1; }
+  [ -e "$d/o/keep.png" ] && [ -e "$d/o/${stem}x-p9.png" ] || { echo "removed an unrelated file"; return 1; }
+}
+check text-render-bad text_render_bad
 # --render --crops: a solid band and a vector mark each get a <stem>-p<N>-<band>.png; plain --render is unchanged.
 render_crops() {
   local d="$S/crops" r

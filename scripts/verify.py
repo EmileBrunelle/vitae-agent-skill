@@ -72,6 +72,7 @@ from __future__ import annotations
 
 import argparse
 import atexit
+import contextlib
 import glob
 import hashlib
 import html
@@ -255,6 +256,10 @@ def check_typst() -> tuple[bool, bool]:
         print(f"OK    typst {ver} (CLI)")
         return True, True
     mod, ver, why, full = _typst_py_probe()
+    if mod is None and why.startswith("TOOLOLD"):
+        print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
+        print("  Upgrade it: pip install -U typst   # or install the CLI (brew install typst | cargo install typst-cli)")
+        return False, False
     if mod is None and why:
         print(f"BROKEN  typst: the Python package `typst` is installed but does not work ({why}).")
         print("  Reinstall it: pip install --force-reinstall typst   # or install the CLI (brew install typst | cargo install typst-cli)")
@@ -400,21 +405,48 @@ def check_fonts() -> None:
         print(f"OK    fonts ({usable} of {len(pools)} design families fully installed, {len(have)} families)")
 
 
+class _CountDegraded:
+    """stdout wrapper: counts the doctor lines that start with DEGRADED, so no path can print
+    one and still end on an OK summary (a new DEGRADED line anywhere is covered)."""
+    def __init__(self, inner: Any) -> None:
+        self.inner, self.n, self._bol = inner, 0, True
+
+    def write(self, text: str) -> int:
+        for part in text.splitlines(keepends=True):
+            if self._bol and part.startswith("DEGRADED"):
+                self.n += 1
+            self._bol = part.endswith("\n")
+        return int(self.inner.write(text))
+
+    def flush(self) -> None:
+        self.inner.flush()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.inner, name)
+
+
 def preflight() -> tuple[bool, bool, PdfBackend]:
     """Prints doctor output; returns (all_ok, use_cli_typst, pdf_backend)."""
-    pillow_ok = check_pillow()
-    typst_ok, use_cli = check_typst()
-    if use_cli or typst_py() is not None:
-        check_fonts()
-    pdf_ok, backend = check_pdf_tools()
-    all_ok = pillow_ok and typst_ok and pdf_ok
-    pypdf_missing = backend in ("poppler", "pdfium") and not _importable("pypdf")
-    if pypdf_missing:
-        print("DEGRADED  pypdf: not installed. The tiny-text check of the hidden-text gate will NOT run (WARN \"tiny-text check not run (pypdf missing)\"). Fix: pip install pypdf")
-    if (all_ok and not pypdf_missing and not use_cli and backend == "pdfium" and typst_py() is not None
-            and _ver_tuple(_typst_py_probe()[1]) >= TYPST_MIN):
-        print("OK (Python)  no typst CLI, no poppler: compile, query, fonts, text, boxes and raster all run in Python "
-              "(typst-py + pypdfium2 + pypdf + Pillow); academic mode still needs poppler")
+    counter = _CountDegraded(sys.stdout)
+    with contextlib.redirect_stdout(cast(Any, counter)):
+        pillow_ok = check_pillow()
+        typst_ok, use_cli = check_typst()
+        if use_cli or typst_py() is not None:
+            check_fonts()
+        pdf_ok, backend = check_pdf_tools()
+        all_ok = pillow_ok and typst_ok and pdf_ok
+        pypdf_missing = backend in ("poppler", "pdfium") and not _importable("pypdf")
+        if pypdf_missing:
+            # what the gate actually WARNs, per backend (check_hidden_text)
+            skipped = ("the tiny-text check of the hidden-text gate will NOT run "
+                       "(WARN \"tiny-text check not run (pypdf missing)\")" if backend == "pdfium" else
+                       "the off-page check of the hidden-text gate will NOT run "
+                       "(WARN \"hidden text: off-page check not run (pypdf missing)\")")
+            print(f"DEGRADED  pypdf: not installed. {skipped}. Fix: pip install pypdf")
+        if (all_ok and not counter.n and not use_cli and backend == "pdfium" and typst_py() is not None
+                and _ver_tuple(_typst_py_probe()[1]) >= TYPST_MIN):
+            print("OK (Python)  no typst CLI, no poppler: compile, query, fonts, text, boxes and raster all run in Python "
+                  "(typst-py + pypdfium2 + pypdf + Pillow); academic mode still needs poppler")
     return all_ok, use_cli, backend
 
 
@@ -475,6 +507,10 @@ def _typst_py_probe() -> tuple[Any | None, str, str, bool]:
         return None, "", "", False
     except Exception as e:
         return None, "", f"import failed: {e}", False
+    comp_cls = getattr(mod, "Compiler", None)
+    if comp_cls is not None and not hasattr(comp_cls, "compile_with_warnings"):
+        # a working but old wheel (typst-py 0.11.x): the API this script drives is newer
+        return None, "", f"TOOLOLD typst {getattr(mod, '__version__', '?')}: its Compiler has no compile_with_warnings", False
     try:
         with tempfile.TemporaryDirectory() as td:
             src = os.path.join(td, "probe.typ")
@@ -841,8 +877,8 @@ def _year_only_msg(line: str) -> str:
 
 _MONTHS: dict[str, int] = {}
 for _i, _names in enumerate([
-        "jan january janvier janv", "feb february fevrier fev febr", "mar march mars",
-        "apr april avril avr", "may mai", "jun june juin", "jul july juillet juil",
+        "jan january janvier janv", "feb february fevrier fev febr fevr", "mar march mars",
+        "apr april avril avr", "may mai", "jun june juin", "jul july juillet juil juill",
         "aug august aout", "sep sept september septembre", "oct october octobre",
         "nov november novembre", "dec december decembre"], 1):
     for _n in _names.split():
@@ -850,8 +886,9 @@ for _i, _names in enumerate([
 _MONTH_YEAR_RE = re.compile(
     r"(?<![^\W\d_])(%s)\.?\s+((?:19|20)\d{2})(?!\d)" % "|".join(sorted(_MONTHS, key=len, reverse=True)))
 # "juillet – août 2019": the year closes the range and applies to the month before the dash too
+# (the month before the dash is the earlier year when it is the later one in the calendar: "déc. – janv. 2020")
 _RANGE_MY_RE = re.compile(
-    r"(?<![^\W\d_])(%s)\.?(?:\s*-\s*|\s+(?:to|a|au|through)\s+)(?:%s)\.?\s+((?:19|20)\d{2})(?!\d)"
+    r"(?<![^\W\d_])(%s)\.?(?:\s*-\s*|\s+(?:to|a|au|through)\s+)(%s)\.?\s+((?:19|20)\d{2})(?!\d)"
     % (("|".join(sorted(_MONTHS, key=len, reverse=True)),) * 2))
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
@@ -953,7 +990,9 @@ def _num_values(text: str) -> set[float]:
 def _month_years(text: str) -> set[tuple[int, int]]:
     f = _fold(text)
     out = {(_MONTHS[m.group(1)], int(m.group(2))) for m in _MONTH_YEAR_RE.finditer(f)}
-    out |= {(_MONTHS[m.group(1)], int(m.group(2))) for m in _RANGE_MY_RE.finditer(f)}
+    for m in _RANGE_MY_RE.finditer(f):
+        m1, m2, y = _MONTHS[m.group(1)], _MONTHS[m.group(2)], int(m.group(3))
+        out.add((m1, y - 1 if m1 > m2 else y))
     for m in _NUM_MY_RE.finditer(f):
         y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
         out.add((int(mo), int(y)))
@@ -989,6 +1028,8 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
     facts = _fold(facts_text)
     facts_n = _name_norm(facts_text)
     facts_years = set(_YEAR_RE.findall(facts))
+    facts_years |= {str(int(m.group(3)) - 1) for m in _RANGE_MY_RE.finditer(facts)
+                    if _MONTHS[m.group(1)] > _MONTHS[m.group(2)]}      # "déc. – janv. 2020" opens in 2019
     facts_my = _month_years(facts_text)
     facts_nums = _num_values(facts_text)
     found: dict[str, None] = {}
@@ -1671,14 +1712,34 @@ def _render_pages_png(pdf: str, tmp: str, ppi: int = HIDDEN_PPI) -> list[str]:
                   key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1)))
 
 
+def pdf_unreadable(pdf: str) -> bool:
+    """True when the PDF backend cannot open `pdf` (not a PDF, corrupt): header, then a page count."""
+    try:
+        with open(pdf, "rb") as fh:
+            if b"%PDF" not in fh.read(1024):
+                return True
+        backend = pdf_backend()
+        return backend is not None and not count_pages(pdf, backend)
+    except Exception:
+        return True
+
+
 def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
     """`<stem>-p<N>.png` per page in out_dir: pypdfium2 when it imports, else pdftoppm.
     Returns the paths, or [] when neither is there."""
     os.makedirs(out_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(pdf))[0]
+    stale = re.compile(r"%s-p\d+\.png" % re.escape(stem))
+
+    def drop_stale() -> None:        # a longer previous render must not leave its extra pages behind
+        for f in os.listdir(out_dir):
+            if stale.fullmatch(f):
+                os.remove(os.path.join(out_dir, f))
     if _importable("pypdfium2"):
         paths = []
-        for n, im in enumerate(_pdfium_render(pdf, ppi), 1):
+        ims = _pdfium_render(pdf, ppi)
+        drop_stale()
+        for n, im in enumerate(ims, 1):
             paths.append(os.path.join(out_dir, f"{stem}-p{n}.png"))
             im.save(paths[-1])
         return paths
@@ -1688,6 +1749,7 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
         subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "p")],
                        capture_output=True, text=True)
         paths = []
+        drop_stale()
         for f in sorted(glob.glob(os.path.join(tmp, "p*.png")),
                         key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1))):
             n = int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1))
@@ -4691,6 +4753,8 @@ def main() -> None:
         ra = ap.parse_known_args(argv[1:])[0]
         if not os.path.isfile(ra.pdf):
             sys.exit(f"FAIL  {argv[0]}: cannot read {ra.pdf}")
+        if pdf_unreadable(ra.pdf):
+            sys.exit(f"FAIL  {argv[0]}: {ra.pdf} is not a readable PDF (corrupt or not a PDF)")
         if argv[0] == "--text":
             backend = pdf_backend()
             if backend is None:
