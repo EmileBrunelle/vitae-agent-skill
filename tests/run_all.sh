@@ -101,21 +101,47 @@ check selftest-pick_design python3 -I scripts/pick_design.py --selftest
 # case asserts the DEGRADED label AND at least one named skipped check.
 # verify.py imports Pillow at load, so without it the doctor cannot run: SKIP.
 if python3 -c "import PIL" 2>/dev/null; then
+# The interpreter is run by its own path: a `python3` symlink in the stripped PATH resolves
+# out of a venv and loses its site-packages (typst, pypdfium2, Pillow).
+PY="$(python3 -c 'import sys; print(sys.executable)')"
 doctor_env() { # doctor_env <dir> <tools...>: symlink the host tools into <dir>/bin
   local d="$1"; shift; rm -rf "$d"; mkdir -p "$d/bin" "$d/py"
   local t; for t in "$@"; do ln -s "$(command -v "$t")" "$d/bin/$t"; done
 }
-shim_typst() { # shim_typst <dir> <families...>: fake `typst` that lists only those families
+shim_typst() { # shim_typst <dir> <families...>: fake `typst` (version $SHIM_VER, default 0.15.0) that lists only those families
   local d="$1"; shift
-  { printf '#!/bin/sh\n[ "$1" = fonts ] && { '; for f in "$@"; do printf 'echo "%s"; ' "$f"; done; printf 'exit 0; }\necho "typst 0.0.0"\n'; } > "$d/bin/typst"
+  { printf '#!/bin/sh\n[ "$1" = fonts ] && { '; for f in "$@"; do printf 'echo "%s"; ' "$f"; done; printf 'exit 0; }\necho "typst %s"\n' "${SHIM_VER:-0.15.0}"; } > "$d/bin/typst"
   chmod +x "$d/bin/typst"
 }
 
-# pip-only: no typst/poppler CLIs, empty stub `typst` module for the Python API.
-doctor_pip_only() {
-  local d="$out/doctor-sim"; doctor_env "$d" python3; : > "$d/py/typst.py"
+# Fake `typst` Python modules (PYTHONPATH stub), by how much of the API works.
+stub_typst() { # stub_typst <file> <kind>: broken | compile-only | working
+  case "$2" in
+    broken) : > "$1" ;;      # imports, has no Compiler: a broken install
+    compile-only) printf 'class Compiler:\n    def __init__(self, *a, **k): pass\n    def compile_with_warnings(self, **k): return (b"%%PDF-1", [])\n__version__ = "9.9.9"\n' > "$1" ;;
+    working) printf 'class Compiler:\n    def __init__(self, *a, **k): pass\n    def compile_with_warnings(self, **k): return (b"%%PDF-1", [])\n    def query(self, *a, **k): return "[]"\n    def eval(self, e, **k): return "\\"9.9.9\\""\nclass Fonts:\n    def __init__(self, *a, **k): pass\n    def families(self): return ["DejaVu Sans"]\n__version__ = "9.9.9"\n' > "$1" ;;
+  esac
+}
+
+# no typst/poppler CLIs, and the `typst` module imports but does not work: BROKEN (exit 1),
+# not a silent "Python API available" (an attribute check would have passed it).
+doctor_pip_broken() {
+  local d="$out/doctor-sim"; doctor_env "$d" python3; stub_typst "$d/py/typst.py" broken
   local txt rc=0
-  txt="$(PATH="$d/bin" PYTHONPATH="$d/py" python3 scripts/verify.py --doctor 2>&1)" || rc=$?
+  txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
+  echo "$txt"
+  [ "$rc" -eq 1 ] || { echo "doctor exit $rc, expected 1"; return 1; }
+  echo "$txt" | grep -q '^BROKEN  typst' || { echo "no BROKEN typst line"; return 1; }
+  echo "$txt" | grep -q '^OK    typst' && { echo "typst reported OK"; return 1; }
+  return 0
+}
+check doctor-pip-broken doctor_pip_broken
+
+# compiles but has no query/eval/Fonts (old typst-py): DEGRADED, and names the skipped checks.
+doctor_pip_compile_only() {
+  local d="$out/doctor-sim-c"; doctor_env "$d" python3; stub_typst "$d/py/typst.py" compile-only
+  local txt rc=0
+  txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
   echo "$txt"
   [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
   echo "$txt" | grep -q '^DEGRADED  typst' || { echo "no DEGRADED typst line"; return 1; }
@@ -128,25 +154,59 @@ doctor_pip_only() {
   fi
   return 0
 }
-check doctor-pip-only doctor_pip_only
+check doctor-pip-compile-only doctor_pip_compile_only
 
-# pip-only, but the stub exposes Compiler.query/.eval and Fonts: query, eval and fonts
-# work through the Python API, so typst is OK and names no skipped check.
+# the stub works end to end (compile, query, eval, Fonts): typst is OK and names no skipped check.
 doctor_pip_query() {
-  local d="$out/doctor-sim-q"; doctor_env "$d" python3
-  printf 'class Compiler:\n    def query(self): pass\n    def eval(self): pass\nclass Fonts: pass\n__version__ = "9.9.9"\n' > "$d/py/typst.py"
-  local txt; txt="$(PATH="$d/bin" PYTHONPATH="$d/py" python3 scripts/verify.py --doctor 2>&1)" || true
+  local d="$out/doctor-sim-q"; doctor_env "$d" python3; stub_typst "$d/py/typst.py" working
+  local txt; txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || true
   echo "$txt" | grep -q '^OK    typst 9.9.9 (Python API: compile, query, fonts)' || { echo "$txt"; echo "no OK typst Python API line"; return 1; }
   echo "$txt" | grep -q '^DEGRADED  typst' && { echo "typst still DEGRADED"; return 1; }
   return 0
 }
 check doctor-pip-query doctor_pip_query
 
+# typst older than 0.15 (CLI shim, then the Python stub): DEGRADED with the calibration reason.
+doctor_old_typst() {
+  local d="$out/doctor-sim-old"; doctor_env "$d" python3; SHIM_VER=0.14.0 shim_typst "$d" "DejaVu Sans"
+  local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || true
+  echo "$txt"
+  echo "$txt" | grep -q '^DEGRADED  typst 0.14.0 (CLI): fill targets are calibrated on typst 0.15' || { echo "no DEGRADED old CLI line"; return 1; }
+  rm "$d/bin/typst"; stub_typst "$d/py/typst.py" working; sed -i 's/9\.9\.9/0.14.2/' "$d/py/typst.py"
+  txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || true
+  echo "$txt"
+  echo "$txt" | grep -q '^DEGRADED  typst 0.14.2 (Python API): fill targets are calibrated on typst 0.15' || { echo "no DEGRADED old Python line"; return 1; }
+  echo "$txt" | grep -q 'apt install typst' && { echo "advises apt install typst"; return 1; }
+  echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) with an old typst"; return 1; }
+  return 0
+}
+check doctor-old-typst doctor_old_typst
+
+# the real pip-only environment: typst-py + pypdfium2 + Pillow, no typst CLI, no poppler.
+# Needs them importable from "$PY" (a venv); SKIP on a bare host Python.
+if "$PY" -c "import typst, pypdfium2" 2>/dev/null; then
+  doctor_pip_full() {
+    local d="$out/doctor-sim-full"; doctor_env "$d" python3
+    local txt rc=0; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
+    echo "$txt"
+    [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
+    echo "$txt" | grep -q '^OK    typst .* (Python API: compile, query, fonts)' || { echo "no OK typst Python API line"; return 1; }
+    echo "$txt" | grep -q '^OK    pdf: pypdfium2' || { echo "no OK pypdfium2 line"; return 1; }
+    echo "$txt" | grep -q '^OK (Python)' || { echo "no OK (Python) line"; return 1; }
+    echo "$txt" | grep -q '^DEGRADED\|^MISSING\|^BROKEN' && { echo "unexpected DEGRADED/MISSING/BROKEN"; return 1; }
+    echo "$txt" | grep -q -- '--font-path' && { echo "advises --font-path with no CLI"; return 1; }
+    return 0
+  }
+  check doctor-pip-full doctor_pip_full
+else
+  echo "SKIP doctor-pip-full (needs typst-py and pypdfium2 in $PY)"
+fi
+
 # pdfinfo + pdftotext but no pdftoppm: the poppler line is DEGRADED.
 if command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null; then
   doctor_no_pdftoppm() {
     local d="$out/doctor-sim2"; doctor_env "$d" python3 typst pdfinfo pdftotext
-    local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
+    local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
     echo "$txt"
     echo "$txt" | grep -q '^DEGRADED  poppler-utils' || { echo "no DEGRADED poppler line"; return 1; }
     echo "$txt" | grep -q 'hidden-text ink check' || { echo "no skipped check named"; return 1; }
@@ -158,10 +218,10 @@ fi
 
 # no poppler on PATH, pypdfium2 importable: every poppler check runs on pdfium (OK line, no
 # DEGRADED), and the doctor says academic mode still needs poppler.
-if command -v typst >/dev/null && python3 -c "import pypdfium2" 2>/dev/null; then
+if command -v typst >/dev/null && "$PY" -c "import pypdfium2" 2>/dev/null; then
   doctor_pdfium() {
     local d="$out/doctor-sim5"; doctor_env "$d" python3 typst
-    local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
+    local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
     echo "$txt"
     echo "$txt" | grep -q '^OK    pdf: pypdfium2 .* (Python: text, word boxes, raster, metadata, attachments)' || { echo "no OK pypdfium2 line"; return 1; }
     echo "$txt" | grep -q 'academic mode still needs poppler' || { echo "no academic-mode line"; return 1; }
@@ -178,7 +238,7 @@ fi
 # DEGRADED line at all.
 doctor_minimal_fonts() {
   local d="$out/doctor-sim3"; doctor_env "$d" python3; shim_typst "$d" "DejaVu Sans" "DejaVu Sans Mono"
-  local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || true
+  local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || true
   echo "$txt"
   echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
   echo "$txt" | grep -q 'pick_design' || { echo "fonts block names no consequence"; return 1; }
@@ -193,7 +253,7 @@ for fp in p.FONTS.values():
     for role in ('display', 'body', 'mono'):
         for f in fp.get(role, []): print(f[0])" | sort -u)
   shim_typst "$d" "${fams[@]}"
-  local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || true
+  local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || true
   echo "$txt"
   echo "$txt" | grep -q '^OK    fonts' || { echo "expected OK fonts line"; return 1; }
   echo "$txt" | grep -q '^DEGRADED  fonts' && { echo "unexpected DEGRADED fonts"; return 1; }

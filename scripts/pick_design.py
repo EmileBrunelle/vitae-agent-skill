@@ -697,7 +697,8 @@ def _fonts_available() -> set[str] | None:
         try:
             import importlib
             typst: Any = importlib.import_module("typst")
-            return set(typst.Fonts(include_system_fonts=True).families())
+            fp = [d for d in os.environ.get("TYPST_FONT_PATHS", "").split(os.pathsep) if d]
+            return set(typst.Fonts(include_system_fonts=True, **({"font_paths": fp} if fp else {})).families())
         except Exception:
             return None
     except (OSError, subprocess.SubprocessError):

@@ -230,20 +230,36 @@ def _poppler_noroot_lines(arch: str) -> list[str]:
     ]
 
 
+TYPST_MIN = (0, 15)
+_OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
+              "(0.13/0.14 miss 2 templates at 91% against 93-96%)")
+
+
 def check_typst() -> tuple[bool, bool]:
-    """Returns (available, use_cli)."""
+    """Returns (available, use_cli). The Python API is judged by running it, not by its attributes."""
     if shutil.which("typst"):
         try:
             ver = subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
         except Exception:
             ver = "?"
+        if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
+            print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
+            print("  Upgrade the CLI with ONE of:")
+            arch = _linux_arch()
+            if arch:
+                for ln in _typst_noroot_lines(arch):
+                    print(ln)
+            print("  brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
+            print("  distro packages (dnf, apt, pacman) may be older: check `typst --version` after")
+            return True, True
         print(f"OK    typst {ver} (CLI)")
         return True, True
-    try:
-        mod = importlib.import_module("typst")
-        if typst_py() is not None:
-            print(f"OK    typst {getattr(mod, '__version__', '?')} (Python API: compile, query, fonts)")
-            return True, False
+    mod, ver, why, full = _typst_py_probe()
+    if mod is None and why:
+        print(f"BROKEN  typst: the Python package `typst` is installed but does not work ({why}).")
+        print("  Reinstall it: pip install --force-reinstall typst   # or install the CLI (brew install typst | cargo install typst-cli)")
+        return False, False
+    if mod is not None and not full:
         print("DEGRADED  typst: Python API only, no typst CLI. Compiling and fill measurement work, but these checks are SKIPPED (WARN):")
         print("  - date adjacency (needs `typst query`, and pdftotext)")
         print("  - group proximity (needs `typst query` and pdftotext)")
@@ -253,21 +269,28 @@ def check_typst() -> tuple[bool, bool]:
         if arch:
             for ln in _typst_noroot_lines(arch):
                 print(ln)
-        print("  brew install typst | sudo dnf install typst | sudo apt install typst (24.04+) | sudo pacman -S typst")
+        print("  brew install typst | cargo install typst-cli | pip install -U typst   # newer typst-py: query, eval and fonts")
         print("  winget install --id Typst.Typst | choco install typst | scoop install typst   # Windows")
-        print("  cargo install typst-cli                      # any, via Rust")
         return True, False
-    except ImportError:
-        print("MISSING  typst -- install with ONE of:")
-        print("  brew install typst                          # macOS")
-        print("  sudo dnf install typst                      # Fedora")
-        print("  sudo apt install typst                      # Debian/Ubuntu (24.04+)")
-        print("  sudo pacman -S typst                        # Arch")
-        print("  winget install --id Typst.Typst             # Windows")
-        print("  choco install typst | scoop install typst   # Windows, if you already use them")
-        print("  cargo install typst-cli                      # any, via Rust")
-        print("  pip install typst                            # no CLI: compiles via Python API (used automatically if present)")
-        return False, False
+    if mod is not None:
+        if _ver_tuple(ver) < TYPST_MIN:
+            print(f"DEGRADED  typst {ver} (Python API): {_OLD_TYPST}.")
+            print("  pip install -U typst")
+            return True, False
+        print(f"OK    typst {ver} (Python API: compile, query, fonts)")
+        return True, False
+    print("MISSING  typst -- install with ONE of:")
+    print("  pip install typst                            # no CLI needed: compiles, queries and lists fonts via the Python API")
+    print("  brew install typst                          # macOS")
+    print("  winget install --id Typst.Typst             # Windows")
+    print("  choco install typst | scoop install typst   # Windows, if you already use them")
+    print("  cargo install typst-cli                      # any, via Rust")
+    print("  (distro packages — dnf, apt, pacman — may be older than 0.15, the version the fill targets are calibrated on)")
+    arch = _linux_arch()
+    if arch:
+        for ln in _typst_noroot_lines(arch):
+            print(ln)
+    return False, False
 
 
 PdfBackend = Literal["poppler", "pdfium", "pypdf"] | None
@@ -370,7 +393,9 @@ def check_fonts() -> None:
         print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
               f"(pick_design draws from at least {pd.MIN_POOL}), so it will substitute.")
         print("  Fetch only the fonts the draw asks for (references/fonts.md, \"Downloading from Google Fonts\"):")
-        print("  Route 1: install into ~/.local/share/fonts/vitae (persistent, recommended); Route 2: typst --font-path <dir> (no install)")
+        r2 = ("typst --font-path <dir> (no install)" if shutil.which("typst")
+              else "export TYPST_FONT_PATHS=<dir> (no install; the Python API reads it here)")
+        print(f"  Route 1: install into ~/.local/share/fonts/vitae (persistent, recommended); Route 2: {r2}")
     else:
         print(f"OK    fonts ({usable} of {len(pools)} design families fully installed, {len(have)} families)")
 
@@ -382,7 +407,12 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
     if use_cli or typst_py() is not None:
         check_fonts()
     pdf_ok, backend = check_pdf_tools()
-    return (pillow_ok and typst_ok and pdf_ok), use_cli, backend
+    all_ok = pillow_ok and typst_ok and pdf_ok
+    if (all_ok and not use_cli and backend == "pdfium" and typst_py() is not None
+            and _ver_tuple(_typst_py_probe()[1]) >= TYPST_MIN):
+        print("OK (Python)  no typst CLI, no poppler: compile, query, fonts, text, boxes and raster all run in Python "
+              "(typst-py + pypdfium2 + Pillow); academic mode still needs poppler")
+    return all_ok, use_cli, backend
 
 
 # ---------- compile / page-count / extraction, native or fallback ----------
@@ -418,18 +448,61 @@ def ensure_icons(typ: str) -> None:
               f"scripts/harvest_icons.py there for the real marks")
 
 
-def typst_py() -> Any | None:
-    """The `typst` Python module if it can run query/eval/fonts too (typst-py
-    with Compiler.query/.eval and Fonts), else None. An old or stub module
-    that only compiles does not qualify."""
+def typst_font_kw() -> dict[str, list[str]]:
+    """typst-py keyword for the font route of references/fonts.md: TYPST_FONT_PATHS (what the
+    CLI reads on its own) as `font_paths`; typst-py ignores the variable, so pass it by hand."""
+    fp = [p for p in os.environ.get("TYPST_FONT_PATHS", "").split(os.pathsep) if p]
+    return {"font_paths": fp} if fp else {}
+
+
+def _ver_tuple(v: str) -> tuple[int, int]:
+    m = re.search(r"(\d+)\.(\d+)", v)
+    return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+
+
+@functools.lru_cache(maxsize=None)
+def _typst_py_probe() -> tuple[Any | None, str, str, bool]:
+    """(module, version, problem, full) for the `typst` Python package, by running it: a tiny
+    document is compiled and an expression evaluated, so a broken wheel is reported broken
+    (an attribute check passes it). module None + problem "" = not installed; module None +
+    problem = installed but unusable; full = also query, eval and Fonts."""
     try:
         mod: Any = importlib.import_module("typst")
-        comp = getattr(mod, "Compiler", None)
-        if comp and hasattr(comp, "query") and hasattr(comp, "eval") and hasattr(mod, "Fonts"):
-            return mod
-    except Exception:
-        pass
-    return None
+    except ImportError:
+        return None, "", "", False
+    except Exception as e:
+        return None, "", f"import failed: {e}", False
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            src = os.path.join(td, "probe.typ")
+            with open(src, "w", encoding="utf-8") as fh:
+                fh.write("#set page(width: 50pt, height: 50pt)\nprobe\n")
+            comp = mod.Compiler(src, **typst_font_kw())
+            res = comp.compile_with_warnings()
+            doc = res[0] if isinstance(res, tuple) else res      # (pdf bytes, warnings)
+            if not isinstance(doc, bytes | bytearray) or not doc.startswith(b"%PDF"):
+                return None, "", "compiling a one-line document returned no PDF", False
+        try:
+            ver = str(json.loads(mod.Compiler().eval("str(sys.version)", format="json")))
+        except Exception:
+            ver = str(getattr(mod, "__version__", "?"))
+        full = False
+        try:
+            full = (hasattr(comp, "query") and hasattr(comp, "eval")
+                    and bool(mod.Fonts(include_system_fonts=True, **typst_font_kw()).families()))
+        except Exception:
+            pass
+        return mod, ver, "", full
+    except Exception as e:
+        return None, "", f"{type(e).__name__}: {e}", False
+
+
+def typst_py() -> Any | None:
+    """The `typst` Python module if it works and can run query/eval/fonts too (a working
+    install, proven by `_typst_py_probe`), else None. A broken, old or compile-only module
+    does not qualify."""
+    mod, _, _, full = _typst_py_probe()
+    return mod if full else None
 
 
 def typst_can_query() -> bool:
@@ -445,8 +518,9 @@ def typst_compile(src: str, pdf: str | None = None) -> tuple[bool, str]:
         return r.returncode == 0, r.stderr
     mod = typst_py() or importlib.import_module("typst")
     try:
-        res = mod.Compiler(src).compile_with_warnings(output=pdf or os.path.splitext(src)[0] + ".pdf")
-        return True, "\n".join(str(w) for w in getattr(res, "warnings", None) or [])
+        res = mod.Compiler(src, **typst_font_kw()).compile_with_warnings(output=pdf or os.path.splitext(src)[0] + ".pdf")
+        warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
+        return True, "\n".join(str(w) for w in warns or [])
     except Exception as e:
         return False, str(e)
 
@@ -461,7 +535,7 @@ def typst_fonts() -> list[str] | None:
         return [l.strip() for l in r.stdout.splitlines() if l.strip()] if r.returncode == 0 else None
     mod = typst_py()
     try:
-        return list(mod.Fonts(include_system_fonts=True).families()) if mod else None
+        return list(mod.Fonts(include_system_fonts=True, **typst_font_kw()).families()) if mod else None
     except Exception:
         return None
 
@@ -473,7 +547,7 @@ def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
         return r.returncode == 0, (r.stdout + r.stderr)
     try:
         typst: Any = importlib.import_module("typst")
-        typst.compile(typ, output=pdf)
+        typst.compile(typ, output=pdf, **typst_font_kw())
         return True, ""
     except Exception as e:
         return False, str(e)
@@ -487,9 +561,9 @@ def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
     else:
         typst: Any = importlib.import_module("typst")
         try:
-            typst.compile(typ, output=pattern, format="png", ppi=90)
+            typst.compile(typ, output=pattern, format="png", ppi=90, **typst_font_kw())
         except TypeError:
-            typst.compile(typ, output=pattern, format="png")
+            typst.compile(typ, output=pattern, format="png", **typst_font_kw())
     return sorted(glob.glob(os.path.join(tmp_dir, "p*.png")))
 
 
@@ -1981,7 +2055,7 @@ def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Any] 
         if mod is None:
             return None
         try:   # typst-py: same query / eval fallback and root as the CLI calls below
-            comp = mod.Compiler(typ, root=root) if root else mod.Compiler(typ)
+            comp = mod.Compiler(typ, root=root, **typst_font_kw()) if root else mod.Compiler(typ, **typst_font_kw())
             for fn in (lambda: comp.query(selector, field="value", one=False),
                        lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json")):
                 try:
