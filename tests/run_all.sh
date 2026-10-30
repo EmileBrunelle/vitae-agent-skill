@@ -317,6 +317,29 @@ lowered_fill() {
 }
 check lowered-fill-warns lowered_fill
 
+# --facts: a month range shares its year ("juillet – août 2019" covers "Jul 2019"); an invented month still WARNs.
+# --text / --render: the interface the step docs promise, whatever backend is installed.
+facts_month_range() {
+  python3 -I - <<'PY' || return 1
+import sys; sys.path.insert(0, "scripts")
+import verify
+f = "Stage, Acme, juillet – août 2019\n"
+w = verify.check_facts_coverage("Intern, Acme  Jul 2019 – Aug 2019\n", f)
+assert w == [], f"false positive: {w}"
+w = verify.check_facts_coverage("Intern, Acme  Jun 2019\n", f)
+assert len(w) == 1 and '"Jun 2019"' in w[0], f"invented month not flagged: {w}"
+PY
+}
+check facts-month-range facts_month_range
+text_render() {
+  local pdf r
+  pdf="$(ls "$out"/pdf/*.pdf 2>/dev/null | head -1)"; [ -n "$pdf" ] || { echo "no PDF from the template runs"; return 1; }
+  python3 -I scripts/verify.py --text "$pdf" | grep -q '[A-Za-z]' || { echo "--text printed nothing"; return 1; }
+  r="$(python3 -I scripts/verify.py --render "$pdf" --out "$S/render" --ppi 72)" || return 1
+  [ "$(basename "$r" | head -1)" = "$(basename "$pdf" .pdf)-p1.png" ] && [ -s "$(echo "$r" | head -1)" ] || { echo "bad --render output: $r"; return 1; }
+}
+check text-render text_render
+
 if [ "$quick" -eq 0 ]; then
   fx="$out/fixtures"; mkdir -p "$fx"
   check fixtures-render tests/fixtures/render.sh "$fx"

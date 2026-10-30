@@ -7,7 +7,7 @@ metadata:
   author: EmileBrunelle
   version: "0.7.0"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
-allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*) Bash(cp:*) Bash(pdftoppm:*)
+allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*) Bash(cp:*)
 ---
 
 # vitae — résumés that survive both the ATS and the 30-second human scan

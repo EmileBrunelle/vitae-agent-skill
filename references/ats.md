@@ -1,6 +1,6 @@
 # ATS and machine-parsing rules
 
-ATS systems and AI screeners index the *extracted text*, not the visual layout. `pdftotext cv.pdf -` is your proxy: if the pairing of information survives there, it survives most parsers.
+ATS systems and AI screeners index the *extracted text*, not the visual layout. `python3 scripts/verify.py --text cv.pdf` (poppler's `pdftotext` when installed, the same text the gates read) is your proxy: if the pairing of information survives there, it survives most parsers.
 
 **The 2025+ landscape:** major ATS now layer semantic/LLM matching on top of extraction (e.g. Workday Illuminate scores bullets against a skills graph, not just keyword hits). Consequences: exact-keyword matching is slightly less critical than folklore claims, but an unproven keyword is *more* dangerous — semantic engines connect a skill to the absence of supporting evidence. The layout rules below are unchanged: legacy parsers (Taleo, older Workday pipelines) still do positional extraction, and the semantic layer reads the same extracted text.
 
@@ -75,8 +75,8 @@ One command in any POSIX shell: `scripts/verify.sh cv.typ EXPECTED_PAGES [FILL_M
 
 ```
 pdfinfo cv.pdf | grep Pages          # exact page count
-pdftotext cv.pdf - | less            # reading order, label↔value pairing
-pdftotext cv.pdf - | grep -n "20[0-9][0-9]"   # every date attached to its entry?
+python3 scripts/verify.py --text cv.pdf | less            # reading order, label↔value pairing
+python3 scripts/verify.py --text cv.pdf | grep -n "20[0-9][0-9]"   # every date attached to its entry?
 ```
 
 Red flags in the extraction: a lone year floating at the end (grid entry without bullets — see trap above), skill labels grouped apart from their values, spaced-out headings ("S O F T WA R E"), fragments of one line interleaved into the next section (wrapped separator line).

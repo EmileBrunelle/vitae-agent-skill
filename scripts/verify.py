@@ -846,6 +846,10 @@ for _i, _names in enumerate([
         _MONTHS[_n] = _i
 _MONTH_YEAR_RE = re.compile(
     r"(?<![^\W\d_])(%s)\.?\s+((?:19|20)\d{2})(?!\d)" % "|".join(sorted(_MONTHS, key=len, reverse=True)))
+# "juillet – août 2019": the year closes the range and applies to the month before the dash too
+_RANGE_MY_RE = re.compile(
+    r"(?<![^\W\d_])(%s)\.?(?:\s*-\s*|\s+(?:to|a|au|through)\s+)(?:%s)\.?\s+((?:19|20)\d{2})(?!\d)"
+    % (("|".join(sorted(_MONTHS, key=len, reverse=True)),) * 2))
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _NUM_RE = re.compile(r"[$€£]?(\d+(?:[.,]\d+)*)\s?(%|[kKmM](?![^\W\d_])|)")
@@ -946,6 +950,7 @@ def _num_values(text: str) -> set[float]:
 def _month_years(text: str) -> set[tuple[int, int]]:
     f = _fold(text)
     out = {(_MONTHS[m.group(1)], int(m.group(2))) for m in _MONTH_YEAR_RE.finditer(f)}
+    out |= {(_MONTHS[m.group(1)], int(m.group(2))) for m in _RANGE_MY_RE.finditer(f)}
     for m in _NUM_MY_RE.finditer(f):
         y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
         out.add((int(mo), int(y)))
@@ -1661,6 +1666,31 @@ def _render_pages_png(pdf: str, tmp: str, ppi: int = HIDDEN_PPI) -> list[str]:
                    capture_output=True, text=True)
     return sorted(glob.glob(os.path.join(tmp, "h*.png")),
                   key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1)))
+
+
+def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
+    """`<stem>-p<N>.png` per page in out_dir: pypdfium2 when it imports, else pdftoppm.
+    Returns the paths, or [] when neither is there."""
+    os.makedirs(out_dir, exist_ok=True)
+    stem = os.path.splitext(os.path.basename(pdf))[0]
+    if _importable("pypdfium2"):
+        paths = []
+        for n, im in enumerate(_pdfium_render(pdf, ppi), 1):
+            paths.append(os.path.join(out_dir, f"{stem}-p{n}.png"))
+            im.save(paths[-1])
+        return paths
+    if not shutil.which("pdftoppm"):
+        return []
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "p")],
+                       capture_output=True, text=True)
+        paths = []
+        for f in sorted(glob.glob(os.path.join(tmp, "p*.png")),
+                        key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1))):
+            n = int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1))
+            paths.append(os.path.join(out_dir, f"{stem}-p{n}.png"))
+            shutil.move(f, paths[-1])
+    return paths
 
 
 def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] | None = None,
@@ -3275,6 +3305,10 @@ def _selftest() -> NoReturn:
     assert len(check_facts_coverage("Globex Industries\nGlobex Industries\n", _facts)) == 1
     assert check_facts_coverage("Sep 2020", "septembre 2020") == []
     assert check_facts_coverage("Sep 2020", "2020-09") == []
+    # a month-range shares one year: "Jul 2019" is covered by "juillet – août 2019", "Jun 2019" is not
+    assert check_facts_coverage("Intern  Jul 2019 – Aug 2019\n", "juillet – août 2019") == []
+    _w = check_facts_coverage("Intern  Jun 2019\n", "juillet – août 2019")
+    assert len(_w) == 1 and '"Jun 2019"' in _w[0], _w
     # review fixes: whole-sequence lookup first, verb list only, acronyms, phones, suffixes, %
     _f2 = "Analyst, Acme Corp, 2020-2022\nUQAM\nPython 3.11, 75 percent, Beta Inc.\nMontréal\n"
     for _t in ("Analyst — Globex Corp", "Analyst | Globex Corp", "Globex Corp"):
@@ -4514,6 +4548,30 @@ def main() -> None:
                            open(ga.typ, encoding="utf-8").read(), root=ga.root, detail=rows)
         print("DETAIL " + json.dumps(rows))
         sys.exit(rc)
+    if argv and argv[0] in ("--render", "--text"):
+        # agent-facing look/read helpers, so no instruction has to name pdftoppm or pdftotext
+        ap = _Parser("usage: verify.py --render cv.pdf [--out DIR] [--ppi N]   one PNG per page, <stem>-p<N>.png\n"
+                     "       verify.py --text cv.pdf                          the text the gates read",
+                     code=1, plain=True)
+        ap.add_argument("pdf")
+        ap.add_argument("--out", default=None)
+        ap.add_argument("--ppi", type=int, default=HIDDEN_PPI)
+        ra = ap.parse_known_args(argv[1:])[0]
+        if not os.path.isfile(ra.pdf):
+            sys.exit(f"FAIL  {argv[0]}: cannot read {ra.pdf}")
+        if argv[0] == "--text":
+            backend = pdf_backend()
+            if backend is None:
+                sys.exit("FAIL  --text: no PDF reader (install poppler-utils, or `pip install pypdfium2`)")
+            sys.stdout.write(extract_text(ra.pdf, backend))
+            sys.exit(0)
+        if ra.ppi < 1:
+            sys.exit("FAIL  --render: --ppi must be a positive number")
+        pngs = render_pages(ra.pdf, ra.out or tempfile.mkdtemp(prefix="vitae-render-"), ra.ppi)
+        if not pngs:
+            sys.exit("FAIL  --render: no rasterizer (`pip install pypdfium2`, or install poppler-utils for pdftoppm)")
+        print("\n".join(pngs))
+        sys.exit(0)
     if argv and argv[0] == "--doctor":
         ok, _, _ = preflight()
         sys.exit(0 if ok else 1)
