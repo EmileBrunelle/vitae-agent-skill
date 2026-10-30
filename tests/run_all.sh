@@ -97,6 +97,51 @@ print(f"ok {seen} path citations resolve")
 check selftest-verify python3 -I scripts/verify.py --selftest
 check selftest-pick_design python3 -I scripts/pick_design.py --selftest
 
+# --doctor in a simulated pip-only env (no typst/poppler CLIs, stub `typst`
+# module standing in for the Python API): both fallbacks must say DEGRADED,
+# never OK, and the exit code stays 0.
+doctor_pip_only() {
+  local d="$out/doctor-sim"; rm -rf "$d"; mkdir -p "$d/bin" "$d/py"
+  ln -s "$(command -v python3)" "$d/bin/python3"
+  : > "$d/py/typst.py"
+  local txt rc=0
+  txt="$(PATH="$d/bin" PYTHONPATH="$d/py" python3 scripts/verify.py --doctor 2>&1)" || rc=$?
+  echo "$txt"
+  [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
+  echo "$txt" | grep -q '^DEGRADED  typst' || { echo "no DEGRADED typst line"; return 1; }
+  echo "$txt" | grep -q '^OK    typst' && { echo "typst reported OK"; return 1; }
+  # pypdf may be absent on the host: only assert it when present
+  if python3 -c "import pypdf" 2>/dev/null; then
+    echo "$txt" | grep -q '^DEGRADED  pypdf' || { echo "no DEGRADED pypdf line"; return 1; }
+  fi
+  return 0
+}
+check doctor-pip-only doctor_pip_only
+
+# pdfinfo + pdftotext but no pdftoppm: poppler line must be DEGRADED (hidden-text ink check).
+doctor_no_pdftoppm() {
+  command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null \
+    || { echo "SKIP-ish: needs typst, pdfinfo, pdftotext on the host"; return 0; }
+  local d="$out/doctor-sim2"; rm -rf "$d"; mkdir -p "$d/bin"
+  local t; for t in python3 typst pdfinfo pdftotext; do ln -s "$(command -v $t)" "$d/bin/$t"; done
+  local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
+  echo "$txt"
+  echo "$txt" | grep -q '^DEGRADED  poppler-utils' || { echo "no DEGRADED poppler line"; return 1; }
+}
+check doctor-no-pdftoppm doctor_no_pdftoppm
+
+# typst CLI listing only its embedded families (shim): fonts line must be DEGRADED.
+doctor_embedded_fonts() {
+  local d="$out/doctor-sim3"; rm -rf "$d"; mkdir -p "$d/bin"
+  ln -s "$(command -v python3)" "$d/bin/python3"
+  printf '#!/bin/sh\n[ "$1" = fonts ] && printf "DejaVu Sans Mono\\nLibertinus Serif\\nNew Computer Modern\\nNew Computer Modern Math\\n" && exit 0\necho "typst 0.0.0"\n' > "$d/bin/typst"
+  chmod +x "$d/bin/typst"
+  local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || true
+  echo "$txt"
+  echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
+}
+check doctor-embedded-fonts doctor_embedded_fonts
+
 # Type check (config: mypy.ini). Optional locally: SKIP, not FAIL, without mypy.
 if python3 -c "import mypy" 2>/dev/null; then
   cp "$root/mypy.ini" "$S"/

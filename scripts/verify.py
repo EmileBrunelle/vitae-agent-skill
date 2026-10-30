@@ -52,7 +52,9 @@ section gap cut by 6pt to compensate, and landed with its boundary sitting
 exactly on the separation floor; a wider search range was the real fix.
 
 --doctor runs only the dependency preflight (no cv.typ required), exit
-0 if everything needed is present, 1 otherwise -- replaces the old
+0 if everything needed is present (a pip-only fallback is printed as
+DEGRADED, with the skipped checks and install routes, and still exits 0
+because compiling and page counting work), 1 otherwise -- replaces the old
 check_env.sh / check_env.ps1 doctors.
 
 Exit codes: 0 PASS, 1 FAIL (or missing dependency with no fallback),
@@ -194,7 +196,15 @@ def check_typst() -> tuple[bool, bool]:
         return True, True
     try:
         importlib.import_module("typst")
-        print("OK    typst (Python API, no CLI)")
+        print("DEGRADED  typst: Python API only, no typst CLI. Compiling and fill measurement work, but these checks are SKIPPED (WARN):")
+        print("  - date adjacency (needs `typst query`)")
+        print("  - group proximity (needs `typst query` and pdftotext)")
+        print("  - the design font-availability check of pick_design.py (needs `typst fonts`)")
+        print("  Install the CLI with ONE of:")
+        print("  mkdir -p ~/.local/bin && curl -fsSL https://github.com/typst/typst/releases/download/v<ver>/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ --strip-components=1 -C ~/.local/bin   # Linux x86_64, no root (<ver> = latest release; PATH must include ~/.local/bin)")
+        print("  brew install typst | sudo dnf install typst | sudo apt install typst (24.04+) | sudo pacman -S typst")
+        print("  winget install --id Typst.Typst | choco install typst | scoop install typst   # Windows")
+        print("  cargo install typst-cli                      # any, via Rust")
         return True, False
     except ImportError:
         print("MISSING  typst -- install with ONE of:")
@@ -212,11 +222,26 @@ def check_typst() -> tuple[bool, bool]:
 def check_pdf_tools() -> tuple[bool, bool]:
     """Returns (available, use_poppler)."""
     if shutil.which("pdfinfo") and shutil.which("pdftotext"):
-        print("OK    poppler-utils (pdftotext, pdfinfo)")
+        if not shutil.which("pdftoppm"):
+            print("DEGRADED  poppler-utils: pdftotext and pdfinfo found, pdftoppm missing. These checks are SKIPPED (WARN):")
+            print("  - hidden-text ink check (needs pdftoppm; also used by verify_letter.py / verify_academic.py)")
+            print("  - the ink-gap refinement of group proximity")
+            print("  Install pdftoppm (part of poppler) with ONE of:")
+            print("  micromamba create -p ~/poppler -c conda-forge poppler   # no root; then put ~/poppler/bin on PATH")
+            print("  sudo dnf install poppler-utils | sudo apt install poppler-utils | brew install poppler")
+            return True, True
+        print("OK    poppler-utils (pdftotext, pdfinfo, pdftoppm)")
         return True, True
     try:
         importlib.import_module("pypdf")
-        print("OK    pypdf (Python fallback -- exact page count, indicative-only extraction)")
+        print("DEGRADED  pypdf: Python fallback, no poppler. Page count is exact, but:")
+        print("  - ATS text extraction is indicative only (spurious spaces, e.g. \"FORMA TION\")")
+        print("  - hidden-text gate SKIPPED (needs pdftotext and pdftoppm)")
+        print("  - group proximity SKIPPED (needs pdftotext)")
+        print("  Install poppler with ONE of:")
+        print("  micromamba create -p ~/poppler -c conda-forge poppler   # no root; then put ~/poppler/bin on PATH")
+        print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
+        print("  choco install poppler | scoop install poppler          # Windows")
         return True, False
     except ImportError:
         print("MISSING  poppler-utils -- needed for page-count and ATS extraction checks:")
@@ -226,10 +251,37 @@ def check_pdf_tools() -> tuple[bool, bool]:
         return False, False
 
 
+_TYPST_EMBEDDED_FONTS = {"DejaVu Sans Mono", "Libertinus Serif",
+                         "New Computer Modern", "New Computer Modern Math"}
+
+
+def check_fonts() -> None:
+    """Doctor line for fonts (typst CLI only; local, no network, 20 s cap).
+
+    If `typst fonts` lists only the families embedded in the binary, the
+    design families' faces are not installed and pick_design substitutes."""
+    try:
+        r = subprocess.run(["typst", "fonts"], capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return
+    if r.returncode != 0:
+        return
+    fams = {l.strip() for l in r.stdout.splitlines() if l.strip()}
+    if fams and fams <= _TYPST_EMBEDDED_FONTS:
+        print("DEGRADED  fonts: only typst's embedded families are installed (" + ", ".join(sorted(fams)) + ").")
+        print("  - pick_design.py will substitute the design families' fonts with what is installed")
+        print("  Fetch only the fonts the draw asks for (references/fonts.md, \"Downloading from Google Fonts\"):")
+        print("  Route 1: install into ~/.local/share/fonts/vitae (persistent, recommended); Route 2: typst --font-path <dir> (no install)")
+    else:
+        print(f"OK    fonts ({len(fams)} families)")
+
+
 def preflight() -> tuple[bool, bool, bool]:
     """Prints doctor output; returns (all_ok, use_cli_typst, use_poppler)."""
     pillow_ok = check_pillow()
     typst_ok, use_cli = check_typst()
+    if use_cli:
+        check_fonts()
     pdf_ok, use_poppler = check_pdf_tools()
     return (pillow_ok and typst_ok and pdf_ok), use_cli, use_poppler
 
