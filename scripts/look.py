@@ -2,7 +2,8 @@
 """look.py - local-vision-model route of the visual pass (stdlib only).
 
 usage: look.py --base-url http://host:1234/v1 --model ID [--checklist references/look-checklist.md]
-               [--max-tokens 8192] [--timeout 600] [--label TEXT] [--per-item] PNG...
+               [--max-tokens 8192] [--temperature 0] [--top-p P] [--top-k K] [--timeout 600] [--label TEXT]
+               [--per-item] PNG...
        look.py --base-url http://host:1234/v1 --list-models
 
 Sends the PNG(s) (base64 data URLs) + the checklist to an OpenAI-compatible /chat/completions
@@ -12,7 +13,10 @@ A missing, unparsable or self-contradicting item counts FAIL. Last line, all PAS
 `<label>: other-model <model>` (--label default `Visual pass`; the layout reviewer passes
 `--label "Layout review"`). On any FAIL the last line is instead
 `<label>: FAIL other-model <model> (<n> items: L…)`, which is NOT a reportable line: fix and re-run.
-Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output).
+Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output in a single call).
+--temperature (default 0), --top-p and --top-k (LM Studio extension) go into the request; the last two only when given.
+--per-item: a response cut off at --max-tokens (finish_reason=length) makes that item `FAIL … inconclusive
+(truncated at <n> tokens)`; the run continues with the remaining items and exits 1.
 
 Inputs: PNG files only (magic bytes checked), each <= 20 MB (shrink with `verify.py --render --ppi`).
 Pages are named <stem>-p<N>.png, zoomed crops <stem>-p<N>-<fill|icon><n>.png (verify.py --render --crops).
@@ -250,16 +254,26 @@ def check_images(pngs: Sequence[str]) -> None:
                 f"re-render smaller with `verify.py --render --ppi <lower>`")
 
 
+class Truncated(Exception):
+    """finish_reason=length: the answer is cut off, so no verdict can be trusted."""
+
+
 def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens: int,
-        timeout: float) -> tuple[str, int, int]:
-    """One chat call -> (answer text, prompt_tokens, completion_tokens). Dies (exit 2) on any anomaly."""
+        timeout: float, temperature: float = 0, top_p: Optional[float] = None,
+        top_k: Optional[int] = None) -> tuple[str, int, int]:
+    """One chat call -> (answer text, prompt_tokens, completion_tokens). Dies (exit 2) on any anomaly
+    except truncation, which raises Truncated."""
     content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
     for p in pngs:
         with open(p, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
         content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}})
     payload: dict[str, Any] = {"model": model, "messages": [{"role": "user", "content": content}],
-                               "max_tokens": max_tokens, "temperature": 0}
+                               "max_tokens": max_tokens, "temperature": temperature}
+    if top_p is not None:
+        payload["top_p"] = top_p
+    if top_k is not None:
+        payload["top_k"] = top_k
     resp = http_json(base_url.rstrip("/") + "/chat/completions", json.dumps(payload).encode(), timeout, model)
     try:
         choice = resp["choices"][0]
@@ -272,8 +286,8 @@ def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens:
     if u is not None and not isinstance(u, dict):
         die(f"unexpected `usage` in response (not an object): {str(u)[:100]}")
     if finish == "length":
-        die(f"output truncated (finish_reason=length): a reasoning model likely ran out of tokens - "
-            f"raise --max-tokens (now {max_tokens})")
+        raise Truncated(f"inconclusive: output truncated at {max_tokens} tokens (finish_reason=length); a reasoning "
+                        f"model likely ran out of tokens - raise --max-tokens (now {max_tokens})")
     if not clean_content(text):
         die(f"model returned empty content (finish_reason={finish}); a reasoning model likely ran out of "
             f"tokens or never closed its <think> block - raise --max-tokens (now {max_tokens})")
@@ -328,7 +342,11 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
 
         def one(imgs: Sequence[str]) -> tuple[Optional[tuple[str, str]], str]:
             nonlocal tp, tc
-            text, p, c = ask(a.base_url, a.model, prompt, imgs, a.max_tokens, a.timeout)
+            try:
+                text, p, c = ask(a.base_url, a.model, prompt, imgs, a.max_tokens, a.timeout,
+                                 a.temperature, a.top_p, a.top_k)
+            except Truncated:
+                return ("FAIL", f"inconclusive (truncated at {a.max_tokens} tokens)"), ""
             tp += p
             tc += c
             return parse_verdicts(text, [it.id]).get(it.id), text
@@ -370,6 +388,9 @@ def _main(argv: Optional[Sequence[str]] = None) -> None:
     ap.add_argument("--model")
     ap.add_argument("--checklist", default=DEFAULT_CHECKLIST)
     ap.add_argument("--max-tokens", type=int, default=8192)
+    ap.add_argument("--temperature", type=float, default=0, help="sampling temperature (default 0)")
+    ap.add_argument("--top-p", type=float, default=None, help="top_p, sent only when given")
+    ap.add_argument("--top-k", type=int, default=None, help="top_k (non-standard, LM Studio), sent only when given")
     ap.add_argument("--timeout", type=float, default=600, help="seconds per HTTP call (default 600); run in the "
                     "background or with a long Bash timeout")
     ap.add_argument("--label", default="Visual pass", help="final line is `<label>: other-model <model>` (all PASS) or `<label>: FAIL other-model ...`")
@@ -401,8 +422,11 @@ def _main(argv: Optional[Sequence[str]] = None) -> None:
         calls = "per-item"
     else:
         _, crops = classify(a.png)
-        text, tp, tc = ask(a.base_url, a.model, PROMPT + ctext + (CROPS_NOTE if crops else ""), a.png,
-                           a.max_tokens, a.timeout)
+        try:
+            text, tp, tc = ask(a.base_url, a.model, PROMPT + ctext + (CROPS_NOTE if crops else ""), a.png,
+                               a.max_tokens, a.timeout, a.temperature, a.top_p, a.top_k)
+        except Truncated as e:
+            die(str(e))
         verdicts = parse_verdicts(text, ids)
         calls = "single call"
     lines, bad = render(ids, verdicts, a.model, a.label)

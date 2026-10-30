@@ -259,8 +259,29 @@ ok(images_of(REQS[0]) == ["cv-p1.png"], images_of(REQS[0]))
 # per-item: missing answer -> FAIL; truncated call -> exit 2
 c, o, _ = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat("I cannot tell."))
 ok(c == 1 and o.count("no answer from model") == 3, (c, o))
-c, o, e = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat("PASS L1 — x", "length"))
-ok(c == 2, (c, e))
+# per-item: one truncated item -> that item FAIL inconclusive, the others are evaluated, run completes (exit 1)
+def trunc_l2(req: dict[str, Any]) -> tuple[int, bytes]:
+    i = re.search(r"\bL\d+\b(?= (?!—))", text_of(req).split("Item:")[1]).group(0)  # type: ignore[union-attr]
+    return chat(f"PASS {i} — fine", "length" if i == "L2" else "stop")
+
+
+c, o, e = cli("--checklist", CL_OLD, "--per-item", "--max-tokens", "77", P1, resp=trunc_l2)
+ok(c == 1 and len(REQS) == 3, (c, len(REQS)))
+ok("FAIL L2 — inconclusive (truncated at 77 tokens)" in o and "PASS L1 — fine" in o and "PASS L3 — fine" in o, o)
+ok(o.splitlines()[-1] == "Visual pass: FAIL other-model m (1 items: L2)", o)
+# per-item, page scope: truncation on one page of three -> item FAIL, other pages still asked
+c, o, e = cli("--checklist", CL_TAGGED, "--per-item", P1, P2, resp=lambda r: chat("PASS L2 — x", "length") if "cv-p2.png" in images_of(r) and len(images_of(r)) == 1 else per_item_resp()(r))
+ok(c == 1 and "p2: inconclusive (truncated at 8192 tokens)" in o and len(REQS) >= 4, (c, o))
+# single call truncation stays exit 2, clear message
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — x", "length"))
+ok(c == 2 and "inconclusive" in e and "truncated at 8192 tokens" in e and o == "", (c, e))
+# sampling params
+cli("--checklist", CL_OLD, P1, resp=all_pass)
+ok(REQS[0]["temperature"] == 0 and "top_p" not in REQS[0] and "top_k" not in REQS[0], REQS[0].keys())
+cli("--checklist", CL_OLD, "--temperature", "0.7", "--top-p", "0.9", "--top-k", "40", P1, resp=all_pass)
+ok(REQS[0]["temperature"] == 0.7 and REQS[0]["top_p"] == 0.9 and REQS[0]["top_k"] == 40, REQS[0])
+cli("--checklist", CL_OLD, "--per-item", "--temperature", "0.2", "--top-k", "5", P1, resp=per_item_resp())
+ok(all(r["temperature"] == 0.2 and r["top_k"] == 5 and "top_p" not in r for r in REQS) and len(REQS) == 3, REQS[0])
 
 # FAIL final line is never the clean line
 c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — a\nFAIL L2 — b\nPASS L3 — c"))
