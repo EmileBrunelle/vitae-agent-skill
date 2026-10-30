@@ -62,13 +62,13 @@ n'utilisant que ces fichiers.
   offres d'emploi inventées mais réalistes par segment de marché, constats
   appliqués seulement s'ils résistent au contre-interrogatoire.
 - **Packs par domaine** : la méthode générique plus une profondeur propre à
-  chaque domaine; `references/field-software-dev.md` est le premier livré —
+  chaque domaine; [`references/field-software-dev.md`](references/field-software-dev.md) est le premier livré —
   les contributions pour d'autres domaines sont bienvenues.
 - **Système de design anti-clonage** : quatorze familles de design réparties
   en quatre registres (moderne, neutre, classique, créatif) ancrées dans de
   vrais courants du design, tirées de façon déterministe pour chaque
-  candidat·e (`scripts/pick_design.py`); palettes génératives validées pour
-  le contraste (`scripts/gen_palette.py`); paires de polices puisées dans des
+  candidat·e ([`scripts/pick_design.py`](scripts/pick_design.py)); palettes génératives validées pour
+  le contraste ([`scripts/gen_palette.py`](scripts/gen_palette.py)); paires de polices puisées dans des
   bassins à licence libre — de sorte que l'outil ne converge jamais vers un
   seul look reconnaissable. Le registre créatif n'est jamais dans le bassin de
   tirage par défaut — il se débloque par un domaine cible créatif ou une
@@ -77,24 +77,24 @@ n'utilisant que ces fichiers.
   gouttière réglée est une gouttière de code, elle exige donc en plus un
   domaine cible technique, et le déblocage créatif seul ne la tire jamais pour
   un métier non technique. Les implémentations de référence des quatorze
-  familles se trouvent dans `templates/families/`.
+  familles se trouvent dans [`templates/families/`](templates/families/).
 - **Mode CV académique** : un parcours séparé pour le genre exhaustif
   multi-pages (candidatures de corps professoral, permanence/promotion,
   dossiers de qualification) — son propre gabarit neutre
-  (`templates/academic/`), aucune cible de remplissage ni tirage de design, et
-  son propre gate (`scripts/verify_academic.py`) qui vérifie un autre
+  ([`templates/academic/`](templates/academic/)), aucune cible de remplissage ni tirage de design, et
+  son propre gate ([`scripts/verify_academic.py`](scripts/verify_academic.py)) qui vérifie un autre
   invariant (« aucune entrée à cheval sur un saut de page » plutôt que
   « aucune section jamais coupée »), confronté au fichier de données TOML
   déclaré (dérivé de `FAITS.md`) plutôt qu'aux seuils de remplissage/
   séparation du CV industriel.
 - **Lettres de présentation** : une par offre, jamais une lettre générique, à
-  partir de `templates/letter.typ` — un en-tête réduit qui réutilise l'accent,
+  partir de [`templates/letter.typ`](templates/letter.typ) — un en-tête réduit qui réutilise l'accent,
   la police et la ligne nom/coordonnées du même CV, trois paragraphes
   (pourquoi cet employeur, les preuves tirées de `FAITS.md`, la disponibilité),
-  gatée par `scripts/verify_letter.py` (une page; l'employeur et l'intitulé
+  gatée par [`scripts/verify_letter.py`](scripts/verify_letter.py) (une page; l'employeur et l'intitulé
   exact du poste tous deux présents dans le texte extrait).
 - Livrables complémentaires optionnels (guide de recherche d'emploi, liste de
-  vérification LinkedIn) via `references/companion-guide.md`.
+  vérification LinkedIn) via [`references/companion-guide.md`](references/companion-guide.md).
 
 ## Familles de design
 
@@ -102,14 +102,14 @@ Quatorze implémentations de référence, une par famille, se trouvent sous
 `templates/families/<name>/`, réparties en quatre catégories (neutre,
 classique, moderne, créatif). Les recettes complètes (dispositif de titre,
 composition de l'en-tête, polices, traitement des frontières) sont dans
-`references/design.md`; les rendus pleine page des quatorze familles sont
+[`references/design.md`](references/design.md); les rendus pleine page des quatorze familles sont
 dans [GALLERY.md](GALLERY.md).
 
 Le registre `creative` (`hard-edge`, `avant-poster`, `gutter-rail`) n'est
 jamais tiré par défaut — voir la section « Design families » de
 `references/design.md`.
 
-`templates/academic/**` (le gabarit du mode CV académique) est **hors de
+[`templates/academic/**`](templates/academic) (le gabarit du mode CV académique) est **hors de
 cet étalonnage industriel** : les cibles de remplissage, les dispositifs de
 séparation des sections et la liste des quatorze familles ci-dessus décrivent
 uniquement les CV du secteur privé et ne disent rien des dossiers
@@ -139,7 +139,7 @@ l'échelle de l'utilisateur, soit par projet :
 ```
 
 Consultez la documentation propre à votre agent pour savoir où se trouve ce
-répertoire. Rien ici n'est lié à un seul fournisseur : `SKILL.md` est le
+répertoire. Rien ici n'est lié à un seul fournisseur : [`SKILL.md`](SKILL.md) est le
 point d'entrée, et le reste n'est que des gabarits Typst et des scripts
 Python — un agent sans répertoire de skills du tout peut simplement être
 pointé vers `SKILL.md`.
@@ -175,12 +175,12 @@ Notes par plateforme :
   --doctor` s'exécute directement, sans passer par un « doctor » PowerShell;
   typst via `winget install --id Typst.Typst`; poppler via
   `choco install poppler` ou `scoop install poppler` — ou utilisez WSL/Git
-  Bash et suivez plutôt la voie POSIX (`scripts/verify.sh`, une enveloppe
+  Bash et suivez plutôt la voie POSIX ([`scripts/verify.sh`](scripts/verify.sh), une enveloppe
   autour de `verify.py`).
 - **Environnements pip seul** (aucun gestionnaire de paquets, aucun droit
   admin) : `pip install typst pypdf Pillow` couvre tout — `typst` compile le
   PDF et le PNG via son API Python (pas de CLI), `pypdf` compte les pages et
-  fournit une extraction de texte indicative. Voir `references/ats.md` pour
+  fournit une extraction de texte indicative. Voir [`references/ats.md`](references/ats.md) pour
   les commandes et la mise en garde connue au sujet de pypdf.
 
 ## Organisation
@@ -245,7 +245,7 @@ de tracé appartenant à leurs projets d'icônes —
 donc ce dépôt stocke l'adresse, pas le dessin : `scripts/harvest_icons.py <dossier de CV>`
 les récupère depuis l'[API Iconify](https://iconify.design) dans un
 `icons.typ` **situé dans le dossier livrable**, aux côtés du `lib.typ` copié
-là, au moment où un CV est construit. Le `templates/icons.typ` de ce dépôt
+là, au moment où un CV est construit. Le [`templates/icons.typ`](templates/icons.typ) de ce dépôt
 est le repli versionné avec chaque marque VIDE, de sorte que
 `#import "icons.typ": *` se résout toujours — un clone sans réseau et sans
 script exécuté compile quand même. Rien à vendoriser, rien à garder

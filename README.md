@@ -55,12 +55,12 @@ open-source, recruiting-expert) and cross-field integration simulations
   realistic job postings per market segment, findings applied only when they
   survive cross-examination.
 - **Field packs**: the generic method plus per-field depth;
-  `references/field-software-dev.md` ships first — contributions welcome for
+  [`references/field-software-dev.md`](references/field-software-dev.md) ships first — contributions welcome for
   other fields.
 - **Anti-clone design system**: fourteen design families across four
   registers (modern, neutral, classic, creative) anchored in real design
-  currents, drawn deterministically per candidate (`scripts/pick_design.py`);
-  generative palettes validated for contrast (`scripts/gen_palette.py`); font
+  currents, drawn deterministically per candidate ([`scripts/pick_design.py`](scripts/pick_design.py));
+  generative palettes validated for contrast ([`scripts/gen_palette.py`](scripts/gen_palette.py)); font
   pairs drawn from open-license pools — so the tool never converges on one
   recognizable look. The creative register is never in the default draw pool
   — unlocked by a creative target field or an explicit request, and capped
@@ -68,34 +68,34 @@ open-source, recruiting-expert) and cross-field integration simulations
   second lock on top of that one: its ruled gutter is a code gutter, so it
   also requires a technical target field, and the creative unlock alone never
   draws it for a non-technical trade. Reference implementations of all
-  fourteen families live in `templates/families/`.
+  fourteen families live in [`templates/families/`](templates/families/).
 - **Academic CV mode**: a separate track for the exhaustive multi-page genre
   (faculty applications, tenure/promotion, qualification dossiers) — its own
-  neutral gabarit (`templates/academic/`), no fill target or design draw, and
-  its own gate (`scripts/verify_academic.py`) checking a different invariant
+  neutral gabarit ([`templates/academic/`](templates/academic/)), no fill target or design draw, and
+  its own gate ([`scripts/verify_academic.py`](scripts/verify_academic.py)) checking a different invariant
   ("no entry straddles a page break" instead of "no section is ever split"),
   round-tripped against the declared `FAITS.md`-derived TOML data file rather
   than the résumé fill/separation thresholds.
 - **Cover letters**: one per posting, never a generic one, from
-  `templates/letter.typ` — a reduced letterhead reusing the same CV's accent,
+  [`templates/letter.typ`](templates/letter.typ) — a reduced letterhead reusing the same CV's accent,
   font and name/contact line, three paragraphs (why this employer, proofs
-  from `FAITS.md`, availability), gated by `scripts/verify_letter.py` (one
+  from `FAITS.md`, availability), gated by [`scripts/verify_letter.py`](scripts/verify_letter.py) (one
   page; employer and exact job title both present in the extracted text).
 - Optional companion deliverables (job-search guide, LinkedIn checklist) via
-  `references/companion-guide.md`.
+  [`references/companion-guide.md`](references/companion-guide.md).
 
 ## Design families
 
 Fourteen reference implementations, one per family, live under
 `templates/families/<name>/`, across four categories (neutral, classic,
 modern, creative). Full recipes (heading device, header composition, fonts,
-boundary treatment) are in `references/design.md`; full-page renders of all
+boundary treatment) are in [`references/design.md`](references/design.md); full-page renders of all
 fourteen are in [GALLERY.md](GALLERY.md).
 
 The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never
 drawn by default — see § Design families in `references/design.md`.
 
-`templates/academic/**` (the academic-CV mode's gabarit) is **out of this
+[`templates/academic/**`](templates/academic) (the academic-CV mode's gabarit) is **out of this
 industry calibration**: the fill targets, section-separation devices, and the
 fourteen-family roster above describe industry résumés only and say nothing
 about academic dossiers.
@@ -123,7 +123,7 @@ user-wide or per-project:
 ```
 
 Consult your agent's own documentation for where that directory is. Nothing
-here is tied to one vendor: `SKILL.md` is the entry point and the rest is
+here is tied to one vendor: [`SKILL.md`](SKILL.md) is the entry point and the rest is
 Typst templates plus Python scripts, so an agent with no skills directory at
 all can simply be pointed at `SKILL.md`.
 
@@ -156,11 +156,11 @@ Platform notes:
   --doctor` runs directly, no PowerShell doctor involved; typst via
   `winget install --id Typst.Typst`; poppler via `choco install poppler` or
   `scoop install poppler` — or use WSL/Git Bash and follow the POSIX path
-  (`scripts/verify.sh`, a wrapper around `verify.py`) instead.
+  ([`scripts/verify.sh`](scripts/verify.sh), a wrapper around `verify.py`) instead.
 - **pip-only environments** (no package manager, no admin rights):
   `pip install typst pypdf Pillow` covers everything — `typst` compiles PDF
   and PNG through its Python API (no CLI), `pypdf` counts pages and gives an
-  indicative text extraction. See `references/ats.md` for the commands and
+  indicative text extraction. See [`references/ats.md`](references/ats.md) for the commands and
   the known pypdf caveat.
 
 ## Layout
@@ -223,7 +223,7 @@ projects — [Bootstrap Icons](https://github.com/twbs/icons),
 stores the address, not the drawing: `scripts/harvest_icons.py <cv folder>`
 fetches them from the [Iconify API](https://iconify.design) into an
 `icons.typ` **in the deliverable folder**, beside the `lib.typ` copied there,
-at the moment a CV is built. The `templates/icons.typ` in this repo is the
+at the moment a CV is built. The [`templates/icons.typ`](templates/icons.typ) in this repo is the
 committed fallback with every mark EMPTY, so `#import "icons.typ": *` always
 resolves — a clone with no network and no script run still compiles. Nothing
 to vendor, nothing to keep in sync with upstream, and no tag to track. When
