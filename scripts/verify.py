@@ -2043,7 +2043,9 @@ def _row_stats(data: bytes, w: int, r: int, tbl: bytes) -> tuple[int, int]:
 
 def _xheight_band(prof: list[int]) -> tuple[int, int] | None:
     """(top, bottom) row indexes of the dense x-height band of a text line from
-    its ink row profile (None when there is no ink). Ascender, cap-overshoot and
+    its ink row profile (None when there is no ink; a negative row is a rule row, skipped:
+    an em dash is a 10 pt run too, and counting it as an empty row cut a bullet's band in
+    two on pdfium's raster, 9 px off poppler's). Ascender, cap-overshoot and
     descender rows are sparse (only the letters that have them), the x-height band
     is dense (every letter), so the band is the stretch of rows that is mostly
     above half the peak density (maximum-sum run of prof - level): a line
@@ -2058,6 +2060,8 @@ def _xheight_band(prof: list[int]) -> tuple[int, int] | None:
     bi: tuple[int, int] | None
     best, cur, start, bi = 0.0, 0.0, 0, None
     for i, v in enumerate(prof):
+        if v < 0:
+            continue                       # a rule row (an em dash, an underline) neither adds nor costs
         if cur <= 0:
             cur, start = 0.0, i
         cur += v - lvl
@@ -2160,7 +2164,7 @@ def _page_ink_gap(pdf: str) -> GapFn:
                 prof = []
                 for r in range(reg.height):
                     n, run = _row_stats(data, w, r, tbl)
-                    prof.append(0 if run >= RULE_PT * k else n)    # underline / rule rows are not glyphs
+                    prof.append(-1 if run >= RULE_PT * k else n)    # underline / rule rows are not glyphs
                 bd = _xheight_band(prof)
                 if bd and bd[1] - bd[0] >= 2:
                     res = (ya + bd[0], ya + bd[1])
@@ -3755,6 +3759,10 @@ def _selftest() -> NoReturn:
     _hh, _ss, _pp = _rail()
     _rows, _sk = measure_groups(_hh, _ss, _pp)
     assert not _rows, _rows
+
+    # x-height band: an em dash (a rule row, -1) inside the band must not cut it in two
+    assert _xheight_band([5, 9, 300, 310, -1, -1, -1, 290, 280, 300, 40]) == (2, 9)
+    assert _xheight_band([5, 9, 300, 310, 0, 0, 0, 290, 280, 300, 40]) == (7, 9)   # the old reading
 
     # date adjacency: measured from lib markers + pdftotext word ORDER, so every
     # case is a real layout. `ok(...)` is lib `entry` (role -> date -> org)
