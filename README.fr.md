@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/licence-mit.svg" alt="Licence : MIT"></a>
-  <img src="assets/badges/statut-beta.svg" alt="Statut : bêta 0.6.11">
+  <img src="assets/badges/statut-beta.svg" alt="Statut : bêta 0.6.12">
   <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills-fr.svg" alt="Standard ouvert Agent Skills"></a>
 </p>
@@ -16,7 +16,7 @@ Un skill d'agent (« agent skill ») pour construire des CV en
 automatisé (ATS — Applicant Tracking Systems, systèmes de suivi des
 candidatures — et les cribleurs IA) et le survol humain de 30 secondes.
 
-**Statut : bêta (0.6.11)** — la méthode est éprouvée sur le terrain, mais
+**Statut : bêta (0.6.12)** — la méthode est éprouvée sur le terrain, mais
 l'organisation des fichiers du skill et les interfaces des scripts peuvent
 encore changer avant la version 1.0.
 

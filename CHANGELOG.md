@@ -3,7 +3,7 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first.
 Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.6.12 - 2026-10-30
 
 - `tests/run_all.sh` runs the self-tests, the 29 templates against their fill
   targets and the spacing fixtures with their gates in one command; a GitHub
