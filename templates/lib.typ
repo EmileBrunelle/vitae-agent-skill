@@ -173,6 +173,17 @@
   [#metadata((kind: kind, text: head-plain(c), page: p.page, x: p.x.pt(), y: p.y.pt(),
     w: m.width.pt(), h: m.height.pt()) + extra) <vitae-part>]
 }
+// The separator content as given, minus its outer spaces (sequence ends or
+// plain-text padding); styling and non-text content (a box, a glyph) are kept.
+#let trim-sep(c) = {
+  if c == none { return none }
+  if type(c) == str { return c.trim() }
+  let blank(k) = k == [ ] or (k.has("text") and type(k.text) == str and k.text.trim() == "")
+  let kids = if c.has("children") { c.children } else { (c,) }
+  while kids.len() > 0 and blank(kids.first()) { kids = kids.slice(1) }
+  while kids.len() > 0 and blank(kids.last()) { kids = kids.slice(0, -1) }
+  if kids.len() == 0 { none } else { kids.join() }
+}
 #let has-text(c) = { let t = if c == none { none } else { head-plain(c) }; type(t) == str and t.trim() != "" }
 #let sec-mark(t) = context [#metadata((
   text: head-plain(t), page: here().position().page, y: here().position().y.pt())) <vitae-sec>]
@@ -255,28 +266,36 @@
   // page (references/ats.md, Entry-with-no-bullets trap). The one line that
   // reliably anchors it is the entry's own org/descriptor line running under
   // the date (measured: bullets that reach under it still let a short org
-  // line be read first). So the decision is LOCAL to the entry: when that line
-  // stops short of the date (or there is none), the date is set INLINE after
+  // line be read first). So the decision is LOCAL to the entry: unless that
+  // line is one line that runs under the date (see the test below), the date is set INLINE after
   // the role, on the role line — one line, which every extractor reads in
   // order; the separator stays on the role line and the date is one box, so a
   // wrap never opens a line with the separator. Inputs are natural widths
   // (`measure`) and the column width (`layout`), never a position: the answer
   // does not depend on the page, the layout converges, each entry is O(1).
   let anchored = dated
-  let sg = head-plain(sep).trim()
+  let sc = trim-sep(sep)
   let date-mark(inline) = part-mark("date", date-st(dates), extra: if inline { (inline: true) } else { (:) })
   // the inline separator and date never make the role line taller than the
   // role alone: their line box is cut to the role's own height above baseline
   let ascent = measure(role-st(text(bottom-edge: "baseline")[H])).height
   let head(inline) = grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
     if inline [#head-mark("entry", role, org: org, dated: dated)#role-st(role)#text(top-edge: ascent,
-      bottom-edge: "baseline")[#if sg != "" [~#sg] #box[#date-mark(true)#date-st(dates)]]]
+      bottom-edge: "baseline")[#if sc != none [~#sc] #box[#date-mark(true)#date-st(dates)]]]
     else [#head-mark("entry", role, org: org, dated: dated)#role-st(role)],
     if inline { [] } else if dated [#date-mark(false)#date-st(dates)] else { date-st(dates) })
   let plain = block(above: ab, below: below, sticky: true)[
     #block(spacing: 0pt, if not anchored { head(false) } else { layout(size => context {
-      let need = size.width - measure(date-st(dates)).width + 0.5pt
-      head(not has-line or measure(text(size: meta-size, line)).width < need)
+      // right-flushed only when, measured: the role fits its cell on ONE line
+      // (a wrapped role sets the date beside its LAST line), and the org line
+      // is ONE line (no wrap: its first line is all of it) that runs under the
+      // date. Anything else — no line, a short line, a line that wraps (its
+      // first line may stop short of the date), a wrapping role — goes inline.
+      let dw = measure(date-st(dates)).width
+      let lw = if has-line { measure(text(size: meta-size, line)).width } else { 0pt }
+      let right = (measure(role-st(role)).width <= size.width - dw
+        and lw >= size.width - dw + 0.5pt and lw <= size.width)
+      head(not right)
     }) })
     #v(clr + gap)
     #text(size: meta-size)[#if has-line { part-mark("org", line) }#line]

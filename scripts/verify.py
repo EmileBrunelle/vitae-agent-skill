@@ -1450,7 +1450,17 @@ def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None
                   if _yc(w) > d_bot and w[0][0] < cr and w[0][2] > cl), default=None)
         st["unmeasured"] -= 1
         st["measured"] += 1
-        if ni is not None and last > ni:
+        # words of the role (head rows, left of a right-flushed date / before an
+        # inline one): the date must not be read before any of them
+        dl = sum(_yc(pw[i]) for i in di) / len(di)
+        rw = [i for i, w in enumerate(pw) if i not in di and w[0][0] >= h["x"] - 1.5
+              and h["y"] - 2 <= _yc(w) <= dl + 3
+              and (w[0][2] <= d["x"] - 1 if not d.get("inline") else
+                   (_yc(w) < dl - 3 or w[0][2] <= d["x"] - 1))]
+        if rw and max(rw) > min(di):
+            out.append(action(name, h, d, o) + f" \u2014 measured: {name}'s date is read in the "
+                       f'middle of its role (before "{pw[max(rw)][1][:30]}")' + why)
+        elif ni is not None and last > ni:
             out.append(action(name, h, d, o) + f" — measured: {name}'s date is emitted AFTER "
                        "the next entry starts, so it is read with the wrong entry" + why)
         elif oi is not None and last > oi:
@@ -2603,6 +2613,17 @@ def main():
                  '#job("Role03", "Org3", "Sep 2003 – May 2004", "City")]', "pass"),
                 # reviewer repro: role about a line wide + long date: the separator never
                 # opens the second line (it stays on the role line, the date box wraps)
+                # reviewer repros (ff5da87): an org line WIDER than the column wraps and its
+                # first line may stop short of the date — only a one-line org line that
+                # runs under the date keeps the date right-flushed; a wrapping role too
+                ("wrapping org line", 'sec("S")[#job("Role R09", "Org O09", "2016", "' + " ".join(
+                    ["gamma be alpha d gamma ep ep ep gamma alpha gamma ep alpha gamma gamma ep gamma d gamma gamma gamma be ep alpha d"] * 2)
+                 + '")\n#job("Role R10", "Org O10", "2017", "City")]', "pass"),
+                ("long unbreakable word in the note", 'sec("S")[#job("Role R11", "Org", "2016", "' + "x" * 120
+                 + '")\n#job("Role R12", "Org", "2017", "City")]', "pass"),
+                ("wrapping role, reaching org line", 'sec("S")[#job("Senior Staff Principal Distinguished Software '
+                 'Engineering Architect and Technical Lead of the Platform Group and Core R13", "Org", "2016", '
+                 f'"{_long}")\n#job("Role R14", "Org", "2017", "City")]', "pass"),
                 ("long role, sep stays on the role line",
                  'sec("Education")[#job("Bachelor of Science in Computer Science and Software Engineering, Honours '
                  'Co-op Program", "Uni", "September 2022 – May 2026 (expected)", "City")]', "pass"),
@@ -2611,8 +2632,10 @@ def main():
             ]
             _inline = {"run6f education": True, "short org, no note, last on page": True, "empty note": True,
                        "long org reaches": False, "long role wraps": True,
-                       "long role + long date, bullets": False, "bullets that do not reach": True,
-                       "own bullets reach": True, "long role, sep stays on the role line": True}
+                       "long role + long date, bullets": True, "bullets that do not reach": True,
+                       "own bullets reach": True, "long role, sep stays on the role line": True,
+                       "wrapping org line": True, "long unbreakable word in the note": True,
+                       "wrapping role, reaching org line": True}
             for _n, _exp, _got, _f, _w, _pm, _pw in _layouts(_pre2, _cases2):
                 assert _got == _exp, (_n, _got, _f or _w)
                 _dm = [m for m in _pm if m.get("kind") == "date"]
@@ -2633,6 +2656,22 @@ def main():
             # reviewer repro: an entry whose inline date wraps its role sits at the page
             # foot, a long bullet below; the decision must not depend on the page
             # (the 9869cc0 lib flipped between pages and never converged)
+            # the separator is the family's content, kept as given (outer spaces only
+            # trimmed): a box or a styled glyph survives the inline date
+            with tempfile.TemporaryDirectory(prefix="vitae-date-") as _td:
+                for _f in ("lib.typ", "icons.typ"):
+                    shutil.copy(os.path.join(_lib, _f), _td)
+                with open(os.path.join(_td, "s.typ"), "w", encoding="utf-8") as _fh:
+                    _fh.write('#import "lib.typ": *\n'
+                              '#metadata(repr(trim-sep([ #box(width: 4pt, height: 4pt, fill: red) ]))) <a>\n'
+                              '#metadata(repr(trim-sep([ #text(fill: red)[◆] ]))) <b>\n'
+                              '#metadata(repr(trim-sep([ — ]))) <c>\n')
+                _sa = _typst_query(os.path.join(_td, "s.typ"), "<a>") or [""]
+                _sb = _typst_query(os.path.join(_td, "s.typ"), "<b>") or [""]
+                _sc = _typst_query(os.path.join(_td, "s.typ"), "<c>") or [""]
+                assert "box" in _sa[0] and "ff4136" in _sa[0], _sa
+                assert "◆" in _sb[0] and "styled" in _sb[0], _sb
+                assert _sc[0].strip("[]") == "—", _sc
             for _y in ("9.0", "9.5"):
                 _src = ('#import "lib.typ": *\n#set page(width: 21.59cm, height: 6cm, margin: 1.5cm)\n'
                         '#set text(size: 10pt)\n' + _pre2.split("\n", 3)[3] + f'#v({_y}pt)\n'
@@ -2785,7 +2824,8 @@ def main():
         sys.exit(1)
     if "did not converge" in err:
         print("FAIL  compile: Typst warns the layout did not converge, so the PDF depends on "
-              "which iteration it stopped at — a construct in cv.typ reads its own layout "
+              "which iteration it stopped at — either the CV's lib.typ is an older copy (recopy "
+              "the skill's lib.typ next to it) or a construct in cv.typ reads its own layout "
               "(context / query / locate / measure) and changes it; remove that construct "
               "(the shipped lib converges)")
         fail = 1
