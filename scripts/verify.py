@@ -1358,22 +1358,19 @@ def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None
         if "anchor" not in h:
             return (f"rebuild {name} with the current lib's entry() / the family's job() "
                     "(recopy the skill's lib.typ if the CV's copy is older): its markers come "
-                    "from a lib whose entry() does not anchor the date of a bullet-less entry")
-        if d.get("inline"):
-            return (f"nothing to change in the content of {name}: lib entry() already set its "
-                    "date inline after the role and pdftotext still reads it late \u2014 rebuild "
-                    "the entry with the family's unmodified job(); if it already is, report the "
-                    ".typ and PDF")
-        if o is None:
-            return (f"give {name} an org or descriptor (the org/note argument of job()/entry()): "
-                    "it has no line under the role to anchor its date \u2014 with no bullets, lib "
-                    "entry() then sets the date inline when that line does not reach under it; "
-                    "with bullets, make that line long enough to run under the date")
-        short = d["x"] - (o["x"] + o.get("w", 0)) + 3
-        return (f"lengthen the org/descriptor line of {name} by at least {max(short, 3):.0f}pt so it "
-                "runs under the date: lib entry() anchors the date of a bullet-less entry "
-                "itself, but leaves an entry with bullets (or followed by text reaching under "
-                "the date) to that text, and here it does not hold")
+                    "from a lib whose entry() does not anchor its date")
+        short = d["x"] - ((o["x"] + o.get("w", 0)) if o is not None else h["x"]) + 3
+        if d.get("inline") or short <= 3:
+            return (f"rebuild {name} with the family's unmodified job() / lib entry() (no "
+                    "override of its org-st/date-st/meta-size, no hand-built head): lib entry() "
+                    + ("already set its date inline after the role" if d.get("inline") else
+                       "already runs its org line under the date")
+                    + ", so only a modified entry is read out of order; if it already is "
+                    "unmodified, report the .typ and PDF")
+        return (f"lengthen the org/descriptor line of {name} by at least {short:.0f}pt so it runs "
+                "under the date (a hand-built head: rebuild it with the family's job() / lib "
+                "entry(), which sets such a date inline): nothing under the right-flushed date "
+                "anchors it, so pdftotext does not read it in place")
 
     recs = _entry_records(marks)
     st = stats if stats is not None else {}
@@ -1428,7 +1425,12 @@ def check_date_adjacency(typ, pdf, marks=None, root=None, warns=None, words=None
         di = [i for i, w in enumerate(pw)
               if w[0][0] >= d["x"] - 1.5 and w[0][2] <= d["x"] + d.get("w", 0) + 1.5
               and min(d["y"], h["y"]) - 2 <= _yc(w) < d_end]
-        hi = _first_word(pw, h["x"], h["y"], d_end, x_end=d["x"] - 1)
+        if d.get("inline") and di:
+            # inline date (lib entry, after the role): one unbreakable box on ONE
+            # line, maybe the role's second; keep the line nearest the marker
+            yl = min({round(_yc(pw[i])) for i in di}, key=lambda y: abs(y - d["y"]))
+            di = [i for i in di if abs(_yc(pw[i]) - yl) <= 3]
+        hi = _first_word(pw, h["x"], h["y"], d_end, x_end=None if d.get("inline") else d["x"] - 1)
         if not di or hi is None:
             warn(f"{name}: {'date' if not di else 'head'} words not found at the marker position")
             continue
@@ -2452,6 +2454,9 @@ def main():
                     '#let inl(r, o, d) = block[#head-mark("entry", r, org: o, dated: true)#r #part-mark("org", o)#o \\\n'
                     '  #part-mark("date", d)#d]\n'
                     '#let bare(r, d) = entry(r, [], d, none)\n'
+                    '#let hbare(r, d) = block(above: 10pt, grid(columns: (1fr, auto), align: (left + bottom, right + bottom),\n'
+                    '  [#head-mark("entry", r, dated: true)#text(size: 11pt, weight: "bold", r)],\n'
+                    '  [#part-mark("date", text(size: 9pt, weight: "bold", d))#text(size: 9pt, weight: "bold", d)]))\n'
                     '#let old(r, o) = block[#context [#metadata((kind: "entry", text: r, org: o, page: here().page(),\n'
                     '  x: 0, y: 0)) <vitae-head>]#r \\ #o \\ 2020 – 2023]\n')
             # (name, typst body, expected: "fail" | "pass" | "warn")
@@ -2482,11 +2487,13 @@ def main():
                 ("undated cert then dated w/ bullet year",
                  'ok("AWS Cert", "", ""); ok("Dev", "Acme", "2020 – 2023", [Won award 2022])', "pass"),
                 ("org-less 2012, bullet short of the date, last on page",
-                 'bare("Engineer", "2012"); list([a long bullet that runs across])', "fail"),
+                 'bare("Engineer", "2012"); list([a long bullet that runs across])', "pass"),
+                ("hand-built 2012, bullet short of the date, last on page",
+                 'hbare("Engineer", "2012"); list([a long bullet that runs across])', "fail"),
                 ("org-less 2012, bullet wrapping under the date",
                  'bare("Engineer", "2012"); list([a long bullet that runs across the whole line width of the page for sure, yes yes yes])', "pass"),
                 ("org-less 2012 before next section title",
-                 'bare("Engineer", "2012"); list([b]); v(1em); text(weight: "bold")[EDUCATION]; bare("BSc", "2010"); list([x])', "fail"),
+                 'bare("Engineer", "2012"); list([b]); v(1em); text(weight: "bold")[EDUCATION]; bare("BSc", "2010"); list([x])', "pass"),
                 ("next entry with empty role", 'ok("Engineer", "Acme", "2020 – 2023"); ok("", "Beta", "2019 – 2020")', "warn"),
                 ("bullet number then date", 'bad("Engineer", "Acme Corp", "2020 – 2023", [Led 3 years of work])', "fail"),
                 ("en cours, trap", 'bad("Eng", "Acme", "03/24 – en cours")', "fail"),
@@ -2508,9 +2515,10 @@ def main():
                  'ok("Volunteer", "Club", ""); ok("Engineer", "Acme", "2020 – 2023", [Shipped in 2019 the thing], [Won award 2022])', "pass"),
                 ("undated then dated, trailing section",
                  'ok("Volunteer", "Club", ""); ok("Engineer", "Acme", "2020 – 2023", [bullet]); [EDUCATION \\ BSc \\ 2012 \\ Cert 2020]', "pass"),
-                ("B.Sc. 2012 orphan", 'bare("B.Sc. Physics", "2012"); ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "fail"),
+                ("B.Sc. 2012 orphan", 'bare("B.Sc. Physics", "2012"); ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "pass"),
+                ("hand-built B.Sc. 2012 orphan", 'hbare("B.Sc. Physics", "2012"); ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "fail"),
                 ("B.Sc. month range", 'ok("B.Sc. Physics", "Université Laval", "Sep 2008 – Jun 2012"); ok("Backend Developer", "Acme Corp", "Mar 2024 – present")', "pass"),
-                ("same role twice, one trap", 'ok("Engineer", "Acme", "2020 – 2023"); bare("Engineer", "2019"); ok("Engineer", "Beta", "2015 – 2019")', "fail"),
+                ("same role twice, one trap", 'ok("Engineer", "Acme", "2020 – 2023"); hbare("Engineer", "2019"); ok("Engineer", "Beta", "2015 – 2019")', "fail"),
                 ("old lib heads", 'old("Engineer", "Acme")', "warn"),
             ]
             def _layouts(pre, cases):
@@ -2533,15 +2541,17 @@ def main():
                     yield _n, _exp, "fail" if _f else "warn" if _w else "pass", _f, _w, _pm, _words[_p - 1]
             for _n, _exp, _got, _f, _w, _pm, _pw in _layouts(_pre, _cases):
                 assert _got == _exp, (_n, _got, _f or _w)
-                if _n == "B.Sc. 2012 orphan":   # no line under the role: the action is to add one
-                    assert (len(_f) == 1 and _f[0].startswith('give entry "B.Sc. Physics" an org')
-                            and "next entry starts" in _f[0]), _f
+                if _n in ("B.Sc. 2012 orphan", "org-less 2012, bullet short of the date, last on page"):
+                    # lib entry() with nothing under its date: the date goes inline
+                    assert [m for m in _pm if m.get("kind") == "date"][0].get("inline"), _pm
+                if _n == "hand-built B.Sc. 2012 orphan":
+                    assert len(_f) == 1 and "B.Sc. Physics" in _f[0] and "next entry starts" in _f[0], _f
                 if _n == "trap order":
                     assert _f[0].startswith('lengthen the org/descriptor line of entry "Backend Developer"'), _f
                 if _n == "same role twice, one trap":
                     assert len(_f) == 1, _f
-                if _n.startswith("org-less 2012") and _exp == "fail":
-                    assert any("below the entry head" in m and m.startswith("give ") for m in _f), _f
+                if _n.startswith("hand-built 2012"):
+                    assert any("below the entry head" in m for m in _f), _f
                 if _n == "next entry with empty role":
                     assert len(_w) == 1 and "head words not found" in _w[0], _w
                 if _n == "old lib heads":
@@ -2578,29 +2588,68 @@ def main():
                  'Technical Lead", "Acme Corporation International", "September 2022 – May 2026 (expected, part-time)", '
                  f'"{_long}")\n- Led the migration of the billing platform to an event-driven design used by every team]', "pass"),
                 ("two-column family",
-                 'grid(columns: (4.2cm, 1fr), column-gutter: 14pt, sec("Contact")[a\@b.c \\ 555-0100 \\ Montréal], '
+                 'grid(columns: (4.2cm, 1fr), column-gutter: 14pt, sec("Contact")[a\\@b.c \\ 555-0100 \\ Montréal], '
                  'sec("Education")[#job("B.Sc. Computer Science", "Université de Montréal", "Sep 2022 – May 2026", "Montréal")\n'
                  '#job("DEC in Science", "Collège Riverside", "Aug 2020 – May 2022", "Laval")])', "pass"),
-                ("bullets that do not reach", 'sec("Experience")[#job("Engineer", "Acme", "Jan 2020 – Mar 2021", "")\n- b]', "fail"),
+                ("bullets that do not reach", 'sec("Experience")[#job("Engineer", "Acme", "Jan 2020 – Mar 2021", "")\n- b]', "pass"),
+                # bullets reaching under the date do NOT anchor it (a short org line is
+                # still read first, measured): the date goes inline all the same
+                ("own bullets reach", 'sec("Experience")[#job("Engineer", "Acme", "Jan 2020 – Mar 2021", "")\n'
+                 '- Led the migration of the billing platform to an event-driven design used by every team, '
+                 'cutting incident load by half]', "pass"),
+                # reviewer repro: bullet-less / one short bullet / bullet-less in one section
+                ("neighbours do not anchor", 'sec("Experience")[#job("Role01", "Org1", "Sep 2001 – May 2002", "City")\n'
+                 '#job("Role02", "Org2", "Sep 2002 – May 2003", "City")\n- b\n'
+                 '#job("Role03", "Org3", "Sep 2003 – May 2004", "City")]', "pass"),
+                # reviewer repro: role about a line wide + long date: the separator never
+                # opens the second line (it stays on the role line, the date box wraps)
+                ("long role, sep stays on the role line",
+                 'sec("Education")[#job("Bachelor of Science in Computer Science and Software Engineering, Honours '
+                 'Co-op Program", "Uni", "September 2022 – May 2026 (expected)", "City")]', "pass"),
                 ("same, descriptor lengthened",
                  f'sec("Experience")[#job("Engineer", "Acme", "Jan 2020 – Mar 2021", "{_long}, twice a month")\n- b]', "pass"),
             ]
             _inline = {"run6f education": True, "short org, no note, last on page": True, "empty note": True,
                        "long org reaches": False, "long role wraps": True,
-                       "long role + long date, bullets": False, "bullets that do not reach": False}
+                       "long role + long date, bullets": False, "bullets that do not reach": True,
+                       "own bullets reach": True, "long role, sep stays on the role line": True}
             for _n, _exp, _got, _f, _w, _pm, _pw in _layouts(_pre2, _cases2):
                 assert _got == _exp, (_n, _got, _f or _w)
                 _dm = [m for m in _pm if m.get("kind") == "date"]
                 if _n in _inline:
                     assert bool(_dm[0].get("inline")) == _inline[_n], (_n, _dm)
-                if _n == "bullets that do not reach":
-                    assert _f[0].startswith('lengthen the org/descriptor line of entry "Engineer"'), _f
+                if _n == "neighbours do not anchor":
+                    assert all(m.get("inline") for m in _pm if m.get("kind") == "date"), _pm
+                if _n == "long role, sep stays on the role line":
+                    _ls = {}
+                    for _b, _t in _pw:
+                        _ls.setdefault(round((_b[1] + _b[3]) / 2), []).append((_b[0], _t))
+                    assert not any(min(_v)[1] in ("\u2014", "\u2013", "\u00b7") for _v in _ls.values()), _ls
+                    assert len([1 for _v in _ls.values() if any(_t == "September" for _x, _t in _v)]) == 1
                 # never two words colliding on one line (role vs date, wrapped or not)
                 _bx = [b for b, _t in _pw]
                 assert not any(abs((a[1] + a[3]) - (b[1] + b[3])) < 6 and a[0] < b[2] - 0.5 and b[0] < a[2] - 0.5
                                for i, a in enumerate(_bx) for b in _bx[i + 1:]), _n
-            print(f"selftest date adjacency: {len(_cases) + len(_cases2)} typst layouts measured "
-                  "(date anchor: run6f education reads in place)")
+            # reviewer repro: an entry whose inline date wraps its role sits at the page
+            # foot, a long bullet below; the decision must not depend on the page
+            # (the 9869cc0 lib flipped between pages and never converged)
+            for _y in ("9.0", "9.5"):
+                _src = ('#import "lib.typ": *\n#set page(width: 21.59cm, height: 6cm, margin: 1.5cm)\n'
+                        '#set text(size: 10pt)\n' + _pre2.split("\n", 3)[3] + f'#v({_y}pt)\n'
+                        '#sec("Education")[#job("Senior Staff Principal Distinguished Software Engineering '
+                        'Architect and Technical Lead Platform Group Scale Core", "Org", "Sep 2022 – May 2026", "City")]\n'
+                        '#sec("Exp")[- A long bullet that runs across the whole width of the column to reach '
+                        'under the date at the right edge yes yes yes yes yes.]\n')
+                with tempfile.TemporaryDirectory(prefix="vitae-date-") as _td:
+                    for _f in ("lib.typ", "icons.typ"):
+                        shutil.copy(os.path.join(_lib, _f), _td)
+                    with open(os.path.join(_td, "c.typ"), "w", encoding="utf-8") as _fh:
+                        _fh.write(_src)
+                    _r = subprocess.run(["typst", "compile", os.path.join(_td, "c.typ")],
+                                        capture_output=True, text=True)
+                    assert _r.returncode == 0 and "converge" not in _r.stderr, (_y, _r.stderr)
+            print(f"selftest date adjacency: {len(_cases) + len(_cases2)} typst layouts measured, "
+                  "2 page-foot layouts converge (date anchor: run6f education reads in place)")
         else:
             print("selftest date adjacency SKIPPED (typst / pdftotext not on PATH)")
         # _first_word honours the column bound: a word right of x_end (the next
@@ -2734,6 +2783,12 @@ def main():
         print("FAIL  compile")
         print(err)
         sys.exit(1)
+    if "did not converge" in err:
+        print("FAIL  compile: Typst warns the layout did not converge, so the PDF depends on "
+              "which iteration it stopped at — a construct in cv.typ reads its own layout "
+              "(context / query / locate / measure) and changes it; remove that construct "
+              "(the shipped lib converges)")
+        fail = 1
     if err.strip():
         print("WARN  compile stderr (a missing font only warns and falls back):")
         print(err)
