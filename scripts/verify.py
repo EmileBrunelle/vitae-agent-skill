@@ -1184,23 +1184,14 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
 
 
 
-# poppler keeps reading a column down before it moves to the right-flushed cell beside the head
-# (a date) at gaps far beyond one line: measured on a Typst grid head + date over an org line,
-# the org is read first at every head-to-org gap tried up to 40 pt. A gap under 3.5 x the
-# height of the line above (28 pt under an 11 pt head) joins the two here; a smaller multiple
-# missed the 12-20 pt spacings, and measuring against the line below (instead of above)
-# started to join running heads to section titles, which poppler does not.
-BLOCK_GAP = 3.5
-
-
 def _reading_order(words: list[WordBox]) -> list[WordBox]:
     """pdftotext's reading order, approximated: pdfium lists words in content-stream
     order, poppler in layout order. Words on one baseline form a line, cut where the gap
     exceeds 1.5 x the box height (a right-flushed date is another piece); a piece joins
     every piece directly above it that it overlaps in x (one text block); blocks read by
-    top then x, lines within a block top to bottom, left to right. So a right-flushed
-    date is read in place only when a line under it overlaps its x-range, which is the
-    behaviour `check_date_adjacency` measures."""
+    row then x, lines within a block top to bottom, left to right. A right-flushed date
+    joins the first line under it that overlaps its x-range, up to the next dated head, so
+    it is read in place only then, which is the behaviour `check_date_adjacency` measures."""
     if not words:
         return words
     rows: list[list[int]] = []
@@ -1239,13 +1230,27 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
         return a
     for lo in range(len(pieces)):
         for up in range(len(pieces)):
-            if piece_row[up] == piece_row[lo] - 1 and geo[up][0] < geo[lo][1] and geo[lo][0] < geo[up][1] \
-                    and geo[lo][2] - geo[up][3] <= BLOCK_GAP * (geo[up][3] - geo[up][2]):
+            if piece_row[up] == piece_row[lo] - 1 and geo[up][0] < geo[lo][1] and geo[lo][0] < geo[up][1]:
                 parent[find(up)] = find(lo)
+    # A piece with another piece to its left on its row (a right-flushed date beside its role) is
+    # read after the lines of its entry, at any distance, unless one of them under it overlaps its
+    # x-range: then it is read in place. Measured on poppler: role, org, date at every head-to-org
+    # gap from 4 to 200 pt and heads of 9 to 18 pt, so there is no distance cutoff. The lines of
+    # its entry stop at the next row that holds a right-flushed piece (the next dated head).
+    side = [n for n in range(len(pieces)) if any(piece_row[m] == piece_row[n] and geo[m][0] < geo[n][0]
+                                                 for m in range(len(pieces)))]
+    for n in side:
+        stop = min((piece_row[m] for m in side if piece_row[m] > piece_row[n]), default=len(rows))
+        under = [m for m in range(len(pieces)) if piece_row[n] < piece_row[m] < stop and m not in side
+                 and geo[m][0] < geo[n][1] and geo[n][0] < geo[m][1]]
+        if under:
+            parent[find(n)] = find(min(under, key=lambda m: (piece_row[m], geo[m][0])))
     blocks: dict[int, list[int]] = {}
     for n in range(len(pieces)):
         blocks.setdefault(find(n), []).append(n)
-    order = sorted(blocks.values(), key=lambda bl: (min(geo[n][2] for n in bl), min(geo[n][0] for n in bl)))
+    # by row (the rows are clustered on the baseline with a tolerance), not by the box top: a bold role
+    # and a regular date of one size differ by a point or two of box top
+    order = sorted(blocks.values(), key=lambda bl: (min(piece_row[n] for n in bl), min(geo[n][0] for n in bl)))
     return [words[k] for bl in order for n in sorted(bl, key=lambda n: (piece_row[n], geo[n][0])) for k in pieces[n]]
 
 
@@ -3815,9 +3820,9 @@ def _selftest() -> NoReturn:
                 '  [#part-mark("date", text(size: 9pt, d))#text(size: 9pt, d)])\n'
                 '  #v(-8pt)\n  #text(size: 9pt)[#part-mark("org", o)#o]\n'
                 '  #b.pos().map(x => list(x)).join()]\n'
-                '#let wide(g, r, o, d) = block[#grid(columns: (1fr, auto), align: (left + bottom, right + bottom),\n'
-                '  [#head-mark("entry", r, org: o, dated: true)#text(size: 11pt, weight: "bold", r)],\n'
-                '  [#part-mark("date", text(size: 9pt, d))#text(size: 9pt, d)])\n'
+                '#let wide(g, r, o, d, hs: 11pt, ds: 9pt) = block[#grid(columns: (1fr, auto), align: (left + bottom, right + bottom),\n'
+                '  [#head-mark("entry", r, org: o, dated: true)#text(size: hs, weight: "bold", r)],\n'
+                '  [#part-mark("date", text(size: ds, d))#text(size: ds, d)])\n'
                 '  #v(g)\n  #text(size: 9pt)[#part-mark("org", o)#o]]\n'
                 '#let inl(r, o, d) = block[#head-mark("entry", r, org: o, dated: true)#r #part-mark("org", o)#o \\\n'
                 '  #part-mark("date", d)#d]\n'
@@ -3834,6 +3839,11 @@ def _selftest() -> NoReturn:
             ("trap order, 12pt under the head", 'wide(12pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
             ("trap order, 16pt under the head", 'wide(16pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
             ("trap order, 20pt under the head", 'wide(20pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
+            ("trap order, 32pt under the head", 'wide(32pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
+            ("trap order, 60pt under the head", 'wide(60pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
+            ("trap order, 150pt under the head", 'wide(150pt, "Senior Engineer", "Acme Corp", "2019")', "fail"),
+            ("trap order, bold 10pt head and 10pt date", 'wide(14pt, "Senior Engineer", "Acme Corp", "2019", hs: 10pt, ds: 10pt)', "fail"),
+            ("trap order, bold 9pt head and 9pt date", 'wide(8pt, "Senior Engineer", "Acme Corp", "2019", hs: 9pt, ds: 9pt)', "fail"),
             ("org with year", 'bad("Engineer", "Vision 2020 Inc", "2021 – 2023")', "fail"),
             ("org with year, lib", 'ok("Engineer", "Vision 2020 Inc", "2021 – 2023")', "pass"),
             ("org address", 'bad("Engineer", "Acme, 1234 Main St", "2021 – 2023")', "fail"),
