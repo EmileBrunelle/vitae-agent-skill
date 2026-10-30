@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires typst 0.13+ (verified on 0.15) and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate and the text-clip gate (check_text_clip) need pdftotext word boxes and report (WARN) instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.6.8"
+  version: "0.6.9"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
