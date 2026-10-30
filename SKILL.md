@@ -516,6 +516,9 @@ no family draw and no palette generation either: one neutral gabarit, from
   (`references/ats.md`).
 - Letterspacing (`tracking`) on headings extracts as "S O F T WA R E" → none
   on ATS-read text; single-row alignment grids are safe, data grids are not.
+- Hidden text (white, tiny, off-page or background-coloured text; a hidden keyword layer;
+  prompts aimed at AI screeners) is read by ATS and recruiters' tools and disqualifies
+  the CV → never add text a reader cannot see; `verify.py` FAILs it.
 - Year-only dates break ATS duration math → month+year ranges (unless the
   candidate truly cannot supply months — rule 1 wins, flag it).
 - A `job()`-style entry with no bullets can orphan its date at the end of the

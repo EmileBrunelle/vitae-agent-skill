@@ -12,6 +12,13 @@ Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
   0.96em / 1.075em plus 15%), clamping and reporting any wider range passed. An
   under-filled page now FAILs with content advice (add a real fact, ask the user, never
   invent or pad) instead of "widen the range"; over-full behaviour unchanged.
+- `verify.py`, `verify_academic.py` and `verify_letter.py` FAIL hidden text: any word pdftotext
+  extracts whose box has under 1.5:1 WCAG contrast against its background (white-on-white,
+  background-coloured, under a shape, hidden keyword layers such as brilliant-cv's), a box under
+  4pt, or a box crossing the page edge (with pypdf, runs placed wholly off the page, by geometry).
+  WARNs on contrast under 3:1, text set under 5pt (real font size via pypdf; superscripts
+  exempt), stuffed Keywords/Title/Author/Subject, embedded attachments, and when pypdf is missing. Calibrated on the 29 templates + 294 palette renders: weakest legit
+  contrast 4.55:1, smallest legit box 5.49pt (a superscript); about 0.3 s per page.
 - `entry()` (and every family's `job()`) sets the date inline after the role
   ("Role — Mar 2024 – present") unless the entry's org/descriptor line reaches
   under where a right-flushed date would sit; pdftotext/ATS read geometry, so a
