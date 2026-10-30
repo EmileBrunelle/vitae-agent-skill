@@ -482,6 +482,50 @@ PY
 }
 check render-crops-sidebar render_crops_sidebar
 
+# Contact marks vs decorations. A solid phone glyph and a mail mark one no-break space from its value are kept
+# (all five marks in the fixture), the heading squares (the same shape 3+ times) are not; a dark page under a
+# white card gives the card and the band, not one whole-page fill; a plain --render drops the stem's old crops.
+render_crops_marks() {
+  local d="$S/crops-marks" r
+  rm -rf "$d"; mkdir -p "$d"
+  cat > "$d/m.typ" <<'TYP'
+#set page(width: 21cm, height: 29.7cm, margin: 2cm)
+#set text(size: 11pt)
+#let sq = box(width: 5pt, height: 5pt, fill: rgb("#1b4965"))
+#let tel = box(width: 6pt, height: 10pt, fill: rgb("#1b4965"))
+#let mail = box(width: 11pt, height: 8pt, stroke: 1pt + rgb("#1b4965"))
+#let pin = circle(radius: 4pt, fill: rgb("#1b4965"))
+#let web = circle(radius: 4.5pt, stroke: 1pt + rgb("#1b4965"))
+#tel#sym.space.nobreak (555) 555-0100  #h(1em) #mail#sym.space.nobreak me\@example.com  #h(1em) #pin#sym.space.nobreak City  #h(1em) #web#sym.space.nobreak example.com
+#for t in ("Skills", "Work", "Study", "Other") [
+  #v(1cm) #sq #sym.space.nobreak *#t*
+]
+TYP
+  typst compile "$d/m.typ" "$d/m.pdf" 2>/dev/null || python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/m.typ" "$d/m.pdf" || return 1
+  r="$(python3 -I scripts/verify.py --render "$d/m.pdf" --out "$d/o" --crops)" || return 1
+  [ "$(echo "$r" | grep -c -- '-icon[0-9]*\.png$')" -eq 4 ] || { echo "want exactly the 4 contact marks, got: $r"; return 1; }
+  # stale crops: a plain --render into the same --out leaves only the page PNG
+  python3 -I scripts/verify.py --render "$d/m.pdf" --out "$d/o" >/dev/null || return 1
+  [ "$(ls "$d/o")" = "m-p1.png" ] || { echo "plain --render kept crops: $(ls "$d/o")"; return 1; }
+  # dark page, white card
+  cat > "$d/k.typ" <<'TYP'
+#set page(width: 21cm, height: 29.7cm, margin: 0pt, fill: rgb("#14213d"))
+#set text(size: 11pt, fill: white)
+#place(top + left, dx: 2cm, dy: 6cm, rect(width: 17cm, height: 18cm, fill: white, inset: 1cm)[#text(fill: black)[Card text]])
+#place(top + left, dx: 2cm, dy: 1cm, rect(width: 17cm, height: 2cm, fill: rgb("#e63946"), inset: 8pt)[Band])
+TYP
+  typst compile "$d/k.typ" "$d/k.pdf" 2>/dev/null || python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/k.typ" "$d/k.pdf" || return 1
+  python3 -I scripts/verify.py --render "$d/k.pdf" --out "$d/ko" --crops >/dev/null || return 1
+  python3 -I - "$d/ko" <<'PY' || return 1
+import glob, sys
+from PIL import Image
+fills = sorted(glob.glob(sys.argv[1] + "/k-p1-fill*.png"))
+sizes = [Image.open(f).size for f in fills]
+sys.exit(0 if len(fills) == 2 and all(max(s) < 2300 for s in sizes) else "fills: %s" % sizes)
+PY
+}
+check render-crops-marks render_crops_marks
+
 if [ "$quick" -eq 0 ]; then
   fx="$out/fixtures"; mkdir -p "$fx"
   check fixtures-render tests/fixtures/render.sh "$fx"

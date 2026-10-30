@@ -90,6 +90,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Literal, NoReturn, TypedDict, cast, overload
 
@@ -1730,9 +1731,9 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
     Returns the paths, or [] when neither is there."""
     os.makedirs(out_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(pdf))[0]
-    stale = re.compile(r"%s-p\d+\.png" % re.escape(stem))
+    stale = re.compile(r"%s-p\d+(?:-(?:fill|icon)\d+)?\.png" % re.escape(stem))
 
-    def drop_stale() -> None:        # a longer previous render must not leave its extra pages behind
+    def drop_stale() -> None:        # a longer previous render, or one with --crops, must not leave its pages or crops behind
         for f in os.listdir(out_dir):
             if stale.fullmatch(f):
                 os.remove(os.path.join(out_dir, f))
@@ -1766,8 +1767,14 @@ CROP_ERODE = 9            # px at 150 ppi: strokes and glyph ink vanish, a solid
 CROP_FILL_MIN_IN = (0.5, 0.1)   # smallest aplat worth a look (inches, w x h)
 CROP_ICON_MIN_IN = 0.08   # the ink of a mark smaller than this (a bullet dot, a speck) is not a glyph
 CROP_ICON_MAX_IN = 0.45   # larger than this and it is a rule or a block, not an icon
-CROP_ICON_GAP_IN = 0.03   # ink closer than this to a word box on its line is part of the text (glyph piece, chip)
-CROP_ICON_SOLID = 0.85    # ink filling more of its box than this is a solid chip or square bullet, not a drawing
+CROP_ICON_GAP_IN = 0.01   # ink closer than this to a word box on its line is part of the text (glyph piece); the one no-break
+                          # space between a mark and its value is 0.02 in, so a real mark clears it
+CROP_ICON_SOLID = 0.85    # ink filling more of its box than this is a solid chip or square bullet, not a drawing...
+CROP_ICON_SOLID_ASPECT = (1.3, 2.0)   # ...unless its proportions sit in this range (a solid phone glyph: not a square, not a bar) and text follows it
+CROP_ICON_TEXT_IN = 0.12  # a mark this close to a word on its line sits beside its value (ranks first when the cap bites)
+CROP_ICON_RANK = 10**6    # added to the score of a mark beside its value, so it outranks any loose ink when the cap bites
+CROP_REPEAT = 3           # the same shape this many times on a page is a decoration (heading square, divider, bullet), not a mark
+CROP_EDGE_SHARE = 0.9     # one colour covering this share of the page's border is the paper, whatever else the page holds
 CROP_ICON_ASPECT = 3.0    # longer than this many times its short side: a rule or a stem, not an icon
 CROP_WHITE_PAPER = 0.2    # white covering this share of the page makes white the background, not the modal colour
 CROP_PAD_IN = 0.08        # context around every crop
@@ -1806,18 +1813,28 @@ def _components(grid: Image.Image, merge: int = 0) -> list[tuple[int, int, int, 
 def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, tuple[int, int, int, int], int]]:
     """[(kind, (x0, y0, x1, y1) px of `im`, score), ...] in reading order: kind 'fill' (a solid colour
     band that text or marks sit on) or 'icon' (a small vector mark outside every word box). The score
-    is the ink pixel count (what ranks icons when the per-page cap bites; a fill scores its area).
+    is the ink pixel count (what ranks icons when the per-page cap bites; a fill scores its area; a mark
+    beside its value, within CROP_ICON_TEXT_IN of a word on its line, ranks above any other).
     Raster pass on the CROP_SCAN_PPI render: none of the gates keeps regions (the hidden-text gate
     only reads the colour behind each word box), so what is reused is its raster and its word
     boxes; `words` None (no word boxes) skips icons rather than calling every glyph an icon.
-    Background: white when white covers CROP_WHITE_PAPER of the page (a >50% sidebar must not become
-    the 'paper'), else the modal colour (a tinted or dark page)."""
+    Background: the colour that fills CROP_EDGE_SHARE of the page border (a dark page under a white
+    card keeps its own colour), else white when white covers CROP_WHITE_PAPER of the page (a >50%
+    sidebar must not become the 'paper'), else the modal colour (a tinted or dark page)."""
     im = im.convert("RGB")
     w, h = im.size
     colours = im.getcolors(maxcolors=w * h) or [(1, (255, 255, 255))]
     white = sum(n for n, c in colours if min(cast(tuple[int, ...], c)) >= 250)
-    if white >= CROP_WHITE_PAPER * w * h:
-        bg: tuple[int, ...] = (255, 255, 255)
+    border: Counter[Any] = Counter()
+    m = min(4, w // 4, h // 4)          # 4 px inside: poppler leaves a white last row and column on some page sizes
+    for strip in ((0, m, w, m + 1), (0, h - m - 1, w, h - m), (m, 0, m + 1, h), (w - m - 1, 0, w - m, h)):
+        for n, c in im.crop(strip).getcolors(maxcolors=w * h) or []:
+            border[c] += n
+    edge, edge_n = border.most_common(1)[0]
+    if edge_n >= CROP_EDGE_SHARE * sum(border.values()):
+        bg: tuple[int, ...] = cast(tuple[int, ...], edge)       # a dark or tinted page keeps its own colour under a white card
+    elif white >= CROP_WHITE_PAPER * w * h:
+        bg = (255, 255, 255)
     else:
         bg = cast(tuple[int, ...], max(colours)[1])
     ink = ImageChops.difference(im, Image.new("RGB", im.size, bg)).convert("L").point(
@@ -1840,6 +1857,20 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             d.rectangle((int((wx0 - 1) * pt), int((wy0 - 1) * pt), int((wx1 + 1) * pt) + 1, int((wy1 + 1) * pt) + 1), fill=0)
         for _, fb, _ in fills:
             d.rectangle(fb, fill=0)
+        # Decorations repeat: the same shape (size, ink) CROP_REPEAT times on a page is a heading square,
+        # a divider or a bullet, and goes before the marks are merged (a square above a phone glyph must
+        # not fuse with it). A contact mark never repeats: each of pin, phone, mail, web has its own shape.
+        parts = []
+        for x0, y0, x1, y1 in _components(rest.reduce(3)):
+            box = (x0 * 3, y0 * 3, min(w, x1 * 3 + 3), min(h, y1 * 3 + 3))
+            tight = rest.crop(box).getbbox()
+            if tight is not None:
+                parts.append((box, tight[2] - tight[0], tight[3] - tight[1],
+                              sum(1 for v in rest.crop(box).tobytes() if v)))
+        for box, tw, th, n in parts:
+            twins = sum(1 for _, w2, h2, n2 in parts if abs(w2 - tw) <= 1 and abs(h2 - th) <= 1 and abs(n2 - n) <= 0.15 * max(n, n2))
+            if twins >= CROP_REPEAT:
+                d.rectangle((box[0], box[1], box[2] - 1, box[3] - 1), fill=0)
         for x0, y0, x1, y1 in _components(rest.reduce(3), merge=1):
             bw, bh = (x1 - x0 + 1) * 3, (y1 - y0 + 1) * 3
             if not (CROP_ICON_MIN_IN * k <= max(bw, bh) <= CROP_ICON_MAX_IN * k and min(bw, bh) >= CROP_ICON_MIN_IN * k / 2):
@@ -1853,12 +1884,14 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             tw, th = tx1 - tx0, ty1 - ty0
             if max(tw, th) < CROP_ICON_MIN_IN * k or max(tw, th) > CROP_ICON_ASPECT * min(tw, th):
                 continue        # a speck, a bullet dot, a rule or a stem
-            if n > CROP_ICON_SOLID * tw * th:
+            beside = [wx0 - tx1 if wx0 >= tx1 else tx0 - wx1 for wx0, wy0, wx1, wy1 in wpx
+                      if wy0 < ty1 and wy1 > ty0 and max(wx0 - tx1, tx0 - wx1, 0) < CROP_ICON_TEXT_IN * k]
+            if n > CROP_ICON_SOLID * tw * th and not (beside and CROP_ICON_SOLID_ASPECT[0] * min(tw, th) < max(tw, th) <= CROP_ICON_SOLID_ASPECT[1] * min(tw, th)):
                 continue        # a solid square or chip (bullet marker, white-on-black letter)
             if any(wy0 < ty1 and wy1 > ty0 and max(wx0 - tx1, tx0 - wx1, 0) < CROP_ICON_GAP_IN * k
                    for wx0, wy0, wx1, wy1 in wpx):
                 continue        # touching a word on its line: a glyph piece, not a mark of its own
-            icons.append(("icon", box, n))
+            icons.append(("icon", box, n + (CROP_ICON_RANK if beside else 0)))
     return sorted(fills + icons, key=lambda b: (b[1][1], b[1][0]))
 
 
