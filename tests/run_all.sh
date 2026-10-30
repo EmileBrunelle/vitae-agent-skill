@@ -42,8 +42,68 @@ check() {
   fi
 }
 
+# SKILL.md gates (v0.7 context diet). Run on the scratch copy; $1 = mode, $2 = root.
+#  size:  SKILL.md must stay <= 13000 bytes.
+#  steps: every steps file is cited (no orphans), starts with "# ", ends on punctuation/fence/list/table.
+#  links: every references|scripts|templates path cited in SKILL.md and in the
+#         step/academic/known-traps files must exist (paths with "<" are placeholders).
+GATE_PY='
+import os, re, sys, glob
+mode, root = sys.argv[1], sys.argv[2]
+LIMIT = 13000
+skill = os.path.join(root, "SKILL.md")
+if mode == "size":
+    n = os.path.getsize(skill)
+    if n > LIMIT:
+        print(f"FAIL SKILL.md is {n} bytes, limit is {LIMIT} ({n - LIMIT} over)"); sys.exit(1)
+    print(f"ok SKILL.md {n} bytes <= {LIMIT}"); sys.exit(0)
+steps = sorted(glob.glob(os.path.join(root, "references/steps/*.md")))
+if mode == "steps":
+    bad = []
+    texts = {f: open(f, encoding="utf-8").read() for f in [skill] + steps}
+    for f in steps:
+        b = os.path.basename(f)
+        if not any(b in t for g, t in texts.items() if g != f):
+            bad.append(f"FAIL orphan {b}: cited by neither SKILL.md nor another steps file")
+        lines = [l for l in texts[f].split("\n") if l.strip()]
+        if not lines or not lines[0].startswith("# "):
+            bad.append(f"FAIL {b}: does not start with an H1 (\"# \")")
+        elif not re.search(r"[.!?:;)\]`|*\"\u201d\u00bb>]$", lines[-1].rstrip()):
+            bad.append(f"FAIL {b}: last line does not end like a sentence: ...{lines[-1].rstrip()[-40:]!r}")
+    for m in bad: print(m)
+    if bad: sys.exit(1)
+    print(f"ok {len(steps)} steps files: none orphaned, all start with H1 and end cleanly"); sys.exit(0)
+srcs = [skill] + sorted(glob.glob(os.path.join(root, "references/steps/*.md")))
+srcs += [os.path.join(root, "references", f) for f in ("academic-mode.md", "known-traps.md")]
+pat = re.compile(r"(?:references|scripts|templates)/[A-Za-z0-9_./<>-]+")
+bad = []; seen = 0
+for f in srcs:
+    if not os.path.isfile(f): continue
+    for m in pat.finditer(open(f, encoding="utf-8").read()):
+        p = m.group(0).rstrip(".,;:`\x27)")
+        if "<" in p or ">" in p: continue
+        seen += 1
+        full = os.path.join(root, p)
+        ok = os.path.isdir(full) if p.endswith("/") else os.path.exists(full)
+        if not ok: bad.append((p, os.path.relpath(f, root)))
+for p, f in sorted(set(bad)): print(f"FAIL missing {p} (cited in {f})")
+if bad: sys.exit(1)
+print(f"ok {seen} path citations resolve")
+'
+[ -f SKILL.md ] && check skill-size python3 -I -c "$GATE_PY" size "$S" \
+  && check skill-links python3 -I -c "$GATE_PY" links "$S" \
+  && check skill-steps python3 -I -c "$GATE_PY" steps "$S" || true
+
 check selftest-verify python3 -I scripts/verify.py --selftest
 check selftest-pick_design python3 -I scripts/pick_design.py --selftest
+
+# Type check (config: mypy.ini). Optional locally: SKIP, not FAIL, without mypy.
+if python3 -c "import mypy" 2>/dev/null; then
+  cp "$root/mypy.ini" "$S"/
+  check mypy python3 -m mypy
+else
+  echo "SKIP mypy (not installed: pip install mypy)"
+fi
 
 # Template targets come from pick_design.FAMILIES[f]['page']['fill'] ("A-B").
 targets="$(python3 -I -c "

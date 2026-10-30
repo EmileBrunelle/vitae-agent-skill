@@ -30,18 +30,22 @@ them. Prefer FILL-based sets (Tabler *-filled, Phosphor *-fill, Bootstrap
 *-fill): a stroke icon is REFUSED here (it renders as a solid blob through
 `pmark`, which substitutes the colour into `currentColor` and fills).
 """
+from __future__ import annotations
+
+import argparse
 import json
 import os
 import re
 import sys
 import unicodedata
 import urllib.request
+from typing import Any, NoReturn
 
 API = "https://api.iconify.design"
 
 # Typst variable name -> "<iconify prefix>:<icon name>". lib.typ reads
 # `<var>-body` and `<var>-vb`.
-ICONS = {
+ICONS: dict[str, str] = {
     # default kit: Bootstrap brand marks + Tabler filled generics
     "li": "bi:linkedin",
     "gh": "bi:github",
@@ -62,7 +66,7 @@ ICONS = {
 }
 
 
-def fetch(url):
+def fetch(url: str) -> Any:
     req = urllib.request.Request(url, headers={"User-Agent": "vitae-harvest/2.0"})
     with urllib.request.urlopen(req, timeout=30) as r:
         raw = r.read(MAX_BYTES + 1)
@@ -74,7 +78,7 @@ def fetch(url):
 MAX_BYTES = 2_000_000
 
 
-def clean(v, cap=80):
+def clean(v: object, cap: int = 80) -> str:
     """A fetched value made safe for a `//` comment: every whitespace, control,
     format and separator char (any Unicode line break included) becomes one
     space; capped in length."""
@@ -84,7 +88,7 @@ def clean(v, cap=80):
 NUM = re.compile(r"\d{1,6}(?:\.\d{1,6})?\Z")
 
 
-def typst_str(s):
+def typst_str(s: str) -> str:
     """A Typst string literal for `s`: backslash and quote escaped first, every
     control char / line separator as \\u{..}, so no content can leave the string."""
     out = []
@@ -100,7 +104,7 @@ def typst_str(s):
     return '"' + "".join(out) + '"'
 
 
-def fetch_set(prefix, names):
+def fetch_set(prefix: str, names: list[str]) -> tuple[Any, Any]:
     """(icons dict, collection meta) for one set; ({}, {}) on any failure."""
     try:
         coll = fetch(f"{API}/collections?prefix={prefix}").get(prefix, {})
@@ -116,7 +120,7 @@ def fetch_set(prefix, names):
     return data, coll
 
 
-def usable(var, name, icon):
+def usable(var: str, name: str, icon: Any) -> str | None:
     """Body of a fill-based icon, or None with a reason on stderr."""
     body = icon.get("body") if isinstance(icon, dict) else None
     if not isinstance(body, str) or not body.strip():
@@ -150,12 +154,23 @@ def usable(var, name, icon):
 # and a build with no network gets no marks at all. Ceiling: fine at one CV per
 # session. If builds get frequent or offline-first matters, cache the last good
 # icons.typ under ~/.cache/vitae/ and copy it in when the fetch fails.
-def main():
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    out = sys.argv[1].rstrip("/") + "/icons.typ"
+class _DocParser(argparse.ArgumentParser):
+    """Any usage error prints the module docstring and exits 1, as the old
+    hand-rolled `sys.exit(__doc__)` did."""
 
-    by_prefix = {}
+    def error(self, message: str) -> NoReturn:
+        sys.exit(__doc__)
+
+
+def main() -> None:
+    ap = _DocParser(add_help=False, allow_abbrev=False)
+    ap.add_argument("folder", nargs="*")
+    args = ap.parse_args(["--"] + sys.argv[1:])   # any argument is a positional, even "-x"
+    if len(args.folder) != 1:
+        sys.exit(__doc__)
+    out = args.folder[0].rstrip("/") + "/icons.typ"
+
+    by_prefix: dict[str, list[tuple[str, str]]] = {}
     for var, ref in ICONS.items():
         prefix, name = ref.split(":", 1)
         by_prefix.setdefault(prefix, []).append((var, name))
@@ -180,7 +195,7 @@ def main():
                      f"({clean(lic.get('url', '?'))}), set version "
                      f"{clean(coll.get('version', '?'))}")
         for var, name in wanted:
-            icon = icons.get(name)
+            icon: Any = icons.get(name)
             body = usable(var, name, icon) if icon else None
             if body is None:
                 lines += [f'#let {var}-body = ""', f'#let {var}-vb = ""']

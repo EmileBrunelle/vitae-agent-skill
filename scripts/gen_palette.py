@@ -41,22 +41,45 @@ is not in the list. Invariants hold at every level of the dial: contrast
 validated on the real background, the accent keeps the role its family
 assigns it, extraction unaffected (colour emits no text).
 """
+from __future__ import annotations
+
 import argparse
 import colorsys
 import hashlib
 import sys
+from typing import Literal, TypedDict, cast
+
+Audacity = Literal["sober", "expressive", "bold"]
+RGB = tuple[int, int, int]
+
+
+class Palette(TypedDict):
+    family: str
+    audacity: Audacity
+    harmony: str
+    seed: str
+    attempts: int
+    hsl: tuple[int, int, int]
+    accent: RGB
+    soft: RGB
+    ink: RGB
+    dark: RGB
+    checks: dict[str, tuple[float, float]]
+    accent2: RGB | None
+    hsl2: tuple[int, int, int] | None
+    roles: tuple[str, str] | None
 
 # Per-audacity draw ranges: (saturation range, lightness range) in HSL %.
 # The lightness ceiling is what keeps a hue "deep" rather than neon or pastel;
 # the contrast validator then rejects whatever still lands too light.
-DIAL = {
+DIAL: dict[Audacity, tuple[tuple[int, int], tuple[int, int]]] = {
     "sober":      ((26, 80), (19, 34)),
     "expressive": ((40, 95), (21, 42)),
     "bold":       ((55, 100), (24, 55)),
 }
 # Minimum contrast on white for the accent itself, per level. 4.5 is the
 # invariant; sober asks for more so it survives a bad B&W photocopy.
-ACCENT_MIN = {"sober": 6.0, "expressive": 5.2, "bold": 4.5}
+ACCENT_MIN: dict[Audacity, float] = {"sober": 6.0, "expressive": 5.2, "bold": 4.5}
 
 # Hue exclusion zone for TEXT and small elements (degrees, HSL): yellow through
 # olive. A yellow has to be darkened hard to reach the contrast this skill
@@ -87,7 +110,7 @@ DUOTONE_SEP = 1.25
 # mono = same hue, lightened. analogous = a small hue rotation. complementary
 # = opposite hue, heavily desaturated (decorative hairlines only, and only
 # above the sober level — it must not read as a second colour).
-HARMONY = {
+HARMONY: dict[str, str] = {
     "swiss-grid": "mono",
     "editorial-serif": "mono",
     "color-band": "analogous",
@@ -112,7 +135,7 @@ HARMONY = {
 # against the one reserved live-state accent of a themed environment).
 # Each hue keeps at most 1-2 jobs (design.md § Tokens): with two hues the old
 # "one accent doing six jobs" trap applies per hue, not per document.
-DUOTONE = {
+DUOTONE: dict[str, tuple[str, str, str]] = {
     "color-band":     ("far-analogous", "the band + the heading bars",
                        "the dates + the list markers"),
     "bold-display":   ("complementary", "the name",
@@ -136,40 +159,42 @@ DUOTONE = {
 INK_BASE, DARK_BASE = 95, 25          # the skill's muted / body-ink grays
 
 
-def _lum(rgb):
-    def f(v):
+def _lum(rgb: RGB) -> float:
+    def f(v: float) -> float:
         v /= 255
         return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
     r, g, b = (f(c) for c in rgb)
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def contrast(a, b):
+def contrast(a: RGB, b: RGB) -> float:
     """General formula: (L1+0.05)/(L2+0.05), L1 the lighter of the two."""
     la, lb = _lum(a), _lum(b)
     hi, lo = max(la, lb), min(la, lb)
     return (hi + 0.05) / (lo + 0.05)
 
 
-def _mix(a, b, wa):
-    return tuple(round(a[i] * wa + b[i] * (1 - wa)) for i in range(3))
+def _mix(a: RGB, b: RGB, wa: float) -> RGB:
+    return (round(a[0] * wa + b[0] * (1 - wa)),
+            round(a[1] * wa + b[1] * (1 - wa)),
+            round(a[2] * wa + b[2] * (1 - wa)))
 
 
-def _hsl(h, s, l):
+def _hsl(h: float, s: float, l: float) -> RGB:
     r, g, b = colorsys.hls_to_rgb(h / 360, l / 100, s / 100)
     return (round(r * 255), round(g * 255), round(b * 255))
 
 
-def _hex(rgb):
+def _hex(rgb: RGB) -> str:
     return "#%02x%02x%02x" % rgb
 
 
-def _bits(key, salt, n):
+def _bits(key: str, salt: str, n: int) -> int:
     h = hashlib.sha256((salt + key).encode("utf-8")).hexdigest()[:8]
     return int(h, 16) % n
 
 
-def _hue_sep(h1, h2):
+def _hue_sep(h1: float, h2: float) -> float:
     return abs((h2 - h1 + 180) % 360 - 180)
 
 
@@ -181,14 +206,14 @@ BROWN_MARGIN = 12  # degrees of extra clearance past the brown band's edge:
 # axis entirely) instead of just grazing the line.
 
 
-def _escape_hue_veto(h, anchor, min_sep=55):
+def _escape_hue_veto(h: int, anchor: int, min_sep: int = 55) -> int | None:
     """Rotate hue-B's hue h out of HUE_B_VETO, keeping >= min_sep degrees of
     separation from hue A (anchor). Starts BROWN_MARGIN degrees past whichever
     edge of the offending zone is closer, then walks further out if that
     lands in another zone or fails the separation floor; returns None if
     nothing works (the caller then re-draws the whole palette, same as
     before this fix)."""
-    def vetoed(x):
+    def vetoed(x: int) -> bool:
         return any(lo <= x <= hi for lo, hi in HUE_B_VETO)
     if not vetoed(h):
         return h
@@ -201,7 +226,7 @@ def _escape_hue_veto(h, anchor, min_sep=55):
     return None
 
 
-def build(family, seed, audacity="sober"):
+def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
     """Deterministic per (family, seed, audacity). Rejects and re-draws until
     every role clears its threshold — the returned palette is always valid."""
     if family not in HARMONY:
@@ -239,9 +264,10 @@ def build(family, seed, audacity="sober"):
         if family in DUOTONE:
             rule, roles = DUOTONE[family][0], DUOTONE[family][1:]
             h2 = (hue + (62 if rule == "far-analogous" else 180)) % 360
-            h2 = _escape_hue_veto(h2, hue)
-            if h2 is None:
+            h2v = _escape_hue_veto(h2, hue)
+            if h2v is None:
                 continue                      # no safe rotation: re-draw
+            h2 = h2v
             s2 = max(smin, min(sat - 12, smax))
             # Both hues clearing 4.5:1 on WHITE says nothing about whether they
             # separate from EACH OTHER: two different hues at the same lightness
@@ -285,13 +311,14 @@ def build(family, seed, audacity="sober"):
     raise SystemExit("no valid palette in 64 draws — widen the dial ranges")
 
 
-def typst(p):
+def typst(p: Palette) -> str:
     two = []
     if p["accent2"] is not None:
         two = ['#let accent2 = rgb("%s")  // H%d S%d%% L%d%% — duotone hue B, %s'
-               % (_hex(p["accent2"]), *p["hsl2"], p["roles"][1]),
+               % (_hex(p["accent2"]), *cast(tuple[int, int, int], p["hsl2"]),
+                  cast(tuple[str, str], p["roles"])[1]),
                '// hue A role — %s. Each hue keeps 1-2 jobs, never more.'
-               % p["roles"][0]]
+               % cast(tuple[str, str], p["roles"])[0]]
     return "\n".join([
         '#let accent = rgb("%s")   // H%d S%d%% L%d%% — %s harmony, %s'
         % (_hex(p["accent"]), *p["hsl"], p["harmony"], p["audacity"]),
@@ -305,13 +332,15 @@ def typst(p):
     ])
 
 
-def report(p):
+def report(p: Palette) -> str:
     out = ["family    : %s   (harmony: %s)" % (p["family"], p["harmony"]),
            "audacity  : %s" % p["audacity"],
            "seed      : %r   (draw %d)" % (p["seed"], p["attempts"]),
            "accent    : %s   H%d S%d%% L%d%%" % (_hex(p["accent"]), *p["hsl"]),
            *(["accent2   : %s   H%d S%d%% L%d%%   (duotone — %s; hue A: %s)"
-              % (_hex(p["accent2"]), *p["hsl2"], p["roles"][1], p["roles"][0])]
+              % (_hex(p["accent2"]), *cast(tuple[int, int, int], p["hsl2"]),
+                 cast(tuple[str, str], p["roles"])[1],
+                 cast(tuple[str, str], p["roles"])[0])]
              if p["accent2"] is not None else []),
            "soft      : %s   (hairlines only)" % _hex(p["soft"]),
            "ink       : %s   (metadata)" % _hex(p["ink"]),
@@ -324,11 +353,11 @@ def report(p):
     return "\n".join(out)
 
 
-def selftest():
+def selftest() -> None:
     a = build("swiss-grid", "Candidate A+software")
     assert a["accent"] == build("swiss-grid", "Candidate A+software")["accent"]
     assert build("swiss-grid", "Candidate B+software")["accent"] != a["accent"]
-    seen = {}
+    seen: dict[str, set[str]] = {}
     for level in DIAL:
         for f in HARMONY:
             for i in range(50):
@@ -344,7 +373,7 @@ def selftest():
                 # inside the same dial ranges (guardrail on BOTH hues), and is
                 # far enough in hue to read as a second colour.
                 if f in DUOTONE:
-                    h2, s2, l2 = p["hsl2"]
+                    h2, s2, l2 = cast(tuple[int, int, int], p["hsl2"])
                     assert not any(lo <= h2 <= hi for lo, hi in HUE_B_VETO), \
                         (f, level, h2, "hue B landed in a veto zone")
                     assert DIAL[level][0][0] <= s2 <= DIAL[level][0][1]
@@ -362,12 +391,12 @@ def selftest():
     # duotone family per dial level. Replaying the old l2=lig+4 rule over these
     # same keys, 510 of the 1800 (28.3%) fell below the floor; the floor makes
     # it 0 by construction, so the assertion is that NONE of them collapses.
-    worst = None
+    worst: tuple[float, str, str] | None = None
     for f in DUOTONE:
         for level in DIAL:
             for i in range(100):
                 p = build(f, "Gray %03d+x" % i, level)
-                sep = contrast(p["accent"], p["accent2"])
+                sep = contrast(p["accent"], cast(RGB, p["accent2"]))
                 assert sep >= DUOTONE_SEP, (f, level, i, sep)
                 if worst is None or sep < worst[0]:
                     worst = (sep, f, level)
@@ -381,8 +410,8 @@ def selftest():
                       for k, v in sorted(seen.items())))
     print("  duotone grayscale separation: %d pairs checked, all ≥ %.2f "
           "(tightest %.2f on %s/%s)"
-          % (len(DUOTONE) * len(DIAL) * 100, DUOTONE_SEP, worst[0],
-             worst[1], worst[2]))
+          % (len(DUOTONE) * len(DIAL) * 100, DUOTONE_SEP,
+             *cast(tuple[float, str, str], worst)))
 
 
 if __name__ == "__main__":
@@ -396,7 +425,7 @@ if __name__ == "__main__":
     if a.selftest:
         selftest()
     elif a.family and a.seed:
-        p = build(a.family, a.seed, a.audacity)
+        p = build(a.family, a.seed, cast(Audacity, a.audacity))
         print(typst(p) if a.typst else report(p))
     else:
         sys.exit(__doc__)

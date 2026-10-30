@@ -57,6 +57,16 @@ no long-lived dev branch.
 - A change to `templates/lib.typ` must keep the 29 templates pixel-identical,
   or the PR must say why not.
 
+Python scripts must type-check with mypy (config in `mypy.ini`, run `python3 -m mypy`) and target Python 3.11 or later.
+
+## Where to edit
+
+`SKILL.md` is a slim entry point and `tests/run_all.sh` fails above 13000 bytes. Add or
+change step detail in `references/steps/N-<slug>.md` (academic mode in
+`references/academic-mode.md`, traps in `references/known-traps.md`); keep `SKILL.md` to
+the rules and the per-step skeleton. Every `references/`, `scripts/` or `templates/` path
+cited must exist (also gated).
+
 ## Version bump
 
 A user-visible change bumps all three together:
@@ -75,5 +85,6 @@ avec `verify.py --gates`, et `npx skills-ref validate .`. Ne modifiez jamais
 les `lib.typ` des familles (liens vers `templates/lib.typ`). `main` contient toujours la dernière version publiée et testée
 (`npx skills` installe la branche par défaut) : forkez, travaillez sur une
 branche thématique, ouvrez la PR vers `main`; les PR sont fusionnées à la
-publication, avec le changement de version, sans branche dev durable. Une version
+publication, avec le changement de version, sans branche dev durable. Le détail des étapes
+va dans `references/steps/`, jamais dans `SKILL.md` (limite de 13000 octets vérifiée par `tests/run_all.sh`). Une version
 change `SKILL.md`, les badges et `CHANGELOG.md` ensemble.

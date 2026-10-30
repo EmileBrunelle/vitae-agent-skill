@@ -10,7 +10,12 @@ permissions:
 
 jobs:
   templates:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 = declared minimum (tomllib); 3.x = latest stable.
+        python-version: ["3.11", "3.x"]
     timeout-minutes: 20
     env:
       TYPST_VERSION: "0.15.1"
@@ -20,16 +25,16 @@ jobs:
       ADWAITA_FONTS_SHA: 0c79765f2bef25b38902fd8497616ac28185254c  # tag 51.0
       STIX_SHA: 744a22a4dd626cd14d75728aef34fc8ad7c85db0  # stipub/stixfonts v2.13b171
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: .github/workflows/ci.yml
 
       - name: Python dependencies
-        run: pip install Pillow pypdf
+        run: pip install Pillow pypdf mypy
 
       - name: Typst ${{ env.TYPST_VERSION }}
         run: |
@@ -55,7 +60,7 @@ jobs:
       # references/fonts.md, from pinned commits. Cached by those pins.
       - name: Restore downloaded fonts
         id: fonts-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.local/share/fonts/vitae
           key: fonts-${{ env.GOOGLE_FONTS_SHA }}-${{ env.ADWAITA_FONTS_SHA }}
@@ -132,14 +137,17 @@ jobs:
           LIST
           exit $missing
 
+      - name: Type check (mypy.ini)
+        run: python -m mypy
+
       - name: Run all checks
         run: tests/run_all.sh "$RUNNER_TEMP/out"
 
       - name: Upload template PDFs and PNGs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: templates
+          name: templates-py${{ matrix.python-version }}
           path: |
             ${{ runner.temp }}/out/pdf
             ${{ runner.temp }}/out/log

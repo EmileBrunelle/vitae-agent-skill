@@ -28,14 +28,32 @@ Usage:
 
 Exit codes: 0 PASS, 1 FAIL, 2 usage error.
 """
+from __future__ import annotations
+
+import argparse
 import os
 import re
 import subprocess
 import shutil
 import sys
 import tempfile
+from typing import Any, NoReturn, TypedDict, cast
 
 import tomllib  # stdlib, py3.11+
+
+
+class Section(TypedDict):
+    heading: str
+    count: int
+    undated_prefix: int
+    numbered: bool
+
+
+# one check result: (check id, passed, message)
+Result = tuple[str, bool, str]
+# one line of the flat document stream: (page idx, raw line, stripped, is_entry_start)
+StreamLine = tuple[int, str, str, bool]
+Footer = tuple[int, int] | None
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import verify  # noqa: E402 -- plumbing only, see module docstring
@@ -47,7 +65,7 @@ import measure_fill  # noqa: E402 -- measure() only, reported not failed
 # (cv.typ). Hardcoded here deliberately — design note §3.2 check C: "le
 # skill connaît la liste exacte de ses propres titres (il les a générés)".
 # heading -> (counts-path, undated_prefix-path-or-None, numbered?)
-SECTION_DEFS = [
+SECTION_DEFS: list[tuple[str, tuple[str, ...], tuple[str, ...] | None, bool]] = [
     ("EDUCATION", ("education",), None, False),
     ("APPOINTMENTS", ("appointments",), None, False),
     ("HONOURS AND AWARDS", ("honours",), None, False),
@@ -85,7 +103,7 @@ NUM_RE = re.compile(r'\[(\d+)\]')
 YEAR_RE = re.compile(r'\d{4}')
 
 
-def dget(d, path, default=0):
+def dget(d: Any, path: tuple[str, ...], default: Any = 0) -> Any:
     cur = d
     for k in path:
         if not isinstance(cur, dict) or k not in cur:
@@ -94,7 +112,7 @@ def dget(d, path, default=0):
     return cur
 
 
-def parse_span(token):
+def parse_span(token: str) -> tuple[int, int] | None:
     """A date TOKEN (e.g. '2019-2024', '2025', 'forthcoming') -> (start, end)
     year ints, or None for an undated status word. Two years, not one,
     because a range is an INTERVAL: check B (below) needs both ends to tell
@@ -107,7 +125,7 @@ def parse_span(token):
 
 
 # --------------------------------------------------------- pdftotext parsing
-def extract_layout_text(pdf):
+def extract_layout_text(pdf: str) -> str:
     if not shutil.which("pdftotext"):
         raise RuntimeError("pdftotext (poppler-utils) is required for the "
                             "-layout column structure the checks depend on")
@@ -115,7 +133,7 @@ def extract_layout_text(pdf):
                            capture_output=True, text=True).stdout
 
 
-def parse_pages(text):
+def parse_pages(text: str) -> list[str]:
     """pdftotext -layout output -> list of raw per-page text chunks."""
     pages = text.split("\f")
     if pages and pages[-1].strip() == "":
@@ -123,7 +141,8 @@ def parse_pages(text):
     return pages
 
 
-def classify(text, headings_set, surname):
+def classify(text: str, headings_set: set[str], surname: str) -> tuple[
+        list[list[str]], list[StreamLine], list[Footer], list[bool]]:
     """Returns (pages_lines, stream, total_pages).
 
     pages_lines: list (per page) of raw content lines, header/footer lines
@@ -132,11 +151,13 @@ def classify(text, headings_set, surname):
     the whole document, in reading order.
     """
     raw_pages = parse_pages(text)
-    pages_lines = []
-    per_page_footer = []
-    per_page_surname = []
+    pages_lines: list[list[str]] = []
+    per_page_footer: list[Footer] = []
+    per_page_surname: list[bool] = []
     for pt in raw_pages:
-        lines, footer, had_surname = [], None, False
+        lines: list[str] = []
+        footer: Footer = None
+        had_surname = False
         for raw in pt.split("\n"):
             s = raw.strip()
             if s == "":
@@ -153,8 +174,8 @@ def classify(text, headings_set, surname):
         per_page_footer.append(footer)
         per_page_surname.append(had_surname)
 
-    stream = []
-    current_heading = None
+    stream: list[StreamLine] = []
+    current_heading: str | None = None
     for pi, lines in enumerate(pages_lines):
         for raw in lines:
             stripped = raw.strip()
@@ -173,10 +194,11 @@ def classify(text, headings_set, surname):
 
 
 # ------------------------------------------------------------------ checks
-def check_counts_and_chrono(stream, sections, headings_set):
+def check_counts_and_chrono(stream: list[StreamLine], sections: list[Section],
+                            headings_set: set[str]) -> list[Result]:
     """Check A (count round-trip + numbering) and B (antechronology)."""
-    results = []
-    positions = {}
+    results: list[Result] = []
+    positions: dict[str, int] = {}
     for idx, (pi, raw, stripped, is_start) in enumerate(stream):
         if stripped in headings_set and stripped not in positions:
             positions[stripped] = idx
@@ -185,7 +207,7 @@ def check_counts_and_chrono(stream, sections, headings_set):
         heading, declared, prefix, numbered = (
             sec["heading"], sec["count"], sec["undated_prefix"], sec["numbered"])
         start_idx = positions.get(heading)
-        entries = []  # (stripped_line, token)
+        entries: list[tuple[str, str]] = []  # (stripped_line, token)
         if start_idx is not None:
             for idx in range(start_idx + 1, len(stream)):
                 _, _, stripped, is_start = stream[idx]
@@ -204,7 +226,7 @@ def check_counts_and_chrono(stream, sections, headings_set):
             continue
 
         if numbered and declared > 0:
-            nums = []
+            nums: list[int | None] = []
             for stripped, _ in entries:
                 m = NUM_RE.search(stripped)
                 nums.append(int(m.group(1)) if m else None)
@@ -218,17 +240,18 @@ def check_counts_and_chrono(stream, sections, headings_set):
 
         dated_entries = entries[prefix:]
         spans = [parse_span(tok) for _, tok in dated_entries]
+        real_spans = cast("list[tuple[int, int]]", spans)
         if any(s is None for s in spans):
             results.append(("B", False,
                              f'{heading}: an entry past the declared undated_prefix '
                              f'({prefix}) has no year'))
             continue
         ok_b = True
-        bad_pair = None
+        bad_pair: tuple[tuple[int, int], tuple[int, int]] | None = None
         for i in range(len(spans) - 1):
-            if spans[i][1] < spans[i + 1][0]:  # prev.end < curr.start: a genuine reversal
+            if real_spans[i][1] < real_spans[i + 1][0]:  # prev.end < curr.start: a genuine reversal
                 ok_b = False
-                bad_pair = (spans[i], spans[i + 1])
+                bad_pair = (real_spans[i], real_spans[i + 1])
                 break
         msg = f'{heading}: spans after prefix {prefix} -> {spans}'
         if not ok_b:
@@ -238,7 +261,8 @@ def check_counts_and_chrono(stream, sections, headings_set):
     return results
 
 
-def check_no_orphan_heading(stream, headings_set, declared_counts):
+def check_no_orphan_heading(stream: list[StreamLine], headings_set: set[str],
+                            declared_counts: dict[str, int]) -> list[Result]:
     """Check C, strengthened form: a heading is followed by >=2 content
     lines on the SAME page (never the last line of a page with nothing --
     or only one line -- of its list under it).
@@ -252,7 +276,7 @@ def check_no_orphan_heading(stream, headings_set, declared_counts):
     count of 0 (a heading with nothing under it at all, which a correctly
     behaved template never emits) still requires >=1, so a bare heading
     always fails."""
-    results = []
+    results: list[Result] = []
     n = len(stream)
     for idx, (pi, raw, stripped, is_start) in enumerate(stream):
         if stripped not in headings_set:
@@ -270,11 +294,12 @@ def check_no_orphan_heading(stream, headings_set, declared_counts):
     return results
 
 
-def check_no_straddle(pages_lines, headings_set):
+def check_no_straddle(pages_lines: list[list[str]],
+                      headings_set: set[str]) -> list[Result]:
     """Check D: the first content line of every page AFTER a break (running
     head excluded) is a heading or an entry-start token -- never a
     continuation of the previous page's last entry."""
-    results = []
+    results: list[Result] = []
     for pi in range(1, len(pages_lines)):
         lines = pages_lines[pi]
         if not lines:
@@ -287,14 +312,16 @@ def check_no_straddle(pages_lines, headings_set):
     return results
 
 
-def check_running_head(per_page_footer, per_page_surname, total_pages):
+def check_running_head(per_page_footer: list[Footer],
+                       per_page_surname: list[bool],
+                       total_pages: int) -> list[Result]:
     """Check E: running head (surname) + 'n / N' pagination on every page,
     beyond 2 pages (academic-mode.md §3.2 E: deliberately not required at
     1-2 pages)."""
     if total_pages <= 2:
         return [("E", True, f'{total_pages} page(s) -- running head/pagination '
                              f'applies beyond 2 pages, not checked')]
-    results = []
+    results: list[Result] = []
     for pi in range(total_pages):
         page_num = pi + 1
         had_surname = per_page_surname[pi]
@@ -307,13 +334,14 @@ def check_running_head(per_page_footer, per_page_surname, total_pages):
     return results
 
 
-def analyze(text, sections, surname, headings_extra=()):
+def analyze(text: str, sections: list[Section], surname: str,
+            headings_extra: tuple[str, ...] = ()) -> tuple[list[Result], int]:
     """Run all five checks. Returns (results, total_pages)."""
     headings_set = {s["heading"] for s in sections} | set(headings_extra)
     pages_lines, stream, per_page_footer, per_page_surname = classify(text, headings_set, surname)
     total_pages = len(pages_lines)
     declared_counts = {s["heading"]: s["count"] for s in sections}
-    results = []
+    results: list[Result] = []
     results += check_counts_and_chrono(stream, sections, headings_set)
     results += check_no_orphan_heading(stream, headings_set, declared_counts)
     results += check_no_straddle(pages_lines, headings_set)
@@ -322,10 +350,10 @@ def analyze(text, sections, surname, headings_extra=()):
 
 
 # --------------------------------------------------------------- real usage
-def build_sections_spec(data):
+def build_sections_spec(data: dict[str, Any]) -> list[Section]:
     counts = data.get("counts", {})
     prefixes = data.get("undated_prefix", {})
-    sections = []
+    sections: list[Section] = []
     for heading, cpath, ppath, numbered in SECTION_DEFS:
         declared = dget(counts, cpath, default=None)
         if declared is None:
@@ -336,12 +364,12 @@ def build_sections_spec(data):
     return sections
 
 
-def hidden_text_msgs(pdf):
+def hidden_text_msgs(pdf: str) -> list[tuple[bool | None, str]]:
     """The shared hidden-text gate as (is_fail, msg) pairs; is_fail None = WARN."""
     return [(True if lvl == "FAIL" else None, msg) for lvl, msg in verify.check_hidden_text(pdf)]
 
 
-def run_gate(typ, toml_path):
+def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, str]], list[str]]:
     ok, use_cli, use_poppler = verify.preflight()
     if not shutil.which("pdftotext"):
         ok = False
@@ -397,7 +425,7 @@ HEADER_FOOTER = ''',
   }'''
 
 
-def _compile_and_extract(src):
+def _compile_and_extract(src: str) -> str:
     with tempfile.TemporaryDirectory() as tmp:
         typ = os.path.join(tmp, "fixture.typ")
         pdf = os.path.join(tmp, "fixture.pdf")
@@ -409,7 +437,7 @@ def _compile_and_extract(src):
         return extract_layout_text(pdf)
 
 
-def _baseline_src(with_footer=True, pages=3):
+def _baseline_src(with_footer: bool = True, pages: int = 3) -> str:
     hf = HEADER_FOOTER if with_footer else ',\n  header: align(right, text(size: 8pt)[Doe])'
     src = FIXTURE_HEAD.format(header_footer=hf)
     src += '''
@@ -436,8 +464,8 @@ def _baseline_src(with_footer=True, pages=3):
     return src
 
 
-def _baseline_sections(pages=3):
-    sections = [{"heading": "SECTION ONE", "count": 3, "undated_prefix": 0, "numbered": False}]
+def _baseline_sections(pages: int = 3) -> list[Section]:
+    sections: list[Section] = [{"heading": "SECTION ONE", "count": 3, "undated_prefix": 0, "numbered": False}]
     if pages >= 2:
         sections.append({"heading": "SECTION TWO", "count": 2, "undated_prefix": 0, "numbered": False})
     if pages >= 3:
@@ -445,12 +473,13 @@ def _baseline_sections(pages=3):
     return sections
 
 
-def _assert_all_pass(results, label):
+def _assert_all_pass(results: list[Result], label: str) -> None:
     bad = [(cid, msg) for cid, ok, msg in results if not ok]
     assert not bad, f"{label}: expected all checks to PASS, got failures: {bad}"
 
 
-def _assert_fails_with(results, check_id, needle, label):
+def _assert_fails_with(results: list[Result], check_id: str, needle: str,
+                       label: str) -> None:
     hits = [msg for cid, ok, msg in results if cid == check_id and not ok]
     assert hits, f"{label}: expected check {check_id} to FAIL, but it passed"
     assert any(needle.lower() in m.lower() for m in hits), (
@@ -458,7 +487,7 @@ def _assert_fails_with(results, check_id, needle, label):
         f"(looked for {needle!r} in {hits})")
 
 
-def selftest():
+def selftest() -> None:
     # 0. baseline: a correct 3-page fixture passes all five checks.
     text = _compile_and_extract(_baseline_src(with_footer=True, pages=3))
     results, total_pages = analyze(text, _baseline_sections(3), "Doe")
@@ -506,7 +535,7 @@ def selftest():
 #e[2018][Fourth entry]
 '''
     text_c = _compile_and_extract(orphan_src)
-    sections_c = [
+    sections_c: list[Section] = [
         {"heading": "SECTION ONE", "count": 2, "undated_prefix": 0, "numbered": False},
         {"heading": "SECTION TWO", "count": 1, "undated_prefix": 0, "numbered": False},
         {"heading": "SECTION THREE", "count": 2, "undated_prefix": 0, "numbered": False},
@@ -564,14 +593,33 @@ continuing the first entry here, with no year token and no heading
           "a <=2 page CV is exempt from E; hidden text FAILs the shared gate")
 
 
-def main():
-    argv = sys.argv[1:]
+class _UsageParser(argparse.ArgumentParser):
+    """Any usage error prints the old hand-written usage text and exits 2."""
 
-    if argv and argv[0] == "--selftest":
+    def error(self, message: str) -> NoReturn:
+        prog = os.path.basename(sys.argv[0])
+        print(f"usage: {prog} cv.typ data.toml\n"
+              f"       {prog} --selftest\n"
+              f"       {prog} --doctor", file=sys.stderr)
+        sys.exit(2)
+
+
+def main() -> None:
+    ap = _UsageParser(add_help=False, allow_abbrev=False)
+    ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--doctor", action="store_true")
+    ap.add_argument("paths", nargs="*")
+    argv = sys.argv[1:]
+    # as the old manual argv: only argv[0] is a mode flag (the rest is
+    # ignored then); otherwise every argument is a positional, even "-x"
+    argv = argv[:1] if argv and argv[0] in ("--selftest", "--doctor") else ["--"] + argv
+    args = ap.parse_args(argv)
+
+    if args.selftest:
         selftest()
         sys.exit(0)
 
-    if argv and argv[0] == "--doctor":
+    if args.doctor:
         ok, _, _ = verify.preflight()
         if not shutil.which("pdftotext"):
             print("MISSING  pdftotext (poppler-utils) -- required for the "
@@ -579,13 +627,10 @@ def main():
             ok = False
         sys.exit(0 if ok else 1)
 
-    if len(argv) != 2:
-        print(f"usage: {os.path.basename(sys.argv[0])} cv.typ data.toml\n"
-              f"       {os.path.basename(sys.argv[0])} --selftest\n"
-              f"       {os.path.basename(sys.argv[0])} --doctor", file=sys.stderr)
-        sys.exit(2)
+    if len(args.paths) != 2:
+        ap.error("expected cv.typ data.toml")
 
-    typ, toml_path = argv
+    typ, toml_path = args.paths
     ok, msgs, reported = run_gate(typ, toml_path)
     for is_fail, msg in msgs:
         print(f"{'FAIL' if is_fail else 'WARN' if is_fail is None else 'OK  '}  {msg}")

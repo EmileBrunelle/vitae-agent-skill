@@ -91,12 +91,84 @@ documented defaults — its FIRST accent (with the hue B at the same index), its
 first list marker, its own `labels`, its `page`/`order`/`spec`, and the first
 pool member of each font role that `typst fonts` actually lists.
 """
+from __future__ import annotations
+
 import argparse
 import hashlib
 import os
 import re
 import subprocess
 import sys
+from collections.abc import Mapping
+from typing import Any, Callable, Literal, NotRequired, TypedDict, cast
+
+Audacity = Literal["sober", "expressive", "bold"]
+Font = tuple[str, str]               # (family name, provenance)
+
+
+class Labels(TypedDict):
+    profile: str
+    skills: str
+    soft: str | None
+
+
+class Page(TypedDict):
+    margin: str
+    body: str
+    fill: str
+
+
+class Family(TypedDict):
+    register: str
+    current: str
+    icons: str
+    accents: list[str]
+    accents2: NotRequired[list[str]]
+    markers: list[str]
+    labels: Labels
+    header: str
+    photo_ok: bool
+    conservative_ok: bool
+    page: Page
+    order: tuple[str, ...]
+    spec: bool
+    leading: str
+    spacing: str
+    above: str
+    variants: NotRequired[list[str]]
+
+
+class FontPool(TypedDict):
+    register: str
+    display: list[Font]
+    body: list[Font]
+    mono: NotRequired[list[Font]]
+
+
+class Pick(TypedDict):
+    key: str
+    family: str
+    have: set[str] | None
+    eligible: list[str]
+    recipe: Family
+    mono: Font | None
+    mono_note: str | None
+    variant: str | None
+    career: str
+    domain: str
+    audacity: Audacity
+    accent: str
+    accent2: str | None
+    marker: str
+    markset: tuple[str, str]
+    labels: dict[str, str | None]
+    font_register: str
+    display: Font
+    display_wanted: Font | None
+    display_note: str
+    body: Font
+    body_wanted: Font | None
+    body_note: str
 
 # register: modern | neutral | classic | creative — how current the look reads.
 #   `creative` is NEVER in the default pool: see the pool rules in pick().
@@ -125,45 +197,45 @@ import sys
 #   every item on the line.
 ORDER_ROLES = ("profile", "skills", "experience", "other", "education", "soft",
                "languages")
-STD_PAGE = dict(margin="x: 1.5cm, top: 1.2cm, bottom: 1.2cm", body="10.5pt",
+STD_PAGE = Page(margin="x: 1.5cm, top: 1.2cm, bottom: 1.2cm", body="10.5pt",
                 fill="94-96")
 CHRONO = ("profile", "experience", "other", "education", "skills", "soft",
           "languages")
 SKILLS_FIRST = ("profile", "skills", "experience", "other", "education",
                 "soft", "languages")
-FAMILIES = {
-    "avant-poster": dict(
+FAMILIES: dict[str, Family] = {
+    "avant-poster": Family(
         register="creative",
         current="constructivist poster, two-ink discipline (El Lissitzky lineage)",
         icons="solid: filled + angular, hue B",
         accents=["#b3261e", "#8c3b00", "#72191f"],
         accents2=["#1f3a5f", "#0e6862", "#2f4858"],
         markers=["● (vector circle, hue B)", "•"],
-        labels=dict(profile="Summary", skills="Technical Stack",
+        labels=Labels(profile="Summary", skills="Technical Stack",
                     soft="Working Style"),
         header="full-bleed masthead bar, oversized name, specialities "
                "line, contacts on one line (NO diagonal)",
         photo_ok=True, conservative_ok=False,
-        page=dict(margin="x: 1.8cm, top: 1.3cm, bottom: 1.6cm",
+        page=Page(margin="x: 1.8cm, top: 1.3cm, bottom: 1.6cm",
                   body="10.5pt", fill="92-94"),
         order=CHRONO,          # narrative-led: education before skills
         spec=True,
         leading="0.548em", spacing="0.638em",
         above="15pt / 20pt airy, 6pt after"),
-    "bold-display": dict(
+    "bold-display": Family(
         register="modern",
         current="geometric display / heavy weight contrast (Avant-Garde lineage)",
         icons="solid: filled + angular, hue B",
         accents=["#8c3b00", "#0e6862", "#3b3486", "#b3261e"],
         accents2=["#105a90", "#72191f", "#7d3312", "#1a6265"],
         markers=["▪", "•"],
-        labels=dict(profile="Profile", skills="Technical Stack",
+        labels=Labels(profile="Profile", skills="Technical Stack",
                     soft="Core Strengths"),
         header="oversized hue-A name, role line, contacts on two wide-gap lines",
         photo_ok=False, conservative_ok=False,
         page=STD_PAGE, order=CHRONO, spec=True,
         leading="0.536em", spacing="0.616em", above="14pt / 19pt airy, 6pt after"),
-    "clause-index": dict(
+    "clause-index": Family(
         register="neutral",
         current="numbered-clause technical-standard document "
                 "(ISO 2145 / DIN 1421 divisions)",
@@ -171,7 +243,7 @@ FAMILIES = {
               "reserved for the numbers)",
         accents=["#33475b", "#1f3a5f", "#0f4c5c"],
         markers=["–", "▪"],
-        labels=dict(profile="Summary", skills="Skills & Tools",
+        labels=Labels(profile="Summary", skills="Skills & Tools",
                     soft="Strengths"),
         header="two zones: identity + DIN-676 reference row + specialities "
                "line left, contact column right",
@@ -181,20 +253,20 @@ FAMILIES = {
         spec=True,
         leading="0.849em", spacing="0.929em",
         above="22pt / 27pt airy, 5pt after"),
-    "color-band": dict(
+    "color-band": Family(
         register="modern",
         current="colored masthead band, name reversed out (editorial/brand)",
         icons="solid: filled + angular, white inside the band",
         accents=["#1f3a5f", "#1e5631", "#3b3486", "#0f4c5c"],
         accents2=["#502d66", "#2b4b5d", "#733b6c", "#2c1a66"],
         markers=["•", "▪"],
-        labels=dict(profile="Profile", skills="Skills & Tools",
+        labels=Labels(profile="Profile", skills="Skills & Tools",
                     soft="Core Strengths"),
         header="full-width hue-A band: name + role + contacts reversed out",
         photo_ok=True, conservative_ok=False,
         page=STD_PAGE, order=CHRONO, spec=False,
         leading="0.583em", spacing="0.643em", above="7pt / 12pt airy, 5pt after"),
-    "gutter-rail": dict(
+    "gutter-rail": Family(
         register="creative",
         current="the themed developer environment read in print: editor chrome "
                 "(a margin gutter, fold marks, a statusline of segments) + the "
@@ -211,7 +283,7 @@ FAMILIES = {
         # rather than as a colour. Measured on 300dpi crops — design.md § 14.
         accents2=["#6a2f4d", "#983e6a", "#2e6b24", "#1b6a63"],
         markers=["▎ (vector change-bar, hue B)", "▎"],
-        labels=dict(profile="Profile", skills="Skills", soft="Working Style"),
+        labels=Labels(profile="Profile", skills="Skills", soft="Working Style"),
         header="a STATUSLINE STRIP of painted segments across the top "
                "(contacts), then the name and the role line under it",
         # the one variant axis: the harvested square-vs-pill binary of the
@@ -220,36 +292,36 @@ FAMILIES = {
         variants=["square segments (flat dialect, radius 0pt)",
                   "pill segments (rounded dialect, radius 2.5pt)"],
         photo_ok=False, conservative_ok=False,
-        page=dict(margin="x: 1.5cm, top: 1.5cm, bottom: 1.5cm",
+        page=Page(margin="x: 1.5cm, top: 1.5cm, bottom: 1.5cm",
                   body="10.5pt", fill="93-95"),
         order=SKILLS_FIRST,    # skills-forward hybrid
         spec=False,
         leading="0.761em", spacing="0.851em",
         above="16pt / 21pt airy, 4.5pt after"),
-    "editorial-serif": dict(
+    "editorial-serif": Family(
         register="classic",
         current="contemporary editorial: serif display over a sans body",
         icons="line: thin stroke + rounded, accent",
         accents=["#1f3a5f", "#5b2a5e", "#72191f"],
         markers=["–", "·"],
-        labels=dict(profile="Summary", skills="Technical Skills",
+        labels=Labels(profile="Summary", skills="Technical Skills",
                     soft="Core Strengths"),
         header="one grid row: serif name + accent role line left, contacts right",
         photo_ok=True, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
         leading="0.550em", spacing="0.630em", above="15pt / 20pt airy, 3pt after"),
-    "engraved-card": dict(
+    "engraved-card": Family(
         register="classic",
         current="engraved stationery / social-card typography "
                 "(centred axis, one quiet serif)",
         icons="no generic icon (engraving carried none); platform marks in ink",
         accents=["#5c1f3a", "#2f4858", "#3d3550"],
         markers=["–", "·"],
-        labels=dict(profile="Summary", skills="Skills", soft=None),
+        labels=Labels(profile="Summary", skills="Skills", soft=None),
         header="fully CENTRED: name, a short accent rule under it, role line, "
                "contacts on one centred line",
         photo_ok=False, conservative_ok=True,
-        page=dict(margin="x: 2.0cm, top: 1.6cm, bottom: 1.6cm",
+        page=Page(margin="x: 2.0cm, top: 1.6cm, bottom: 1.6cm",
                   body="10.5pt", fill="92-94"),
         # credential-led: education raised, and NO soft section at all
         order=("profile", "education", "experience", "other", "skills",
@@ -257,64 +329,64 @@ FAMILIES = {
         spec=False,
         leading="0.556em", spacing="0.656em",
         above="15pt / 20pt airy, 5pt after"),
-    "hard-edge": dict(
+    "hard-edge": Family(
         register="creative",
         current="neo-brutalist PRINT dialect: knockout black slabs + monospace metadata (no border, no shadow, no tint fields)",
         icons="solid: filled + angular, hue B",
         accents=["#b3261e", "#1e5631", "#3b3486"],
         accents2=["#0f4c5c", "#5c1f3a", "#8c3b00"],
         markers=["▫ (vector outlined square, hue B)", "▫"],
-        labels=dict(profile="Profile", skills="Technical Stack",
+        labels=Labels(profile="Profile", skills="Technical Stack",
                     soft="Strengths"),
         header="monogram block + name, then the specialities line, then one "
                "mono contact line",
         photo_ok=False, conservative_ok=False,
-        page=dict(margin="x: 1.6cm, top: 1.3cm, bottom: 1.3cm",
+        page=Page(margin="x: 1.6cm, top: 1.3cm, bottom: 1.3cm",
                   body="10.5pt", fill="94-96"),
         order=SKILLS_FIRST,    # skills-forward hybrid
         spec=True,
         leading="0.786em", spacing="0.876em",
         above="20pt / 25pt airy, 6pt after"),
-    "humanist-quiet": dict(
+    "humanist-quiet": Family(
         register="neutral",
         current="Vignelli-style restraint: no rules, whitespace as the device",
         icons="no generic icon (its device is absence); platform marks in the accent",
         accents=["#0e6862", "#33475b", "#8c3b00"],
         markers=["–", "•"],
-        labels=dict(profile="Profile", skills="Skills", soft="Core Strengths"),
+        labels=Labels(profile="Profile", skills="Skills", soft="Core Strengths"),
         header="name + role left, contacts on two left-aligned lines below",
         photo_ok=False, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
         leading="0.545em", spacing="0.645em", above="26pt / 31pt airy, 4pt after"),
-    "keyline-corporate": dict(
+    "keyline-corporate": Family(
         register="modern",
         current="contemporary corporate report: accent keylines, accent labels",
         icons="line: thin stroke + rounded, accent",
         accents=["#33475b", "#1f3a5f", "#0f4c5c", "#5b2a5e"],
         markers=["–", "·"],
-        labels=dict(profile="Professional Summary", skills="Technical Skills",
+        labels=Labels(profile="Professional Summary", skills="Technical Skills",
                     soft="Core Strengths"),
         header="one grid row: name + role left, contacts right, soft hairline under",
         photo_ok=True, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
         leading="0.540em", spacing="0.620em", above="23pt / 28pt airy, 5pt after"),
-    "margin-index": dict(
+    "margin-index": Family(
         register="classic",
         current="classic marginalia / book typography (titles hang in the margin)",
         icons="no generic icon (marginalia bolts none on); platform marks in ink",
         accents=["#4a2f10", "#1f3a5f", "#5b2a5e"],
         markers=["—", "·"],
-        labels=dict(profile="Summary", skills="Expertise", soft="Strengths"),
+        labels=Labels(profile="Summary", skills="Expertise", soft="Strengths"),
         header="name + italic role in the content column, contacts on one line "
                "below (photo slot = the margin column)",
         photo_ok=True, conservative_ok=True,
         # margin-index keeps its own body size: the marginalia grid was tuned
         # at 11pt, not 10.5pt.
-        page=dict(margin="x: 1.5cm, top: 1.2cm, bottom: 1.2cm", body="11pt",
+        page=Page(margin="x: 1.5cm, top: 1.2cm, bottom: 1.2cm", body="11pt",
                   fill="94-96"),
         order=CHRONO, spec=False,
         leading="0.800em", spacing="1.000em", above="30pt / 35pt airy, body 11pt"),
-    "mono-technical": dict(
+    "mono-technical": Family(
         register="modern",
         current="technical-documentation / spec-sheet aesthetic (mono headings, "
                 "tabular dates)",
@@ -322,42 +394,42 @@ FAMILIES = {
         accents=["#1f3a5f", "#33475b", "#0f4c5c", "#5b2a5e"],
         accents2=["#8f2d3f", "#8a2f2a", "#66291a", "#3c633a"],
         markers=["▪ (vector square, hue B)", "▪"],
-        labels=dict(profile="Profile", skills="Technical Stack",
+        labels=Labels(profile="Profile", skills="Technical Stack",
                     soft="Working Style"),
         header="name, role, then one mono contact line",
         photo_ok=False, conservative_ok=False,
         # NOT STD_PAGE: the spec-sheet look needs a roomier measure than the
         # standard gabarit, and the template's own verified values are these.
-        page=dict(margin="x: 1.6cm, top: 1.25cm, bottom: 1.2cm", body="10.5pt",
+        page=Page(margin="x: 1.6cm, top: 1.25cm, bottom: 1.2cm", body="10.5pt",
                   fill="94-96"),
         order=CHRONO, spec=False,
         leading="0.651em", spacing="0.771em",
         above="20pt / 25pt airy, 4pt after"),
-    "quiet-luxury": dict(
+    "quiet-luxury": Family(
         register="neutral",
         current="warm restrained minimalism (2020s “quiet luxury”)",
         icons="line: thin stroke + rounded, metadata gray (never the accent)",
         accents=["#5c4632", "#33475b", "#0e6862"],
         markers=["·", "–"],
-        labels=dict(profile="Professional Summary", skills="Skills & Tools",
+        labels=Labels(profile="Professional Summary", skills="Skills & Tools",
                     soft="Working Style"),
         header="CONTACTS FIRST (letterhead line), then the name, then the role "
                "(photo slot = right cell)",
         photo_ok=True, conservative_ok=True,
         # NOT STD_PAGE: the restraint of this family IS the extra white, and
         # the template's own verified values are these.
-        page=dict(margin="x: 1.6cm, top: 1.3cm, bottom: 1.2cm", body="10.5pt",
+        page=Page(margin="x: 1.6cm, top: 1.3cm, bottom: 1.2cm", body="10.5pt",
                   fill="94-96"),
         order=CHRONO, spec=False,
         leading="0.580em", spacing="0.680em",
         above="20pt / 25pt airy, 4pt after"),
-    "swiss-grid": dict(
+    "swiss-grid": Family(
         register="neutral",
         current="International Typographic Style (Müller-Brockmann / Helvetica)",
         icons="no generic icon (typographic purism); platform marks in the body ink",
         accents=["#b3261e", "#33475b", "#0f4c5c"],
         markers=["▪", "–"],
-        labels=dict(profile="Profile", skills="Technical Skills",
+        labels=Labels(profile="Profile", skills="Technical Skills",
                     soft="Strengths"),
         header="one grid row: name 24pt + role left, 5-line contact column right",
         photo_ok=True, conservative_ok=True,
@@ -385,8 +457,8 @@ FAMILIES = {
 # only, their BODY pools do carry a local member, and the hand-off names the
 # package to install. Every other family keeps the rule.
 # Extending a pool: run design.md's vetting checklist first, then add here.
-FONTS = {
-    "swiss-grid": dict(
+FONTS: dict[str, FontPool] = {
+    "swiss-grid": FontPool(
         register="neo-grotesque, one family for display and body",
         display=[("Nimbus Sans", "local: urw-base35-fonts / fonts-urw-base35"),
                  ("Liberation Sans", "local: liberation-fonts"),
@@ -396,7 +468,7 @@ FONTS = {
               ("Liberation Sans", "local: liberation-fonts"),
               ("Source Sans 3", "GF (OFL, Adobe)"),
               ("Public Sans", "GF (OFL, USWDS)")]),
-    "editorial-serif": dict(
+    "editorial-serif": FontPool(
         register="serif display over a humanist sans body",
         display=[("Caladea", "GF · Linux: fonts-crosextra-caladea (OFL)"),
                  ("Noto Serif", "GF · Linux: google-noto-serif-fonts / fonts-noto"),
@@ -406,7 +478,7 @@ FONTS = {
               ("Source Sans 3", "GF (OFL, Adobe)"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
               ("Karla", "GF (OFL)")]),
-    "color-band": dict(
+    "color-band": FontPool(
         register="contemporary brand sans, display + text cuts of one system",
         display=[("Red Hat Display", "GF · Linux: redhat-display-fonts (OFL)"),
                  ("DM Sans", "GF (OFL)"),
@@ -414,7 +486,7 @@ FONTS = {
         body=[("Red Hat Text", "GF · Linux: redhat-text-fonts (OFL)"),
               ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Public Sans", "GF (OFL, USWDS)")]),
-    "humanist-quiet": dict(
+    "humanist-quiet": FontPool(
         register="one humanist sans, display and body, nothing else",
         display=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
                  ("Karla", "GF (OFL)"),
@@ -422,7 +494,7 @@ FONTS = {
         body=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
               ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Karla", "GF (OFL)")]),
-    "keyline-corporate": dict(
+    "keyline-corporate": FontPool(
         register="clean grotesque, weight and size carry the hierarchy",
         display=[("Vazirmatn", "GF · Linux: vazirmatn-fonts (OFL)"),
                  ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
@@ -430,7 +502,7 @@ FONTS = {
         body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Liberation Sans", "local: liberation-fonts"),
               ("Source Sans 3", "GF (OFL, Adobe)")]),
-    "margin-index": dict(
+    "margin-index": FontPool(
         register="text serif with real italics and old-style figures, "
                  "one family throughout",
         display=[("STIX Two Text", "GF · Linux: stix-fonts (OFL)"),
@@ -441,7 +513,7 @@ FONTS = {
               ("Libertinus Serif", "GF · Linux: libertinus-fonts (OFL)"),
               ("PT Serif", "GF (OFL, ParaType)"),
               ("Source Serif 4", "GF (OFL, Adobe)")]),
-    "mono-technical": dict(
+    "mono-technical": FontPool(
         register="document-grade monospace for the devices + a neutral sans body",
         display=[("Source Code Pro", "GF · Linux: adobe-source-code-pro-fonts (OFL)"),
                  ("Adwaita Mono", "local: adwaita-mono-fonts (OFL)"),
@@ -450,7 +522,7 @@ FONTS = {
         body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
               ("Public Sans", "GF (OFL, USWDS)")]),
-    "quiet-luxury": dict(
+    "quiet-luxury": FontPool(
         register="one warm humanist sans, generous but unshowy",
         display=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
                  ("Manrope", "GF (OFL)"),
@@ -458,7 +530,7 @@ FONTS = {
         body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
               ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Manrope", "GF (OFL)")]),
-    "bold-display": dict(
+    "bold-display": FontPool(
         register="geometric display for the name + a neutral sans body",
         # Montserrat was removed here on purpose: design.md § Font pools bans
         # the over-used defaults (Inter, Roboto, Montserrat, Lato, Open Sans)
@@ -470,7 +542,7 @@ FONTS = {
         body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
               ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("Work Sans", "GF (OFL)")]),
-    "engraved-card": dict(
+    "engraved-card": FontPool(
         register="one quiet serif for display and body, "
                  "engraved-letterform lineage",
         display=[("P052", "local: urw-base35-fonts / fonts-urw-base35 "
@@ -484,7 +556,7 @@ FONTS = {
               ("C059", "local: urw-base35-fonts / fonts-urw-base35"),
               ("Crimson Pro", "GF (OFL)"),
               ("Alegreya", "GF (OFL, Huerta Tipográfica)")]),
-    "clause-index": dict(
+    "clause-index": FontPool(
         register="institutional grotesque with tabular figures",
         display=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype "
                              "(OFL/ParaType FFL)"),
@@ -493,7 +565,7 @@ FONTS = {
         body=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype"),
               ("Public Sans", "GF (OFL, USWDS)"),
               ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto")]),
-    "hard-edge": dict(
+    "hard-edge": FontPool(
         register="heavy grotesque display + a neutral sans body + a document "
                  "mono for ALL metadata",
         display=[("Familjen Grotesk", "GF (OFL)"),
@@ -507,7 +579,7 @@ FONTS = {
         body=[("Public Sans", "GF (OFL, USWDS)"),
               ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
-    "gutter-rail": dict(
+    "gutter-rail": FontPool(
         register="UI grotesque for the chrome + a document mono for the BUFFER "
                  "(all metadata) + a neutral sans body",
         display=[("Geist", "GF (OFL, Vercel)"),
@@ -527,7 +599,7 @@ FONTS = {
         body=[("Public Sans", "GF (OFL, USWDS)"),
               ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
               ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
-    "avant-poster": dict(
+    "avant-poster": FontPool(
         register="condensed grotesque display + a humanist sans body",
         display=[("Chivo", "GF (OFL, Omnibus-Type)"),
                  ("Big Shoulders Display", "GF (OFL)"),
@@ -543,7 +615,7 @@ FONTS = {
 # never an exotic name. "Education", "Languages" and the experience sections
 # are NOT variable: their stems are what ATS section classifiers key on.
 # soft=None means the family drops the soft-skills section entirely.
-LABEL_VARIANTS = dict(
+LABEL_VARIANTS: dict[str, list[str | None]] = dict(
     profile=["Profile", "Summary", "Professional Summary"],
     skills=["Technical Skills", "Skills & Tools", "Skills", "Expertise",
             "Technical Stack"],
@@ -552,7 +624,7 @@ LABEL_VARIANTS = dict(
 
 # Career stage → preferred registers, then the widening tier if the preferred
 # pool is too small to individualise (< 2 families).
-CAREER = {
+CAREER: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "early":  (("modern",), ("neutral",)),
     "mid":    (("modern", "neutral"), ("classic",)),
     "senior": (("neutral", "classic"), ("modern",)),
@@ -560,7 +632,7 @@ CAREER = {
 
 # Field → how the pool and the colour dial lean. DATA, not logic: extend it.
 # Matched as a substring of the lowercased --field; first hit wins.
-DOMAIN_REGISTER = {
+DOMAIN_REGISTER: dict[str, str] = {
     # creative: the CV is itself a portfolio piece — expressive families first
     "design": "creative", "graphic": "creative", "ux": "creative",
     "ui": "creative", "art": "creative", "illustration": "creative",
@@ -576,7 +648,7 @@ DOMAIN_REGISTER = {
 }
 
 
-def domain_register(field):
+def domain_register(field: str | None) -> str | None:
     f = (field or "").lower()
     for k, v in DOMAIN_REGISTER.items():
         if k in f:
@@ -598,14 +670,14 @@ GUTTER_RAIL_DOMAIN = (
 # Icons in every set — a brand logo is a functional identifier, not a style.
 # Sets are fetched into the CV folder's icons.typ; add more in harvest_icons.py
 # (Iconify API — the same data the npm icon packages publish).
-MARK_SETS = [
+MARK_SETS: list[tuple[str, str]] = [
     ("tabler", "Tabler Icons filled, MIT"),
     ("phosphor", "Phosphor fill, MIT — harvested via Iconify/npm"),
     ("bootstrap", "Bootstrap Icons fill, MIT — harvested via Iconify/npm"),
 ]
 
 
-def _idx(key, n, salt=""):
+def _idx(key: str, n: int, salt: str = "") -> int:
     """First 8 hex digits of sha256(salt+key), modulo n — POSIX-reproducible."""
     h = hashlib.sha256((salt + key).encode("utf-8")).hexdigest()[:8]
     return int(h, 16) % n
@@ -616,7 +688,7 @@ MIN_POOL = 5        # a profile that draws from fewer than 5 families collides
                     # for every profile combination (asserted in selftest()).
 
 
-def _fonts_available():
+def _fonts_available() -> set[str] | None:
     """Set of family names `typst fonts` reports, or None if typst is absent."""
     try:
         out = subprocess.run(["typst", "fonts"], capture_output=True,
@@ -628,7 +700,7 @@ def _fonts_available():
     return {l.strip() for l in out.stdout.splitlines() if l.strip()}
 
 
-def _installed(name, have):
+def _installed(name: str, have: set[str]) -> str | None:
     """The name Typst reports for pool family `name`, or None. A variable font
     with an optical-size axis installs as "X <digits>pt" (references/fonts.md),
     so "X" matches that variant and the FULL installed name is what to emit."""
@@ -642,7 +714,8 @@ def _installed(name, have):
     return best[1] if best else None
 
 
-def _pick_font(pool, key, salt, have):
+def _pick_font(pool: list[Font], key: str, salt: str,
+               have: set[str] | None) -> tuple[Font, Font | None, str]:
     """Deterministic draw, then availability: if the drawn face is missing
     locally, fall through the pool in order and report BOTH — never a silent
     fallback (a missing font only warns in Typst and swaps itself out)."""
@@ -661,8 +734,10 @@ def _pick_font(pool, key, salt, have):
     return drawn, None, "NO pool member installed — install one before drafting"
 
 
-def pick(name, field, career="early", photo=False, conservative=False,
-         audacity="sober", check_fonts=True, creative=False):
+def pick(name: str, field: str | None, career: str = "early",
+         photo: bool = False, conservative: bool = False,
+         audacity: Audacity = "sober", check_fonts: bool = True,
+         creative: bool = False) -> Pick:
     key = "%s+%s" % (name, field)
     dom = domain_register(field)
     conservative = conservative or dom == "conservative"
@@ -734,8 +809,8 @@ def pick(name, field, career="early", photo=False, conservative=False,
     variant = None
     if "variants" in d:
         variant = d["variants"][_idx(key, len(d["variants"]), "variant|")]
-    lab = {}
-    for role, default in d["labels"].items():
+    lab: dict[str, str | None] = {}
+    for role, default in cast("Mapping[str, str | None]", d["labels"]).items():
         # the family's own default is in the pool, so it can be drawn back.
         # A family whose default is None DROPS that section as a trait (its
         # `order` has no slot for it): no variant is drawn back in.
@@ -756,7 +831,7 @@ def pick(name, field, career="early", photo=False, conservative=False,
                 body=body, body_wanted=body_want, body_note=body_note)
 
 
-def report(p, market):
+def report(p: Pick, market: str) -> str:
     d = p["recipe"]
     lines = [
         "design family   : %s   [register: %s]" % (p["family"], d["register"]),
@@ -802,7 +877,7 @@ def report(p, market):
         [p["mono_note"]] if p["mono"] else [])
     need = [r[1] or "" for r, nt in zip(roles, notes)
             if "GF" in (r[1] or "") and not (
-                "Linux:" in r[1] and nt.startswith("available"))]
+                "Linux:" in r[1] and (nt or "").startswith("available"))]
     if any("Linux:" not in x for x in need):
         lines.append(
             "                  faces marked [GF] are Google Fonts (OFL) and "
@@ -854,7 +929,8 @@ def report(p, market):
     return "\n".join(lines)
 
 
-def _chain(pool, drawn, role, have=None):
+def _chain(pool: list[Font], drawn: Font, role: str,
+           have: set[str] | None = None) -> str:
     """Typst font fallback chain: the drawn face first, then the rest of the
     family's own pool, and always ENDING on a face a standard Linux font set
     has — otherwise Typst silently substitutes something arbitrary."""
@@ -871,12 +947,12 @@ def _chain(pool, drawn, role, have=None):
                if n in names or _installed(n, have or set()) in names):
         if have is None:
             names.append(tail)
-        elif _installed(tail, have):
-            names.append(_installed(tail, have))
+        elif (inst_tail := _installed(tail, have)):
+            names.append(inst_tail)
     return "(" + ", ".join('"%s"' % n for n in names) + ")"
 
 
-def _icon_colour(icons):
+def _icon_colour(icons: str) -> str:
     """The family's icon colour, read off its own `icons` string."""
     for needle, tok in (("hue B", "accent2"),
                         ("white inside the band", "white"),
@@ -889,7 +965,7 @@ def _icon_colour(icons):
     return "ink"
 
 
-def emit_typ(p, market):
+def emit_typ(p: Pick, market: str) -> str:
     """A ready-to-paste PREAMBLE for the drawn recipe — not a whole CV, and
     deliberately not the devices (those are the recipe: design.md)."""
     d, fp, pg = p["recipe"], FONTS[p["family"]], p["recipe"]["page"]
@@ -995,7 +1071,8 @@ def emit_typ(p, market):
     return "\n".join(o)
 
 
-def _sub1(src, pat, repl, what, family, required=True):
+def _sub1(src: str, pat: str, repl: str | Callable[[re.Match[str]], str],
+          what: str, family: str, required: bool = True) -> str:
     """Replace exactly one match of `pat` (MULTILINE) in `src`."""
     new, n = re.subn(pat, repl, src, count=0, flags=re.M)
     if n != 1:
@@ -1007,7 +1084,7 @@ def _sub1(src, pat, repl, what, family, required=True):
     return new
 
 
-def _write_nofollow(path, data):
+def _write_nofollow(path: str, data: bytes) -> None:
     """Write bytes to `path`, refusing to follow a symlink at the final component."""
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
     try:
@@ -1018,7 +1095,7 @@ def _write_nofollow(path, data):
         fh.write(data)
 
 
-def init_folder(p, folder, force=False):
+def init_folder(p: Pick, folder: str, force: bool = False) -> None:
     """One executed command -> a compiling starting point in `folder`.
 
     lib.typ / icons.typ are copied byte for byte. cv.typ is the drawn family's
@@ -1045,7 +1122,7 @@ def init_folder(p, folder, force=False):
     body_c = _chain(fp["body"], p["body"], "body", p["have"])
     disp_c = _chain(fp["display"], p["display"], "display", p["have"])
 
-    def head_names(src):
+    def head_names(src: str) -> tuple[re.Match[str] | None, re.Match[str] | None]:
         g = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.M)
         return g("bodyf"), g("dispf")
     # pair B iff the drawn faces are the second pair's lead faces
@@ -1055,16 +1132,16 @@ def init_folder(p, folder, force=False):
         if not os.path.exists(fpth):
             continue
         b, ds = head_names(open(fpth, encoding="utf-8").read())
-        score = (bool(b) and b.group(1) == p["body"][0]) + \
-                (bool(ds) and ds.group(1) == p["display"][0])
+        score = (b is not None and b.group(1) == p["body"][0]) + \
+                (ds is not None and ds.group(1) == p["display"][0])
         if score > best or (score == best and fn == "resume.typ"):
             pick_file, best = fn, score
     src = open(os.path.join(fdir, pick_file), encoding="utf-8").read()
 
-    def lead(name):                       # keep `#let name = ` + trailing // note
+    def lead(name: str) -> str:                       # keep `#let name = ` + trailing // note
         return r'^(#let %s = )[^\n]*?(\s*//[^\n]*)?$' % name
 
-    def accent_line(name, val):
+    def accent_line(name: str, val: str) -> tuple[str, Callable[[re.Match[str]], str]]:
         # gutter-rail: `if screen { rgb(A) } else { rgb(B) }` — drawn value is
         # the print branch; keep the screen branch as shipped.
         m = re.search(r'^#let %s = if screen \{ (rgb\("[^"]+"\)) \} else '
@@ -1075,11 +1152,11 @@ def init_folder(p, folder, force=False):
                     lambda mm: mm.group(1) + 'rgb("%s")' % val + mm.group(2))
         return (lead(name),
                 lambda mm: mm.group(1) + 'rgb("%s")' % val + (mm.group(2) or ""))
-    pat, fn = accent_line("accent", p["accent"])
-    src = _sub1(src, pat, fn, "#let accent", fam)
+    pat, afn = accent_line("accent", p["accent"])
+    src = _sub1(src, pat, afn, "#let accent", fam)
     if p["accent2"]:
-        pat, fn = accent_line("accent2", p["accent2"])
-        src = _sub1(src, pat, fn, "#let accent2", fam)
+        pat, afn = accent_line("accent2", p["accent2"])
+        src = _sub1(src, pat, afn, "#let accent2", fam)
     sub = lambda v: (lambda mm: mm.group(1) + v + (mm.group(2) or ""))
     src = _sub1(src, lead("bodyf"), sub(body_c), "#let bodyf", fam)
     if re.search(r'^#let dispf = monof\b', src, re.M):
@@ -1142,7 +1219,7 @@ def init_folder(p, folder, force=False):
           "Replace the filler with the candidate's facts first, then --tune, then verify.")
 
 
-def selftest():
+def selftest() -> None:
     # _installed: plain name wins; "X <n>pt" variant resolves to the full
     # installed name, smallest n numerically; no false prefix matches.
     assert _installed("DM Sans", {"DM Sans", "DM Sans 9pt"}) == "DM Sans"
@@ -1180,12 +1257,13 @@ def selftest():
     # worst), flags applied on top; and the creative register is NEVER in the
     # pool without the unlock
     pools = {}
-    for label, kw in [("plain", {}), ("photo", dict(photo=True)),
+    cases: list[tuple[str, dict[str, Any]]] = [("plain", {}), ("photo", dict(photo=True)),
                       ("conservative", dict(conservative=True)),
                       ("photo+cons", dict(photo=True, conservative=True)),
                       ("creative", dict(creative=True)),
                       ("creative+cons", dict(creative=True,
-                                             conservative=True))]:
+                                             conservative=True))]
+    for label, kw in cases:
         for c in CAREER:
             p = pick("X", "y", career=c, check_fonts=False, **kw)
             assert len(p["eligible"]) >= MIN_POOL, (c, kw, p["eligible"])
@@ -1202,13 +1280,13 @@ def selftest():
                 assert not crea, (c, label, crea)
     # field table: creative leans creative+modern and lifts the dial;
     # conservative caps it
-    c = pick("Candidate A", "graphic design", check_fonts=False)
-    assert c["domain"] == "creative" and c["audacity"] == "expressive"
-    assert [f for f in c["eligible"]
-            if FAMILIES[f]["register"] == "creative"], c["eligible"]
-    k = pick("Candidate A", "corporate law", audacity="bold", check_fonts=False)
-    assert k["domain"] == "conservative" and k["audacity"] == "sober"
-    assert all(FAMILIES[f]["conservative_ok"] for f in k["eligible"])
+    cg = pick("Candidate A", "graphic design", check_fonts=False)
+    assert cg["domain"] == "creative" and cg["audacity"] == "expressive"
+    assert [f for f in cg["eligible"]
+            if FAMILIES[f]["register"] == "creative"], cg["eligible"]
+    kl = pick("Candidate A", "corporate law", audacity="bold", check_fonts=False)
+    assert kl["domain"] == "conservative" and kl["audacity"] == "sober"
+    assert all(FAMILIES[f]["conservative_ok"] for f in kl["eligible"])
     assert domain_register("plumbing") is None
     # bold survives only when nothing caps it — and only because it was asked for
     assert pick("Candidate A", "software", audacity="bold",
@@ -1253,7 +1331,7 @@ def selftest():
         assert q["variant"] in dv["variants"] if "variants" in dv \
             else q["variant"] is None, (q["family"], q["variant"])
     # no display face is shared between two families (half of the identity)
-    seen = {}
+    seen: dict[str, str] = {}
     for f, fp in FONTS.items():
         # 3 members is the documented pool minimum (see bold-display above);
         # `mono` is optional and only hard-edge declares one.
@@ -1269,7 +1347,7 @@ def selftest():
             assert prov, (f, n)
     # labels: every drawn variant stays inside the documented pools, and the
     # family default is always reachable
-    triples = {}
+    triples: dict[tuple[str | None, ...], str] = {}
     for f, d in FAMILIES.items():
         for role, default in d["labels"].items():
             assert default is None or default in LABEL_VARIANTS[role], (f, role)
@@ -1280,7 +1358,7 @@ def selftest():
         t = tuple(d["labels"][r] for r in ("profile", "skills", "soft"))
         assert t not in triples, ("duplicate default labels", t, f, triples[t])
         triples[t] = f
-    spread = {}
+    spread: dict[str, int] = {}
     for i in range(400):
         p = pick("Person %03d" % i, "software", career="mid", check_fonts=False)
         spread[p["family"]] = spread.get(p["family"], 0) + 1
@@ -1352,7 +1430,7 @@ if __name__ == "__main__":
                         "%s [%s]" % nv for nv in FONTS[f][role])))
     elif a.name and a.field:
         p = pick(a.name, a.field, a.career, a.photo, a.conservative,
-                 a.audacity, not a.no_font_check, a.creative)
+                 cast(Audacity, a.audacity), not a.no_font_check, a.creative)
         if a.init:
             print(report(p, a.market))
             print()

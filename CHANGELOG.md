@@ -3,7 +3,34 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first.
 Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## 0.6.12 - 2026-10-30
+## 0.7.0 - 2026-10-30
+
+- Context diet: `SKILL.md` goes from 46,647 B (~11.7k tokens, read whole by every
+  model in measured runs) to under 10 KB. It keeps the frontmatter, the preamble and
+  non-negotiable rules 0-5 verbatim, plus a rule that `scripts/` are run, never opened,
+  and `templates/lib.typ` is copied with `cp`, never read or rewritten. Each step 0-8 is a
+  short skeleton pointing to `references/steps/N-<slug>.md` ("read now, before doing
+  anything for this step"); the step bodies moved there verbatim (plus `4-tune`, `6-tune`
+  and `8-companions` sub-files). Academic mode is now `references/academic-mode.md` and
+  Known traps `references/known-traps.md`. No rule changed.
+- Motivation, measured: run8d (GPT-OSS) read `lib.typ` whole, rewrote it from memory and
+  failed; Gemini and Qwen read the `verify.py` source instead of running it.
+- `tests/run_all.sh` gains two gates: `SKILL.md` <= 13000 bytes, and every
+  `references/`, `scripts/` or `templates/` path cited in `SKILL.md` and the moved files
+  exists. Contributors add detail to the step files, not to `SKILL.md`.
+- Scripts: full type annotations and TypedDicts across all 7 scripts, checked by mypy
+  (`mypy.ini`, `python_version = 3.11`) in CI and in `tests/run_all.sh` (SKIP when mypy
+  isn't installed). Manual argv parsing replaced by `argparse` in `verify.py`,
+  `verify_academic.py`, `verify_letter.py`, `harvest_icons.py` and `measure_fill.py`; the
+  CLI is unchanged (verified against the golden outputs of 0.6.12). Minor: `verify.py
+  --gates --root` with no value prints usage instead of a traceback; `--root=DIR` is
+  accepted.
+- Python >= 3.11 is now declared (`tomllib`); README badge added.
+- CI: Python matrix 3.11 + latest 3.x; runner pinned to `ubuntu-26.04` (was
+  `ubuntu-latest`); actions bumped to their Node 24 majors (checkout v7, setup-python v7,
+  cache v6, upload-artifact v7), which removes the Node 20 deprecation warnings.
+
+## 0.6.12 - 2026-10-30 (`385a732`)
 
 - `tests/run_all.sh` runs the self-tests, the 29 templates against their fill
   targets and the spacing fixtures with their gates in one command; a GitHub

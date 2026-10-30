@@ -6,8 +6,9 @@
 
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/licence-mit.svg" alt="Licence : MIT"></a>
-  <img src="assets/badges/statut-beta.svg" alt="Statut : bêta 0.6.12">
+  <img src="assets/badges/statut-beta.svg" alt="Statut : bêta 0.7.0">
   <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst"></a>
+  <a href="https://www.python.org/downloads/"><img src="assets/badges/python.svg" alt="Python 3.11+"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills-fr.svg" alt="Standard ouvert Agent Skills"></a>
 </p>
 
@@ -16,7 +17,7 @@ Un skill d'agent (« agent skill ») pour construire des CV en
 automatisé (ATS — Applicant Tracking Systems, systèmes de suivi des
 candidatures — et les cribleurs IA) et le survol humain de 30 secondes.
 
-**Statut : bêta (0.6.12)** — la méthode est éprouvée sur le terrain, mais
+**Statut : bêta (0.7.0)** — la méthode est éprouvée sur le terrain, mais
 l'organisation des fichiers du skill et les interfaces des scripts peuvent
 encore changer avant la version 1.0.
 
@@ -161,7 +162,7 @@ les PDF et les sources `.typ` éditables.
 
 ## Prérequis
 
-`typst` (0.13+, vérifié sur 0.15) et Python 3 avec Pillow pour la mesure du remplissage.
+`typst` (0.13+, vérifié sur 0.15) et Python 3.11+ avec Pillow pour la mesure du remplissage.
 `pdfinfo`/`pdftotext` (poppler-utils) recommandés; se replie automatiquement
 sur `pypdf` si seul celui-ci est installé. Lancez `python3 scripts/verify.py
 --doctor` (toute plateforme) pour diagnostiquer — en lecture seule, affiche
@@ -186,7 +187,10 @@ Notes par plateforme :
 ## Organisation
 
 ```
-SKILL.md                         # workflow + règles non négociables (point d'entrée pour l'agent)
+SKILL.md                         # point d'entrée allégé : règles non négociables + un squelette par étape (<= 13000 o, vérifié)
+references/steps/                # corps des étapes 0-8 (N-<slug>.md + sous-fichiers tune/companions), lus au début de l'étape
+references/academic-mode.md      # workflow du mode CV académique (sorti de SKILL.md)
+references/known-traps.md        # pièges connus (sortis de SKILL.md)
 references/design.md             # système de design + boucle d'ajustement du remplissage de page
 references/ats.md                # règles d'analyse + commandes de vérification
 references/workday.md            # Workday : comportement mesuré + version d'analyse seule

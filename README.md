@@ -6,8 +6,9 @@
 
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/license-mit.svg" alt="License: MIT"></a>
-  <img src="assets/badges/status-beta.svg" alt="Status: beta 0.6.12">
+  <img src="assets/badges/status-beta.svg" alt="Status: beta 0.7.0">
   <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst"></a>
+  <a href="https://www.python.org/downloads/"><img src="assets/badges/python.svg" alt="Python 3.11+"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills.svg" alt="Agent Skills open standard"></a>
 </p>
 
@@ -16,7 +17,7 @@ in [Typst](https://typst.app) that pass **both** filters: automated screening
 (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
 scan.
 
-**Status: beta (0.6.12)** — the method is battle-tested, but the skill's file
+**Status: beta (0.7.0)** — the method is battle-tested, but the skill's file
 layout and script interfaces may still change before 1.0.
 
 Battle-tested method distilled from a real end-to-end résumé project that went
@@ -142,7 +143,7 @@ adversarial review pass before delivering PDFs + editable `.typ` sources.
 
 ## Requirements
 
-`typst` (0.13+, verified on 0.15) and Python 3 with Pillow for the fill measurement.
+`typst` (0.13+, verified on 0.15) and Python 3.11+ with Pillow for the fill measurement.
 `pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdf`
 automatically when only that is installed. Run `python3 scripts/verify.py
 --doctor` (any platform) to diagnose — read-only, prints the right install
@@ -166,7 +167,10 @@ Platform notes:
 ## Layout
 
 ```
-SKILL.md                         # workflow + non-negotiable rules (agent entry point)
+SKILL.md                         # slim entry point: non-negotiable rules + one skeleton per step (<= 13000 B, gated)
+references/steps/                # step bodies 0-8 (N-<slug>.md + tune/companions sub-files), read when the step starts
+references/academic-mode.md      # academic-CV mode workflow (moved out of SKILL.md)
+references/known-traps.md        # known traps (moved out of SKILL.md)
 references/design.md             # design system + page-fill tuning loop
 references/ats.md                # parsing rules + verification commands
 references/workday.md            # Workday autofill: measured behaviour + parse-only build

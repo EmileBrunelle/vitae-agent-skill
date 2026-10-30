@@ -18,16 +18,22 @@ bar, knockout slab) rather than text.
 canyon and section-boundary checks — both for callers (e.g. verify.py)
 that want them in-process instead of via CLI.
 """
+from __future__ import annotations
+
+import argparse
 import sys
+from typing import Any, Callable, NoReturn
+
 from PIL import Image
 
 
-def measure(path):
+def measure(path: str) -> str:
     """Return 'ink from X% to Y%' (or 'blank page') for one page image."""
     im = Image.open(path).convert("L")
     w, h = im.size
-    px = im.load()
-    lo = hi = None
+    px: Any = im.load()
+    lo: int | None = None
+    hi = 0
     for y in range(h):
         if any(px[x, y] < 245 for x in range(0, w, 3)):  # sample every 3rd column
             if lo is None:
@@ -55,7 +61,8 @@ RULE_FLOOR = 0.04
 RULE_CONTRAST = 20  # …and "dark" for a DEVICE means this much below the paper
 
 
-def bands(path, thr=150, rule=RULE_FLOOR, contrast=RULE_CONTRAST):
+def bands(path: str, thr: int = 150, rule: float = RULE_FLOOR,
+          contrast: int = RULE_CONTRAST) -> tuple[int, list[tuple[int, int]], list[tuple[int, int]]]:
     """Return (page height, [(start, end) white runs], [(start, end) ink bands]).
 
     One scan, two readings of the same rows, inside the content area only
@@ -109,8 +116,9 @@ def bands(path, thr=150, rule=RULE_FLOOR, contrast=RULE_CONTRAST):
         return h, [], []
     lo, hi = rows[0], rows[-1]
 
-    def runs_of(pred):
-        out, start = [], None
+    def runs_of(pred: Callable[[int], bool]) -> list[tuple[int, int]]:
+        out: list[tuple[int, int]] = []
+        start: int | None = None
         for i in range(lo, hi + 1):
             if pred(i):
                 start = i if start is None else start
@@ -125,7 +133,7 @@ def bands(path, thr=150, rule=RULE_FLOOR, contrast=RULE_CONTRAST):
             runs_of(lambda i: longest[i] >= floor))
 
 
-def gaps(path, thr=150):
+def gaps(path: str, thr: int = 150) -> tuple[int, list[int]]:
     """Return (page height, [internal all-white row runs, in px]).
 
     Thin wrapper over `bands` — kept because the canyon scan and the
@@ -148,10 +156,21 @@ def gaps(path, thr=150):
     return h, [b - a for a, b in white]
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
+class _DocParser(argparse.ArgumentParser):
+    """Any usage error prints the module docstring and exits 1, as the old
+    hand-rolled `sys.exit(__doc__)` did."""
+
+    def error(self, message: str) -> NoReturn:
         sys.exit(__doc__)
-    for path in sys.argv[1:]:
+
+
+def main() -> None:
+    ap = _DocParser(add_help=False, allow_abbrev=False)
+    ap.add_argument("paths", nargs="*")
+    args = ap.parse_args(["--"] + sys.argv[1:])   # any argument is a positional, even "-x"
+    if not args.paths:
+        sys.exit(__doc__)
+    for path in args.paths:
         print(f"{path}: {measure(path)}")
         h, runs = gaps(path)
         if runs:
@@ -160,3 +179,7 @@ if __name__ == "__main__":
             med = statistics.median(runs_sorted)
             print(f"  gaps: median {med}px, biggest {runs_sorted[-3:]}px "
                   f"({runs_sorted[-1] / h * 100:.1f}% of page height)")
+
+
+if __name__ == "__main__":
+    main()

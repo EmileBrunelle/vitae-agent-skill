@@ -15,23 +15,27 @@ Usage:
 
 Exit codes: 0 PASS, 1 FAIL, 2 usage error.
 """
+from __future__ import annotations
+
+import argparse
 import os
 import shutil
 import sys
 import tempfile
+from typing import NoReturn
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import verify  # noqa: E402 — reuse compile_pdf/count_pages/extract_text only
 
 
-def check_letter(typ, employer, job_title):
+def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tuple[bool | None, str]]]:
     """Returns (ok, messages) — messages are (is_fail, text) pairs."""
     ok, use_cli, use_poppler = verify.preflight()
     if not ok:
         return False, [(True, "missing dependency — see --doctor output above")]
 
     verify.ensure_icons(typ)
-    msgs = []
+    msgs: list[tuple[bool | None, str]] = []
     fail = False
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "letter.pdf")
@@ -62,10 +66,27 @@ def check_letter(typ, employer, job_title):
     return not fail, msgs
 
 
-def main():
-    argv = sys.argv[1:]
+class _UsageParser(argparse.ArgumentParser):
+    """Any usage error prints the old hand-written usage text and exits 2."""
 
-    if argv and argv[0] == "--selftest":
+    def error(self, message: str) -> NoReturn:
+        prog = os.path.basename(sys.argv[0])
+        print(f"usage: {prog} letter.typ EMPLOYER \"EXACT JOB TITLE\"\n"
+              f"       {prog} --selftest", file=sys.stderr)
+        sys.exit(2)
+
+
+def main() -> None:
+    ap = _UsageParser(add_help=False, allow_abbrev=False)
+    ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("args", nargs="*")
+    argv = sys.argv[1:]
+    # as the old manual argv: only argv[0] is a mode flag (the rest is
+    # ignored then); otherwise every argument is a positional, even "-x"
+    argv = argv[:1] if argv and argv[0] == "--selftest" else ["--"] + argv
+    parsed = ap.parse_args(argv)
+
+    if parsed.selftest:
         # Build a tiny one-page letter mentioning "Acme Corp" and "Data
         # Analyst", then check the gate passes on the right pair and FAILS
         # on a wrong employer — proves the needle search actually bites
@@ -108,12 +129,10 @@ def main():
               "FAILs the text gate, a 2-page letter FAILs the page gate, and hidden text FAILs")
         sys.exit(0)
 
-    if len(argv) != 3:
-        print(f"usage: {os.path.basename(sys.argv[0])} letter.typ EMPLOYER \"EXACT JOB TITLE\"\n"
-              f"       {os.path.basename(sys.argv[0])} --selftest", file=sys.stderr)
-        sys.exit(2)
+    if len(parsed.args) != 3:
+        ap.error("expected letter.typ EMPLOYER JOB_TITLE")
 
-    typ, employer, job_title = argv
+    typ, employer, job_title = parsed.args
     ok, msgs = check_letter(typ, employer, job_title)
     for is_fail, msg in msgs:
         print(f"{'FAIL' if is_fail else 'WARN' if is_fail is None else 'OK  '}  {msg}")

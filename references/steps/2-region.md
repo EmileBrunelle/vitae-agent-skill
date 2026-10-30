@@ -1,0 +1,14 @@
+# Step 2 — Pick region and language
+
+2. **Pick region and language.** Infer a default from the source material —
+   city/country in the header, phone country code, language and spelling
+   variant, posting URLs — state it and confirm; never silently decide. The
+   *target job market* always overrides where the candidate lives (a Montréal
+   candidate applying to London jobs gets UK conventions).
+   Load `references/regional.md` (router:
+   universal rules + orientation matrix), then ONLY the target market's file
+   in `references/regional/` (e.g. `north-america.md`, `france.md`) — don't
+   load the other markets. Apply the language and spelling of the *job
+   market*, not the user's chat language. If the market has no file, do not
+   infer from training data — verify with a current source or ask, and label
+   the assumption in the deliverable.

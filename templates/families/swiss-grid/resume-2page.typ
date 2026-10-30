@@ -28,7 +28,7 @@
 // airier per recipe step 4, without reading as a different document.
 // Two structured Strengths rows wrapped at the first passing configuration.
 // They were SHORTENED (line integrity is a VISUAL check the gate cannot see,
-// SKILL.md step 6) and the 4 points of fill that cost were bought back with two
+// references/steps/6-verify.md) and the 4 points of fill that cost were bought back with two
 // more one-line rows — again content, not leading.
 // ---------- Shared mechanics (templates/lib.typ) ----------
 #import "lib.typ": *
@@ -187,7 +187,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // This is the honest reason a CV goes to two pages: named, verifiable work that
 // does not fit. It uses the SAME entry helper as the jobs, so the date lands in
 // the same place and the extraction order stays identical — a projects section
-// with its own bespoke shape is a second date convention (SKILL.md step 6).
+// with its own bespoke shape is a second date convention (references/steps/6-verify.md).
 #section("Selected Projects", airy: true)[
 #job("Project Name", "open source · 40+ stars", "2024",
   "what it does in one clause · *Python*, *PostgreSQL* · link in the header")

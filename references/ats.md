@@ -334,10 +334,10 @@ Python API compiles both formats (verified):
 - First screen-height: name, target title, profile with the core stack
   bolded, start of the most relevant experience.
 - Off-target current role → split sections so target-field experience leads
-  (see SKILL.md step 4; skip the split when every job is on target).
+  (see references/steps/4-draft.md; skip the split when every job is on target).
 - Dates bold, dark (inline after the role; the lib decides): recency is the most-checked datum.
 - 1-page vs 2-page is an audience *and region* decision, not a content
-  decision — regional norms win (SKILL.md step 3).
+  decision — regional norms win (`references/steps/3-versions.md`).
 - **File name of the sent PDF**: `Firstname_Lastname_CV.pdf` (localized
   equivalent) — no accents, spaces, or version suffixes; some ATS uploaders
   choke on non-ASCII names and recruiters see the filename.

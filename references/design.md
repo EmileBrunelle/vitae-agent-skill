@@ -391,7 +391,7 @@ looking at the rendered pages: *"it is better when nothing overflows onto the
 line below — except in the Profile."* Two levels, and they are different kinds
 of rule.
 
-- **Hard, and it is checked by eye on the render (step 6 of `SKILL.md`).** A
+- **Hard, and it is checked by eye on the render (`references/steps/6-verify.md`).** A
   **structured** line never wraps. Structured means: every **skills / stack
   row**, the **education entry's descriptor line**, the **Languages line**, the
   **header and contact lines**, and the **specialities line**. These read as a
@@ -402,7 +402,7 @@ of rule.
   overlong row in two costs the page nothing — the wrapped line it replaces
   was already a second line), a **shorter label**, or the measure/size of the
   row. Never squeeze the body size to buy it.
-- **Soft, and it is a drafting preference (step 5 of `SKILL.md`).** Experience
+- **Soft, and it is a drafting preference (`references/steps/5-bullets.md`).** Experience
   **bullets** aim for one line wherever the honest content allows it — that is
   what the 30-second scan actually reads. Two lines are fine for a bullet that
   earns them; three means the bullet is two bullets. **Prose wraps freely**:
@@ -1535,7 +1535,7 @@ hues with jobs, not a theme), no tab bar, no minimap.
   grouped with its value because the gap to the *previous* segment
   (`sym.space.quad` less the extent) is the wider one. Extraction is unchanged
   either way — `nb`'s box is the same box — so this one is caught only by looking
-  at the render at 300dpi, which is why SKILL.md step 6's LOOK pass now asks for a zoomed crop wherever paint meets a vector mark.
+  at the render at 300dpi, which is why `references/steps/6-verify.md`'s LOOK pass now asks for a zoomed crop wherever paint meets a vector mark.
 - **Family variant** (`variants` in `FAMILIES`, drawn by `pick_design.py`): the
   **square-vs-pill** binary of the source tradition — the default bar style is a
   rounded pill, the opinionated dialect resets every module to a flat square.
@@ -1789,7 +1789,7 @@ improvised. The frame:
   to reach the fill target — same logic as the anti-filler clause (SKILL.md
   rule 5): change the page count, not the type size or the margins.
 
-## Structure primitives (see templates/lib.typ and templates/resume.typ)
+## Structure primitives (lib.typ is copied with `cp`, never opened — `grep -n` for the function name only if you need its signature; don't open the file)
 
 The shared MECHANICS live in `templates/lib.typ`, imported with
 `#import "lib.typ": *` — one implementation, validated once, each one a

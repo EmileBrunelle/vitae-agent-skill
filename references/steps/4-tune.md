@@ -1,0 +1,12 @@
+# Step 4 — Fill tuning (--tune)
+
+   A different font pair shifts the fill: re-run the tuning loop with
+   `scripts/verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX`, which bisects
+   `#set par(leading:, spacing:)` instead of you guessing — the printed
+   leading/spacing is a starting point. If `--tune` says the page is under-filled, a fact is missing: add a
+   real one from the candidate's facts (or ask the user; never invent). Leading is capped
+   at 1.10em, so widening the bounds cannot inflate it; fewer pages or a lower target only
+   once the facts are exhausted, and tell the user. Bounds are two positional arguments
+   after `FILL_MAX`, for an over-full page (e.g. `0.45 1.0`). A losing search leaves
+   the file untouched, so a failed `--tune` never costs you the family's own
+   rhythm. Don't override `entry()`/`srow()` `above`/`gap` per entry to win fill (their `auto` is derived from leading and the measured role/org clearance): tune leading via `--tune`; the proximity gate (`check_group_proximity`) FAILs a sub-line closer to the next block than to its own head.
