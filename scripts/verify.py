@@ -78,6 +78,7 @@ import html
 import importlib
 import json
 import os
+import platform
 import re
 import shlex
 import shutil
@@ -185,6 +186,46 @@ def check_pillow() -> bool:
         return False
 
 
+def _linux_arch() -> str | None:
+    """'x86_64' / 'aarch64' on Linux, else None (no-root binary routes are Linux-only)."""
+    if platform.system() != "Linux":
+        return None
+    m = platform.machine().lower()
+    return {"x86_64": "x86_64", "amd64": "x86_64", "aarch64": "aarch64", "arm64": "aarch64"}.get(m)
+
+
+def _py_fetch(url: str, mode: str, member: str, exact: bool) -> str:
+    """One python3 -c line: download `url` with urllib, extract only the tar member
+    (`member` is the exact name, or a suffix) into ~/.local/bin as its basename.
+    For sandboxes where shell curl/wget are refused but Python can fetch."""
+    test = "m.name==" + repr(member) if exact else "m.name.endswith(" + repr("/" + member) + ")"
+    base = member.rsplit("/", 1)[-1]
+    return ("python3 -c \"import urllib.request as u,tarfile,os;d=os.path.expanduser('~/.local/bin');"
+            "os.makedirs(d,exist_ok=True);f=tarfile.open(fileobj=u.urlopen('" + url + "'),mode='r|" + mode + "');"
+            "[(setattr(m,'name','" + base + "'),f.extract(m,d)) for m in f if " + test + "]\"")
+
+
+def _typst_noroot_lines(arch: str) -> list[str]:
+    tgt = f"typst-{arch}-unknown-linux-musl"
+    url = f"https://github.com/typst/typst/releases/latest/download/{tgt}.tar.xz"
+    return [
+        f"  no root, curl:   mkdir -p ~/.local/bin && curl -fsSL {url} | tar -xJf - -C ~/.local/bin --strip-components=1 {tgt}/typst",
+        "  no root, python (when shell curl/wget are refused): " + _py_fetch(url, "xz", "typst", False),
+        "  (then make sure ~/.local/bin is on PATH)",
+    ]
+
+
+def _poppler_noroot_lines(arch: str) -> list[str]:
+    plat = "linux-64" if arch == "x86_64" else "linux-aarch64"
+    url = f"https://micro.mamba.pm/api/micromamba/{plat}/latest"
+    return [
+        "  no root (micromamba from conda-forge), step 1, get micromamba:",
+        f"    curl:   mkdir -p ~/.local/bin && curl -fsSL {url} | tar -xj -C ~/.local/bin --strip-components=1 bin/micromamba",
+        "    python: " + _py_fetch(url, "bz2", "bin/micromamba", True),
+        "  step 2: ~/.local/bin/micromamba create -y -p ~/poppler -c conda-forge poppler   # then put ~/poppler/bin on PATH",
+    ]
+
+
 def check_typst() -> tuple[bool, bool]:
     """Returns (available, use_cli)."""
     if shutil.which("typst"):
@@ -197,11 +238,14 @@ def check_typst() -> tuple[bool, bool]:
     try:
         importlib.import_module("typst")
         print("DEGRADED  typst: Python API only, no typst CLI. Compiling and fill measurement work, but these checks are SKIPPED (WARN):")
-        print("  - date adjacency (needs `typst query`)")
+        print("  - date adjacency (needs `typst query`, and pdftotext)")
         print("  - group proximity (needs `typst query` and pdftotext)")
         print("  - the design font-availability check of pick_design.py (needs `typst fonts`)")
         print("  Install the CLI with ONE of:")
-        print("  mkdir -p ~/.local/bin && curl -fsSL https://github.com/typst/typst/releases/download/v<ver>/typst-x86_64-unknown-linux-musl.tar.xz | tar -xJ --strip-components=1 -C ~/.local/bin   # Linux x86_64, no root (<ver> = latest release; PATH must include ~/.local/bin)")
+        arch = _linux_arch()
+        if arch:
+            for ln in _typst_noroot_lines(arch):
+                print(ln)
         print("  brew install typst | sudo dnf install typst | sudo apt install typst (24.04+) | sudo pacman -S typst")
         print("  winget install --id Typst.Typst | choco install typst | scoop install typst   # Windows")
         print("  cargo install typst-cli                      # any, via Rust")
@@ -221,13 +265,16 @@ def check_typst() -> tuple[bool, bool]:
 
 def check_pdf_tools() -> tuple[bool, bool]:
     """Returns (available, use_poppler)."""
+    arch = _linux_arch()
     if shutil.which("pdfinfo") and shutil.which("pdftotext"):
         if not shutil.which("pdftoppm"):
-            print("DEGRADED  poppler-utils: pdftotext and pdfinfo found, pdftoppm missing. These checks are SKIPPED (WARN):")
-            print("  - hidden-text ink check (needs pdftoppm; also used by verify_letter.py / verify_academic.py)")
-            print("  - the ink-gap refinement of group proximity")
+            print("DEGRADED  poppler-utils: pdftotext and pdfinfo found, pdftoppm missing. SKIPPED (WARN):")
+            print("  - hidden-text ink check (also used by verify_letter.py / verify_academic.py)")
+            print("  Weaker without a WARN: group proximity falls back to the pdftotext box gap instead of the ink gap")
             print("  Install pdftoppm (part of poppler) with ONE of:")
-            print("  micromamba create -p ~/poppler -c conda-forge poppler   # no root; then put ~/poppler/bin on PATH")
+            if arch:
+                for ln in _poppler_noroot_lines(arch):
+                    print(ln)
             print("  sudo dnf install poppler-utils | sudo apt install poppler-utils | brew install poppler")
             return True, True
         print("OK    poppler-utils (pdftotext, pdfinfo, pdftoppm)")
@@ -236,10 +283,13 @@ def check_pdf_tools() -> tuple[bool, bool]:
         importlib.import_module("pypdf")
         print("DEGRADED  pypdf: Python fallback, no poppler. Page count is exact, but:")
         print("  - ATS text extraction is indicative only (spurious spaces, e.g. \"FORMA TION\")")
-        print("  - hidden-text gate SKIPPED (needs pdftotext and pdftoppm)")
-        print("  - group proximity SKIPPED (needs pdftotext)")
+        print("  - SKIPPED (WARN): hidden-text gate and text-clip gate (need pdftotext and pdftoppm)")
+        print("  - SKIPPED (WARN): group proximity and date adjacency (need pdftotext)")
+        print("  - academic mode cannot run (verify_academic.py requires pdftotext)")
         print("  Install poppler with ONE of:")
-        print("  micromamba create -p ~/poppler -c conda-forge poppler   # no root; then put ~/poppler/bin on PATH")
+        if arch:
+            for ln in _poppler_noroot_lines(arch):
+                print(ln)
         print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
         print("  choco install poppler | scoop install poppler          # Windows")
         return True, False
@@ -251,29 +301,29 @@ def check_pdf_tools() -> tuple[bool, bool]:
         return False, False
 
 
-_TYPST_EMBEDDED_FONTS = {"DejaVu Sans Mono", "Libertinus Serif",
-                         "New Computer Modern", "New Computer Modern Math"}
-
-
 def check_fonts() -> None:
     """Doctor line for fonts (typst CLI only; local, no network, 20 s cap).
 
-    If `typst fonts` lists only the families embedded in the binary, the
-    design families' faces are not installed and pick_design substitutes."""
-    try:
-        r = subprocess.run(["typst", "fonts"], capture_output=True, text=True, timeout=20)
-    except (OSError, subprocess.SubprocessError):
+    Reuses pick_design's own logic: a design family is usable when every role of
+    its pool has at least one installed member (`_installed`). pick_design
+    draws from at least MIN_POOL families, so fewer usable ones means it will
+    substitute."""
+    import pick_design as pd
+    have = pd._fonts_available()
+    if have is None:
+        print("WARN  fonts not checked (`typst fonts` failed or timed out)")
         return
-    if r.returncode != 0:
-        return
-    fams = {l.strip() for l in r.stdout.splitlines() if l.strip()}
-    if fams and fams <= _TYPST_EMBEDDED_FONTS:
-        print("DEGRADED  fonts: only typst's embedded families are installed (" + ", ".join(sorted(fams)) + ").")
-        print("  - pick_design.py will substitute the design families' fonts with what is installed")
+    pools = pd.FONTS
+    usable = sum(1 for fp in pools.values()
+                 if all(any(pd._installed(f[0], have) for f in fp[role])        # type: ignore[literal-required]
+                        for role in ("display", "body", "mono") if role in fp))
+    if usable < pd.MIN_POOL:
+        print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
+              f"(pick_design draws from at least {pd.MIN_POOL}), so it will substitute.")
         print("  Fetch only the fonts the draw asks for (references/fonts.md, \"Downloading from Google Fonts\"):")
         print("  Route 1: install into ~/.local/share/fonts/vitae (persistent, recommended); Route 2: typst --font-path <dir> (no install)")
     else:
-        print(f"OK    fonts ({len(fams)} families)")
+        print(f"OK    fonts ({usable} of {len(pools)} design families fully installed, {len(have)} families)")
 
 
 def preflight() -> tuple[bool, bool, bool]:

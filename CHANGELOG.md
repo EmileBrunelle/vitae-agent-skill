@@ -4,7 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
-- `verify.py --doctor` no longer reports pip-only fallbacks (typst Python API without the CLI, pypdf without poppler, poppler without pdftoppm, typst with only its embedded fonts) as `OK`: it prints `DEGRADED`, names the checks that are skipped (date adjacency, group proximity, hidden-text, design font availability) or indicative (ATS extraction), and gives install routes including no-root ones (typst static binary into `~/.local/bin`, poppler via micromamba). Exit code unchanged (0). README.md / README.fr.md no longer claim `pip install typst pypdf Pillow` covers everything; `references/steps/0-env.md` tells the agent to report DEGRADED before promising a verified CV.
+- `verify.py --doctor` no longer reports pip-only fallbacks (typst Python API without the CLI, pypdf without poppler, poppler without pdftoppm, fewer than MIN_POOL design families installed) as `OK`: it prints `DEGRADED`, names the checks that are skipped (date adjacency, group proximity, hidden-text, design font availability) or indicative (ATS extraction), and gives install routes including no-root ones (typst static binary into `~/.local/bin`, poppler via micromamba), each with a pure-Python `urllib` variant for sandboxes where shell curl/wget are refused. Exit code unchanged (0). README.md / README.fr.md no longer claim `pip install typst pypdf Pillow` covers everything; `references/steps/0-env.md` tells the agent to report DEGRADED before promising a verified CV.
 - CI: runner back to `ubuntu-latest` (currently Ubuntu 24.04), reverting the `ubuntu-26.04` pin from 0.7.0.
 - Docs: Markdown no longer hard-wrapped (one paragraph or list item per line); text unchanged.
 

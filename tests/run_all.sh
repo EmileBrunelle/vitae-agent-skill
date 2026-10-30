@@ -97,50 +97,82 @@ print(f"ok {seen} path citations resolve")
 check selftest-verify python3 -I scripts/verify.py --selftest
 check selftest-pick_design python3 -I scripts/pick_design.py --selftest
 
-# --doctor in a simulated pip-only env (no typst/poppler CLIs, stub `typst`
-# module standing in for the Python API): both fallbacks must say DEGRADED,
-# never OK, and the exit code stays 0.
+# --doctor degraded paths, simulated with a PATH of symlinks (and shims). Each
+# case asserts the DEGRADED label AND at least one named skipped check.
+# verify.py imports Pillow at load, so without it the doctor cannot run: SKIP.
+if python3 -c "import PIL" 2>/dev/null; then
+doctor_env() { # doctor_env <dir> <tools...>: symlink the host tools into <dir>/bin
+  local d="$1"; shift; rm -rf "$d"; mkdir -p "$d/bin" "$d/py"
+  local t; for t in "$@"; do ln -s "$(command -v "$t")" "$d/bin/$t"; done
+}
+shim_typst() { # shim_typst <dir> <families...>: fake `typst` that lists only those families
+  local d="$1"; shift
+  { printf '#!/bin/sh\n[ "$1" = fonts ] && { '; for f in "$@"; do printf 'echo "%s"; ' "$f"; done; printf 'exit 0; }\necho "typst 0.0.0"\n'; } > "$d/bin/typst"
+  chmod +x "$d/bin/typst"
+}
+
+# pip-only: no typst/poppler CLIs, empty stub `typst` module for the Python API.
 doctor_pip_only() {
-  local d="$out/doctor-sim"; rm -rf "$d"; mkdir -p "$d/bin" "$d/py"
-  ln -s "$(command -v python3)" "$d/bin/python3"
-  : > "$d/py/typst.py"
+  local d="$out/doctor-sim"; doctor_env "$d" python3; : > "$d/py/typst.py"
   local txt rc=0
   txt="$(PATH="$d/bin" PYTHONPATH="$d/py" python3 scripts/verify.py --doctor 2>&1)" || rc=$?
   echo "$txt"
   [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
   echo "$txt" | grep -q '^DEGRADED  typst' || { echo "no DEGRADED typst line"; return 1; }
+  echo "$txt" | grep -q 'date adjacency' || { echo "typst block names no skipped check"; return 1; }
   echo "$txt" | grep -q '^OK    typst' && { echo "typst reported OK"; return 1; }
-  # pypdf may be absent on the host: only assert it when present
-  if python3 -c "import pypdf" 2>/dev/null; then
+  if python3 -c "import pypdf" 2>/dev/null; then   # pypdf may be absent on the host
     echo "$txt" | grep -q '^DEGRADED  pypdf' || { echo "no DEGRADED pypdf line"; return 1; }
+    echo "$txt" | grep -q 'hidden-text gate' || { echo "pypdf block names no skipped check"; return 1; }
   fi
   return 0
 }
 check doctor-pip-only doctor_pip_only
 
-# pdfinfo + pdftotext but no pdftoppm: poppler line must be DEGRADED (hidden-text ink check).
-doctor_no_pdftoppm() {
-  command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null \
-    || { echo "SKIP-ish: needs typst, pdfinfo, pdftotext on the host"; return 0; }
-  local d="$out/doctor-sim2"; rm -rf "$d"; mkdir -p "$d/bin"
-  local t; for t in python3 typst pdfinfo pdftotext; do ln -s "$(command -v $t)" "$d/bin/$t"; done
-  local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
-  echo "$txt"
-  echo "$txt" | grep -q '^DEGRADED  poppler-utils' || { echo "no DEGRADED poppler line"; return 1; }
-}
-check doctor-no-pdftoppm doctor_no_pdftoppm
+# pdfinfo + pdftotext but no pdftoppm: the poppler line is DEGRADED.
+if command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null; then
+  doctor_no_pdftoppm() {
+    local d="$out/doctor-sim2"; doctor_env "$d" python3 typst pdfinfo pdftotext
+    local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
+    echo "$txt"
+    echo "$txt" | grep -q '^DEGRADED  poppler-utils' || { echo "no DEGRADED poppler line"; return 1; }
+    echo "$txt" | grep -q 'hidden-text ink check' || { echo "no skipped check named"; return 1; }
+  }
+  check doctor-no-pdftoppm doctor_no_pdftoppm
+else
+  echo "SKIP doctor-no-pdftoppm (needs typst, pdfinfo, pdftotext on the host)"
+fi
 
-# typst CLI listing only its embedded families (shim): fonts line must be DEGRADED.
-doctor_embedded_fonts() {
-  local d="$out/doctor-sim3"; rm -rf "$d"; mkdir -p "$d/bin"
-  ln -s "$(command -v python3)" "$d/bin/python3"
-  printf '#!/bin/sh\n[ "$1" = fonts ] && printf "DejaVu Sans Mono\\nLibertinus Serif\\nNew Computer Modern\\nNew Computer Modern Math\\n" && exit 0\necho "typst 0.0.0"\n' > "$d/bin/typst"
-  chmod +x "$d/bin/typst"
+# typst CLI whose font list has only DejaVu: fonts line DEGRADED; with a font
+# list covering >= MIN_POOL design families (every font pick_design knows): no
+# DEGRADED line at all.
+doctor_minimal_fonts() {
+  local d="$out/doctor-sim3"; doctor_env "$d" python3; shim_typst "$d" "DejaVu Sans" "DejaVu Sans Mono"
   local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || true
   echo "$txt"
   echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
+  echo "$txt" | grep -q 'pick_design' || { echo "fonts block names no consequence"; return 1; }
 }
-check doctor-embedded-fonts doctor_embedded_fonts
+check doctor-minimal-fonts doctor_minimal_fonts
+
+doctor_full_fonts() {
+  local d="$out/doctor-sim4"; doctor_env "$d" python3
+  local fams; mapfile -t fams < <(python3 -I -c "
+import sys; sys.path.insert(0, 'scripts'); import pick_design as p
+for fp in p.FONTS.values():
+    for role in ('display', 'body', 'mono'):
+        for f in fp.get(role, []): print(f[0])" | sort -u)
+  shim_typst "$d" "${fams[@]}"
+  local txt; txt="$(PATH="$d/bin" python3 scripts/verify.py --doctor 2>&1)" || true
+  echo "$txt"
+  echo "$txt" | grep -q '^OK    fonts' || { echo "expected OK fonts line"; return 1; }
+  echo "$txt" | grep -q '^DEGRADED  fonts' && { echo "unexpected DEGRADED fonts"; return 1; }
+  return 0
+}
+check doctor-full-fonts doctor_full_fonts
+else
+  echo "SKIP doctor-* cases (Pillow not installed)"
+fi
 
 # Type check (config: mypy.ini). Optional locally: SKIP, not FAIL, without mypy.
 if python3 -c "import mypy" 2>/dev/null; then
