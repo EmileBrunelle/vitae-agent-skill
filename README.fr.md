@@ -117,7 +117,21 @@ académiques.
 
 ## Installation
 
-Copiez ce dossier dans le répertoire où votre agent charge ses skills, soit à
+Avec le [CLI skills](https://skills.sh) (Claude Code, Codex, Cursor,
+opencode et d'autres agents) :
+
+```
+npx skills add EmileBrunelle/vitae-agent-skill
+```
+
+Les mises à jour ne sont pas automatiques — pour obtenir une nouvelle
+version, lancez :
+
+```
+npx skills update
+```
+
+Ou copiez ce dossier dans le répertoire où votre agent charge ses skills, soit à
 l'échelle de l'utilisateur, soit par projet :
 
 ```
