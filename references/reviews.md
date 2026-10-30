@@ -11,6 +11,11 @@ fact sheet about the candidate with the instruction **never suggest adding
 facts the candidate did not provide**. Reviewers must hunt for reasons to
 reject — sympathy produces useless reviews.
 
+**Compact path** (no parallel subagents, tight budget or small model): one
+pass, by yourself, sequentially: only reviewers 2 (hiring manager, with the fact
+diff) and 3 (ATS, with the real `pdftotext` run) below, each ≤5 findings; fix,
+then re-run `verify.py`. Otherwise run the full protocol.
+
 ## Core panel (always)
 
 1. **Recruiter, 30-second scan** — screens 200 CVs/day for the target market.

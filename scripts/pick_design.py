@@ -1123,6 +1123,9 @@ def init_folder(p, folder, force=False):
                 kept.append("kept existing %s (harvested icons)" % q(dst))
                 continue
         _write_nofollow(dst, open(srcf, "rb").read())
+    # one comment line: the full call form of the family's entry wrapper
+    src = re.sub(r'^(#job\()', r'// job(role, org, dates, note) - 4 positional args, "note" required; '
+                 r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.M)
     _write_nofollow(out, src.encode("utf-8"))
     lo, hi = pg["fill"].split("-")
     print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "

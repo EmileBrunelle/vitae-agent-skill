@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/license-mit.svg" alt="License: MIT"></a>
-  <img src="assets/badges/status-beta.svg" alt="Status: beta 0.6.10">
+  <img src="assets/badges/status-beta.svg" alt="Status: beta 0.6.11">
   <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills.svg" alt="Agent Skills open standard"></a>
 </p>
@@ -16,7 +16,7 @@ in [Typst](https://typst.app) that pass **both** filters: automated screening
 (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second
 scan.
 
-**Status: beta (0.6.10)** — the method is battle-tested, but the skill's file
+**Status: beta (0.6.11)** — the method is battle-tested, but the skill's file
 layout and script interfaces may still change before 1.0.
 
 Battle-tested method distilled from a real end-to-end résumé project that went

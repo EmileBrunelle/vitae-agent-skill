@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires typst 0.13+ (verified on 0.15) and Python 3 with Pillow. poppler-utils (pdftotext, pdfinfo) strongly recommended - text extraction falls back to pypdf, but the section-separation gate and the text-clip gate (check_text_clip) need pdftotext word boxes and report (WARN) instead of failing without them. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.6.10"
+  version: "0.6.11"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*)
 ---
@@ -231,7 +231,12 @@ no family draw and no palette generation either: one neutral gabarit, from
    copy. `section()`, `job()`, `skill()` and the other devices are defined in the
    family file, NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with
    `unknown variable: section`. (`templates/resume.typ` is only the generic
-   starter, for when no family is drawn.) Read `references/typst-primer.md`
+   starter, for when no family is drawn.) **Fill `cv.typ` one section at a time:
+   one edit, then compile — never write the whole file in one go, and never plan
+   the whole CV in your head first. The starter already shows every call form with
+   all arguments (`job(role, org, dates, note)` — `note` is required — then `- ` bullets;
+   `skill(cat, items)`, `section(title)[...]`): copy those, don't read `lib.typ`.**
+   Read `references/typst-primer.md`
    (1 minute) before writing any Typst. Typst has no bundler, so the folder
    holds three files: `cv.typ` (the family file), `lib.typ` (the verified
    shared mechanics) and `icons.typ` (the EMPTY fallback `lib.typ` imports;
@@ -470,7 +475,11 @@ no family draw and no palette generation either: one neutral gabarit, from
    runtime offers — a fan-out inheriting an expensive main-loop model burns
    budget fast. If your runtime has no subagents, run the personas one at a
    time in the main session, clearing between them: the review is mandatory,
-   the parallelism is not. Give them rendered PNGs *and* sources. Apply only
+   the parallelism is not. **Compact path** (no parallel subagents, tight budget
+   or small model): skip the full panel; run, sequentially in ONE pass yourself,
+   only the ATS/fact-diff check and the hiring-manager read from
+   `references/reviews.md`, each ≤5 findings; fix, then re-run step 6. Never
+   shrink the default path for a capable runtime. Give them rendered PNGs *and* sources. Apply only
    findings that survive cross-examination; findings demanding invented
    facts become questions for the user. After applying findings, go back
    through step 6 before delivering. Once that final PASS holds, write the
