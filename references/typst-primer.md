@@ -10,7 +10,7 @@ For agents whose model knows little Typst. The full language reference lives onl
 
 ## Escaping in prose (markup mode)
 
-Escape `\#  \$  \[  \]  \~  \@` in generated text. Unescaped: `#` starts code (`C#` → *error: expected expression*), `~` silently becomes a non-breaking space (used on purpose in `#cat~:` for French), `@` starts a reference, `$` starts math.
+Escape `\#  \$  \[  \]  \~  \@` in generated text. A literal tilde (`~25 users`, `~3 yrs`) is the easy one to miss: write `\~25`; the gate FAILs on an unescaped `~` that starts a word. Unescaped: `#` starts code (`C#` → *error: expected expression*), `~` silently becomes a non-breaking space (used on purpose in `#cat~:` for French), `@` starts a reference, `$` starts math.
 
 ## Mistakes agents actually make (each observed in a cold run)
 

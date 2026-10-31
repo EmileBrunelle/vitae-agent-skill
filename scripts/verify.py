@@ -3090,6 +3090,26 @@ def check_forced_linebreak(src: str) -> list[str]:
     return out
 
 
+TILDE_RE = re.compile(r"(?:^|(?<=[\s\[(]))~(?=[0-9A-Za-z])")
+
+
+def check_literal_tilde(src: str) -> list[str]:
+    """FAIL messages: an unescaped `~` that starts a word in content text
+    (`~25 users`). Typst reads it as a non-breaking space, so the PDF shows
+    ` 25 users` and the tilde is gone, silently. Comments, "strings", `raw`
+    spans and `\\~` are skipped; the intentional uses (`#cat~:`, `[~#sc]`)
+    sit after an identifier or before `#`, so they never match."""
+    out = []
+    for n, raw in enumerate(src.split("\n"), 1):
+        line = re.sub(r"(?:^|(?<=\s))//.*$", "", raw)
+        line = re.sub(r'"(?:[^"\\]|\\.)*"|`[^`]*`|\\~', " ", line)
+        if TILDE_RE.search(line):
+            out.append(f"line {n}: unescaped `~` in text "
+                       f'("{raw.strip()[:50]}") — Typst turns it into a non-breaking space; '
+                       "write \\~ for a literal tilde")
+    return out
+
+
 def check_duplicate_names(secs: Sequence[Mark] | None, heads: Sequence[Mark] | None) -> list[str]:
     """FAIL messages: one name used both as a section title and as a row label
     (e.g. section LANGUAGES for spoken languages + skill label "Languages" for
@@ -3147,7 +3167,7 @@ def run_new_gates(typ: str, pdf: str, txt: str, src: str, root: str | None = Non
               f"({'; '.join(dwarn[:3])})")
     if marks is None:
         print("WARN  date adjacency not measured: typst query unavailable")
-    for msg in check_forced_linebreak(src):
+    for msg in check_forced_linebreak(src) + check_literal_tilde(src):
         print("FAIL  " + msg)
         fail = 1
     secs = _typst_query(typ, "<vitae-sec>", root)
@@ -4532,6 +4552,11 @@ def _selftest() -> NoReturn:
     assert check_forced_linebreak("- Led the migration,\n  continued \\\n  here\n")
     assert not check_forced_linebreak("- Led the migration to the new stack\n  and shipped it\n")
     assert not check_forced_linebreak("Name \\ Title\n\n- Bullet one\n")
+    assert check_literal_tilde("- Served ~25 users\n")
+    assert check_literal_tilde("#skill([Scale], [~25 users])\n")
+    assert not check_literal_tilde("- Served \\~25 users\n")
+    assert not check_literal_tilde('#skill("Scale", "~25")  // ~25 note\n')
+    assert not check_literal_tilde("[#cat~:] and [~#sc] and `~25`\n")
     assert not check_forced_linebreak("- see https://example.com/a // and path C:\\\\dir\n")
 
     # duplicate name: a section title reused as a row label (any case) FAILs
@@ -4846,7 +4871,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     else:
         print("WARN  grouping / date-adjacency / duplicate-name gates NOT checked (need the typst CLI or typst-py with query)")
         fail |= run_hidden_gate(pdf)
-        for msg in check_forced_linebreak(typ_text):
+        for msg in check_forced_linebreak(typ_text) + check_literal_tilde(typ_text):
             print("FAIL  " + msg)
             fail = 1
 
