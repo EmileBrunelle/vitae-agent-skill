@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.7.4 - 2026-10-31
 
 - `verify.py` WARNs when the top-level body text size is above 11pt (shipped templates stay at 10.5-11pt): a run raised the body to 12pt to reach the fill target, which pads the page with type size instead of facts and inverts the heading/role/meta hierarchy (template sizes are absolute pt). The `--tune` under-fill message and `references/steps/4-tune.md` now say that raising the body size is the same padding, not an alternative.
 
