@@ -3688,6 +3688,24 @@ def _selftest() -> NoReturn:
     # silently in a way that swaps the two values
     alt = "#set par(spacing: 0.7em, leading: 0.6em)\n"
     assert _read_par(alt) is None, "would write the two values swapped"
+    # the WARN reader: any argument order, em or pt, top-level only, last one wins
+    assert _doc_leading("#set par(leading: 1.2em)\n") == 1.2
+    assert _doc_leading("#set par(spacing: 0.7em, leading: 1.3em)\n") == 1.3
+    assert _doc_leading("#set par(leading: 0.6em, spacing: 8pt)\n") == 0.6
+    assert abs((_doc_leading("#set par(leading: 14pt)\n") or 0) - 14 / 11) < 1e-9
+    assert abs((_doc_leading("#set text(size: 10pt)\n#set par(leading: 14pt, justify: true)\n") or 0) - 1.4) < 1e-9
+    assert _doc_leading("#set par(leading: 0.6em)\n#set par(leading: 1.2em)\n") == 1.2
+    assert _doc_leading("#let h(b) = {\n  #set par(leading: 1.5em)\n  b\n}\n#set par(leading: 0.6em)\n") == 0.6
+    assert _doc_leading("#let h(b) = [\n#set par(leading: 1.5em)\n b]\n") is None
+    assert _doc_leading("#show heading: it => [\n#set par(leading: 1.5em)\n#it]\n#set par(leading: 0.6em)\n") == 0.6
+    assert _doc_leading("#set par(leading: 0.6em)\nBody\n#set par(leading: 1.5em)\n") == 0.6
+    assert _doc_leading("// #set par(leading: 1.5em)\n#set text(size: 10pt)\n") is None
+    with tempfile.TemporaryDirectory() as _lw_d:
+        _lw_f = os.path.join(_lw_d, "cv.typ")
+        open(_lw_f, "w", encoding="utf-8").write("#set par(leading: 1.2em)\n")
+        assert _leading_warn(_lw_f).startswith("WARN"), _leading_warn(_lw_f)
+        open(_lw_f, "w", encoding="utf-8").write("#set par(spacing: 8pt, leading: 0.7em)\n")
+        assert _leading_warn(_lw_f) == ""
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"
@@ -4750,15 +4768,58 @@ _LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line p
                  "lower fill and tell the user")
 
 
+_SET_RE = re.compile(r"^#set\s+(par|text)\(")
+_LEAD_ARG = re.compile(r"(?:^|[,(\s])leading\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
+_SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
+
+
+def _doc_leading(text: str) -> float | None:
+    """The document's effective paragraph leading in em, read from the LAST
+    top-level (column 0, not inside a #let / #show body) `#set par(... leading:
+    ...)` before the body, in any argument order; pt is converted with the last
+    top-level `#set text(size: X pt)` (11pt when absent). None when there is none."""
+    masked = _mask_non_markup(text)
+    depth, size, lead, i, n = 0, 11.0, None, 0, len(masked)
+    while i < n:
+        j = masked.find("\n", i)
+        j = n if j < 0 else j
+        line = masked[i:j]
+        m = _SET_RE.match(line) if depth == 0 else None
+        if depth == 0 and not m and line.strip() and not re.match(r"#(set|show|import|let)\b", line):
+            break                                # first top-level content: the body starts
+        if m:
+            k, d = i + m.end(), 1                # balanced scan of the call's arguments
+            while k < n and d:
+                d += (masked[k] == "(") - (masked[k] == ")")
+                k += 1
+            args = masked[i + m.end():k - 1]
+            if m.group(1) == "text":
+                sm = _SIZE_ARG.search(args)
+                if sm:
+                    size = float(sm.group(1))
+            else:
+                lm = _LEAD_ARG.search(args)
+                if lm:
+                    v = float(lm.group(1))
+                    lead = v if lm.group(2) == "em" else v / size
+        for ch in line:
+            if ch in "([{":
+                depth += 1
+            elif ch in ")]}" and depth:
+                depth -= 1
+        i = j + 1
+    return lead
+
+
 def _leading_warn(typ: str) -> str:
-    """The WARN line when cv.typ's `#set par(leading:)` is above LEADING_WARN, else ''."""
+    """The WARN line when cv.typ's document leading is above LEADING_WARN, else ''."""
     try:
-        par = _read_par(open(typ, encoding="utf-8").read())
+        lead = _doc_leading(open(typ, encoding="utf-8").read())
     except OSError:
         return ""
-    if par is None or par[0] <= LEADING_WARN + 1e-9:
+    if lead is None or lead <= LEADING_WARN + 1e-9:
         return ""
-    return _LEADING_WARN.format(l=par[0], t=LEADING_WARN)
+    return _LEADING_WARN.format(l=lead, t=LEADING_WARN)
 
 
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
