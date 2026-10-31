@@ -3091,22 +3091,70 @@ def check_forced_linebreak(src: str) -> list[str]:
     return out
 
 
-TILDE_RE = re.compile(r"(?:^|(?<=[\s\[(]))~(?=[0-9A-Za-z])")
+TILDE_RE = re.compile(r"(?:^|(?<=[\s\[(*_]))~(?=[0-9A-Za-z])", re.M)
+
+
+def _mask_non_markup(src: str) -> str:
+    """src with every region where `~` is not markup blanked to spaces, newlines
+    kept (so line numbers stay true): // and nested /* */ comments, "strings",
+    ``` raw spans (multi-line too), $math$, and `\\~`-style escapes."""
+    out, i, n = [], 0, len(src)
+
+    def blank(j: int) -> None:
+        nonlocal i
+        out.append("".join(ch if ch == "\n" else " " for ch in src[i:j]))
+        i = j
+
+    while i < n:
+        c = src[i]
+        if c == "\\":
+            blank(min(i + 2, n))
+        elif c == "`":
+            e = len(src) - i - len(src[i:].lstrip("`"))
+            close = src.find("`" * e, i + e)
+            blank(n if close < 0 else close + e)
+        elif src.startswith("/*", i):
+            depth, j = 1, i + 2
+            while j < n and depth:
+                if src.startswith("/*", j):
+                    depth += 1; j += 2
+                elif src.startswith("*/", j):
+                    depth -= 1; j += 2
+                else:
+                    j += 1
+            blank(j)
+        elif src.startswith("//", i) and (i == 0 or src[i - 1] != ":"):
+            j = src.find("\n", i)
+            blank(n if j < 0 else j)
+        elif c == '"':
+            j = i + 1
+            while j < n and src[j] not in '"\n':
+                j += 2 if src[j] == "\\" else 1
+            blank(j + 1 if j < n and src[j] == '"' else i + 1)
+        elif c == "$":
+            j = i + 1
+            while j < n and src[j] != "$":
+                j += 2 if src[j] == "\\" else 1
+            blank(min(j + 1, n) if j < n else i + 1)
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
 
 
 def check_literal_tilde(src: str) -> list[str]:
     """FAIL messages: an unescaped `~` that starts a word in content text
-    (`~25 users`). Typst reads it as a non-breaking space, so the PDF shows
-    ` 25 users` and the tilde is gone, silently. Comments, "strings", `raw`
-    spans and `\\~` are skipped; the intentional uses (`#cat~:`, `[~#sc]`)
-    sit after an identifier or before `#`, so they never match."""
+    (`~25 users`, `*~25 users*`). Typst reads it as a non-breaking space, so the
+    PDF shows ` 25 users` and the tilde is gone, silently. Comments (line and
+    block), "strings", `raw` spans (multi-line too), $math$ and `\\~` are masked
+    over the whole file first; the intentional uses (`#cat~:`, `[~#sc]`) sit
+    after an identifier or before `#`, so they never match."""
     out = []
-    for n, raw in enumerate(src.split("\n"), 1):
-        line = re.sub(r"(?:^|(?<=\s))//.*$", "", raw)
-        line = re.sub(r'"(?:[^"\\]|\\.)*"|`[^`]*`|\\~', " ", line)
+    raws = src.split("\n")
+    for n, line in enumerate(_mask_non_markup(src).split("\n"), 1):
         if TILDE_RE.search(line):
             out.append(f"line {n}: unescaped `~` in text "
-                       f'("{raw.strip()[:50]}") — Typst turns it into a non-breaking space; '
+                       f'("{raws[n - 1].strip()[:50]}") — Typst turns it into a non-breaking space; '
                        "write \\~ for a literal tilde")
     return out
 
@@ -4568,6 +4616,12 @@ def _selftest() -> NoReturn:
     assert check_literal_tilde("- Served ~25 users\n")
     assert check_literal_tilde("#skill([Scale], [~25 users])\n")
     assert not check_literal_tilde("- Served \\~25 users\n")
+    assert check_literal_tilde("- *~25 users* served\n") and check_literal_tilde("- _~25_ users\n")
+    assert not check_literal_tilde("```\nx ~25\ny ~z\n```\n- fine\n")
+    assert not check_literal_tilde("/* a\n ~25 b\n*/\n- fine\n") and not check_literal_tilde("/* ~25 */ ok\n")
+    assert not check_literal_tilde("- Let $x ~y$ be\n")
+    assert not check_literal_tilde("[see https://x.com/~user] #link(\"https://x.com/~user\")[a]\n")
+    assert [m.split(":")[0] for m in check_literal_tilde("/* c\n*/\n```\na\n```\n- ~25 users\n")] == ["line 6"]
     assert not check_literal_tilde('#skill("Scale", "~25")  // ~25 note\n')
     assert not check_literal_tilde("[#cat~:] and [~#sc] and `~25`\n")
     assert not check_forced_linebreak("- see https://example.com/a // and path C:\\\\dir\n")
