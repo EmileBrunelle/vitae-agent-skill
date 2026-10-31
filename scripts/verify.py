@@ -296,6 +296,10 @@ def check_typst() -> tuple[bool, bool]:
     if arch:
         for ln in _typst_noroot_lines(arch):
             print(ln)
+    print("  OFFLINE sandbox (no DNS / pip index)? On the user's own machine run:")
+    print("    pip download typst==0.15.0 --no-deps --only-binary=:all: --platform manylinux2014_x86_64 --python-version 3.11")
+    print("    (or take the cp38-abi3-manylinux_2_17_x86_64 wheel from https://pypi.org/project/typst/#files), upload the .whl, then:")
+    print("    pip install --no-index <path-to-wheel>")
     return False, False
 
 
