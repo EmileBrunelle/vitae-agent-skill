@@ -24,6 +24,7 @@
 #let ic-col = accent2
 #let ic = icons-line(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.25cm, bottom: 1.2cm))
 #set page(..wd-page-x(1.6cm)) if workday

@@ -39,8 +39,10 @@
 // Each mark+value pair goes through `nb`, a #box[…~…] so the mark can never
 // be orphaned at a line end — and `nb` drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
-#import "../../lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
+#import "../../lib.typ": marks, nb, ghost, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
 #let mk = marks(ic-col)
+// the hand-drawn pin/phone follow the marks' all-or-nothing rule (no mixed row)
+#let ic-on(g) = if mk.mail == none { ghost } else { g }
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
@@ -78,8 +80,8 @@
   #text(size: 10.5pt, fill: white, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]
   #v(-4pt)
   #text(size: 9pt, fill: white)[
-    #box[#ic-pin~City, Region]
-    #h(6pt) #box[#ic-tel~#link("tel:+15555550100")[(555) 555-0100]]
+    #nb(ic-on(ic-pin))[City, Region]
+    #h(6pt) #nb(ic-on(ic-tel))[#link("tel:+15555550100")[(555) 555-0100]]
     #h(6pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]]
     #h(6pt) #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
     #h(6pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]

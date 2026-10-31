@@ -18,6 +18,7 @@
 #let ic-col = ink
 #let ic = icons-line(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 // GABARIT: dense, the specification-document register — 1.5cm margins, the
 // widest measure of the roster, 10.5pt body, tight rhythm. Fill target derives

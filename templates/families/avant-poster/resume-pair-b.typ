@@ -25,6 +25,7 @@
 #let ic-col = accent2
 #let ic = icons-solid(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 // GABARIT: mid — 1.8cm margins, 10.5pt body. The margin is what the bars bleed
 // into, so it has to be real. Fill target derives from the 1.6cm bottom margin:

@@ -42,7 +42,13 @@
 // being split. Every icon/logo beside a contact value goes through this.
 // A mark of `none` (its data could not be fetched; `marks` then drops ALL of them) drops the mark AND the
 // nbsp, leaving the value alone — no stray leading space.
-#let nb(mark, value) = if mark == none { box[#value] } else { box[#mark~#value] }
+// `ghost`: see gate-icons below (a drawn icon switched off, height kept).
+#let ghost = "ghost"
+#let nb(mark, value) = {
+  if mark == none { box[#value] }
+  else if mark == ghost { box[#box(width: 0pt, height: 7.4pt, baseline: 1.4pt)#value] }
+  else { box[#mark~#value] }
+}
 
 // ------------------------------------------------------------ workday mode
 // `typst compile --input workday=1 resume.typ` builds the PARSE-ONLY copy for
@@ -562,6 +568,17 @@
   }
   out
 }
+
+// The drawn generic icons (`icons-line` / `icons-solid`: pin, tel, mail, web)
+// follow the SAME all-or-nothing rule as `marks`: a contact row with a drawn pin
+// and phone but no mail/LinkedIn/GitHub mark (harvest blocked) is a mixed row.
+// `#let ic = gate-icons(ic, mk)` right after `mk` turns every drawn icon into
+// `ghost` when the marks were not all harvested; `nb(ghost, v)` is then plain
+// text carrying an invisible zero-width strut as tall as the drawn icon, so the
+// line heights (and the family's calibrated page fill) are the same in both states.
+#let gate-icons(ic, mk) = if mk.mail == none {
+  ic.keys().map(k => (k, ghost)).to-dict()
+} else { ic }
 
 // ------------------------------------------------------- palette derivation
 // The harmonised mini-palette: an accent never travels alone. A pure neutral

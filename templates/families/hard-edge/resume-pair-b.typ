@@ -28,6 +28,7 @@
 #let ic-col = accent2
 #let ic = icons-solid(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 // GABARIT: dense — 1.6cm margins, a wide measure, 10.5pt body. Fill target
 // derives from the 1.3cm bottom margin: (100 - 4.7) - 0..2%.

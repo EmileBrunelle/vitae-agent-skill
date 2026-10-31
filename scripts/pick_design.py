@@ -1039,8 +1039,11 @@ def emit_typ(p: Pick, market: str) -> str:
                  + ("   // bg: the band colour where they sit reversed out"
                     if col == "white" else ""))
     o += ["#let mk = marks(ic-col, kit: \"%s\")   // drawn mark set: %s"
-          % p["markset"],
-          "",
+          % p["markset"]]
+    if "no generic icon" not in d["icons"]:
+        o.append("#let ic = gate-icons(ic, mk)   // drawn icons follow marks' "
+                 "all-or-nothing")
+    o += ["",
           "// ---------- Gabarit (fill target %s%% is derived from the bottom "
           "margin) ----------" % pg["fill"],
           '#set page(paper: "us-letter", margin: (%s))' % pg["margin"],
