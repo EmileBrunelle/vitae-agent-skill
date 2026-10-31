@@ -453,6 +453,35 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
 
 # ---------- compile / page-count / extraction, native or fallback ----------
 
+def auto_root(typ: str) -> str | None:
+    """Typst project root a file needs, or None for the default (its own folder).
+
+    The reference family files import the shared mechanics by relative path
+    (`#import "../../lib.typ"`), which Typst refuses unless `--root` is an ancestor
+    holding both. Climb as many levels as the deepest leading `../` of a
+    non-comment import; a CV folder (`#import "lib.typ"`) needs nothing."""
+    try:
+        with open(typ, encoding="utf-8-sig", errors="replace") as fh:
+            src = _strip_typst_comments(fh.read())
+    except OSError:
+        return None
+    ups = max((len(m.group(1)) // 3 for m in re.finditer(r'\bimport\s*\(?\s*"((?:\.\./)+)[^"]*\.typ"', src)), default=0)
+    root = os.path.dirname(os.path.abspath(typ))
+    for _ in range(ups):
+        root = os.path.dirname(root)
+    return root if ups else None
+
+
+def _root_kw(typ: str) -> dict[str, str]:
+    r = auto_root(typ)
+    return {"root": r} if r else {}
+
+
+def _root_cli(typ: str) -> list[str]:
+    r = auto_root(typ)
+    return ["--root", r] if r else []
+
+
 def ensure_icons(typ: str) -> None:
     """Guarantee an `icons.typ` beside the file being compiled.
 
@@ -464,6 +493,8 @@ def ensure_icons(typ: str) -> None:
     — copy the empty fallback instead of failing the compile with a Typst
     import error. No network here; fetching stays harvest_icons.py's job.
     """
+    if auto_root(typ):                 # reference family file: lib.typ/icons.typ live in templates/
+        return
     d = os.path.dirname(os.path.abspath(typ))
     dst = os.path.join(d, "icons.typ")
     if os.path.islink(dst):            # never write through a symlink
@@ -554,11 +585,11 @@ def typst_compile(src: str, pdf: str | None = None) -> tuple[bool, str]:
     """(ok, stderr) for `typst compile src [pdf]` via the CLI, else typst-py
     (the selftests' compile step; warnings are included in the text)."""
     if shutil.which("typst"):
-        r = subprocess.run(["typst", "compile", src] + ([pdf] if pdf else []), capture_output=True, text=True)
+        r = subprocess.run(["typst", "compile", src] + ([pdf] if pdf else []) + _root_cli(src), capture_output=True, text=True)
         return r.returncode == 0, r.stderr
     mod = typst_py() or importlib.import_module("typst")
     try:
-        res = mod.Compiler(src, **typst_font_kw()).compile_with_warnings(output=pdf or os.path.splitext(src)[0] + ".pdf")
+        res = mod.Compiler(src, **_root_kw(src), **typst_font_kw()).compile_with_warnings(output=pdf or os.path.splitext(src)[0] + ".pdf")
         warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
         return True, "\n".join(str(w) for w in warns or [])
     except Exception as e:
@@ -583,11 +614,11 @@ def typst_fonts() -> list[str] | None:
 def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
     """Returns (ok, stderr_text)."""
     if use_cli:
-        r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)], capture_output=True, text=True)
+        r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)] + _root_cli(typ), capture_output=True, text=True)
         return r.returncode == 0, (r.stdout + r.stderr)
     try:
         typst: Any = importlib.import_module("typst")
-        typst.compile(typ, output=pdf, **typst_font_kw())
+        typst.compile(typ, output=pdf, **_root_kw(typ), **typst_font_kw())
         return True, ""
     except Exception as e:
         return False, str(e)
@@ -596,14 +627,14 @@ def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
 def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
     pattern = os.path.join(tmp_dir, "p{p}.png")
     if use_cli:
-        subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pattern), "--format", "png", "--ppi", "90"],
+        subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pattern), "--format", "png", "--ppi", "90"] + _root_cli(typ),
                         capture_output=True, text=True)
     else:
         typst: Any = importlib.import_module("typst")
         try:
-            typst.compile(typ, output=pattern, format="png", ppi=90, **typst_font_kw())
+            typst.compile(typ, output=pattern, format="png", ppi=90, **_root_kw(typ), **typst_font_kw())
         except TypeError:
-            typst.compile(typ, output=pattern, format="png", **typst_font_kw())
+            typst.compile(typ, output=pattern, format="png", **_root_kw(typ), **typst_font_kw())
     return sorted(glob.glob(os.path.join(tmp_dir, "p*.png")))
 
 
@@ -2371,6 +2402,7 @@ def check_whitespace(path: str, boxes: Sequence[Box] | None = None, family: str 
 
 def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Any] | None:
     """JSON list of the values of every element labelled `selector`, or None."""
+    root = root or auto_root(typ)
     if not shutil.which("typst"):
         mod = typst_py()
         if mod is None:

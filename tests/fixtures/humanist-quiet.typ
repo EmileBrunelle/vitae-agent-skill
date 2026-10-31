@@ -4,7 +4,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
-#import "../../templates/families/humanist-quiet/lib.typ": *
+#import "../../templates/lib.typ": *
 #let accent = rgb("#0e6862")
 // Coordinated palette (monochrome harmony): one accent + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).

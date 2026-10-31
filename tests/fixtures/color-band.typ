@@ -4,7 +4,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
-#import "../../templates/families/color-band/lib.typ": *
+#import "../../templates/lib.typ": *
 #let accent = rgb("#1f3a5f")    // hue A — the band + the heading bars
 #let accent2 = rgb("#502d66")   // hue B — the dates + the list markers
 // DUOTONE family (design.md § Duotone): the pair is validated together

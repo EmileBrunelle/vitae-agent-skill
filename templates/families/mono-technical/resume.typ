@@ -3,7 +3,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
-#import "lib.typ": *
+#import "../../lib.typ": *
 // DUOTONE family: two harmonised hues, each with its own job.
 #let accent = rgb("#1f3a5f")    // hue A — STRUCTURE: heading marks, chip keylines
 #let accent2 = rgb("#8f2d3f")   // hue B — DATA: dates, list markers, icons

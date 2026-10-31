@@ -39,7 +39,7 @@
 // Each mark+value pair goes through `nb`, a #box[…~…] so the mark can never
 // be orphaned at a line end — and `nb` drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
-#import "lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
+#import "../../lib.typ": marks, nb, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
 #let mk = marks(ic-col)
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))

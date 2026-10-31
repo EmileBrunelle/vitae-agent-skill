@@ -31,7 +31,7 @@
 // references/steps/6-verify.md) and the 4 points of fill that cost were bought back with two
 // more one-line rows — again content, not leading.
 // ---------- Shared mechanics (templates/lib.typ) ----------
-#import "lib.typ": *
+#import "../../lib.typ": *
 #let accent = rgb("#b3261e")
 #let pal = derive(accent)
 #let soft = pal.soft

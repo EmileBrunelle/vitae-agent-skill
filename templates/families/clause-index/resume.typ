@@ -3,7 +3,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets, specialities line).
-#import "lib.typ": *
+#import "../../lib.typ": *
 #let accent = rgb("#33475b")    // slate — the clause numbers, and nothing else
 #let pal = derive(accent)
 #let soft = pal.soft

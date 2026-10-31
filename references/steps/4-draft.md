@@ -7,7 +7,7 @@
    `references/steps/4-tune.md`, then `--tune`, then verify. **Scripts are
    run, never read — their printed output is the instruction.** Fallback only if
    `--init` errors: `cp <skill>/templates/families/<family>/resume.typ <folder>/cv.typ`
-   plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
+   (then change its `#import "../../lib.typ"` line to `#import "lib.typ"`) plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
    apply the values of `--emit-typ` by hand. **Never retype, rewrite or summarize
    `lib.typ`** (a rewrite from memory lost `derive()` and the build never compiled
    again); customization goes in `cv.typ`. `verify.py` FAILs a lib that is not a

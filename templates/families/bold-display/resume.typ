@@ -3,7 +3,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
-#import "lib.typ": *
+#import "../../lib.typ": *
 #let accent = rgb("#8c3b00")    // hue A — the name, and nothing else
 #let accent2 = rgb("#105a90")   // hue B — heading underlines, markers, icons
 // DUOTONE family (design.md § Duotone): the pair is validated together

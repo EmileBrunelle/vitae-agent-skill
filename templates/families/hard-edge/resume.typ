@@ -6,7 +6,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, painted chips,
 // unbreakable mark+value box, platform marks, generic icon sets, specialities).
-#import "lib.typ": *
+#import "../../lib.typ": *
 #let accent = rgb("#b3261e")    // hue A — the monogram block + the specialities line
 #let accent2 = rgb("#0f4c5c")   // hue B — the dates, the markers, the icons
 // DUOTONE family (design.md § Duotone): the pair is validated together —

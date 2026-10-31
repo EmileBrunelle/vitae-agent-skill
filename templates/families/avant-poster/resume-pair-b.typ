@@ -6,7 +6,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets, specialities line).
-#import "lib.typ": *
+#import "../../lib.typ": *
 #let accent = rgb("#b3261e")    // hue A — the bleeding bars (masthead + sections)
 #let accent2 = rgb("#1f3a5f")   // hue B — the diagonal, the dividers, markers, icons
 // DUOTONE family (design.md § Duotone). The constructivist poster is a

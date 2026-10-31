@@ -119,8 +119,7 @@ templates/families/<family>/     # REFERENCE IMPLEMENTATIONS of all fourteen des
   resume.typ                     #   font pair A — the family's primary draw
   resume-pair-b.typ              #   font pair B — the SAME family on its second font pair, to prove
                                  #   the recipe survives a different pair (not a page 2)
-  lib.typ                        #   symlink to ../../lib.typ — one source of truth, no copies
-  icons.typ                      #   symlink to ../../icons.typ — the empty fallback, so every family compiles offline
+  (no lib.typ / icons.typ here)  #   the family files import ../../lib.typ — one source of truth, no copies, no symlinks; icons.typ resolves via lib.typ to the empty fallback, so every family compiles offline
 templates/families/swiss-grid/resume-2page.typ   # the worked 2-page sample (runhead, deliberate break, both pages measured)
 scripts/pick_design.py           # deterministic design draw: family, fonts, section labels, list markers; --emit-typ prints the ready-to-paste Typst preamble for the drawn recipe
 scripts/gen_palette.py           # generative, contrast-validated palettes (duotone included)

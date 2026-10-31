@@ -24,6 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: No symlinks in the tree
+        # claude.ai rejects zips containing symlinks; Windows checkouts without symlink support break them.
+        run: |
+          links="$(find . -type l -not -path './.git/*')"
+          if [ -n "$links" ]; then echo "symlinks are not allowed:"; echo "$links"; exit 1; fi
+
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}

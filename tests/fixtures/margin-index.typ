@@ -4,7 +4,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
-#import "../../templates/families/margin-index/lib.typ": *
+#import "../../templates/lib.typ": *
 #let accent = rgb("#4a2f10")
 #let pal = derive(accent)
 #let soft = pal.soft

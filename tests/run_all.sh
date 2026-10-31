@@ -21,9 +21,9 @@ mkdir -p "$out"; out="$(cd "$out" && pwd)"
 S="$out/work"; rm -rf "$S"; mkdir -p "$S" "$out/pdf" "$out/log"
 start=$(date +%s); fails=0; total=0
 
-# Scratch copy; cp -L turns the families' lib.typ symlinks into real files.
-cp -rL "$root/templates" "$root/scripts" "$root/references" "$S"/
-mkdir -p "$S/tests"; cp -rL "$root/tests/fixtures" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
+# Scratch copy. The repo holds no symlinks (families import ../../lib.typ), so plain -r is a faithful copy.
+cp -r "$root/templates" "$root/scripts" "$root/references" "$S"/
+mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
@@ -41,6 +41,9 @@ check() {
     fails=$((fails + 1))
   fi
 }
+
+# The repo must hold no symlinks (claude.ai rejects zips with them; Windows checkouts break them).
+check no-symlinks bash -c '! find "$1" -type l -not -path "*/.git/*" | grep .' _ "$root"
 
 # SKILL.md gates (v0.7 context diet). Run on the scratch copy; $1 = mode, $2 = root.
 #  size:  SKILL.md must stay <= 13000 bytes.

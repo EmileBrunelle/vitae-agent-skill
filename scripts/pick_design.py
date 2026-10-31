@@ -1152,6 +1152,9 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
         if score > best or (score == best and fn == "resume.typ"):
             pick_file, best = fn, score
     src = open(os.path.join(fdir, pick_file), encoding="utf-8").read()
+    # family files import the shared lib by repo-relative path; the starter has
+    # lib.typ/icons.typ copied beside it, so point the import there.
+    src = src.replace('#import "../../lib.typ"', '#import "lib.typ"')
 
     def lead(name: str) -> str:                       # keep `#let name = ` + trailing // note
         return r'^(#let %s = )[^\n]*?(\s*//[^\n]*)?$' % name

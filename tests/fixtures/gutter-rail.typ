@@ -22,7 +22,7 @@
 // colouring, no tab bar, no dark background — those are what make a page
 // identifiable as VS Code or as one rice.
 // ---------- Shared mechanics (templates/lib.typ) ----------
-#import "../../templates/families/gutter-rail/lib.typ": *
+#import "../../templates/lib.typ": *
 // SUPPORT DE DESTINATION (design.md § The destination support): the PRINT-SAFE
 // build below is the CANONICAL one and it is the one that ships — nobody
 // controls what a recipient does with a PDF, and a photocopier is the worst

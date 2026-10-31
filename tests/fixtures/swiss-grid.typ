@@ -4,7 +4,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
-#import "../../templates/families/swiss-grid/lib.typ": *
+#import "../../templates/lib.typ": *
 #let accent = rgb("#b3261e")
 // Coordinated palette (monochrome harmony): one accent + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).

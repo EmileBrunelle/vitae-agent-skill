@@ -3,7 +3,7 @@
 // Devices below stay this family's own; only the verified MECHANICS come from
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks).
-#import "lib.typ": *
+#import "../../lib.typ": *
 #let accent = rgb("#5c1f3a")    // garnet — the lozenges + the name rule
 #let pal = derive(accent)
 #let soft = pal.soft
