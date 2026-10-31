@@ -1110,23 +1110,28 @@ def _write_nofollow(path: str, data: bytes) -> None:
         fh.write(data)
 
 
-def _apply_labels(src: str, default: Mapping[str, str | None],
-                  drawn: Mapping[str, str | None], family: str) -> str:
+def _apply_labels(src: str, default: Mapping[str, object],
+                  drawn: Mapping[str, object], family: str) -> str:
     """Make the starter's section headings the DRAWN labels. The family file
     ships with the family's default names; a drawn variant renames the heading,
     a drawn None drops the whole soft-skills section (its leading comment
     line included)."""
     for role in ("profile", "skills", "soft"):
-        old, new = default.get(role), drawn.get(role)
+        _o, _n = default.get(role), drawn.get(role)
+        old = _o if isinstance(_o, str) else None
+        new = _n if isinstance(_n, str) else None
         if old is None or old == new:
             continue
         if new is None:
             src = _sub1(src, r'(?s)(?:^// -[^\n]*\n)?^#section\("%s"\)\[\n.*?^\]\n\n?'
                         % re.escape(old), "", "soft section", family)
         else:
+            label: str = new
+
+            def _rename(mm: re.Match[str], label: str = label) -> str:
+                return mm.group(1) + '"%s"' % label
             src = _sub1(src, r'^(#section\()"%s"' % re.escape(old),
-                        lambda mm, n=new: mm.group(1) + '"%s"' % n,
-                        "#section(%r)" % old, family)
+                        _rename, "#section(%r)" % old, family)
     return src
 
 
