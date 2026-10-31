@@ -1110,6 +1110,26 @@ def _write_nofollow(path: str, data: bytes) -> None:
         fh.write(data)
 
 
+def _apply_labels(src: str, default: Mapping[str, str | None],
+                  drawn: Mapping[str, str | None], family: str) -> str:
+    """Make the starter's section headings the DRAWN labels. The family file
+    ships with the family's default names; a drawn variant renames the heading,
+    a drawn None drops the whole soft-skills section (its leading comment
+    line included)."""
+    for role in ("profile", "skills", "soft"):
+        old, new = default.get(role), drawn.get(role)
+        if old is None or old == new:
+            continue
+        if new is None:
+            src = _sub1(src, r'(?s)(?:^// -[^\n]*\n)?^#section\("%s"\)\[\n.*?^\]\n\n?'
+                        % re.escape(old), "", "soft section", family)
+        else:
+            src = _sub1(src, r'^(#section\()"%s"' % re.escape(old),
+                        lambda mm, n=new: mm.group(1) + '"%s"' % n,
+                        "#section(%r)" % old, family)
+    return src
+
+
 def init_folder(p: Pick, folder: str, force: bool = False) -> None:
     """One executed command -> a compiling starting point in `folder`.
 
@@ -1198,6 +1218,7 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
         r = "2.5pt" if "pill" in p["variant"] else "0pt"
         src = _sub1(src, r'^(#let seg-radius = )\S+', lambda mm: mm.group(1) + r,
                     "#let seg-radius", fam)
+    src = _apply_labels(src, d["labels"], p["labels"], fam)
     pg = d["page"]
     for k, v in (("margin", pg["margin"]), ("body", pg["body"])):
         if k == "margin" and "(%s)" % v not in src and v not in src:
@@ -1238,6 +1259,25 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
 
 
 def selftest() -> None:
+    # --init: starter headings are exactly the drawn labels; a drawn soft=None
+    # leaves no soft-skills section behind (every family, every variant).
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for _f, _d in FAMILIES.items():
+        _fs = open(os.path.join(_root, "templates", "families", _f, "resume.typ"),
+                   encoding="utf-8").read()
+        for _role in ("profile", "skills", "soft"):
+            _dl = _d["labels"][_role]
+            if _dl is None:
+                continue
+            for _new in LABEL_VARIANTS[_role]:
+                _o = _apply_labels(_fs, _d["labels"],
+                                   dict(_d["labels"], **{_role: _new}), _f)
+                _h = re.findall(r'^#section\("([^"]*)"', _o, re.M)
+                if _new is None:
+                    assert _dl not in _h, (_f, _role, _h)
+                else:
+                    assert _new in _h and (_new == _dl or _dl not in _h), \
+                        (_f, _role, _new, _h)
     # _installed: plain name wins; "X <n>pt" variant resolves to the full
     # installed name, smallest n numerically; no false prefix matches.
     assert _installed("DM Sans", {"DM Sans", "DM Sans 9pt"}) == "DM Sans"
