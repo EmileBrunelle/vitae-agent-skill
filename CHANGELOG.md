@@ -2,6 +2,11 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- `verify.py` FAILs when letters or digits are drawn in a font family the CV sources never ask for (`font fallback` gate: per-character font names from pypdfium2, subset prefix and style suffix stripped, requested families read from the `font:` arguments and font variables of cv.typ and the local files it imports, matched loosely): Typst falls back silently, with no warning, when a family exists but lacks the glyphs, which is what fontsource `*-latin-ext-*` files do (run 23 drew the whole body in Libertinus Serif and the gate passed). It also FAILs when over 5% of the characters fell back, WARNs for a few accented letters or punctuation marks, and prints an INFO line for a few symbols (an arrow the body face lacks). Without pypdfium2 it prints a WARN that the check did not run. Calibrated at zero FAIL and zero WARN on all shipped templates (academic included) and on the 57 past run outputs that compile (13 of them INFO for an arrow). Test fixtures in `tests/font_fallback/`.
+- `references/fonts.md`: the fontsource route takes only `*-latin-*` files, never `*-latin-ext-*` (no basic Latin, they shadow the real files), and gives the check command (`pdffonts cv.pdf`).
+
 ## 0.7.5 - 2026-10-31
 
 - `verify.py` WARNs when a bullet restates its own entry's descriptor line in the experience and projects sections (the note argument of the entry call, split on ` · `, `|` and commas; in projects also the second argument, the description; the employer is never compared; a descriptor segment needs at least 2 content words; English and French stop words) (a run wrote "Go + SQLite REST service" and then "Built the service in Go with SQLite" to fill the page); it fires when a bullet covers at least half of a descriptor segment's content words and at least two of them, one WARN per bullet, never a FAIL. Calibrated at zero hits on every shipped template and fixture.

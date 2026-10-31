@@ -71,9 +71,10 @@ Variable fonts are fine and are what Google now ships for most families — a si
 Sandboxed web agents sometimes cannot reach `fonts.google.com` or `fonts.gstatic.com`. The same OFL families are published on npm as `@fontsource/<family>` (lowercase, hyphenated: `@fontsource/sora`). This route worked in a Claude Code Web run; it is not part of the test suite.
 
 1. Fetch the package: `npm pack @fontsource/sora`, or, if curl and npm are blocked, download the tarball from `registry.npmjs.org/@fontsource/sora` (metadata gives `dist.tarball`) with Python `urllib`.
-2. Take the weights the recipe needs from `package/files/`: `<family>-latin-<weight>-normal.woff2`. @fontsource splits each family into per-script subsets (`latin`, `latin-ext`, `cyrillic`, …); if the CV has accented letters beyond Latin-1 (Polish, Czech, Romanian, Turkish…), also take the matching `latin-ext` files. Check the file names in the package rather than trusting this list.
+2. Take the weights the recipe needs from `package/files/`: `<family>-latin-<weight>-normal.woff2`, and ONLY the `*-latin-*` files, never `*-latin-ext-*`. @fontsource splits each family into per-script subsets (`latin`, `latin-ext`, `cyrillic`, …); a `latin-ext` file carries the same family name but no basic Latin glyphs, so once installed it shadows the real `latin` file and Typst draws the body in its bundled Libertinus Serif WITHOUT any warning (Claude Code web run 23). If the CV needs letters beyond Latin-1 (Polish, Czech, Romanian, Turkish…), the subset route cannot serve it: use the Google Fonts route above, or merge the subsets into one font file first. Check the file names in the package rather than trusting this list.
 3. Convert with fonttools (`pip install fonttools brotli`): `python3 -c "from fontTools.ttLib import TTFont; f=TTFont('x.woff2'); f.flavor=None; f.save('x.ttf')"`.
 4. Install the `.ttf` files with Route 1 or Route 2, then confirm with `typst fonts` that the family name is the one the recipe uses.
+5. Prove that the body is drawn in the family you installed: `pdffonts cv.pdf` (poppler) must list only families that `cv.typ` asks for, no `LibertinusSerif` unless it is requested. `scripts/verify.py` runs the same check on every compile (the `font fallback` line, per character, needs pypdfium2) and FAILs when letters are drawn in an unrequested family.
 
 ## The faces
 

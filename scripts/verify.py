@@ -90,6 +90,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from collections import Counter
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Literal, NoReturn, TypedDict, cast, overload
@@ -108,7 +109,7 @@ Word = tuple[float, float, float, float, str]      # x0, y0, x1, y1, text
 Band = tuple[int, int]                             # first, last pixel row of a run
 LineBox = list[float]                              # [x0, x1, y0, y1] of one text line
 GapFn = Callable[[int, LineBox, LineBox], float]   # optical gap (pt) between two lines
-Level = Literal["FAIL", "WARN", "OK"]
+Level = Literal["FAIL", "WARN", "OK", "INFO"]
 Finding = tuple[Level, str]                        # one gate line: level, message
 # One extracted word of the hidden-text gate: page, word, box, box height (pt),
 # contrast against its own background (None: no raster), off the page.
@@ -3369,6 +3370,172 @@ def check_duplicate_names(secs: Sequence[Mark] | None, heads: Sequence[Mark] | N
     return out
 
 
+# ---------- font actually rendered vs font asked for (the silent Typst fallback) ----------
+
+# A family that EXISTS but lacks the glyphs (fontsource's `*-latin-ext-*` files carry the
+# family name and no basic Latin and shadow the `*-latin-*` ones) draws the text in whatever
+# face Typst finds next, usually its bundled Libertinus Serif, WITHOUT a warning. The PDF is
+# the only witness: pdfium reports the font of every character. Rule chosen: the full one.
+# A character is "fallen back" when the PDF font's family is named by no `font:` expression
+# of the CV sources (cv.typ and the local files it imports); FAIL when an ASCII letter or digit
+# fell back, or when more than FONT_FALLBACK_SHARE of the visible characters did; WARN for a few
+# other glyphs (a symbol the chosen face lacks, an accented letter).
+FONT_FALLBACK_SHARE = 0.05
+TYPST_DEFAULT_FAMILIES = ("Libertinus Serif", "New Computer Modern", "DejaVu Sans Mono")
+_FONT_STYLE_RE = re.compile(r"^(?:\d+pt|variable|regular|roman|book|medium|semibold|bold|extrabold|"
+                            r"black|heavy|thin|light|extralight|italic|oblique|condensed|display|text)*$")
+
+
+def _fam_key(name: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def _family_requested(psname: str, requested: set[str]) -> bool:
+    """Loose match of a PDF base-font name (`ABCDEF+NotoSans-Medium`, `Adwaita-Mono-Bold`)
+    against the requested family keys: the name with its hyphens dropped starts with the
+    family and only style words follow (`notosansmedium`), or the family is the name's first
+    segment plus an optical size (`bricolagegrotesque96pt` asked, `BricolageGrotesque-Regular`
+    drawn). `NotoSansMono` is not `Noto Sans`: `mono` is not a style word."""
+    name = re.sub(r"^[A-Z]{6}\+", "", psname)
+    full = _fam_key(name)
+    first = _fam_key(name.split("-")[0])
+    for r in requested:
+        if full.startswith(r) and _FONT_STYLE_RE.match(full[len(r):]):
+            return True
+        if r.startswith(first) and _FONT_STYLE_RE.match(r[len(first):]):
+            return True
+    return False
+
+
+def _font_sources(typ: str, root: str | None = None, seen: set[str] | None = None) -> str:
+    """The text of the CV source and of every local .typ it imports or includes."""
+    seen = set() if seen is None else seen
+    path = os.path.realpath(typ)
+    if path in seen or len(seen) > 20:
+        return ""
+    seen.add(path)
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        return ""
+    out = [text]
+    for m in re.finditer(r'#(?:import|include)\s+"([^"@]+\.typ)"', text):
+        rel = m.group(1)
+        base = os.path.realpath(root) if rel.startswith("/") and root else os.path.dirname(path)
+        out.append(_font_sources(os.path.join(base, rel.lstrip("/")), root, seen))
+    return "\n".join(out)
+
+
+def _font_value(src: str, pos: int) -> str:
+    """The expression at `pos`: a quoted string, a balanced (...) tuple, or an identifier."""
+    m = re.compile(r"\s*").match(src, pos)
+    pos = m.end() if m else pos
+    if src.startswith("(", pos):
+        depth = 0
+        for k in range(pos, min(len(src), pos + 600)):
+            depth += src[k] == "("
+            depth -= src[k] == ")"
+            if depth == 0:
+                return src[pos:k + 1]
+        return src[pos:pos + 600]
+    m = re.compile(r'"[^"\n]*"|[A-Za-z_][\w-]*').match(src, pos)
+    return m.group(0) if m else ""
+
+
+def requested_families(src: str) -> set[str]:
+    """Family keys the sources ask for: the value of every `font:` argument (a string, a tuple
+    of strings and variables, or a variable, resolved through `#let name = value` chains), plus
+    every `#let ...font.../...f` variable holding strings (lib helpers take them as arguments).
+    Comments are skipped."""
+    src = "\n".join(re.sub(r"(?:^|\s)//.*$", "", ln) for ln in src.splitlines())
+    lets = {m.group(1): _font_value(src, m.end()) for m in re.finditer(r"#let\s+([A-Za-z_][\w-]*)\s*=", src)}
+    names: set[str] = set()
+    seen: set[str] = set()
+
+    def take(value: str) -> None:
+        for lit, ident in re.findall(r'"([^"\\]{2,60})"|([A-Za-z_][\w-]*)', value):
+            if lit:
+                names.add(_fam_key(lit))
+            elif ident in lets and ident not in seen:
+                seen.add(ident)
+                take(lets[ident])
+    for m in re.finditer(r"\bfont\s*:", src):
+        take(_font_value(src, m.end()))
+    for k, v in lets.items():
+        if re.search(r"font|face|\wf$", k) and v.startswith(("(", '"')) and k not in seen:
+            take(v)
+    names.discard("")
+    if re.search(r"`|#raw\b|\braw\(", src):
+        names.add(_fam_key("DejaVu Sans Mono"))
+    if not names:                       # nothing asked for: Typst's own defaults are the request
+        names.update(_fam_key(x) for x in TYPST_DEFAULT_FAMILIES)
+    return names
+
+
+def pdf_char_fonts(pdf: str) -> list[tuple[str, str]] | None:
+    """[(character, PDF font name)] of every non-space character, or None without pypdfium2."""
+    if not _importable("pypdfium2"):
+        return None
+    try:
+        import ctypes
+        raw: Any = importlib.import_module("pypdfium2.raw")
+        out: list[tuple[str, str]] = []
+        for pg in _pdfium_doc(pdf):
+            tp = pg.get_textpage()
+            if not tp.count_chars():
+                continue
+            buf = ctypes.create_string_buffer(256)
+            flags = ctypes.c_int()
+            idx = 0
+            for ch in tp.get_text_range():
+                i, idx = idx, idx + (2 if ord(ch) > 0xFFFF else 1)
+                if ch.isspace() or ord(ch) < 0x20:
+                    continue
+                n = raw.FPDFText_GetFontInfo(tp, i, buf, 256, ctypes.byref(flags))
+                out.append((ch, buf.value.decode("latin-1") if n else ""))
+        return out
+    except Exception:
+        return None
+
+
+def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str]) -> list[Finding]:
+    """Findings for [(character, PDF font name)] against the requested family keys. FAIL: an
+    ASCII letter or digit, or over FONT_FALLBACK_SHARE of the characters, left the requested
+    families. WARN: a few other glyphs did (accented letters, punctuation). INFO: only symbols
+    did (unicode category S*: the arrow or check mark a body face lacks; Typst's glyph-by-glyph
+    fallback is designed for them and a CV does not need to react)."""
+    pretty = ", ".join(sorted(req))
+    bad = [(c, f) for c, f in chars if f and not _family_requested(f, req)]
+    if not bad:
+        return []
+    fams = Counter(re.sub(r"^[A-Z]{6}\+", "", f).split("-")[0] for _, f in bad)
+    alnum = [c for c, _ in bad if c.isascii() and c.isalnum()]
+    share = len(bad) / max(1, len(chars))
+    shown = "".join(dict.fromkeys(c for c, _ in bad))[:20]
+    actual = ", ".join(f"{n} ({k})" for n, k in fams.most_common(3))
+    if alnum or share > FONT_FALLBACK_SHARE:
+        return [("FAIL", f"font fallback: {len(bad)} of {len(chars)} characters ({len(alnum)} ASCII letters/digits, "
+                         f"{share:.0%}) are drawn in {actual}, not in the requested families ({pretty}); "
+                         f"sample \"{shown}\". Typst falls back SILENTLY when a family exists without the glyphs: "
+                         "a font file missing the basic Latin range, or subset files shadowing the real ones "
+                         "(fontsource `*-latin-ext-*`); see references/fonts.md")]
+    if all(unicodedata.category(c).startswith("S") for c, _ in bad):
+        return [("INFO", f"font fallback: {len(bad)} symbol(s) \"{shown}\" drawn in {actual}, outside the requested "
+                         "families; the body face lacks the glyph, harmless for a few symbols")]
+    return [("WARN", f"font fallback: {len(bad)} character(s) drawn in {actual}, not in the requested families "
+                     f"({pretty}): \"{shown}\"; the chosen face lacks these glyphs (accents or punctuation): "
+                     "swap the face or the character, see references/fonts.md")]
+
+
+def check_font_fallback(typ: str, pdf: str, root: str | None = None) -> list[Finding]:
+    """The characters the PDF drew in a family the sources never asked for."""
+    chars = pdf_char_fonts(pdf)
+    if chars is None:
+        return [("WARN", "font fallback NOT checked (needs pypdfium2: pip install pypdfium2); "
+                         "by hand: pdffonts cv.pdf, every family listed must be one cv.typ asks for")]
+    return classify_font_fallback(chars, requested_families(_font_sources(typ, root)))
+
+
 def run_hidden_gate(pdf: str) -> int:
     """Print the hidden-text gate's lines; return 1 if any FAIL."""
     det: list[HiddenStat] = []
@@ -3387,6 +3554,9 @@ def run_new_gates(typ: str, pdf: str, txt: str, src: str, root: str | None = Non
                   detail: list[DetailRow] | None = None) -> int:
     """Print the new gates' lines; return 1 if any FAIL."""
     fail = run_hidden_gate(pdf)
+    for lvl, msg in check_font_fallback(typ, pdf, root=root):
+        print(f"{lvl:<5} {msg}")
+        fail |= lvl == "FAIL"
     for lvl, msg in check_group_proximity(typ, pdf, root=root, detail=detail):
         print(f"{lvl:<5} {msg}")
         fail |= lvl == "FAIL"
@@ -3880,6 +4050,23 @@ def _selftest() -> NoReturn:
     assert "leading: 0.610em, spacing: 0.700em" in out, out
     assert "body 0.999em" in out, "edited past the par declaration"
     assert _read_par(out) == (0.610, 0.700)
+    # font fallback: requested families come from font: args and variable chains, matching is loose
+    _req = requested_families('#let bodyf = ("Noto Sans", "Liberation Sans")\n#let dispf = bodyf\n'
+                              '#set text(font: bodyf, lang: "en", weight: "bold")\n#text(font: dispf)[x]\n')
+    assert _req == {"notosans", "liberationsans"}, _req
+    assert requested_families("#set text(size: 10pt)\n") >= {"libertinusserif"}
+    assert requested_families('#let monof = ("Fira Mono",)\n') == {"firamono"}
+    assert _family_requested("ABCDEF+NotoSans-Medium", _req)
+    assert not _family_requested("NotoSansMono-Regular", _req), "NotoSansMono is not Noto Sans"
+    assert _family_requested("BricolageGrotesque-Regular", {"bricolagegrotesque96pt"})
+    assert _family_requested("Adwaita-Mono-Bold", {"adwaitamono"})
+    _okf = [(c, "ABCDEF+NotoSans-Regular") for c in "Hello 1"]
+    assert classify_font_fallback(_okf, _req) == []
+    _libertinus = [(c, "LibertinusSerif-Regular") for c in "Hello"]
+    assert classify_font_fallback(_okf + _libertinus, _req)[0][0] == "FAIL"        # letters in the wrong face
+    assert classify_font_fallback(_okf * 40 + [("\u2192", "DejaVuSans")], _req)[0][0] == "INFO"   # one symbol
+    assert classify_font_fallback(_okf * 40 + [("\u00e9", "DejaVuSans")], _req)[0][0] == "WARN"   # one accent
+    assert classify_font_fallback(_okf * 3 + [("\u2192", "DejaVuSans")] * 3, _req)[0][0] == "FAIL"   # over 5 %
     # a file with no par declaration must be reported, never guessed at
     assert _read_par("#set text(size: 10.5pt)\n") is None
     # spacing-before-leading is not the template's order and must not match
@@ -5360,6 +5547,9 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     else:
         print("WARN  grouping / date-adjacency / duplicate-name gates NOT checked (need the typst CLI or typst-py with query)")
         fail |= run_hidden_gate(pdf)
+        for lvl, msg in check_font_fallback(typ, pdf):
+            print(f"{lvl:<5} {msg}")
+            fail |= lvl == "FAIL"
         for msg in check_forced_linebreak(typ_text) + check_literal_tilde(typ_text):
             print("FAIL  " + msg)
             fail = 1
