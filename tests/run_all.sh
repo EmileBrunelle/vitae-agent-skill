@@ -586,7 +586,7 @@ check render-crops-solid render_crops_solid
 font_fallback() {
   local d="$S/tests/font_fallback" f
   python3 -c "import pypdfium2" 2>/dev/null || { echo "needs pypdfium2"; return 1; }
-  for f in bad near cjk math symbols; do
+  for f in bad near cjk math symbols math-libertinus ncm raw-only; do
     typst compile "$d/$f.typ" "$d/$f.pdf" 2>/dev/null || python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])' "$d/$f.typ" "$d/$f.pdf" 2>/dev/null || return 1
   done
   python3 -I scripts/verify.py --gates "$d/bad.typ" "$d/bad.pdf" >"$d/bad.log" || true
@@ -596,6 +596,10 @@ font_fallback() {
   for f in cjk math symbols; do
     python3 -I scripts/verify.py --gates "$d/$f.typ" "$d/$f.pdf" >"$d/$f.log" || true
     ! grep -q '^FAIL  font fallback' "$d/$f.log" || { echo "$f.typ: must never FAIL (script, math and symbols are not Latin fallback)"; cat "$d/$f.log"; return 1; }
+  done
+  for f in math-libertinus ncm raw-only; do
+    python3 -I scripts/verify.py --gates "$d/$f.typ" "$d/$f.pdf" >"$d/$f.log" || true
+    ! grep -Eq '^(FAIL|WARN)  font fallback' "$d/$f.log" || { echo "$f.typ: must print no FAIL and no WARN font-fallback line"; cat "$d/$f.log"; return 1; }
   done
 }
 if python3 -c "import pypdfium2" 2>/dev/null; then

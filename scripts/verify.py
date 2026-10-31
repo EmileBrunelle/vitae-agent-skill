@@ -3475,14 +3475,16 @@ def requested_families(src: str, firsts: set[str] | None = None) -> set[str]:
         if re.search(r"font|face|\wf$", k) and v.startswith(("(", '"')) and k not in seen:
             take(v)
     names.discard("")
-    if re.search(r"`|#raw\b|\braw\(", src):
-        names.add(_fam_key("DejaVu Sans Mono"))
-        first.add(_fam_key("DejaVu Sans Mono"))
     if not names:                       # nothing asked for: Typst's own defaults are the request
         names.update(_fam_key(x) for x in TYPST_DEFAULT_FAMILIES)
         first.update(names)
+    if re.search(r"`|#raw\b|\braw\(", src):
+        names.add(_fam_key("DejaVu Sans Mono"))
+        first.add(_fam_key("DejaVu Sans Mono"))
     if "newcomputermodern" in names:
         names.add("newcm")
+        if "newcomputermodern" in first:
+            first.add("newcm")
     if "$" in src:                      # math is set in the math face of the text face's family
         names.update(("newcmmath", "libertinusmath", "stixtwomath", "notosansmath"))
     if firsts is not None:
@@ -3574,7 +3576,7 @@ def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
     if firsts and not latin:
         late = [(c, f, k) for c, f, k in kinds if f and k == "latin" and _family_requested(f, req)
                 and _fam_key(re.sub(r"^[A-Z]{6}\+", "", f)).startswith(BUNDLED_KEYS)
-                and not _family_requested(f, firsts)]
+                and "math" not in f.lower() and not _family_requested(f, firsts)]
         if late:
             out.append(("WARN", f"font fallback: {len(late)} Latin letter(s) drawn in {fam_of(late)}, a member of the font "
                                 f"tuple but not its first; the first face ({', '.join(sorted(firsts))}) was not used. "
@@ -4140,6 +4142,15 @@ def _selftest() -> NoReturn:
     _ncm = requested_families('#set text(font: "New Computer Modern")\n')
     assert classify_font_fallback([(c, "NewCM10-Regular") for c in "Hello"], _ncm) == []
     assert classify_font_fallback([(c, "NewCM10-Regular") for c in "Hello"], requested_families("plain")) == []
+    _m2: set[str] = set()
+    _mr = requested_families('#set text(font: "Noto Sans")\n$O(n^2)$\n', _m2)
+    assert classify_font_fallback([(c, "NewCMMath-Regular") for c in "On"], _mr, _m2) == []
+    _n2: set[str] = set()
+    _nr = requested_families('#set text(font: "New Computer Modern")\n', _n2)
+    assert classify_font_fallback([(c, "NewCM10-Regular") for c in "Hello"], _nr, _n2) == []
+    _r2: set[str] = set()
+    _rr = requested_families("Hello `code` World\n", _r2)     # raw alone does not cancel the Typst defaults
+    assert classify_font_fallback([(c, "LibertinusSerif-Regular") for c in "Hello"], _rr, _r2) == []
     # a bundled face that is a later member of the tuple: the first face was not used (WARN, never FAIL)
     _firsts: set[str] = set()
     _tup = requested_families('#set text(font: ("Caladea", "Libertinus Serif"))\n/* font: "Nope" */\n', _firsts)
