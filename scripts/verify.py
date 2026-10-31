@@ -3531,6 +3531,15 @@ def _strip_typst_comments(src: str) -> str:
     return "".join(out)
 
 
+def digest_of(f: str) -> str:
+    """sha256 of a lib file, BOM and CRLF normalised."""
+    with open(f, "rb") as fh:
+        data = fh.read()
+    if data.startswith(b"\xef\xbb\xbf"):
+        data = data[3:]
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+
+
 def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
                         known: set[str] | None = None) -> list[Finding]:
     """Return [(level, msg)] for the lib.typ the CV imports ("FAIL"/"WARN");
@@ -3541,6 +3550,7 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
     ref = os.path.join(skill_dir, "templates", "lib.typ")
     # Follow local #import "x.typ" chains (cv.typ -> family.typ -> lib.typ).
     lib, shown, seen, todo = None, None, set(), [os.path.abspath(typ_path)]
+    direct = False   # the CV's own file imports lib.typ (not a family file)
     while todo and lib is None:
         f = todo.pop(0)
         if f in seen:
@@ -3557,6 +3567,7 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
             path = os.path.normpath(os.path.join(base, imp.lstrip("/") if imp.startswith("/") else imp))
             if os.path.basename(imp) == "lib.typ":
                 lib, shown = path, imp
+                direct = f == os.path.abspath(typ_path)
                 break
             todo.append(path)
     if lib is None and os.path.isfile(ref) and os.path.isfile(
@@ -3568,17 +3579,18 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
     cv_dir = os.path.dirname(lib)
     import shlex
     cp = f"cp {shlex.quote(ref)} {shlex.quote(cv_dir + '/')}"
+    here = os.path.dirname(os.path.abspath(typ_path))
+    if direct and os.path.normpath(cv_dir) != os.path.normpath(here):
+        # A family template copied without its "change the import" step: the
+        # import still climbs out of the CV folder. Copy lib.typ NEXT TO cv.typ.
+        cp = f"cp {shlex.quote(ref)} {shlex.quote(here + '/')}"
+        if not os.path.isfile(lib) or digest_of(lib) != digest_of(ref):
+            return [("FAIL", f'cv.typ imports "{shown}" (outside this folder): change the import to '
+                             f'`#import "lib.typ": *` and copy lib.typ next to cv.typ: {cp}')]
     if not os.path.isfile(lib):
         return [("FAIL", f"{shown} is imported but missing — copy it: {cp}")]
-    import hashlib
-    def digest(f: str) -> str:
-        with open(f, "rb") as fh:
-            data = fh.read()
-        if data.startswith(b"\xef\xbb\xbf"):
-            data = data[3:]
-        return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
-    h = digest(lib)
-    if h == digest(ref):
+    h = digest_of(lib)
+    if h == digest_of(ref):
         return []
     if h in known:
         return [("WARN", f"lib.typ is from an older vitae release; recopy to get fixes: {cp}")]
@@ -4612,6 +4624,12 @@ def _selftest() -> NoReturn:
         _li_r = check_lib_integrity(os.path.join(_li_cv, "sub", "cv.typ"), _li_sk, {_li_old})
         assert [l for l, _ in _li_r] == ["FAIL"], _li_r
         assert "cp " in _li_r[0][1]
+        # family template copied without changing the import: lib.typ goes NEXT TO cv.typ
+        _li_gp = os.path.join(_li_d, "g", "p", "mycv"); os.makedirs(_li_gp)
+        _li_w(os.path.join(_li_gp, "cv.typ"), '#import "../../lib.typ": *\n')
+        _li_r = check_lib_integrity(os.path.join(_li_gp, "cv.typ"), _li_sk, {_li_old})
+        assert [l for l, _ in _li_r] == ["FAIL"] and '#import "lib.typ": *' in _li_r[0][1], _li_r
+        assert f"{_li_gp}/" in _li_r[0][1] and f"{_li_d}/g/ " not in _li_r[0][1], _li_r
     # Tuner cap: an under-filled doc must FAIL with content advice, the
     # leading clamped at the cap even when the caller passes 0.40 1.60; an
     # over-full doc keeps the old advice; a normal doc converges in the cap.
