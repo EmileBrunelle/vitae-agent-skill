@@ -255,7 +255,12 @@ def check_images(pngs: Sequence[str]) -> None:
 
 
 class Truncated(Exception):
-    """finish_reason=length: the answer is cut off, so no verdict can be trusted."""
+    """finish_reason=length: the answer is cut off, so no verdict can be trusted. Carries the tokens spent."""
+
+    def __init__(self, msg: str, prompt_tokens: int, completion_tokens: int) -> None:
+        super().__init__(msg)
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
 
 
 def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens: int,
@@ -285,15 +290,17 @@ def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens:
     u = resp.get("usage")
     if u is not None and not isinstance(u, dict):
         die(f"unexpected `usage` in response (not an object): {str(u)[:100]}")
+    pt = (u or {}).get("prompt_tokens")
+    ct = (u or {}).get("completion_tokens")
+    pt, ct = (pt if isinstance(pt, int) else 0), (ct if isinstance(ct, int) else 0)
     if finish == "length":
         raise Truncated(f"inconclusive: output truncated at {max_tokens} tokens (finish_reason=length); a reasoning "
-                        f"model likely ran out of tokens - raise --max-tokens (now {max_tokens})")
+                        f"model likely ran out of tokens - raise --max-tokens (now {max_tokens}); "
+                        f"tokens spent: prompt {pt}, completion {ct}", pt, ct)
     if not clean_content(text):
         die(f"model returned empty content (finish_reason={finish}); a reasoning model likely ran out of "
             f"tokens or never closed its <think> block - raise --max-tokens (now {max_tokens})")
-    pt = (u or {}).get("prompt_tokens")
-    ct = (u or {}).get("completion_tokens")
-    return text, pt if isinstance(pt, int) else 0, ct if isinstance(ct, int) else 0
+    return text, pt, ct
 
 
 def classify(pngs: Sequence[str]) -> tuple[list[tuple[str, str]], list[str]]:
@@ -345,7 +352,9 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
             try:
                 text, p, c = ask(a.base_url, a.model, prompt, imgs, a.max_tokens, a.timeout,
                                  a.temperature, a.top_p, a.top_k)
-            except Truncated:
+            except Truncated as e:
+                tp += e.prompt_tokens
+                tc += e.completion_tokens
                 return ("FAIL", f"inconclusive (truncated at {a.max_tokens} tokens)"), ""
             tp += p
             tc += c
