@@ -4608,6 +4608,15 @@ def _selftest() -> NoReturn:
         assert _trc == 1 and "UNDER-FILLED" not in _to, _to
         _trc, _to, _tft, _tpar = _tune_doc(38, fmin=88)
         assert _trc == 0 and _tpar is not None and _tpar[0] <= LEADING_CAP + 1e-9, (_to, _tpar)
+    # Leading WARN: fires strictly above 1.00em, silent at the shipped maximum.
+    with tempfile.TemporaryDirectory() as _lw:
+        _lwf = os.path.join(_lw, "cv.typ")
+        for _lv, _lwant in ((0.96, False), (1.00, False), (1.09, True), (1.10, True)):
+            open(_lwf, "w", encoding="utf-8").write(
+                '#set par(leading: %.2fem, spacing: 1.2em)\n' % _lv)
+            _lm = _leading_warn(_lwf)
+            assert bool(_lm) == _lwant, (_lv, _lm)
+        assert "DOUBLE-SPACED" in _lm and "1.100em" in _lm, _lm
     print("selftest OK — lib.typ integrity (current / older / rewritten); tuner regex reads, writes and round-trips; "
           "an unrecognised par declaration is reported, not guessed; "
           "a pale or short hairline AT a boundary reads as a device, while "
@@ -4628,6 +4637,28 @@ _LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} — allowed O
                  "facts would fill it; never pad or invent to reach it (rule 1)")
 
 
+# The 29 shipped templates top out at 0.96em body leading; the tuner may go to
+# LEADING_CAP (1.10em). Above 1.00em multi-line text (profile summary, wrapped
+# bullets) reads as double-spaced while every mechanical check still passes.
+LEADING_WARN = 1.00    # em; strictly above it the WARN fires (largest shipped 0.96)
+_LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line paragraphs "
+                 "(shipped templates stay <= 0.96em; warns above {t:.2f}em) — the page is "
+                 "padded with air, not content. Prefer adding a real fact (a bullet, a "
+                 "result, a project) over leading; if the facts are exhausted, accept the "
+                 "lower fill and tell the user")
+
+
+def _leading_warn(typ: str) -> str:
+    """The WARN line when cv.typ's `#set par(leading:)` is above LEADING_WARN, else ''."""
+    try:
+        par = _read_par(open(typ, encoding="utf-8").read())
+    except OSError:
+        return ""
+    if par is None or par[0] <= LEADING_WARN + 1e-9:
+        return ""
+    return _LEADING_WARN.format(l=par[0], t=LEADING_WARN)
+
+
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
               facts: str | None = None) -> NoReturn:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]."""
@@ -4641,6 +4672,9 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     drawn, drawn_warns = _drawn_fill(typ)
     for w in drawn_warns:
         print(w)
+    lead_warn = _leading_warn(typ)
+    if lead_warn:
+        print(lead_warn)
     lowered = ""
     if drawn:
         if not (fmin and fmax):
@@ -4825,6 +4859,8 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
             print("PASS  mechanical checks except fill (no FILL_MIN FILL_MAX "
                   "given) — rerun with the fill targets from the pick_design.py "
                   "report, then LOOK at the PNGs")
+        if lead_warn:
+            print(lead_warn)
 
     sys.exit(fail)
 
