@@ -2,6 +2,14 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## 0.7.3 - 2026-10-31
+
+- The leading-ratio WARN threshold drops from 2.00 to 1.95: a real run at leading 1em with 0.5em bullet spacing (ratio exactly 2.00) still read double-spaced; the shipped templates max out at 1.89.
+- `verify.py` WARNs when the summary or profile repeats two or more figures already in the experience or project bullets (padding by repetition, which the anti-filler clause forbids); one headline figure is fine, and years, GPAs, dates, phone numbers, code and URLs are ignored.
+- Contact icons are all-or-nothing across drawn and harvested icons: `lib.typ` gains `gate-icons()`, so when the harvest is blocked the drawn pin, phone and mail icons disappear with the harvested ones instead of leaving a mixed row (17 family templates and `pick_design.py` output patched, plus color-band's own drawn icons). Line height is kept, so the fill does not move.
+- `verify.py` recognises the 0.7.2 `lib.typ` and three earlier releases as known stale copies.
+- `docs/models.md`: Claude Code on the web row added; the older vitae that loaded in a first cloud attempt came from the cloud environment, not the repository.
+
 ## 0.7.2 - 2026-10-31
 
 - `verify.py` WARNs when the body leading is more than 2x the bullet spacing (prose reads double-spaced next to single-line bullets; seen on three platforms; the absolute 1.00em WARN missed a 0.94em case); the threshold is 2.00 and the shipped templates max out at 1.89.
