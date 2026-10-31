@@ -3381,9 +3381,12 @@ def check_duplicate_names(secs: Sequence[Mark] | None, heads: Sequence[Mark] | N
 # fell back, or when more than FONT_FALLBACK_SHARE of the visible characters did; WARN for a few
 # other glyphs (a symbol the chosen face lacks, an accented letter).
 FONT_FALLBACK_SHARE = 0.05
-TYPST_DEFAULT_FAMILIES = ("Libertinus Serif", "New Computer Modern", "DejaVu Sans Mono")
-_FONT_STYLE_RE = re.compile(r"^(?:\d+pt|variable|regular|roman|book|medium|semibold|bold|extrabold|"
-                            r"black|heavy|thin|light|extralight|italic|oblique|condensed|display|text)*$")
+TYPST_DEFAULT_FAMILIES = ("Libertinus Serif", "New Computer Modern", "DejaVu Sans Mono")   # PDF: LibertinusSerif, NewCM10, DejaVuSansMono
+_FONT_STYLE_RE = re.compile(r"^(?:\d+|pt|variable|regular|roman|book|medium|semibold|bold|extrabold|black|heavy|"
+                            r"thin|light|extralight|italic|oblique|condensed|semicondensed|cond|narrow|display|text|"
+                            r"psmt|mt|vf|upright|pro|std|semi|demi|ultra|extra)*$")
+# Typst's bundled faces, by the base-font key their PDF names start with
+BUNDLED_KEYS = ("libertinus", "newcm", "dejavusansmono")
 
 
 def _fam_key(name: str) -> str:
@@ -3442,23 +3445,30 @@ def _font_value(src: str, pos: int) -> str:
     return m.group(0) if m else ""
 
 
-def requested_families(src: str) -> set[str]:
+def requested_families(src: str, firsts: set[str] | None = None) -> set[str]:
     """Family keys the sources ask for: the value of every `font:` argument (a string, a tuple
     of strings and variables, or a variable, resolved through `#let name = value` chains), plus
     every `#let ...font.../...f` variable holding strings (lib helpers take them as arguments).
-    Comments are skipped."""
+    Comments are skipped. `firsts` (optional, filled in) gets the keys that are the FIRST member
+    of a tuple, or asked alone. With math in the source (`$`) the math faces count as asked;
+    "New Computer Modern" also covers the PDF name `NewCM10`."""
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
     src = "\n".join(re.sub(r"(?:^|\s)//.*$", "", ln) for ln in src.splitlines())
     lets = {m.group(1): _font_value(src, m.end()) for m in re.finditer(r"#let\s+([A-Za-z_][\w-]*)\s*=", src)}
     names: set[str] = set()
+    first: set[str] = set()
     seen: set[str] = set()
 
-    def take(value: str) -> None:
-        for lit, ident in re.findall(r'"([^"\\]{2,60})"|([A-Za-z_][\w-]*)', value):
+    def take(value: str, is_first: bool = True) -> None:
+        for n, (lit, ident) in enumerate(re.findall(r'"([^"\\]{2,60})"|([A-Za-z_][\w-]*)', value)):
+            lead = is_first and n == 0
             if lit:
                 names.add(_fam_key(lit))
+                if lead:
+                    first.add(_fam_key(lit))
             elif ident in lets and ident not in seen:
                 seen.add(ident)
-                take(lets[ident])
+                take(lets[ident], lead)
     for m in re.finditer(r"\bfont\s*:", src):
         take(_font_value(src, m.end()))
     for k, v in lets.items():
@@ -3467,8 +3477,16 @@ def requested_families(src: str) -> set[str]:
     names.discard("")
     if re.search(r"`|#raw\b|\braw\(", src):
         names.add(_fam_key("DejaVu Sans Mono"))
+        first.add(_fam_key("DejaVu Sans Mono"))
     if not names:                       # nothing asked for: Typst's own defaults are the request
         names.update(_fam_key(x) for x in TYPST_DEFAULT_FAMILIES)
+        first.update(names)
+    if "newcomputermodern" in names:
+        names.add("newcm")
+    if "$" in src:                      # math is set in the math face of the text face's family
+        names.update(("newcmmath", "libertinusmath", "stixtwomath", "notosansmath"))
+    if firsts is not None:
+        firsts.update(first)
     return names
 
 
@@ -3498,33 +3516,74 @@ def pdf_char_fonts(pdf: str) -> list[tuple[str, str]] | None:
         return None
 
 
-def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str]) -> list[Finding]:
-    """Findings for [(character, PDF font name)] against the requested family keys. FAIL: an
-    ASCII letter or digit, or over FONT_FALLBACK_SHARE of the characters, left the requested
-    families. WARN: a few other glyphs did (accented letters, punctuation). INFO: only symbols
-    did (unicode category S*: the arrow or check mark a body face lacks; Typst's glyph-by-glyph
-    fallback is designed for them and a CV does not need to react)."""
+def _char_kind(c: str) -> str:
+    """`skip` (marks, controls, separators), `sym` (symbols and emoji), `latin` (Latin-script
+    letters and digits), `other` (any other script, punctuation)."""
+    cat = unicodedata.category(c)
+    if cat[0] in "MCZ":
+        return "skip"
+    if cat[0] == "S":
+        return "sym"
+    if c.isascii() and c.isalnum():
+        return "latin"
+    if cat[0] == "L" and unicodedata.name(c, "").startswith("LATIN"):
+        return "latin"
+    return "other"
+
+
+def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
+                           firsts: set[str] | None = None) -> list[Finding]:
+    """Findings for [(character, PDF font name)] against the requested family keys.
+    FAIL: a Latin-script letter or digit left the requested families and it is an ASCII one, or
+    over FONT_FALLBACK_SHARE of the Latin letters did (other scripts and symbols never count).
+    WARN: accented Latin letters or punctuation fell back; letters of another script (CJK,
+    Cyrillic, Greek...) fell back (add a face for that script to the font tuple); Latin letters
+    sit in a Typst bundled face that is not the FIRST member of the requested tuple (the first
+    face was not used, `firsts` given). INFO: symbols and emoji only (unicode category S*)."""
     pretty = ", ".join(sorted(req))
-    bad = [(c, f) for c, f in chars if f and not _family_requested(f, req)]
-    if not bad:
-        return []
-    fams = Counter(re.sub(r"^[A-Z]{6}\+", "", f).split("-")[0] for _, f in bad)
-    alnum = [c for c, _ in bad if c.isascii() and c.isalnum()]
-    share = len(bad) / max(1, len(chars))
-    shown = "".join(dict.fromkeys(c for c, _ in bad))[:20]
-    actual = ", ".join(f"{n} ({k})" for n, k in fams.most_common(3))
-    if alnum or share > FONT_FALLBACK_SHARE:
-        return [("FAIL", f"font fallback: {len(bad)} of {len(chars)} characters ({len(alnum)} ASCII letters/digits, "
-                         f"{share:.0%}) are drawn in {actual}, not in the requested families ({pretty}); "
-                         f"sample \"{shown}\". Typst falls back SILENTLY when a family exists without the glyphs: "
-                         "a font file missing the basic Latin range, or subset files shadowing the real ones "
-                         "(fontsource `*-latin-ext-*`); see references/fonts.md")]
-    if all(unicodedata.category(c).startswith("S") for c, _ in bad):
-        return [("INFO", f"font fallback: {len(bad)} symbol(s) \"{shown}\" drawn in {actual}, outside the requested "
-                         "families; the body face lacks the glyph, harmless for a few symbols")]
-    return [("WARN", f"font fallback: {len(bad)} character(s) drawn in {actual}, not in the requested families "
-                     f"({pretty}): \"{shown}\"; the chosen face lacks these glyphs (accents or punctuation): "
-                     "swap the face or the character, see references/fonts.md")]
+    kinds = [(c, f, _char_kind(c)) for c, f in chars]
+    latin_total = sum(1 for _, f, k in kinds if f and k == "latin")
+    bad = [(c, f, k) for c, f, k in kinds if f and k != "skip" and not _family_requested(f, req)]
+
+    def fam_of(rows: Sequence[tuple[str, str, str]]) -> str:
+        fams = Counter(re.sub(r"^[A-Z]{6}\+", "", f).split("-")[0] for _, f, _ in rows)
+        return ", ".join(f"{n} ({k})" for n, k in fams.most_common(3))
+
+    def sample(rows: Sequence[tuple[str, str, str]]) -> str:
+        return "".join(dict.fromkeys(c for c, _, _ in rows))[:20]
+    out: list[Finding] = []
+    latin = [r for r in bad if r[2] == "latin"]
+    ascii_n = sum(1 for c, _, _ in latin if c.isascii())
+    share = len(latin) / max(1, latin_total)
+    if ascii_n or share > FONT_FALLBACK_SHARE:
+        out.append(("FAIL", f"font fallback: {len(latin)} of {latin_total} Latin letters/digits ({ascii_n} ASCII, "
+                            f"{share:.0%}) are drawn in {fam_of(latin)}, not in the requested families ({pretty}); "
+                            f"sample \"{sample(latin)}\". Typst falls back SILENTLY when a family exists without the "
+                            "glyphs: a font file missing the basic Latin range, or subset files shadowing the real ones "
+                            "(fontsource `*-latin-ext-*`); see references/fonts.md"))
+    elif latin:
+        out.append(("WARN", f"font fallback: {len(latin)} accented letter(s) \"{sample(latin)}\" drawn in {fam_of(latin)}, "
+                            f"not in the requested families ({pretty}); the face lacks them: swap the face "
+                            "or the character, see references/fonts.md"))
+    other = [r for r in bad if r[2] == "other"]
+    if other:
+        out.append(("WARN", f"font fallback: {len(other)} character(s) \"{sample(other)}\" (another script or punctuation) "
+                            f"drawn in {fam_of(other)}, not in the requested families ({pretty}); add a face for that "
+                            "script to the font tuple (e.g. Noto Sans CJK JP for Japanese, a Cyrillic-capable face "
+                            "for Russian) so the choice is yours, not Typst's"))
+    if firsts and not latin:
+        late = [(c, f, k) for c, f, k in kinds if f and k == "latin" and _family_requested(f, req)
+                and _fam_key(re.sub(r"^[A-Z]{6}\+", "", f)).startswith(BUNDLED_KEYS)
+                and not _family_requested(f, firsts)]
+        if late:
+            out.append(("WARN", f"font fallback: {len(late)} Latin letter(s) drawn in {fam_of(late)}, a member of the font "
+                                f"tuple but not its first; the first face ({', '.join(sorted(firsts))}) was not used. "
+                                "Missing or without Latin glyphs? see references/fonts.md"))
+    syms = [r for r in bad if r[2] == "sym"]
+    if syms:
+        out.append(("INFO", f"font fallback: {len(syms)} symbol(s) \"{sample(syms)}\" drawn in {fam_of(syms)}, outside the "
+                            "requested families; the body face lacks the glyph, harmless"))
+    return out
 
 
 def check_font_fallback(typ: str, pdf: str, root: str | None = None) -> list[Finding]:
@@ -3533,7 +3592,9 @@ def check_font_fallback(typ: str, pdf: str, root: str | None = None) -> list[Fin
     if chars is None:
         return [("WARN", "font fallback NOT checked (needs pypdfium2: pip install pypdfium2); "
                          "by hand: pdffonts cv.pdf, every family listed must be one cv.typ asks for")]
-    return classify_font_fallback(chars, requested_families(_font_sources(typ, root)))
+    firsts: set[str] = set()
+    req = requested_families(_font_sources(typ, root), firsts)
+    return classify_font_fallback(chars, req, firsts)
 
 
 def run_hidden_gate(pdf: str) -> int:
@@ -4066,7 +4127,28 @@ def _selftest() -> NoReturn:
     assert classify_font_fallback(_okf + _libertinus, _req)[0][0] == "FAIL"        # letters in the wrong face
     assert classify_font_fallback(_okf * 40 + [("\u2192", "DejaVuSans")], _req)[0][0] == "INFO"   # one symbol
     assert classify_font_fallback(_okf * 40 + [("\u00e9", "DejaVuSans")], _req)[0][0] == "WARN"   # one accent
-    assert classify_font_fallback(_okf * 3 + [("\u2192", "DejaVuSans")] * 3, _req)[0][0] == "FAIL"   # over 5 %
+    assert classify_font_fallback(_okf * 3 + [("\u00e9", "DejaVuSans")] * 3, _req)[0][0] == "FAIL"   # over 5 % of the Latin letters
+    _sym = [(c, "NotoColorEmoji") for c in "\U0001F600\u2713\u2605\u2709\u260e"]
+    assert [x[0] for x in classify_font_fallback(_okf * 3 + _sym, _req)] == ["INFO"]   # symbols never FAIL, whatever the share
+    _cjk = [(c, "NotoSansCJKjp-Regular") for c in "日本語のテキスト" * 20]
+    assert [x[0] for x in classify_font_fallback(_okf * 3 + _cjk, _req)] == ["WARN"]   # another script: WARN, never the latin-ext hint
+    assert "latin-ext" not in classify_font_fallback(_okf * 3 + _cjk, _req)[0][1]
+    assert classify_font_fallback(_okf + [(c, "Sora-Regular") for c in "Привет"], _req | {"sora"}) == []
+    _math = requested_families('#set text(font: "Noto Sans")\n$O(n^2)$\n')
+    assert classify_font_fallback(_okf + [("O", "NewCMMath-Regular"), ("n", "NewCMMath-Regular")], _math) == []
+    assert classify_font_fallback(_okf + [("O", "NewCMMath-Regular")], _req)[0][0] == "FAIL"     # no math in the source
+    _ncm = requested_families('#set text(font: "New Computer Modern")\n')
+    assert classify_font_fallback([(c, "NewCM10-Regular") for c in "Hello"], _ncm) == []
+    assert classify_font_fallback([(c, "NewCM10-Regular") for c in "Hello"], requested_families("plain")) == []
+    # a bundled face that is a later member of the tuple: the first face was not used (WARN, never FAIL)
+    _firsts: set[str] = set()
+    _tup = requested_families('#set text(font: ("Caladea", "Libertinus Serif"))\n/* font: "Nope" */\n', _firsts)
+    assert _tup == {"caladea", "libertinusserif"} and _firsts == {"caladea"}, (_tup, _firsts)
+    assert classify_font_fallback([(c, "LibertinusSerif-Regular") for c in "Hello"], _tup, _firsts)[0][0] == "WARN"
+    assert classify_font_fallback([(c, "Caladea-Regular") for c in "Hello"], _tup, _firsts) == []
+    for _n, _f in (("TimesNewRomanPSMT", "Times New Roman"), ("EBGaramond12-Regular", "EB Garamond"),
+                   ("SourceSans3VF-Upright", "Source Sans 3"), ("ABCDEF+Lato-SemiCondensedBold", "Lato")):
+        assert _family_requested(_n, {_fam_key(_f)}), _n
     # a file with no par declaration must be reported, never guessed at
     assert _read_par("#set text(size: 10.5pt)\n") is None
     # spacing-before-leading is not the template's order and must not match
