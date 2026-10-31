@@ -65,6 +65,10 @@ ICONS: dict[str, str] = {
     "bi-geo_alt_fill": "bi:geo-alt-fill",
 }
 
+# The kit `marks()` in templates/lib.typ uses by default (kit: "tabler"): the six
+# contact marks. The phosphor and bootstrap kits are opt-in alternatives.
+DEFAULT_KIT = ("mail", "web", "phone", "pin", "li", "gh")
+
 
 def fetch(url: str) -> Any:
     req = urllib.request.Request(url, headers={"User-Agent": "vitae-harvest/2.0"})
@@ -181,6 +185,7 @@ def main() -> None:
              "// packages publish. An empty value means the fetch failed: the",
              "// mark is then simply not drawn.", ""]
     got = 0
+    ok_vars: set[str] = set()
     for prefix, wanted in by_prefix.items():
         data, coll = fetch_set(prefix, [n for _, n in wanted])
         icons = data.get("icons", {}) if isinstance(data, dict) else {}
@@ -207,6 +212,7 @@ def main() -> None:
                 lines += [f'#let {var}-body = ""', f'#let {var}-vb = ""']
                 continue
             got += 1
+            ok_vars.add(var)
             lines += [f'#let {var}-body = {typst_str(body)}',
                       f'#let {var}-vb = {typst_str(f"0 0 {w} {h}")}']
         lines.append("")
@@ -226,10 +232,15 @@ def main() -> None:
     os.replace(tmp, out)
     print(f"{out}: {got}/{len(ICONS)} marks"
           + ("" if got == len(ICONS) else " — the rest render as no mark"))
-    if got != len(ICONS):
+    missing_default = [v for v in DEFAULT_KIT if v not in ok_vars]
+    if missing_default:
         print("WARN  ICONS: incomplete harvest — lib.typ `marks()` is all-or-nothing, "
               "so the contact line will be TEXT-ONLY (no icons on any item). "
-              "Re-run with network to get icons.", file=sys.stderr)
+              f"Missing: {', '.join(missing_default)}. Re-run with network to get icons.",
+              file=sys.stderr)
+    elif got != len(ICONS):
+        print("ICONS: the default kit is complete; only the optional phosphor/bootstrap "
+              "kits are missing (used only if a template asks for them).", file=sys.stderr)
 
 
 if __name__ == "__main__":
