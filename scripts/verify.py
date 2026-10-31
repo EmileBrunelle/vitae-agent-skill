@@ -1300,7 +1300,7 @@ def _figures(text: str) -> set[float]:
 def _section_bodies(src: str) -> list[tuple[str, str]]:
     """(title, body text) of every `#section("Title")[ ... ]` call in a Typst source, brackets matched."""
     out: list[tuple[str, str]] = []
-    for m in re.finditer(r'#section\(\s*"((?:[^"\\]|\\.)*)"\s*\)\s*\[', src):
+    for m in re.finditer(r'#section\(\s*"((?:[^"\\]|\\.)*)"\s*(?:,[^)]*)?\)\s*\[', src):
         i, depth = m.end(), 1
         while i < len(src) and depth:
             c = src[i]
@@ -1315,12 +1315,45 @@ def _section_bodies(src: str) -> list[tuple[str, str]]:
     return out
 
 
+_SUMMARY_TITLE_RE = re.compile(r"summary|profile|profil|perfil|objective|about|résumé|resume|à propos", re.I)
+_EXPERIENCE_TITLE_RE = re.compile(r"experience|expérience|projects?|projets?|work|employment|research", re.I)
+_URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:com|ca|org|io|net|dev|me)(?:/\S*)?", re.I)
+
+
+def _typst_prose(body: str) -> str:
+    """Body text without Typst code: `#name(...)` argument lists (balanced; a trailing `[...]` content block
+    stays), string literals and URLs, so `#v(10pt)` or `linkedin.com/in/jo-1234` carry no figures."""
+    out, i, n = [], 0, len(body)
+    while i < n:
+        m = re.compile(r"#[A-Za-z_][\w.-]*\(").match(body, i)
+        if not m:
+            out.append(body[i])
+            i += 1
+            continue
+        j, depth = m.end(), 1
+        while j < n and depth:
+            c = body[j]
+            if c == '"':
+                j += 1
+                while j < n and body[j] != '"':
+                    j += 2 if body[j] == "\\" else 1
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+            j += 1
+        out.append(" ")
+        i = j
+    text = re.sub(r'"(?:[^"\\\n]|\\.)*"', " ", "".join(out))
+    return _URL_RE.sub(" ", text)
+
+
 def check_summary_repeats(src: str) -> list[str]:
-    """WARN line when the summary/profile section repeats SUMMARY_REPEAT_MIN+ figures that the other
-    sections already state (padding by repetition). No summary section: silent."""
-    secs = _section_bodies(src)
-    summ = [b for t, b in secs if _fold(t).strip() in {_fold(h) for h in SUMMARY_HEADS}]
-    rest = [b for t, b in secs if _fold(t).strip() not in {_fold(h) for h in SUMMARY_HEADS}]
+    """WARN line when the summary/profile section repeats SUMMARY_REPEAT_MIN+ figures that the experience /
+    project sections already state (padding by repetition). No summary or no experience section: silent."""
+    secs = [(t, _typst_prose(b)) for t, b in _section_bodies(_strip_typst_comments(src))]
+    summ = [b for t, b in secs if _SUMMARY_TITLE_RE.search(t) and not _EXPERIENCE_TITLE_RE.search(t)]
+    rest = [b for t, b in secs if _EXPERIENCE_TITLE_RE.search(t)]
     if not summ or not rest:
         return []
     shared = sorted(_figures(" ".join(summ)) & _figures(" ".join(rest)))
@@ -3796,6 +3829,15 @@ def _selftest() -> NoReturn:
         '#section("Education")[\nGPA 3.6/4.3, May 2025 - 2026, 2024-2026\n]\n')
     assert not check_summary_repeats('#section("Experience")[\n- cut 840 ms to 210 ms\n]\n')   # no summary: silent
     assert check_summary_repeats(_sr.replace("Profile", "Profil"))
+    for _t in ("Objective", "Summary of Qualifications", "Perfil", "Professional Summary"):
+        assert check_summary_repeats(_sr.replace("Profile", _t)), _t
+    assert check_summary_repeats(_sr.replace('("Profile")', '("Profile", airy: true)'))             # extra section args
+    assert not check_summary_repeats(                                                            # code / URLs / comments: silent
+        '#section("Profile")[\n#v(10pt)#h(12pt) linkedin.com/in/jo-1234 // 40 users 30%\n]\n'
+        '#section("Experience")[\n#v(10pt)#h(12pt) linkedin.com/in/jo-1234\n// 40 users 30%\n#link("https://x.io/a-1234")[site]\n]\n')
+    assert not check_summary_repeats(                                                            # skills/education versions: out of scope
+        '#section("Profile")[\nJava 17, Node 20, ISO 27001, SOC 2.\n]\n'
+        '#section("Skills")[\nJava 17, Node 20, ISO 27001, SOC 2\n]\n')
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"
