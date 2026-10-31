@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for scripts/look.py: parser cases + fake local HTTP server (run: python3 -I tests/test_look.py)."""
+import atexit
 import base64
 import contextlib
 import http.server
@@ -7,6 +8,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import threading
@@ -130,6 +132,7 @@ threading.Thread(target=srv.serve_forever, daemon=True).start()
 BASE = f"http://127.0.0.1:{srv.server_address[1]}/v1"
 
 tmp = tempfile.mkdtemp()
+atexit.register(shutil.rmtree, tmp, ignore_errors=True)
 
 
 def mkpng(name: str, magic: bytes = look.PNG_MAGIC) -> str:

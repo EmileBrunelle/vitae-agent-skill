@@ -4,7 +4,7 @@
 # Usage: tests/run_all.sh [--quick] [outdir]
 # Needs typst, poppler-utils (pdftotext) or pypdfium2, python3 + Pillow + pypdf.
 # Works on a scratch copy: verify.py writes PDFs next to the .typ, and the
-# repo must stay clean. PDFs/PNGs of the templates are left in <outdir>/pdf.
+# repo must stay clean. PDFs/PNGs of the templates are left in <outdir>/pdf (without <outdir>, the temp dir is removed on success).
 set -euo pipefail
 
 quick=0; out=""
@@ -16,7 +16,8 @@ for a in "$@"; do
   esac
 done
 root="$(cd "$(dirname "$0")/.." && pwd)"
-[ -n "$out" ] || out="$(mktemp -d)"
+auto=0
+[ -n "$out" ] || { out="$(mktemp -d)"; auto=1; }
 mkdir -p "$out"; out="$(cd "$out" && pwd)"
 S="$out/work"; rm -rf "$S"; mkdir -p "$S" "$out/pdf" "$out/log"
 start=$(date +%s); fails=0; total=0
@@ -361,7 +362,7 @@ lowered_fill() {
   d="templates/families/$f"
   { printf '// vitae: pages=1 fill=%s-%s\n' "$a" "$b"; cat "$d/resume.typ"; } > "$d/_drawn.typ"
   python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$a" "$b" | grep -q '^PASS ' || { echo "header target did not pass"; return 1; }
-  local lo=$((a - 6)) log; log="$(mktemp)"
+  local lo=$((a - 6)) log; log="$S/lowered.log"
   python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$lo" 100 >"$log" || { echo "exit non-zero"; cat "$log"; return 1; }
   grep -q '^WARN  fill target lowered below drawn target' "$log" || { echo "no WARN"; return 1; }
   grep -q '^PASS (fill target lowered: ' "$log" || { echo "no PASS summary"; return 1; }
@@ -623,5 +624,11 @@ if [ "$quick" -eq 0 ]; then
 fi
 
 echo "---"
-echo "$((total - fails))/$total passed, $fails failed, $(( $(date +%s) - start )) s; output: $out"
+if [ "$auto" -eq 1 ] && [ "$fails" -eq 0 ]; then
+  # a scratch dir we made ourselves is removed on success; on failure it stays, and its path is printed
+  cd /; rm -rf "${out:?}"
+  echo "$((total - fails))/$total passed, $fails failed, $(( $(date +%s) - start )) s; temp output removed (pass an outdir to keep it)"
+else
+  echo "$((total - fails))/$total passed, $fails failed, $(( $(date +%s) - start )) s; output: $out"
+fi
 [ "$fails" -eq 0 ]
