@@ -3590,6 +3590,10 @@ def check_all(directory: str) -> int:
 #     git show $c:templates/lib.typ | sha256sum | cut -c1-64; done | sort -u
 # (a model once rewrote lib.typ from memory, dropped `derive()`, and looped.)
 KNOWN_LIB_SHA256 = {
+    "5f550c000b6b21f1b48e7e564ef223a76e7b34eb444cad4e1dada8054d1d7ae7",
+    "6676cfb4239ba0da1647df675731920570190a56a9a2480821e3ad3a350f37df",
+    "e83601b082f068fd3ded679358d3aeaab28ac59af812815077b95e58dab80aee",
+    "fd5a2ed352e234f476dfc6cfdb4d20bda011dae8ebb2f32f8553137cdf2ac6f1",
     "a1b12d2fc073111d24bfb7f8ddd8ddff071ec313b213eaf9892a6448b2de7970",
     "b8fc908c0b36bdcd923fa867b212c7f5d12347ef1b4ca1411d18008b0f0bbb80",
     "ce6baaaa89b851cfdfced2bfcc436a67094adef8e13a89879a7d3d4f5daf3411",
