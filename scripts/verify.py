@@ -4737,6 +4737,19 @@ def _selftest() -> NoReturn:
             _lm = _leading_warn(_lwf)
             assert bool(_lm) == _lwant, (_lv, _lm)
         assert "DOUBLE-SPACED" in _lm and "1.100em" in _lm, _lm
+        # Relative check: leading / explicit list spacing, strictly above 2.00.
+        for _rl, _rs, _rwant in ((0.942, 0.45, True), (0.90, 0.45, False), (0.839, 0.45, False),
+                                 (0.942, 0.55, False), (0.9, 0.5, False)):
+            open(_lwf, "w", encoding="utf-8").write(
+                '#set par(leading: %.3fem, spacing: 1.0em)\n#set list(\n  indent: 10pt,\n'
+                '  spacing: %.2fem)\n' % (_rl, _rs))
+            _lm = _leading_warn(_lwf)
+            assert bool(_lm) == _rwant, (_rl, _rs, _lm)
+        open(_lwf, "w", encoding="utf-8").write('#set par(leading: 0.942em)\n#set list(spacing: 0.45em)\n')
+        _lm = _leading_warn(_lwf)
+        assert _lm.startswith("WARN") and "DOUBLE-SPACED" in _lm and "ratio 2.09" in _lm, _lm
+        open(_lwf, "w", encoding="utf-8").write('#set par(leading: 0.942em)\n#set list(indent: 10pt)\n')
+        assert _leading_warn(_lwf) == ""      # no explicit list spacing: unknown, silent
     print("selftest OK — lib.typ integrity (current / older / rewritten); tuner regex reads, writes and round-trips; "
           "an unrecognised par declaration is reported, not guessed; "
           "a pale or short hairline AT a boundary reads as a device, while "
@@ -4768,18 +4781,30 @@ _LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line p
                  "lower fill and tell the user")
 
 
-_SET_RE = re.compile(r"^#set\s+(par|text)\(")
+LEADING_RATIO_WARN = 2.00   # leading / list spacing; strictly above it the WARN fires
+_LEADING_RATIO_WARN = ("WARN  leading {l:.3f}em vs bullet spacing {s:.3f}em (ratio {r:.2f}, warns above "
+                       "{t:.2f}) — wrapped prose reads DOUBLE-SPACED next to the bullets. Lower the "
+                       "leading (`--tune` downward, or reduce `#set par(leading:)`) or raise the "
+                       "`#set list(spacing:)` so prose and bullets read with the same rhythm")
+
+
+_SET_RE = re.compile(r"^#set\s+(par|text|list|enum)\(")
 _LEAD_ARG = re.compile(r"(?:^|[,(\s])leading\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
+_SPACING_ARG = re.compile(r"(?:^|[,(\s])spacing\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
 _SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
 
 
 def _doc_leading(text: str) -> float | None:
-    """The document's effective paragraph leading in em, read from the LAST
+    return _doc_par_list(text)[0]
+
+
+def _doc_par_list(text: str) -> tuple[float | None, float | None]:
+    """(leading, list spacing) in em: the document's effective paragraph leading in em, read from the LAST
     top-level (column 0, not inside a #let / #show body) `#set par(... leading:
     ...)` before the body, in any argument order; pt is converted with the last
     top-level `#set text(size: X pt)` (11pt when absent). None when there is none."""
     masked = _mask_non_markup(text)
-    depth, size, lead, i, n = 0, 11.0, None, 0, len(masked)
+    depth, size, lead, lsp, i, n = 0, 11.0, None, None, 0, len(masked)
     while i < n:
         j = masked.find("\n", i)
         j = n if j < 0 else j
@@ -4797,29 +4822,40 @@ def _doc_leading(text: str) -> float | None:
                 sm = _SIZE_ARG.search(args)
                 if sm:
                     size = float(sm.group(1))
-            else:
+            elif m.group(1) == "par":
                 lm = _LEAD_ARG.search(args)
                 if lm:
                     v = float(lm.group(1))
                     lead = v if lm.group(2) == "em" else v / size
+            elif m.group(1) == "list":
+                sp = _SPACING_ARG.search(args)
+                if sp:
+                    v = float(sp.group(1))
+                    lsp = v if sp.group(2) == "em" else v / size
         for ch in line:
             if ch in "([{":
                 depth += 1
             elif ch in ")]}" and depth:
                 depth -= 1
         i = j + 1
-    return lead
+    return lead, lsp
 
 
 def _leading_warn(typ: str) -> str:
     """The WARN line when cv.typ's document leading is above LEADING_WARN, else ''."""
     try:
-        lead = _doc_leading(open(typ, encoding="utf-8").read())
+        lead, lsp = _doc_par_list(open(typ, encoding="utf-8").read())
     except OSError:
         return ""
-    if lead is None or lead <= LEADING_WARN + 1e-9:
+    if lead is None:
         return ""
-    return _LEADING_WARN.format(l=lead, t=LEADING_WARN)
+    if lead > LEADING_WARN + 1e-9:
+        return _LEADING_WARN.format(l=lead, t=LEADING_WARN)
+    # Relative check: only when the list spacing is explicit (a list with no
+    # `spacing:` follows Typst's own defaults, so the ratio is unknown: silent).
+    if lsp and lsp > 0 and lead / lsp > LEADING_RATIO_WARN + 1e-9:
+        return _LEADING_RATIO_WARN.format(l=lead, s=lsp, r=lead / lsp, t=LEADING_RATIO_WARN)
+    return ""
 
 
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
