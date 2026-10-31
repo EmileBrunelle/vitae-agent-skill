@@ -20,6 +20,8 @@ An agent skill for building résumés and CVs in [Typst](https://typst.app) that
 
 Battle-tested method distilled from a real end-to-end résumé project that went through six simulated adversarial hiring reviews (recruiter, hiring manager, ATS expert, bank, startup, consulting firm) and a native-speaker language review — then hardened by adversarial reviews of the skill itself (execution, open-source, recruiting-expert) and cross-field integration simulations (a French nurse's CV, a UK analyst's CV) run by agents using only these files.
 
+**Built like software, not like a template.** Your facts file is the single source of truth; every build runs a test gate (page count, fill, split sections, contrast, invented facts) and an adversarial review before anything is delivered. Same discipline as shipping code — applied to a résumé.
+
 ![Example render](assets/example-1page.png)
 
 ## What it does

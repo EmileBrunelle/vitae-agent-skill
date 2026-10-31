@@ -20,6 +20,8 @@ Un skill d'agent (« agent skill ») pour construire des CV en [Typst](https://t
 
 Méthode éprouvée, distillée d'un vrai projet de CV de bout en bout ayant traversé six revues d'embauche adversariales simulées (recruteur, gestionnaire d'embauche, expert ATS, banque, start-up, firme de conseil) et une révision linguistique par une personne de langue maternelle — puis durcie par des revues adversariales du skill lui-même (exécution, open source, expert en recrutement) et des simulations d'intégration multi-domaines (un CV d'infirmière française, un CV d'analyste britannique) menées par des agents n'utilisant que ces fichiers.
 
+**Conçu comme un logiciel, pas comme un gabarit.** Le fichier de faits est la seule source de vérité; chaque version passe une batterie de tests (pages, remplissage, sections coupées, contraste, faits inventés) et une revue adversariale avant d'être livrée. La rigueur d'une mise en production, appliquée à un CV.
+
 ![Exemple de rendu](assets/example-1page.png)
 
 ## Ce qu'il fait
