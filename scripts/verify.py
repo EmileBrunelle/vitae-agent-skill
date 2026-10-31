@@ -3770,7 +3770,8 @@ _FOOTER_TUNE = ("NEXT  Run the command printed above (wider range), or add real 
                 "change the page count in cv.typ; do not edit leading by hand.\n" + _NO_READ)
 _FOOTER_TUNE_UNDER = ("NEXT  The page is under-filled: do not re-run --tune or widen the range "
                       "(leading is capped). Add a real fact from the candidate's facts (a bullet "
-                      "with a measurable result, a project, a certification); never pad or invent "
+                      "with a measurable result, a project, a certification); raising the body type size "
+                      "is the same padding, not an alternative; never pad or invent "
                       "— if the facts are not in hand, ask the user. Only if the facts are "
                       "exhausted: fewer pages or a lower fill target, and tell the user.\n" + _NO_READ)
 _FOOTER_TUNE_NOPAR = ("NEXT  Add the `#set par(leading: Xem, spacing: Yem)` line to cv.typ "
@@ -3817,6 +3818,22 @@ def _selftest() -> NoReturn:
         assert _leading_warn(_lw_f).startswith("WARN"), _leading_warn(_lw_f)
         open(_lw_f, "w", encoding="utf-8").write("#set par(spacing: 8pt, leading: 0.7em)\n")
         assert _leading_warn(_lw_f) == ""
+    # Body-size WARN: fires strictly above 11pt; every shipped template is silent.
+    with tempfile.TemporaryDirectory() as _bs_d:
+        _bs_f = os.path.join(_bs_d, "cv.typ")
+        for _bz, _bwant in ((10.5, False), (11, False), (12, True)):
+            open(_bs_f, "w", encoding="utf-8").write("#set text(font: \"x\", size: %gpt, lang: \"en\")\n" % _bz)
+            assert bool(_body_size_warn(_bs_f)) == _bwant, (_bz, _body_size_warn(_bs_f))
+        assert "padded with type size" in _body_size_warn(_bs_f) and "12pt" in _body_size_warn(_bs_f)
+        open(_bs_f, "w", encoding="utf-8").write("#let h(b) = [\n#set text(size: 14pt)\n b]\n#set text(size: 10.5pt)\n")
+        assert _body_size_warn(_bs_f) == ""
+        open(_bs_f, "w", encoding="utf-8").write("#set par(leading: 0.6em)\n")
+        assert _body_size_warn(_bs_f) == ""
+    _bsz_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates")
+    for _bsr, _bsd, _bsfs in os.walk(_bsz_root):
+        for _bsn in _bsfs:
+            if _bsn.endswith(".typ") and _bsn not in ("lib.typ", "icons.typ"):
+                assert _body_size_warn(os.path.join(_bsr, _bsn)) == "", os.path.join(_bsr, _bsn)
     # Summary-repeats WARN: >= 2 distinct figures shared with the other sections; one headline metric is fine.
     _sr = ('#section("Profile")[\nCut p95 latency from 840 ms to 210 ms and a report from 40 minutes to 6.\n]\n'
            '#section("Experience")[\n- p95 latency 840 ms #sym.arrow 210 ms\n- nightly report 40 min to 6 min\n]\n')
@@ -4958,12 +4975,23 @@ def _doc_leading(text: str) -> float | None:
 
 
 def _doc_par_list(text: str) -> tuple[float | None, float | None]:
+    return _doc_par_list_size(text)[:2]
+
+
+def _doc_body_size(text: str) -> float | None:
+    """The document's top-level body text size in pt (the last top-level `#set text(size: X pt)`
+    before the body, same reader as the leading), None when there is none."""
+    return _doc_par_list_size(text)[2]
+
+
+def _doc_par_list_size(text: str) -> tuple[float | None, float | None, float | None]:
     """(leading, list spacing) in em: the document's effective paragraph leading in em, read from the LAST
     top-level (column 0, not inside a #let / #show body) `#set par(... leading:
     ...)` before the body, in any argument order; pt is converted with the last
     top-level `#set text(size: X pt)` (11pt when absent). None when there is none."""
     masked = _mask_non_markup(text)
     depth, size, lead, lsp, i, n = 0, 11.0, None, None, 0, len(masked)
+    explicit: float | None = None
     while i < n:
         j = masked.find("\n", i)
         j = n if j < 0 else j
@@ -4980,7 +5008,7 @@ def _doc_par_list(text: str) -> tuple[float | None, float | None]:
             if m.group(1) == "text":
                 sm = _SIZE_ARG.search(args)
                 if sm:
-                    size = float(sm.group(1))
+                    size = explicit = float(sm.group(1))
             elif m.group(1) == "par":
                 lm = _LEAD_ARG.search(args)
                 if lm:
@@ -4999,7 +5027,7 @@ def _doc_par_list(text: str) -> tuple[float | None, float | None]:
             elif ch in ")]}" and depth:
                 depth -= 1
         i = j + 1
-    return lead, lsp
+    return lead, lsp, explicit
 
 
 def _leading_warn(typ: str) -> str:
@@ -5021,6 +5049,25 @@ def _leading_warn(typ: str) -> str:
     return ""
 
 
+BODY_SIZE_WARN = 11.0   # pt; strictly above it the WARN fires (shipped templates: 10.5pt, margin-index and letter 11pt)
+_BODY_SIZE_WARN = ("WARN  body text {z:g}pt (shipped templates stay at 10.5-11pt; warns above {t:g}pt) — "
+                   "the page is padded with type size, not content, and the heading/role/meta "
+                   "hierarchy inverts because the template sizes are absolute pt. Bring the body "
+                   "back to the template size and add a real fact (a bullet, a result, a project) "
+                   "instead; if the facts are exhausted, accept the lower fill and tell the user")
+
+
+def _body_size_warn(typ: str) -> str:
+    """The WARN line when cv.typ's top-level body text size is above BODY_SIZE_WARN, else ''."""
+    try:
+        size = _doc_body_size(open(typ, encoding="utf-8").read())
+    except OSError:
+        return ""
+    if size is not None and size > BODY_SIZE_WARN + 1e-9:
+        return _BODY_SIZE_WARN.format(z=size, t=BODY_SIZE_WARN)
+    return ""
+
+
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
               facts: str | None = None) -> NoReturn:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]."""
@@ -5037,6 +5084,9 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     lead_warn = _leading_warn(typ)
     if lead_warn:
         print(lead_warn)
+    size_warn = _body_size_warn(typ)
+    if size_warn:
+        print(size_warn)
     lowered = ""
     if drawn:
         if not (fmin and fmax):
@@ -5226,6 +5276,8 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                   "report, then LOOK at the PNGs")
         if lead_warn:
             print(lead_warn)
+        if size_warn:
+            print(size_warn)
 
     sys.exit(fail)
 

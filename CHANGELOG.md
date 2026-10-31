@@ -2,6 +2,10 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- `verify.py` WARNs when the top-level body text size is above 11pt (shipped templates stay at 10.5-11pt): a run raised the body to 12pt to reach the fill target, which pads the page with type size instead of facts and inverts the heading/role/meta hierarchy (template sizes are absolute pt). The `--tune` under-fill message and `references/steps/4-tune.md` now say that raising the body size is the same padding, not an alternative.
+
 ## 0.7.3 - 2026-10-31
 
 - The leading-ratio WARN threshold drops from 2.00 to 1.95: a real run at leading 1em with 0.5em bullet spacing (ratio exactly 2.00) still read double-spaced; the shipped templates max out at 1.89.
