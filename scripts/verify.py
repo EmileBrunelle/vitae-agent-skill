@@ -4737,8 +4737,8 @@ def _selftest() -> NoReturn:
             _lm = _leading_warn(_lwf)
             assert bool(_lm) == _lwant, (_lv, _lm)
         assert "DOUBLE-SPACED" in _lm and "1.100em" in _lm, _lm
-        # Relative check: leading / explicit list spacing, strictly above 2.00.
-        for _rl, _rs, _rwant in ((0.942, 0.45, True), (0.90, 0.45, False), (0.839, 0.45, False),
+        # Relative check: leading / explicit list spacing, strictly above 1.95.
+        for _rl, _rs, _rwant in ((0.942, 0.45, True), (0.90, 0.45, True), (1.0, 0.5, True), (0.85, 0.45, False), (0.839, 0.45, False),
                                  (0.942, 0.55, False), (0.9, 0.5, False)):
             open(_lwf, "w", encoding="utf-8").write(
                 '#set par(leading: %.3fem, spacing: 1.0em)\n#set list(\n  indent: 10pt,\n'
@@ -4790,7 +4790,7 @@ _LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line p
                  "lower fill and tell the user")
 
 
-LEADING_RATIO_WARN = 2.00   # leading / list spacing; strictly above it the WARN fires
+LEADING_RATIO_WARN = 1.95   # leading / list spacing; strictly above it the WARN fires (a real 1.0em/0.5em run, ratio 2.00, read double-spaced; highest shipped template is 1.89)
 _LEADING_RATIO_WARN = ("WARN  leading {l:.3f}em vs bullet spacing {s:.3f}em (ratio {r:.2f}, warns above "
                        "{t:.2f}) — wrapped prose reads DOUBLE-SPACED next to the bullets. Lower the "
                        "leading (`--tune` downward, or reduce `#set par(leading:)`) or raise the "
