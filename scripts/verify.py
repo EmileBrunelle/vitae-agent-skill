@@ -1258,6 +1258,80 @@ def check_degree_tokens(txt: str) -> list[str]:
 BULLET_CHAR_RE = re.compile("^[\u25c6\u25c7\u2022\u25aa\u25ab\u25ba\u25cf\u25a0\u25e6\u2023\u2219\u27a2\ue000-\uf8ff]")
 
 
+SUMMARY_HEADS = {"summary", "profile", "profil", "résumé", "resume", "about", "about me", "professional summary",
+                 "profil professionnel", "résumé professionnel", "à propos"}
+SUMMARY_REPEAT_MIN = 2   # distinct repeated figures from which the WARN fires (one is a headline metric)
+_MONTH_WORDS = (r"(?:jan(?:uary|vier)?|feb(?:ruary)?|f[ée]v(?:rier)?|mar(?:ch|s)?|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|"
+           r"july|juil(?:let)?|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember)?)?|oct(?:ober|obre)?|nov(?:ember|embre)?|"
+           r"dec(?:ember)?|d[ée]c(?:embre)?)\.?")
+_FIG_MASK = re.compile(
+    r"\b\d\.\d{1,2}\s*/\s*\d\.\d{1,2}\b"                              # GPA 3.6/4.3
+    r"|\b" + _MONTH_WORDS + r"\s+\d{4}\b"                                     # May 2025
+    r"|\b\d{1,2}[/.-]\d{4}\b|\b\d{4}[/.-]\d{1,2}(?:[/.-]\d{1,2})?\b"    # 05/2025, 2025-05-01
+    r"|\+?\d?[ .-]?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b", re.I)               # phone
+_FIG_RE = re.compile(
+    r"(?<![\w.])([$€£]?)(\d+(?:[,. \u00a0]\d{3})*(?:[.,]\d+)?)\s?"
+    r"(%|\+|[kKmM]\b|x\b|ms\b|sec\w*|min\w*|h\b|hours?\b|days?\b|GB\b|MB\b|TB\b|"
+    r"users?\b|people\b|stars?\b|clients?\b|requests?\b)?", re.I)
+
+
+def _figures(text: str) -> set[float]:
+    """Distinct qualifying figures of a text: numbers of 2+ digits, or with a unit/%/k/+/currency. Years
+    1950-2100, GPAs, dates and phone numbers do not count; "40 minutes" and "40 min" are both 40."""
+    text = _FIG_MASK.sub(" ", text)
+    out: set[float] = set()
+    for m in _FIG_RE.finditer(text):
+        cur, raw, unit = m.group(1), m.group(2), (m.group(3) or "").lower()
+        raw = re.sub(r"(?<=\d)[ \u00a0](?=\d{3}(?!\d))", "", raw)
+        raw = re.sub(r",(?=\d{3}(?!\d))", "", raw).replace(",", ".")
+        try:
+            v = float(raw)
+        except ValueError:
+            continue
+        if not unit and not cur and v == int(v) and 1950 <= v <= 2100:
+            continue
+        digits = len(re.sub(r"\D", "", raw.split(".")[0]))
+        if digits < 2 and not unit and not cur:
+            continue
+        out.add(v * (1000 if unit == "k" else 1_000_000 if unit == "m" else 1))
+    return out
+
+
+def _section_bodies(src: str) -> list[tuple[str, str]]:
+    """(title, body text) of every `#section("Title")[ ... ]` call in a Typst source, brackets matched."""
+    out: list[tuple[str, str]] = []
+    for m in re.finditer(r'#section\(\s*"((?:[^"\\]|\\.)*)"\s*\)\s*\[', src):
+        i, depth = m.end(), 1
+        while i < len(src) and depth:
+            c = src[i]
+            if c == "\\":
+                i += 1
+            elif c == "[":
+                depth += 1
+            elif c == "]":
+                depth -= 1
+            i += 1
+        out.append((m.group(1), src[m.end():i - 1]))
+    return out
+
+
+def check_summary_repeats(src: str) -> list[str]:
+    """WARN line when the summary/profile section repeats SUMMARY_REPEAT_MIN+ figures that the other
+    sections already state (padding by repetition). No summary section: silent."""
+    secs = _section_bodies(src)
+    summ = [b for t, b in secs if _fold(t).strip() in {_fold(h) for h in SUMMARY_HEADS}]
+    rest = [b for t, b in secs if _fold(t).strip() not in {_fold(h) for h in SUMMARY_HEADS}]
+    if not summ or not rest:
+        return []
+    shared = sorted(_figures(" ".join(summ)) & _figures(" ".join(rest)))
+    if len(shared) < SUMMARY_REPEAT_MIN:
+        return []
+    lst = ", ".join(f"{v:g}" for v in shared)
+    return [f"WARN  the summary repeats {len(shared)} figures already in the bullets ({lst}) — repeating facts to fill the "
+            "page is padding (SKILL.md anti-filler clause). State the positioning in the summary instead of the "
+            "metrics, or cut the summary and add a real fact"]
+
+
 def check_bullet_chars(txt: str) -> list[str]:
     """Extracted lines that start with a bullet or private-use character."""
     return [l.strip() for l in txt.split("\n") if BULLET_CHAR_RE.match(l.strip())]
@@ -3706,6 +3780,18 @@ def _selftest() -> NoReturn:
         assert _leading_warn(_lw_f).startswith("WARN"), _leading_warn(_lw_f)
         open(_lw_f, "w", encoding="utf-8").write("#set par(spacing: 8pt, leading: 0.7em)\n")
         assert _leading_warn(_lw_f) == ""
+    # Summary-repeats WARN: >= 2 distinct figures shared with the other sections; one headline metric is fine.
+    _sr = ('#section("Profile")[\nCut p95 latency from 840 ms to 210 ms and a report from 40 minutes to 6.\n]\n'
+           '#section("Experience")[\n- p95 latency 840 ms #sym.arrow 210 ms\n- nightly report 40 min to 6 min\n]\n')
+    _srw = check_summary_repeats(_sr)
+    assert len(_srw) == 1 and _srw[0].startswith("WARN") and "40, 210, 840" in _srw[0] \
+        and "padding" in _srw[0], _srw
+    assert not check_summary_repeats(_sr.replace("from 840 ms to 210 ms and a report from 40 minutes to 6", "to 210 ms"))      # one figure: silent
+    assert not check_summary_repeats(                                                            # years / GPA / dates: silent
+        '#section("Summary")[\nB.Sc. 2024-2026, GPA 3.6/4.3, since May 2025, 514-555-0100.\n]\n'
+        '#section("Education")[\nGPA 3.6/4.3, May 2025 - 2026, 2024-2026\n]\n')
+    assert not check_summary_repeats('#section("Experience")[\n- cut 840 ms to 210 ms\n]\n')   # no summary: silent
+    assert check_summary_repeats(_sr.replace("Profile", "Profil"))
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"
@@ -5062,6 +5148,9 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         else:
             for w in check_facts_coverage(txt, facts_text):
                 print(w)
+
+    for w in check_summary_repeats(typ_text):
+        print(w)
 
     bullets = check_bullet_chars(txt)
     if bullets:
