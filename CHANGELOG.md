@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.7.6 - 2026-10-31
 
 - `verify.py` FAILs when ASCII letters or digits are drawn in a font family the CV sources never ask for (`font fallback` gate: per-character font names from pypdfium2, subset prefix and style suffix stripped, requested families read from the `font:` arguments and font variables of cv.typ and the local files it imports, matched loosely): Typst falls back silently, with no warning, when a family exists but lacks the glyphs, which is what fontsource `*-latin-ext-*` files do (run 23 drew the whole body in Libertinus Serif and the gate passed). Only Latin letters and digits can FAIL (also when over 5% of the Latin letters fell back); math faces count as requested when the source has math, and `NewCM10` is New Computer Modern. WARN for accented letters or punctuation, for characters of another script (CJK, Cyrillic) drawn in an unnamed face, and for Latin letters drawn in a later bundled member of a font tuple (the first face was not used); INFO for symbols and emoji. Without pypdfium2 it prints a WARN that the check did not run. Calibrated at zero FAIL and zero WARN on all shipped templates (academic included) and on the 57 past run outputs that compile (13 of them INFO for an arrow). Test fixtures in `tests/font_fallback/` (a FAIL, a near miss, CJK, symbols, and math, explicit New Computer Modern and inline raw, which must stay silent).
 - `references/fonts.md`: the fontsource route takes only `*-latin-*` files, never `*-latin-ext-*` (no basic Latin, they shadow the real files), and gives the check command (`pdffonts cv.pdf`).
