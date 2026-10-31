@@ -4,7 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
-- `verify.py` WARNs when a bullet restates its own entry's descriptor line in the experience and projects sections (a run wrote "Go + SQLite REST service" and then "Built the service in Go with SQLite" to fill the page); it fires when a bullet covers at least half of a descriptor segment's content words and at least two of them, one WARN per bullet, never a FAIL. Calibrated at zero hits on every shipped template and fixture.
+- `verify.py` WARNs when a bullet restates its own entry's descriptor line in the experience and projects sections (the note argument of the entry call, split on ` · `, `|` and commas; in projects also the second argument, the description; the employer is never compared; a descriptor segment needs at least 2 content words; English and French stop words) (a run wrote "Go + SQLite REST service" and then "Built the service in Go with SQLite" to fill the page); it fires when a bullet covers at least half of a descriptor segment's content words and at least two of them, one WARN per bullet, never a FAIL. Calibrated at zero hits on every shipped template and fixture.
 
 ## 0.7.4 - 2026-10-31
 

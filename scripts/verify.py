@@ -1370,20 +1370,25 @@ ENTRY_REPEAT_RATIO = 0.5    # ... and the share of that segment's content words 
 _ENTRY_STOP = frozenset(
     "a an the of and or for in on at to with by from as is are was were be it its this that into using used via per "
     "built build made make created wrote written designed developed led ran run work worked project personal one what does line clause "
-    "le la les un une des du de et ou pour en sur au aux par avec dans est son sa ses ce cette".split())
+    "le la les un une des du de et ou pour en sur au aux par avec dans est son sa ses ce cette qui que ont a été "
+    "conçu conçue conçus développé développée développés réalisé réalisée réalisés construit construite construits "
+    "créé créée créés mis mise rédigé dirigé projet personnel ligne".split())
+_PROJECT_TITLE_RE = re.compile(r"projects?|projets?", re.I)
 _ENTRY_CALL_RE = re.compile(r"^#[A-Za-z_][\w.-]*\(", re.M)
-_DATE_ARG_RE = re.compile(r"\b(?:19|20)\d{2}\b|\b(?:present|current|now|présent|actuel|aujourd)", re.I)
+_DATE_ARG_RE = re.compile(r"\b(?:19|20)\d{2}\b|\b(?:present|current|now\b|présent|actuel|aujourd)", re.I)
 
 
 def _entry_words(text: str) -> set[str]:
     """Content words of a line: lowercased, markup and stop words dropped, plural -s folded."""
-    words = re.findall(r"[^\W\d_][\w+#.-]*", re.sub(r"[*_`]", " ", text).lower())
+    text = re.sub(r"\b[dlqnsjmtc]['\u2019]", " ", re.sub(r"[*_`]", " ", text).lower())
+    words = re.findall(r"[^\W\d_][\w+#.-]*", text)
     return {w.rstrip(".-").removesuffix("s") if len(w) > 3 else w for w in words if w not in _ENTRY_STOP and len(w) > 1}
 
 
-def _entries(body: str) -> list[tuple[str, list[str], list[str]]]:
+def _entries(body: str, org_is_descriptor: bool = False) -> list[tuple[str, list[str], list[str]]]:
     """(title, descriptor segments, bullets) of each `#call("title", "org", "dates", "note")` entry in a section
-    body. Descriptors are the string arguments after the first that are not dates, split on ` · ` / ` | `."""
+    body. Descriptors are the string arguments after the title (and after the org, unless `org_is_descriptor`, as
+    in projects where the second argument is the one-line description) that are not dates, split on ` · ` / ` | ` / commas."""
     calls = list(_ENTRY_CALL_RE.finditer(body))
     out = []
     for k, m in enumerate(calls):
@@ -1409,7 +1414,8 @@ def _entries(body: str) -> list[tuple[str, list[str], list[str]]]:
                 bullets.append(line[2:].strip())
             elif bullets and line.startswith(("  ", "\t")) and line.strip():
                 bullets[-1] += " " + line.strip()
-        segs = [x.strip() for a in strs[1:] if not _DATE_ARG_RE.search(a) for x in re.split(r"\s[·|]\s", a)]
+        segs = [x.strip() for a in strs[1 if org_is_descriptor else 2:]
+                if not _DATE_ARG_RE.search(a) for x in re.split(r"\s[·|]\s|,\s*", a)]
         out.append((strs[0] if strs else "", [x for x in segs if x], bullets))
     return out
 
@@ -1420,15 +1426,16 @@ def entry_repeat_hits(src: str) -> list[tuple[str, str, str, float]]:
     for t, b in _section_bodies(_strip_typst_comments(src)):
         if not _EXPERIENCE_TITLE_RE.search(t):
             continue
-        for title, segs, bullets in _entries(b):
+        for title, segs, bullets in _entries(b, bool(_PROJECT_TITLE_RE.search(t))):
+            bws = [(bl, _entry_words(_typst_prose(bl))) for bl in bullets]
             for seg in segs:
                 dw = _entry_words(_typst_prose(seg))
                 if len(dw) < ENTRY_REPEAT_MIN:
                     continue
-                for bl in bullets:
-                    share = len(dw & _entry_words(_typst_prose(bl))) / len(dw)
-                    if len(dw & _entry_words(_typst_prose(bl))) >= ENTRY_REPEAT_MIN and share >= ENTRY_REPEAT_RATIO:
-                        hits.append((title, seg, bl, share))
+                for bl, bw in bws:
+                    n = len(dw & bw)
+                    if n >= ENTRY_REPEAT_MIN and n / len(dw) >= ENTRY_REPEAT_RATIO:
+                        hits.append((title, seg, bl, n / len(dw)))
     return hits
 
 
@@ -3943,6 +3950,12 @@ def _selftest() -> NoReturn:
     assert not check_entry_repeats(_er.replace('"Go + SQLite REST service"', '"Montréal · internship"'))       # one-word segments
     assert not check_entry_repeats(_er.replace("Projects", "Skills"))                                          # out of scope
     assert not check_entry_repeats('#section("Experience")[\n#job("Dev", "Acme", "May 2025 – Aug 2025", "Montréal")\n- Worked at Acme in Montréal.\n]\n')   # org/dates/city alone
+    _ex = '#section("Experience")[\n#job("Dev", "Acme", "2022", "%s")\n- %s\n]\n'
+    assert not check_entry_repeats(_ex.replace("Acme", "Bank of Montreal") % ("Toronto", "Built tooling for Bank of Montreal traders"))
+    assert not check_entry_repeats('#section("Experience")[\n#job("Dev", "Bank of Montreal", "2022", "Toronto")\n- Built tooling for Bank of Montreal traders\n]\n')   # org is not a descriptor
+    assert not check_entry_repeats(_ex % ("React, TypeScript, Node.js", "Shipped React and TypeScript dashboard"))   # commas split like · (single-word segments)
+    assert check_entry_repeats(_ex % ("Équipe de données", "Données et équipes: dashboards"))                  # French plural/accents
+    assert not check_entry_repeats(_ex % ("Équipe de données", "Réduit l\u2019équipe de support de 40 à 6 personnes"))   # elision, one shared word
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"

@@ -378,6 +378,10 @@ w = verify.check_entry_repeats(open("tests/entry_repeat/repeat.typ", encoding="u
 assert len(w) == 2 and w[0].startswith("WARN") and '"TrailMap"' in w[0] and '"ledger-cli"' in w[1], w
 w = verify.check_entry_repeats(open("tests/entry_repeat/near-miss.typ", encoding="utf-8").read())
 assert w == [], f"false positive: {w}"
+w = verify.check_entry_repeats(open("tests/entry_repeat/repeat-fr.typ", encoding="utf-8").read())
+assert len(w) == 1 and '"TrailMap"' in w[0], w
+w = verify.check_entry_repeats(open("tests/entry_repeat/near-miss-fr.typ", encoding="utf-8").read())
+assert w == [], f"false positive: {w}"
 PY
 }
 check entry-repeats entry_repeats
