@@ -119,7 +119,7 @@ templates/families/<family>/     # IMPLÉMENTATIONS DE RÉFÉRENCE des quatorze 
   resume.typ                     #   paire de polices A — le tirage principal de la famille
   resume-pair-b.typ              #   paire de polices B — la MÊME famille avec sa seconde paire de polices, pour prouver
                                  #   que la recette survit à une autre paire (pas une page 2)
-  (ni lib.typ ni icons.typ ici)  #   les fichiers de famille importent ../../lib.typ — une seule source de vérité, aucune copie, aucun lien symbolique; icons.typ se résout via lib.typ vers le repli vide, pour que chaque famille compile hors ligne
+  (ni lib.typ ni icons.typ ici)  #   les fichiers de famille importent ../../lib.typ — une seule source de vérité, aucune copie, aucun lien symbolique (à la main, compilez depuis la racine du dépôt avec `typst compile --root . templates/families/<famille>/resume.typ`); icons.typ se résout via lib.typ vers le repli vide, pour que chaque famille compile hors ligne
 templates/families/swiss-grid/resume-2page.typ   # l'exemple 2 pages travaillé (bandeau courant, saut délibéré, les deux pages mesurées)
 scripts/pick_design.py           # tirage déterministe du design : famille, polices, libellés de sections, puces; --emit-typ affiche le préambule Typst prêt à coller pour la recette tirée
 scripts/gen_palette.py           # palettes génératives à contraste validé (duotone inclus)
