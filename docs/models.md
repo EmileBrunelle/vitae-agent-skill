@@ -20,7 +20,7 @@ Effort is measured in tool calls and tokens, not minutes, because wall-clock dep
 | opencode in a container, LM Studio (local) model | Devstral Small 2 (`devstral-small-2-2512`, Q3_K_L, ctx 65536) | skill tool, frozen copy in the container | local, container | Not recommended | final gate replayed externally: FAIL group proximity 2/9 | 98 calls; input 2,895,270 tokens, output 19,329; hit the 1 h timeout; never reached steps 5-8 |
 | opencode in the same container, LM Studio (local) model | Gemma 4 12B QAT (`gemma-4-12b-qat`, Q4_0, ctx 65536) | skill tool, frozen copy in the container | local, container | Not rated (abandoned) | none | 7 calls, abandoned after about 30 s; model used the wrong tools |
 | Google Gemini (web) | n/a | n/a | n/a | Not supported | n/a | upload accepts only CSV/PY/TXT/MD, so the skill cannot be attached |
-| Antigravity | pending | pending | pending | pending | pending | test not run yet |
+| Google Antigravity CLI (`agy`) in a container | Gemini 3.8 Flash, high (`gemini-3.8-flash-high`) | user skill mounted at `~/.gemini/config/skills/vitae` | open network (icons fetched), container | Supervised-visual | PASS 94-96 (fill 94 %, normal target kept) | 84 tool calls; input 323,992 tokens (plus 5,818,561 cached), output 46,169 (36,201 reasoning); about 9 min, host machine not recorded |
 
 Notes on the rows:
 
@@ -29,6 +29,7 @@ Notes on the rows:
 - ChatGPT Free: two relevant questions asked before starting; no fact was invented. Its visual pass marked line-spacing checks PASS while the summary and the second line of a bullet were visibly double-spaced. It replaced the display font with Liberation Sans (the drawn font was absent), generated no icon crops, and ran a compact panel without sub-agents. About 14 % blank space at the bottom of the page.
 - Devstral Small 2: steps 0-3 were fine (facts sheet, design pick, `cv.typ` compiled), then it looped at step 4 for about 45 min, oscillating between 2 pages and 86-93 % fill by adding and removing content. It never used `--tune` although the exact command was printed in every FAIL.
 - Gemma 4 12B: the skill was loaded, but the model ran Python through a JS execute tool, globbed outside `/work`, then asked the user for the skill path. This is not a configuration defect. A second launch (run13b) never started because the model had been unloaded in LM Studio (0 tool calls); it is not a data point.
+- Antigravity CLI: the only run in this series that kept the normal fill target, with skill run 0.7.1 (`ad17556`), not `fcb4498`. No fact was invented and the year-only DEC dates were kept and flagged. It used `--tune`. Its self visual pass reported no defect, but the Summary reads double-spaced next to the bullets (leading 0.942em, under the 1.00em WARN), GitHub sits alone on the second contact line, and the Summary repeats the projects and languages listed further down to fill the page. "Expected May 2026" was kept but not raised as an open question.
 - The test facts file was thin, which capped the fill at about 86-91 %. "Autonomous" was therefore unreachable in this series: every capable run exhausted the facts and had to lower the target. Enrich the facts file before the next series.
 - Earlier runs on skill 0.6.6 and 0.7.0 (a Claude Code Web session cut short, a Vibe run that invented facts and dates, a harness that did not discover the skill, a 503 from the provider) are not graded here: the skill has changed since.
 
@@ -50,5 +51,5 @@ Durations above come from the RX 9070 machine. The only local detection (Bonsai 
 - ChatGPT Free: there is no skill import. Attach the zip to the chat and say "read SKILL.md".
 - Offline sandbox (no DNS, no pip): upload the typst abi3 wheel and install it with `pip install --no-index`; `python3 scripts/verify.py --doctor` prints the exact command.
 - Gemini web: the upload only accepts CSV, PY, TXT and MD files, so the skill cannot be attached. Not supported.
-- Antigravity: test pending.
+- Antigravity: the CLI (`agy`) finds user skills in `~/.gemini/config/skills/<name>/` (or `<workspace>/.agents/skills/<name>/`). Asked to list its skills, it named only its two built-in ones, yet it loaded vitae as soon as the task called for it. The desktop IDE is not needed.
 - Networks that block `api.iconify.design` leave the contact icons mixed or missing; the CV still compiles with plain-text contact URLs.
