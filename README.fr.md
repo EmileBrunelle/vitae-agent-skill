@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/licence-mit.svg" alt="Licence : MIT"></a>
-  <img src="assets/badges/statut-beta.svg" alt="Statut : bêta 0.7.1">
+  <img src="assets/badges/statut-beta.svg" alt="Statut : bêta 0.7.2">
   <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst 0.15+"></a>
   <a href="https://www.python.org/downloads/"><img src="assets/badges/python.svg" alt="Python 3.11+"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills-fr.svg" alt="Standard ouvert Agent Skills"></a>
@@ -16,7 +16,7 @@
 
 Un skill d'agent (« agent skill ») pour construire des CV en [Typst](https://typst.app) qui passent les **deux** filtres : le tri automatisé (ATS — Applicant Tracking Systems, systèmes de suivi des candidatures — et les cribleurs IA) et le survol humain de 30 secondes.
 
-**Statut : bêta (0.7.1)** — la méthode est éprouvée sur le terrain, mais l'organisation des fichiers du skill et les interfaces des scripts peuvent encore changer avant la version 1.0.
+**Statut : bêta (0.7.2)** — la méthode est éprouvée sur le terrain, mais l'organisation des fichiers du skill et les interfaces des scripts peuvent encore changer avant la version 1.0.
 
 Méthode éprouvée, distillée d'un vrai projet de CV de bout en bout ayant traversé six revues d'embauche adversariales simulées (recruteur, gestionnaire d'embauche, expert ATS, banque, start-up, firme de conseil) et une révision linguistique par une personne de langue maternelle — puis durcie par des revues adversariales du skill lui-même (exécution, open source, expert en recrutement) et des simulations d'intégration multi-domaines (un CV d'infirmière française, un CV d'analyste britannique) menées par des agents n'utilisant que ces fichiers.
 
