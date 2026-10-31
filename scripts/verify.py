@@ -4750,6 +4750,15 @@ def _selftest() -> NoReturn:
         assert _lm.startswith("WARN") and "DOUBLE-SPACED" in _lm and "ratio 2.09" in _lm, _lm
         open(_lwf, "w", encoding="utf-8").write('#set par(leading: 0.942em)\n#set list(indent: 10pt)\n')
         assert _leading_warn(_lwf) == ""      # no explicit list spacing: unknown, silent
+        open(_lwf, "w", encoding="utf-8").write(
+            '#set par(leading: 0.9em)\n#set list(spacing: 0.4em)\n#set list(spacing: auto)\n')
+        assert _leading_warn(_lwf) == ""      # a later non-numeric spacing resets it: silent
+        open(_lwf, "w", encoding="utf-8").write(
+            '#set par(leading: 0.9em)\n#set list(marker: box(spacing: 0.1em)[•])\n')
+        assert _leading_warn(_lwf) == ""      # nested spacing: is not the list's own
+        open(_lwf, "w", encoding="utf-8").write('#set par(leading: 1.1em)\n#set list(spacing: 0.3em)\n')
+        _lm = _leading_warn(_lwf)
+        assert _lm.startswith("WARN") and "ratio" not in _lm and "1.100em" in _lm, _lm   # absolute wins
     print("selftest OK — lib.typ integrity (current / older / rewritten); tuner regex reads, writes and round-trips; "
           "an unrecognised par declaration is reported, not guessed; "
           "a pale or short hairline AT a boundary reads as a device, while "
@@ -4790,7 +4799,25 @@ _LEADING_RATIO_WARN = ("WARN  leading {l:.3f}em vs bullet spacing {s:.3f}em (rat
 
 _SET_RE = re.compile(r"^#set\s+(par|text|list|enum)\(")
 _LEAD_ARG = re.compile(r"(?:^|[,(\s])leading\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
-_SPACING_ARG = re.compile(r"(?:^|[,(\s])spacing\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
+_SPACING_KEY = re.compile(r"(?:^|[,(\s])spacing\s*:\s*")
+_SPACING_VAL = re.compile(r"([0-9]*\.?[0-9]+)\s*(em|pt)\b")
+
+
+def _spacing_arg(args: str) -> tuple[bool, re.Match[str] | None]:
+    """(found, numeric match) for a `spacing:` argument at nesting depth 0 of `args` (a nested
+    `box(spacing: ..)` is not the set-rule's own argument); found with no match = non-numeric."""
+    depth, at = 0, []
+    for ch in args:
+        at.append(depth)
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}" and depth:
+            depth -= 1
+    for km in _SPACING_KEY.finditer(args):
+        pos = km.start() + (km.group(0).find("spacing"))
+        if at[pos] == 0:
+            return True, _SPACING_VAL.match(args, km.end())
+    return False, None
 _SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
 
 
@@ -4828,10 +4855,12 @@ def _doc_par_list(text: str) -> tuple[float | None, float | None]:
                     v = float(lm.group(1))
                     lead = v if lm.group(2) == "em" else v / size
             elif m.group(1) == "list":
-                sp = _SPACING_ARG.search(args)
+                found, sp = _spacing_arg(args)
                 if sp:
                     v = float(sp.group(1))
                     lsp = v if sp.group(2) == "em" else v / size
+                elif found:
+                    lsp = None                   # `spacing: auto` etc.: effective spacing unknown
         for ch in line:
             if ch in "([{":
                 depth += 1
@@ -4842,7 +4871,9 @@ def _doc_par_list(text: str) -> tuple[float | None, float | None]:
 
 
 def _leading_warn(typ: str) -> str:
-    """The WARN line when cv.typ's document leading is above LEADING_WARN, else ''."""
+    """The WARN line when cv.typ's document leading is above LEADING_WARN (absolute check), or above
+    LEADING_RATIO_WARN times the explicit top-level list spacing (relative check; the absolute one
+    takes precedence), else ''."""
     try:
         lead, lsp = _doc_par_list(open(typ, encoding="utf-8").read())
     except OSError:
