@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.7.1 - 2026-10-30
 
 - Gate fixes: the `~` check ignores raw blocks, block comments and `$math$` and now catches `*~25 users*`; the leading WARN reads `#set par(leading: ...)` in any argument order and in pt, ignoring ones scoped inside a `#let` / `#show`; a CV importing `../../lib.typ` is told to change the import and copy `lib.typ` next to `cv.typ`; the text-only icons WARN fires only when the default kit is incomplete; the doctor offline hint names `aarch64` on arm64.
 - Family templates no longer rely on symlinks: the 28 `lib.typ` / `icons.typ` symlinks are removed and each family imports `../../lib.typ` by relative path, so the repo zips cleanly for claude.ai and checks out on Windows. Compiling a family template by hand now needs `--root .` from the repo root (`verify.py` adds it itself); `pick_design.py --init` rewrites the import to `"lib.typ"` in the starter it copies out.

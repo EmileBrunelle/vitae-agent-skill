@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="assets/badges/license-mit.svg" alt="License: MIT"></a>
-  <img src="assets/badges/status-beta.svg" alt="Status: beta 0.7.0">
+  <img src="assets/badges/status-beta.svg" alt="Status: beta 0.7.1">
   <a href="https://typst.app"><img src="assets/badges/typst.svg" alt="Typst 0.15+"></a>
   <a href="https://www.python.org/downloads/"><img src="assets/badges/python.svg" alt="Python 3.11+"></a>
   <a href="https://agentskills.io/specification"><img src="assets/badges/agent-skills.svg" alt="Agent Skills open standard"></a>
@@ -16,7 +16,7 @@
 
 An agent skill for building résumés and CVs in [Typst](https://typst.app) that pass **both** filters: automated screening (ATS — Applicant Tracking Systems — and AI screeners) and the human 30-second scan.
 
-**Status: beta (0.7.0)** — the method is battle-tested, but the skill's file layout and script interfaces may still change before 1.0.
+**Status: beta (0.7.1)** — the method is battle-tested, but the skill's file layout and script interfaces may still change before 1.0.
 
 Battle-tested method distilled from a real end-to-end résumé project that went through six simulated adversarial hiring reviews (recruiter, hiring manager, ATS expert, bank, startup, consulting firm) and a native-speaker language review — then hardened by adversarial reviews of the skill itself (execution, open-source, recruiting-expert) and cross-field integration simulations (a French nurse's CV, a UK analyst's CV) run by agents using only these files.
 
