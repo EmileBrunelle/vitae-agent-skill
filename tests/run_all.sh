@@ -23,7 +23,7 @@ start=$(date +%s); fails=0; total=0
 
 # Scratch copy. The repo holds no symlinks (families import ../../lib.typ), so plain -r is a faithful copy.
 cp -r "$root/templates" "$root/scripts" "$root/references" "$S"/
-mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
+mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/entry_repeat" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
@@ -369,6 +369,18 @@ lowered_fill() {
 check lowered-fill-warns lowered_fill
 
 # --facts: a month range shares its year ("juillet – août 2019" covers "Jul 2019"); an invented month still WARNs.
+# entry-repeats WARN: a bullet restating its own entry's descriptor fires; a bullet that adds facts stays silent.
+entry_repeats() {
+  python3 -I - <<'PY' || return 1
+import sys; sys.path.insert(0, "scripts")
+import verify
+w = verify.check_entry_repeats(open("tests/entry_repeat/repeat.typ", encoding="utf-8").read())
+assert len(w) == 2 and w[0].startswith("WARN") and '"TrailMap"' in w[0] and '"ledger-cli"' in w[1], w
+w = verify.check_entry_repeats(open("tests/entry_repeat/near-miss.typ", encoding="utf-8").read())
+assert w == [], f"false positive: {w}"
+PY
+}
+check entry-repeats entry_repeats
 # --text / --render: the interface the step docs promise, whatever backend is installed.
 facts_month_range() {
   python3 -I - <<'PY' || return 1

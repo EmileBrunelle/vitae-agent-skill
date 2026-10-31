@@ -1365,6 +1365,85 @@ def check_summary_repeats(src: str) -> list[str]:
             "metrics, or cut the summary and add a real fact"]
 
 
+ENTRY_REPEAT_MIN = 2        # content words a bullet must share with a descriptor segment ...
+ENTRY_REPEAT_RATIO = 0.5    # ... and the share of that segment's content words it covers
+_ENTRY_STOP = frozenset(
+    "a an the of and or for in on at to with by from as is are was were be it its this that into using used via per "
+    "built build made make created wrote written designed developed led ran run work worked project personal one what does line clause "
+    "le la les un une des du de et ou pour en sur au aux par avec dans est son sa ses ce cette".split())
+_ENTRY_CALL_RE = re.compile(r"^#[A-Za-z_][\w.-]*\(", re.M)
+_DATE_ARG_RE = re.compile(r"\b(?:19|20)\d{2}\b|\b(?:present|current|now|présent|actuel|aujourd)", re.I)
+
+
+def _entry_words(text: str) -> set[str]:
+    """Content words of a line: lowercased, markup and stop words dropped, plural -s folded."""
+    words = re.findall(r"[^\W\d_][\w+#.-]*", re.sub(r"[*_`]", " ", text).lower())
+    return {w.rstrip(".-").removesuffix("s") if len(w) > 3 else w for w in words if w not in _ENTRY_STOP and len(w) > 1}
+
+
+def _entries(body: str) -> list[tuple[str, list[str], list[str]]]:
+    """(title, descriptor segments, bullets) of each `#call("title", "org", "dates", "note")` entry in a section
+    body. Descriptors are the string arguments after the first that are not dates, split on ` · ` / ` | `."""
+    calls = list(_ENTRY_CALL_RE.finditer(body))
+    out = []
+    for k, m in enumerate(calls):
+        j, depth = m.end(), 1
+        strs: list[str] = []
+        while j < len(body) and depth:
+            c = body[j]
+            if c == '"':
+                e = j + 1
+                while e < len(body) and body[e] != '"':
+                    e += 2 if body[e] == "\\" else 1
+                strs.append(body[j + 1:e])
+                j = e
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+            j += 1
+        tail = body[j:calls[k + 1].start() if k + 1 < len(calls) else len(body)]
+        bullets: list[str] = []
+        for line in tail.split("\n"):
+            if line.startswith("- "):
+                bullets.append(line[2:].strip())
+            elif bullets and line.startswith(("  ", "\t")) and line.strip():
+                bullets[-1] += " " + line.strip()
+        segs = [x.strip() for a in strs[1:] if not _DATE_ARG_RE.search(a) for x in re.split(r"\s[·|]\s", a)]
+        out.append((strs[0] if strs else "", [x for x in segs if x], bullets))
+    return out
+
+
+def entry_repeat_hits(src: str) -> list[tuple[str, str, str, float]]:
+    """(entry, descriptor, bullet, share) for each bullet that restates a descriptor segment of its own entry."""
+    hits = []
+    for t, b in _section_bodies(_strip_typst_comments(src)):
+        if not _EXPERIENCE_TITLE_RE.search(t):
+            continue
+        for title, segs, bullets in _entries(b):
+            for seg in segs:
+                dw = _entry_words(_typst_prose(seg))
+                if len(dw) < ENTRY_REPEAT_MIN:
+                    continue
+                for bl in bullets:
+                    share = len(dw & _entry_words(_typst_prose(bl))) / len(dw)
+                    if len(dw & _entry_words(_typst_prose(bl))) >= ENTRY_REPEAT_MIN and share >= ENTRY_REPEAT_RATIO:
+                        hits.append((title, seg, bl, share))
+    return hits
+
+
+def check_entry_repeats(src: str) -> list[str]:
+    """WARN lines for a bullet that restates its own entry's descriptor / subtitle line (padding by repetition);
+    one line per bullet, naming the descriptor it restates most."""
+    best: dict[tuple[str, str], tuple[str, float]] = {}
+    for t, seg, bl, share in entry_repeat_hits(src):
+        if share > best.get((t, bl), ("", 0.0))[1]:
+            best[(t, bl)] = (seg, share)
+    return [f'WARN  entry "{t}": the bullet "{bl[:70]}" restates the descriptor "{seg}" — each fact once per entry '
+            "(SKILL.md anti-filler clause); give the bullet a new fact (scope, outcome, figure) or cut it"
+            for (t, bl), (seg, _) in best.items()]
+
+
 def check_bullet_chars(txt: str) -> list[str]:
     """Extracted lines that start with a bullet or private-use character."""
     return [l.strip() for l in txt.split("\n") if BULLET_CHAR_RE.match(l.strip())]
@@ -3855,6 +3934,15 @@ def _selftest() -> NoReturn:
     assert not check_summary_repeats(                                                            # skills/education versions: out of scope
         '#section("Profile")[\nJava 17, Node 20, ISO 27001, SOC 2.\n]\n'
         '#section("Skills")[\nJava 17, Node 20, ISO 27001, SOC 2\n]\n')
+    # Entry-repeats WARN: a bullet restating its own entry's descriptor; a bullet adding facts is fine.
+    _er = ('#section("Projects")[\n#job("TrailMap", "Go + SQLite REST service", "2025", "Hiking-trail conditions")\n'
+           '- Built the service in *Go* with *SQLite*; it serves 1,200 monthly users.\n]\n')
+    _erw = check_entry_repeats(_er)
+    assert len(_erw) == 1 and _erw[0].startswith("WARN") and '"TrailMap"' in _erw[0] and "Go + SQLite REST" in _erw[0], _erw
+    assert not check_entry_repeats(_er.replace("Built the service in *Go* with *SQLite*; it", "It"))          # no shared words
+    assert not check_entry_repeats(_er.replace('"Go + SQLite REST service"', '"Montréal · internship"'))       # one-word segments
+    assert not check_entry_repeats(_er.replace("Projects", "Skills"))                                          # out of scope
+    assert not check_entry_repeats('#section("Experience")[\n#job("Dev", "Acme", "May 2025 – Aug 2025", "Montréal")\n- Worked at Acme in Montréal.\n]\n')   # org/dates/city alone
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"
@@ -5246,6 +5334,8 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                 print(w)
 
     for w in check_summary_repeats(typ_text):
+        print(w)
+    for w in check_entry_repeats(typ_text):
         print(w)
 
     bullets = check_bullet_chars(txt)
