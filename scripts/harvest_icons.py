@@ -226,6 +226,10 @@ def main() -> None:
     os.replace(tmp, out)
     print(f"{out}: {got}/{len(ICONS)} marks"
           + ("" if got == len(ICONS) else " — the rest render as no mark"))
+    if got != len(ICONS):
+        print("WARN  ICONS: incomplete harvest — lib.typ `marks()` is all-or-nothing, "
+              "so the contact line will be TEXT-ONLY (no icons on any item). "
+              "Re-run with network to get icons.", file=sys.stderr)
 
 
 if __name__ == "__main__":

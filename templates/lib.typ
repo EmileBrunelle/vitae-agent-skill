@@ -40,7 +40,7 @@
 // nb — an unbreakable mark+value pair. The `~` is the non-breaking space: the
 // mark can never be orphaned at a line end, and the box keeps the pair from
 // being split. Every icon/logo beside a contact value goes through this.
-// A mark of `none` (its data could not be fetched) drops the mark AND the
+// A mark of `none` (its data could not be fetched; `marks` then drops ALL of them) drops the mark AND the
 // nbsp, leaving the value alone — no stray leading space.
 #let nb(mark, value) = if mark == none { box[#value] } else { box[#mark~#value] }
 
@@ -531,28 +531,36 @@
 // stop being a shared fingerprint of the tool; pick_design.py draws one per
 // candidate. LinkedIn/GitHub stay the same in every kit — a brand logo is a
 // functional identifier, not a style.
+//
+// ALL-OR-NOTHING: the contact line shows either every mark of the kit or none.
+// A partial harvest (one Iconify set unreachable, a sandbox with no network
+// that still has some data) would otherwise leave icons on some items and not
+// others, which reads as broken. If ANY of the kit's six marks (mail, web,
+// phone, pin, li, gh) has empty data, `marks` returns `none` for all of them
+// and the line is plain text. harvest_icons.py prints the matching WARN.
 #let marks(c, h: 7pt, kit: "tabler") = {
-  let brand = (li: pmark(li-body, li-vb, c, h: h),
-               gh: pmark(gh-body, gh-vb, c, h: h))
-  if kit == "phosphor" {
-    (mail: pmark(ph-envelope_simple_fill-body, ph-envelope_simple_fill-vb, c, h: h),
-     web: pmark(ph-globe_fill-body, ph-globe_fill-vb, c, h: h),
-     phone: pmark(ph-phone_fill-body, ph-phone_fill-vb, c, h: h),
-     pin: pmark(ph-map_pin_fill-body, ph-map_pin_fill-vb, c, h: h),
-     ..brand)
+  let sets = if kit == "phosphor" {
+    (mail: (ph-envelope_simple_fill-body, ph-envelope_simple_fill-vb),
+     web: (ph-globe_fill-body, ph-globe_fill-vb),
+     phone: (ph-phone_fill-body, ph-phone_fill-vb),
+     pin: (ph-map_pin_fill-body, ph-map_pin_fill-vb))
   } else if kit == "bootstrap" {
-    (mail: pmark(bi-envelope_fill-body, bi-envelope_fill-vb, c, h: h),
-     web: pmark(bi-globe-body, bi-globe-vb, c, h: h),
-     phone: pmark(bi-telephone_fill-body, bi-telephone_fill-vb, c, h: h),
-     pin: pmark(bi-geo_alt_fill-body, bi-geo_alt_fill-vb, c, h: h),
-     ..brand)
+    (mail: (bi-envelope_fill-body, bi-envelope_fill-vb),
+     web: (bi-globe-body, bi-globe-vb),
+     phone: (bi-telephone_fill-body, bi-telephone_fill-vb),
+     pin: (bi-geo_alt_fill-body, bi-geo_alt_fill-vb))
   } else {
-    (mail: pmark(mail-body, mail-vb, c, h: h),
-     web: pmark(web-body, web-vb, c, h: h),
-     phone: pmark(phone-body, phone-vb, c, h: h),
-     pin: pmark(pin-body, pin-vb, c, h: h),
-     ..brand)
+    (mail: (mail-body, mail-vb), web: (web-body, web-vb),
+     phone: (phone-body, phone-vb), pin: (pin-body, pin-vb))
   }
+  sets.insert("li", (li-body, li-vb))
+  sets.insert("gh", (gh-body, gh-vb))
+  let complete = sets.values().all(d => d.at(0) != "")
+  let out = (:)
+  for (k, d) in sets {
+    out.insert(k, if complete { pmark(d.at(0), d.at(1), c, h: h) } else { none })
+  }
+  out
 }
 
 // ------------------------------------------------------- palette derivation

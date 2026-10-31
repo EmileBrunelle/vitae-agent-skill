@@ -28,7 +28,7 @@
    `<that folder>/icons.typ`, overwriting the empty copy — never into
    `templates/`. The script always writes the file and always exits 0 — if the
    API is unreachable it says so on stderr and writes empty marks, and the CV
-   then compiles with no icons and its contact URLs in plain text. `verify.py`
+   then compiles with no icons and its contact URLs in plain text. Icons are all-or-nothing: `marks()` in `lib.typ` returns no mark for ANY item unless every mark of the kit has data, so a partial harvest gives a text-only contact line (the script prints `WARN  ICONS: incomplete harvest`) rather than icons on some items only — tell the user when that happens. `verify.py`
    copies the empty fallback in if the folder has none, so the gate never
    fails for a missing `icons.typ`, load the field pack if one exists, keep the design system's
    invariants (`references/design.md` — read its shared sections plus ONLY the recipe of the family `pick_design.py` drew, via offset/limit; its "Design families — jump to your family" index gives the lines; never the whole file). All fourteen family files
