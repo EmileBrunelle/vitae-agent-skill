@@ -59,6 +59,10 @@ import measure_fill  # noqa: E402 -- measure() only, reported not failed
 import verify  # noqa: E402 -- plumbing only, see module docstring
 
 # ---------------------------------------------------------------- constants
+# LANGUAGE DATA of this gate, in two places kept together here: SECTION_DEFS / NONDATED_HEADINGS / EXTRA_HEADINGS
+# below (the ENGLISH headings the shipped template prints) and STATUS_WORDS (the words that open an undated entry).
+# Rule (same as verify.py): never a FAIL because a language is unknown. A CV in another language whose headings
+# are not the template's gets one `INFO  not checked for <language>` line, not a wall of FAIL.
 # The skill's own finite heading set for the math/CS academic variant
 # (cv.typ). Hardcoded here deliberately — design note §3.2 check C: "le
 # skill connaît la liste exacte de ses propres titres (il les a générés)".
@@ -96,7 +100,15 @@ NONDATED_HEADINGS = {"REFERENCES", "AFFILIATIONS AND LANGUAGES"}
 EXTRA_HEADINGS = ("AFFILIATIONS AND LANGUAGES",)  # heading with no counts table at all
 
 FOOTER_RE = re.compile(r'^\s*(\d+)\s*/\s*(\d+)\s*$')
-ENTRY_START_RE = re.compile(r'^(\d{4}(-\d{4})?|submitted|forthcoming|in press)\b', re.I)
+# Words that open an UNDATED entry (an item without a year): EN, FR, ES, DE, IT, PT, NL.
+STATUS_WORDS = ("submitted|forthcoming|in press|in preparation"
+                "|soumis(?:e|es|s)?|à paraître|sous presse|en préparation"
+                "|en prensa|enviad[oa]s?|aceptad[oa]s?|en preparación"
+                "|eingereicht|im druck|angenommen|in vorbereitung"
+                "|inviat[oa]|in stampa|in preparazione"
+                "|submetid[oa]s?|no prelo|em preparação"
+                "|ingediend|in druk|in voorbereiding")
+ENTRY_START_RE = re.compile(r'^(\d{4}(-\d{4})?|%s)\b' % STATUS_WORDS, re.I)
 NUM_RE = re.compile(r'\[(\d+)\]')
 YEAR_RE = re.compile(r'\d{4}')
 
@@ -332,6 +344,34 @@ def check_running_head(per_page_footer: list[Footer],
     return results
 
 
+def headings_found(text: str, sections: list[Section], extra: tuple[str, ...] = ()) -> tuple[int, int]:
+    """(found, expected): how many of the declared sections (count > 0) and extra headings print their
+    heading as a line of their own in the extraction."""
+    lines = {raw.strip() for raw in text.split("\n")}
+    wanted = [s["heading"] for s in sections if s["count"] > 0] + list(extra)
+    return sum(h in lines for h in wanted), len(wanted)
+
+
+def analyze_for_language(text: str, sections: list[Section], surname: str,
+                         extra: tuple[str, ...] = ()) -> tuple[list[Result], int, list[str]]:
+    """analyze(), unless the CV is in a language other than English and does not print the template's English
+    headings: counts, order, orphan-heading and page-break checks all key on those headings, so they would FAIL
+    for a translated title. Then only the running-head check (language-free) runs, and one INFO line says what was
+    not checked. -> (results, total_pages, info lines)."""
+    found, expected = headings_found(text, sections, extra)
+    code, label = verify._detect_lang(text)
+    if found == expected or code in (None, "en"):
+        results, total = analyze(text, sections, surname, extra)
+        return results, total, []
+    headings_set = {s["heading"] for s in sections} | set(extra)
+    pages_lines, _, footers, surnames = classify(text, headings_set, surname)
+    total = len(pages_lines)
+    info = [verify._not_checked_text(
+        label, f"section counts, order and page breaks — {expected - found} of {expected} template headings are not in "
+               "the PDF (translated headings?)")]
+    return check_running_head(footers, surnames, total), total, info
+
+
 def analyze(text: str, sections: list[Section], surname: str,
             headings_extra: tuple[str, ...] = ()) -> tuple[list[Result], int]:
     """Run all five checks. Returns (results, total_pages)."""
@@ -390,11 +430,11 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
             return False, [(True, f"compile failed: {err}")], []
 
         text = extract_layout_text(pdf)
-        results, total_pages = analyze(text, sections, surname, EXTRA_HEADINGS)
+        results, total_pages, info = analyze_for_language(text, sections, surname, EXTRA_HEADINGS)
 
         # ---- reported-only metrics (never failed): page count, last-page
         # fill, and a rough prose/list share. academic-mode.md §3.3/§3.4.
-        reported = [f'{total_pages} page(s)']
+        reported = info + [f'{total_pages} page(s)']
         pages_from_cli = verify.count_pages(pdf, backend)
         if pages_from_cli and str(pages_from_cli) != str(total_pages):
             reported.append(f'note: pdfinfo reports {pages_from_cli} page(s)')

@@ -413,3 +413,67 @@ def test_a_borrowed_place_still_warns():
     typ = '#section("Experience")[\n#job("IT Support", "Collège Riverside", "Sep 2022 – Apr 2025", "Hamburg")\n]\n'
     out = v.check_entry_locations(typ, LOC_FACTS)
     assert len(out) == 1 and '"Hamburg"' in out[0]
+
+
+# --- verify_academic: statuses and translated headings never FAIL --------------------------------------------------------
+
+import verify_academic as va  # noqa: E402  (needs verify importable first: conftest puts scripts/ on the path)
+
+SECTIONS: list[va.Section] = [
+    {"heading": "EDUCATION", "count": 1, "undated_prefix": 0, "numbered": False},
+    {"heading": "PUBLICATIONS: JOURNAL ARTICLES", "count": 2, "undated_prefix": 1, "numbered": False},
+]
+FR_ACADEMIC = """\
+Dupont
+FORMATION
+2015-2019   Doctorat en mathématiques, Université de Montréal, dans le cadre d'une thèse sur les graphes et les
+            algorithmes de coloration, sous la direction de la professeure Tremblay.
+ARTICLES DE REVUE
+à paraître  Dupont, J. Une borne pour la coloration des graphes, avec une démonstration pour les graphes planaires.
+2021        Dupont, J. Sur les arbres, et sur les graphes de grande taille dans les réseaux de transport.
+"""
+ES_ACADEMIC = """\
+Dupont
+FORMACIÓN
+2015-2019   Doctorado en matemáticas, Universidad de Valencia, con una tesis sobre los grafos y los algoritmos de
+            coloración, bajo la dirección de la profesora Tremblay.
+ARTÍCULOS DE REVISTA
+en prensa   Dupont, J. Una cota para la coloración de los grafos, con una demostración para los grafos planos.
+2021        Dupont, J. Sobre los árboles, y sobre los grafos de gran tamaño en las redes de transporte.
+"""
+
+
+@pytest.mark.parametrize("status", ["submitted", "forthcoming", "in press", "soumis", "soumise", "à paraître", "sous presse",
+                                    "en préparation", "en prensa", "enviado", "eingereicht", "Im Druck", "inviato",
+                                    "submetido", "ingediend"])
+def test_academic_entry_start_knows_statuses_of_other_languages(status):
+    assert va.ENTRY_START_RE.match(f"{status}  Doe, J. A paper")
+
+
+def test_academic_entry_start_en_unchanged():
+    assert va.ENTRY_START_RE.match("2019-2024  Entry") and not va.ENTRY_START_RE.match("Accepted somewhere")
+
+
+def test_translated_academic_cv_never_fails_on_unknown_headings():
+    results, _, info = va.analyze_for_language(FR_ACADEMIC, SECTIONS, "Dupont", ())
+    assert all(ok for _, ok, _ in results), results              # nothing FAILs
+    assert len(info) == 1 and info[0].startswith("not checked for French: section counts, order and page breaks")
+    # the same text went through the English-only analysis fails: that was the false FAIL
+    assert any(not ok for _, ok, _ in va.analyze(FR_ACADEMIC, SECTIONS, "Dupont")[0])
+    results, _, info = va.analyze_for_language(ES_ACADEMIC, SECTIONS, "Dupont", ())
+    assert all(ok for _, ok, _ in results) and info and "Spanish" in info[0]
+
+
+def test_english_academic_cv_keeps_its_fail_when_a_heading_vanishes():
+    text = FR_ACADEMIC.replace("FORMATION", "").replace("ARTICLES DE REVUE", "")
+    text = ("The department chair asked the candidate for the full record of the work in the lab and for the list of "
+            "all of the papers that are in the file.\n" + text)
+    results, _, info = va.analyze_for_language(text, SECTIONS, "Dupont", ())
+    assert info == [] and any(not ok for _, ok, _ in results)
+
+
+def test_translated_academic_cv_with_the_template_headings_is_checked_normally():
+    text = FR_ACADEMIC.replace("FORMATION", "EDUCATION").replace("ARTICLES DE REVUE", "PUBLICATIONS: JOURNAL ARTICLES")
+    results, _, info = va.analyze_for_language(text, SECTIONS, "Dupont", ())
+    assert info == [] and all(ok for _, ok, _ in results), results
+

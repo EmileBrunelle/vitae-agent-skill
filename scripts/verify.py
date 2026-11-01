@@ -1290,10 +1290,14 @@ def _guess_lang(text: str) -> str | None:
     return code if code in ("en", "fr") else None
 
 
+def _not_checked_text(label: str, check: str) -> str:
+    """What follows `INFO  ` on the one line a language-dependent check prints instead of guessing."""
+    return f"not checked for {label}: {check} — the agent compares this by hand (see step 6 list)"
+
+
 def _not_checked(label: str, check: str) -> str:
-    """The one INFO line a language-dependent check prints instead of guessing (references/steps/6-verify.md)."""
-    return (f"INFO  not checked for {label}: {check} — the agent compares this by hand "
-            "(see step 6 list)")
+    """The INFO line itself (references/steps/6-verify.md lists what the agent then compares)."""
+    return "INFO  " + _not_checked_text(label, check)
 
 
 def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
