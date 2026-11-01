@@ -324,6 +324,13 @@ else
   echo "SKIP mypy (not installed: pip install mypy)"
 fi
 
+# Lint (config: pyproject.toml). Runs on the repo itself (no PDFs involved). Optional locally.
+if command -v ruff >/dev/null 2>&1; then
+  check ruff bash -c 'cd "$1" && ruff check --no-cache scripts tests' _ "$root"
+else
+  echo "SKIP ruff (not installed: pip install ruff)"
+fi
+
 # Template targets come from pick_design.FAMILIES[f]['page']['fill'] ("A-B").
 targets="$(python3 -I -c "
 import sys; sys.path.insert(0, 'scripts'); import pick_design as p
