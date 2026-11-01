@@ -3,70 +3,79 @@
 # Usage: python3 scripts/verify.py <cv.typ> PAGES [FILL_MIN FILL_MAX]
 #        python3 scripts/verify.py --tune <cv.typ> PAGES FILL_MIN FILL_MAX
 # (Reading it wastes context: a small model read this file 3 times and never wrote the CV.)
-"""One-command gate for the MECHANICAL subset of SKILL.md step 6 (any
-platform with Python 3 -- Linux, macOS, Windows). Exits non-zero if any
-check fails. Left to do by hand: the visual PNG inspection, recomputing
-the accent's contrast, the date-order check, and re-diffing bullets
-against the fact sheet.
+"""One-command gate for the MECHANICAL subset of SKILL.md step 6 (any platform with Python 3: Linux, macOS,
+Windows). Exits non-zero if any check fails. Left to do by hand: the visual PNG inspection, recomputing the
+accent's contrast, the date-order check, and re-diffing bullets against the fact sheet.
 
 Usage:
-    verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]
+    verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md]
     verify.py --all DIR
     verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LEADING_LO LEADING_HI]
     verify.py --doctor
+    verify.py --selftest
 
     e.g. verify.py cv.typ 1 94 96
          verify.py --tune cv.typ 1 94 96
 
---all checks EVERY deliverable in a directory instead of the one file just
-edited. This exists because of a real regression: a padding tweak was verified
-on the 2-page CV while it silently pushed the 1-page CV onto two pages
-("T'as fait ça en voulant modifier le padding"). The deliverables share
-lib.typ, so touching it invalidates the whole family, not the file in hand.
+--gates (the new gates alone on a compiled PDF), --render (one PNG per page) and --text (the text the gates read)
+are agent-facing helpers; their usage text is in main(). That function also owns the usage text of every
+mode: it is what a usage error and --help print, and this docstring is not printed anywhere.
 
-Each .typ declares its own expectations in a header comment, so there is no
-manifest to keep in sync with the files:
+Gate order for one CV (`_check_cv`; every line is printed as OK, WARN, FAIL or INFO, and the exit code is 1 if any
+was a FAIL): dependency preflight, lib.typ integrity, compile, page count, then per rendered page the fill, the
+text-clip gate and the whitespace structure; template-default markers; the checks on the extracted text (spaced
+capitals, orphaned dates, no section split across a page break, year-only dates, degree tokens, --facts coverage,
+summary and entry repeats, bullet characters); last, the gates that need `typst query` (hidden text, font fallback,
+group proximity, date adjacency, forced line breaks and `~`, duplicate names).
+
+Design principle: Python keeps the deterministic checks. Where it cannot judge (a language it has no word lists for,
+a render without `typst query`, a PDF reader that cannot give word boxes) it says so with an INFO or a WARN and
+leaves the comparison to the agent (references/steps/6-verify.md); it never FAILs because a language is unknown.
+
+The helpers live in sibling modules, which verify.py imports by name: verify_lang (language data and detection),
+verify_typst (cv.typ parsing: text in, values out), verify_fonts (font families asked for against drawn),
+verify_page (page geometry and pixel measurement), and verify_selftest (--selftest). The first four never
+`import verify`: verify.py runs as __main__, so importing it would execute the script a second time under the name
+`verify`. verify_selftest does need verify's own functions, so --selftest imports it lazily, after registering the
+running module as `verify` in sys.modules (its `import verify` then gets this module, not a copy); a normal run
+never loads it.
+
+--all checks EVERY deliverable in a directory instead of the one file just edited. This exists because of a real
+regression: a padding tweak was verified on the 2-page CV while it silently pushed the 1-page CV onto two pages
+("T'as fait ça en voulant modifier le padding"). The deliverables share lib.typ, so touching it invalidates the
+whole family, not the file in hand.
+
+Each .typ declares its own expectations in a header comment, so there is no manifest to keep in sync with the files:
 
     // vitae: pages=1 fill=94-96
 
-A file without that line is still checked: its page count comes from its name
-(`[-_]2p`, `[-_]2page(s)`, optionally with a space, e.g. `_2p`, `-2page`,
-`-2pages`, is two pages; anything else is one) and its fill is reported
-instead of gated. Not one .typ in this repo carries the header, so demanding
-it made `--all` return 30 UNCHECKED and exit 1 on its own corpus.
+A file without that line is still checked: its page count comes from its name (`[-_]2p`, `[-_]2page(s)`,
+optionally with a space, e.g. `_2p`, `-2page`, `-2pages`, is two pages; anything else is one) and its fill is
+reported instead of gated. Not one .typ in this repo carries the header, so demanding it made `--all` return 30
+UNCHECKED and exit 1 on its own corpus.
 
---tune runs the page-fill loop BY BISECTION instead of by hand: it moves the
-`#set par(leading:, spacing:)` declaration (keeping the family's own delta
-between the two) to the largest rhythm that still holds the expected page
-count, writes the winning values into the file, and reports whether the
-resulting fill lands in the target. It replaces the compile-measure-adjust
-loop an agent would otherwise run a dozen times per family. It tunes NOTHING
-else: the section gap, the margins and the type sizes are recipe decisions.
-When no value in range reaches the target, it says so rather than inventing
-one — that is the anti-filler clause (SKILL.md rule 5), and the fix is the
-section gap, real content, or a different page count. But check the RANGE
-first: the default search is 0.80-1.30x the current leading, and a font swap
-can need a bigger move than that. Pass LEADING_LO/LEADING_HI and re-run before
-you touch a device — one family's second font pair looked unreachable, got its
-section gap cut by 6pt to compensate, and landed with its boundary sitting
-exactly on the separation floor; a wider search range was the real fix.
+--tune runs the page-fill loop BY BISECTION instead of by hand: it moves the `#set par(leading:, spacing:)`
+declaration (keeping the family's own delta between the two) to the largest rhythm that still holds the expected
+page count, writes the winning values into the file, and reports whether the resulting fill lands in the target. It
+replaces the compile-measure-adjust loop an agent would otherwise run a dozen times per family. It tunes NOTHING
+else: the section gap, the margins and the type sizes are recipe decisions. When no value in range reaches the
+target, it says so rather than inventing one: that is the anti-filler clause (SKILL.md rule 5), and the fix is the
+section gap, real content, or a different page count. But check the RANGE first: the default search is 0.80-1.30x
+the current leading, and a font swap can need a bigger move than that. Pass LEADING_LO/LEADING_HI and re-run before
+you touch a device: one family's second font pair looked unreachable, got its section gap cut by 6pt to compensate,
+and landed with its boundary sitting exactly on the separation floor; a wider search range was the real fix.
 
---doctor runs only the dependency preflight (no cv.typ required), exit
-0 if everything needed is present (a pip-only fallback is printed as
-DEGRADED, with the skipped checks and install routes, and still exits 0
-because compiling and page counting work), 1 otherwise -- replaces the old
-check_env.sh / check_env.ps1 doctors.
+--doctor runs only the dependency preflight (no cv.typ required), exit 0 if everything needed is present (a pip-only
+fallback is printed as DEGRADED, with the skipped checks and install routes, and still exits 0 because compiling and
+page counting work), 1 otherwise. It replaces the old check_env.sh / check_env.ps1 doctors.
 
-Exit codes: 0 PASS, 1 FAIL (or missing dependency with no fallback),
-2 usage error.
+Exit codes: 0 PASS, 1 FAIL (or missing dependency with no fallback), 2 usage error.
 
-Prefers native tools (typst CLI, poppler pdfinfo/pdftotext) but falls
-back automatically to their Python equivalents when only those are
-installed: the `typst` Python package (compiles via its API, no CLI
-needed) and `pypdf` (page count + indicative-only text extraction --
-see references/ats.md for the caveat). No functional --install flag:
-that meant fetching a binary over HTTPS with no checksum verification;
-print the install commands instead and let the user choose.
+Prefers native tools (typst CLI, poppler pdfinfo/pdftotext) but falls back automatically to their Python
+equivalents when only those are installed: the `typst` Python package (compiles via its API, no CLI needed),
+`pypdfium2` (text, word boxes, raster) and `pypdf` (page count and indicative-only text extraction; see
+references/ats.md for the caveat). There is no functional --install flag: that meant fetching a binary over HTTPS
+with no checksum verification; the install commands are printed instead and the user chooses.
 """
 from __future__ import annotations
 
@@ -243,6 +252,8 @@ DetailRow = GroupRow | SecRow
 # ---------- dependency preflight ("doctor") ----------
 
 def check_pillow() -> bool:
+    """Doctor line for Pillow, which the fill, text-clip, hidden-text and crop measurements read rasters through:
+    without it the doctor fails."""
     try:
         import PIL  # noqa: F401
         print(f"OK    Pillow {PIL.__version__}")
@@ -274,6 +285,7 @@ def _py_fetch(url: str, mode: str, member: str, exact: bool) -> str:
 
 
 def _typst_noroot_lines(arch: str) -> list[str]:
+    """Install lines for typst without root: the release tarball, by curl and by python."""
     tgt = f"typst-{arch}-unknown-linux-musl"
     url = f"https://github.com/typst/typst/releases/latest/download/{tgt}.tar.xz"
     return [
@@ -284,6 +296,7 @@ def _typst_noroot_lines(arch: str) -> list[str]:
 
 
 def _poppler_noroot_lines(arch: str) -> list[str]:
+    """Install lines for poppler without root, through micromamba from conda-forge."""
     plat = "linux-64" if arch == "x86_64" else "linux-aarch64"
     url = f"https://micro.mamba.pm/api/micromamba/{plat}/latest"
     return [
@@ -294,13 +307,16 @@ def _poppler_noroot_lines(arch: str) -> list[str]:
     ]
 
 
+# Oldest typst the fill targets were calibrated on; an older one still works and is reported DEGRADED, not refused.
 TYPST_MIN = (0, 15)
 _OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
               "(0.13/0.14 miss 2 templates at 91% against 93-96%)")
 
 
 def check_typst() -> tuple[bool, bool]:
-    """Returns (available, use_cli). The Python API is judged by running it, not by its attributes."""
+    """Doctor lines for typst; returns (available, use_cli). The CLI is preferred, the Python API is the fallback and
+    is judged by running it, not by its attributes. Older than TYPST_MIN, or a Python API without query/fonts, is
+    DEGRADED (still available); a broken or missing install is not."""
     if shutil.which("typst"):
         try:
             ver = subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
@@ -400,7 +416,9 @@ def pdf_tool(name: str) -> bool:
 
 
 def check_pdf_tools() -> tuple[bool, PdfBackend]:
-    """Returns (available, backend)."""
+    """Doctor lines for the PDF reader; returns (available, backend), the backend being the one pdf_backend() would
+    pick. A missing pdftoppm, or pypdf standing in for poppler, only degrades: the checks it cannot serve are named
+    in the output."""
     arch = _linux_arch()
     if shutil.which("pdfinfo") and shutil.which("pdftotext"):
         if not shutil.which("pdftoppm"):
@@ -474,8 +492,8 @@ def check_fonts() -> None:
 
 
 class _CountDegraded:
-    """stdout wrapper: counts the doctor lines that start with DEGRADED, so no path can print
-    one and still end on an OK summary (a new DEGRADED line anywhere is covered)."""
+    """stdout wrapper: counts the doctor lines that start with DEGRADED, so no path can print one and still end on an
+    OK summary, whichever check wrote it."""
     def __init__(self, inner: Any) -> None:
         self.inner, self.n, self._bol = inner, 0, True
 
@@ -494,7 +512,8 @@ class _CountDegraded:
 
 
 def preflight() -> tuple[bool, bool, PdfBackend]:
-    """Prints doctor output; returns (all_ok, use_cli_typst, pdf_backend)."""
+    """Print the doctor output; returns (all_ok, use_cli_typst, pdf_backend). all_ok is False only when something
+    has no fallback (Pillow, typst, a PDF reader); DEGRADED lines leave it True."""
     counter = _CountDegraded(sys.stdout)
     with contextlib.redirect_stdout(cast(Any, counter)):
         pillow_ok = check_pillow()
@@ -505,7 +524,7 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
         all_ok = pillow_ok and typst_ok and pdf_ok
         pypdf_missing = backend in ("poppler", "pdfium") and not _importable("pypdf")
         if pypdf_missing:
-            # what the gate actually WARNs, per backend (check_hidden_text)
+            # the WARN check_hidden_text prints for this backend, quoted so the doctor and the gate agree
             skipped = ("the tiny-text check of the hidden-text gate will NOT run "
                        "(WARN \"tiny-text check not run (pypdf missing)\")" if backend == "pdfium" else
                        "the off-page check of the hidden-text gate will NOT run "
@@ -539,6 +558,7 @@ def auto_root(typ: str) -> str | None:
     return root if ups else None
 
 
+# auto_root as a typst-py keyword and as CLI flags; empty when the default root (the file's own folder) is right.
 def _root_kw(typ: str) -> dict[str, str]:
     r = auto_root(typ)
     return {"root": r} if r else {}
@@ -590,6 +610,7 @@ def typst_font_kw() -> dict[str, list[str]]:
 
 
 def _ver_tuple(v: str) -> tuple[int, int]:
+    """(major, minor) of the first `X.Y` in `v`; (0, 0) when there is none, which reads as older than TYPST_MIN."""
     m = re.search(r"(\d+)\.(\d+)", v)
     return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
 
@@ -692,6 +713,8 @@ def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
 
 
 def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
+    """One 90 ppi PNG per page, the raster the fill scan reads (the hidden-text gate renders its own, at HIDDEN_PPI).
+    The second typst-py call is for a version whose compile() does not take `ppi`."""
     pattern = os.path.join(tmp_dir, "p{p}.png")
     if use_cli:
         subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pattern), "--format", "png", "--ppi", "90"] + _root_cli(typ),
@@ -710,6 +733,7 @@ def _pdfium_doc(pdf: str) -> Any:
 
 
 def count_pages(pdf: str, backend: PdfBackend) -> str | None:
+    """The page count as text, compared with EXPECTED_PAGES as text; None when pdfinfo prints no Pages line."""
     if backend == "pdfium":
         return str(len(_pdfium_doc(pdf)))
     if backend == "poppler":
@@ -728,10 +752,9 @@ LINE_GAP = 1.0
 def _pdfium_page_text(pg: Any) -> str:
     """pypdfium2's page text with its lines cut like pdftotext's. pdfium joins cells that
     share a baseline (a contact row, a left-flushed role and its right-flushed date) into one
-    line; a new line starts where the gap to the previous character exceeds LINE_GAP (1.0) x the
-    box height. That value was picked by search against pdftotext's line counts: poppler's own
-    cut is not purely geometric, and `_reading_order` cuts its pieces at 1.5 x for a different
-    purpose (reading order). A gap with whitespace in it
+    line; a new line starts where the gap to the previous character exceeds LINE_GAP (1.0) x the box height. That
+    value was picked by search against pdftotext's line counts: poppler's own cut is not purely geometric, and
+    `_reading_order` cuts its pieces at 1.5 x for a different purpose (reading order). A gap with whitespace in it
     becomes the newline; a gap without any gets one inserted. Trailing blanks are dropped."""
     tp = pg.get_textpage()
     if not tp.count_chars():
@@ -767,6 +790,7 @@ def _pdfium_page_text(pg: Any) -> str:
 
 
 def extract_text(pdf: str, backend: PdfBackend) -> str:
+    """The PDF text the ATS checks read, in pdftotext's shape whatever the backend. pypdf's is indicative only."""
     if backend == "poppler":
         return subprocess.run(["pdftotext", pdf, "-"], capture_output=True, text=True).stdout
     if backend == "pdfium":
@@ -784,7 +808,7 @@ def extract_text(pdf: str, backend: PdfBackend) -> str:
 # The headings come from the SOURCE, not from a guess at what a heading looks
 # like in the extraction: every family defines its own `#section(t, body)` and
 # calls it `#section("Title")[...]`, so the call sites ARE the declared list.
-# No font-size heuristic survives 14 families; a grep does.
+# No font-size heuristic survives the family roster; a grep does.
 SECTION_CALL_RE = re.compile(r'#section\(\s*"([^"]*)"')
 
 # lib.typ's `runhead` emits `name #h(1fr) n / total` (design.md § the device
@@ -826,6 +850,9 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
     after the first must OPEN on a section heading. Contrapositive of the rule,
     not an approximation of it -- if every break lands exactly on a boundary,
     nothing straddles; if one does not, whatever section preceded it is split.
+
+    Returns (is_fail, message) pairs; "no #section call" and "single page" come back as non-failures, which the
+    caller prints. The caller turns a FAIL into a WARN on the pypdf fallback, whose extraction is indicative only.
 
     Pure function of (source text, extracted pages) so the selftest can feed it
     synthetic text and needs no Typst. The academic gate checks the same
@@ -869,8 +896,8 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
 
 # ---------- whitespace structure: section boundaries + canyons ----------
 
-# BOUNDARY_RATIO, the locator the paragraphs below refer to, lives in verify_page.py with its calibration.
-# …and the ceiling, which is a SMOKE ALARM, not a grade either. Whitespace is
+# BOUNDARY_RATIO, the boundary locator, lives in verify_page.py with its calibration. SEPARATION_CEILING is the
+# other end of the same measurement, and it is a SMOKE ALARM, not a grade. Whitespace is
 # the WEAK separator: piling it on is what an agent does when the boundary does
 # not read and it has no device to reach for, and the page that carries no
 # device at all AND a gap unlike anything the roster produces is the
@@ -885,20 +912,24 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
 # all). 5.0 kept the corpus green only by an exact tie (humanist-quiet/resume
 # measures 5.00), which is not a calibration.
 SEPARATION_CEILING = 6.0
-# …and a device is a REPEATED element: one mark on the page is an ornament,
+# DEVICE_QUORUM: a device is a REPEATED element, and one mark on the page is an ornament,
 # typically the flourish under the name. Two families passed the ink check on
 # exactly that — `gutter-rail` on its header bar, `engraved-card` on the 56pt
 # rule under the name — with nothing at any section boundary below.
-# ponytail: a flat count, not a per-boundary tally; a page carrying a single
+# Known limit: a flat count, not a per-boundary tally; a page carrying a single
 # section boundary (the tail of a 2-pager) would read as ornament-only. No such
 # page exists in the corpus — the thinnest is page 2 of swiss-grid's 2-pager
 # with 5 — so a per-boundary pairing is not worth its code yet.
 DEVICE_QUORUM = 2
+# Internal white runs are judged as fractions of page height, never pixels (references/design.md, "Internal-gap
+# scan"): a run over BOUNDARY_CEILING is a canyon wherever it sits; a run over CANYON is a hole unless it is a section
+# boundary (a run of at least BOUNDARY_RATIO x the median run).
 CANYON = 0.035          # a hole this tall (fraction of page height) is a defect
 BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run this tall
 
-# Families whose boundary device is real but of a KIND no row scan can see.
-# Measured 2026-09-13; each is a device nature, not a tuning miss:
+# Families whose boundary device is real but of a KIND no row scan can see: they are exempt from the DEVICE_QUORUM
+# FAIL only (check_whitespace looks the family up with family_from_path). Measured 2026-09-13; each is a device
+# nature, not a tuning miss:
 DEVICELESS = {
     "humanist-quiet",   # no ink at all, by doctrine (design.md: pure gap)
     "clause-index",     # the device is a numeral — text, not furniture
@@ -948,7 +979,9 @@ def _month_before(prefix: str, lenient: bool) -> bool:
 
 
 def check_year_only_dates(txt: str) -> list[str]:
-    """Lines carrying a range where either end lacks a month (or season)."""
+    """Lines carrying a range where either end lacks a month (or season). The caller WARNs, never FAILs (see above).
+    A word it cannot read as a month, in a script or language it has no month names for, is given the benefit of
+    the doubt (_month_before)."""
     out = []
     lenient = _detect_lang(txt)[0] == "other"
     for line in txt.split("\n"):
@@ -967,6 +1000,7 @@ def _year_only_msg(line: str) -> str:
             '(SKILL.md rule 1)')
 
 
+# Date, number and name patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
 _MONTH_YEAR_RE = re.compile(
     r"(?<![^\W\d_])(%s)\.?\s+((?:19|20)\d{2})(?!\d)" % "|".join(sorted(_MONTHS, key=len, reverse=True)))
 # "juillet – août 2019": the year closes the range and applies to the month before the dash too
@@ -1112,7 +1146,12 @@ def _not_checked(label: str, check: str) -> str:
 
 
 def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
-    """Rule 1, mechanically: WARN lines for every year, month+year, number,
+    """Rule 1, mechanically. WARN, never FAIL: a figure or name absent from the facts file is a prompt to confirm it
+    with the candidate, and the facts file may be written in prose the patterns cannot read. When the CV and the
+    facts file are in different languages, or in one this file has no word lists for, the name check is replaced
+    by an INFO line saying what was not checked (the agent compares by hand), not by guesses.
+
+    WARN lines for every year, month+year, number,
     capitalized name (multi-word, single mid-sentence word, acronym) in the CV
     text that the facts file does not contain. Case, accents, whitespace, number
     formats and company suffixes are normalized; phone numbers are ignored; a
@@ -1289,7 +1328,8 @@ DEGREE_NEAR_RE = re.compile(
 
 
 def check_degree_tokens(txt: str) -> list[str]:
-    """Lines pairing a degree token with a non-completion marker within 30 chars."""
+    """Lines pairing a degree token with a non-completion marker within 30 chars. The caller WARNs: an ATS
+    (Eightfold) read "B.Eng. program" as a degree held (references/ats.md)."""
     return [l.strip() for l in txt.split("\n") if DEGREE_NEAR_RE.search(l)]
 
 
@@ -1339,7 +1379,8 @@ _SUMMARY_TITLE_RE = re.compile(_SUMMARY_TITLES, re.I)
 _EXPERIENCE_TITLE_RE = re.compile(_EXPERIENCE_TITLES, re.I)
 def check_summary_repeats(src: str) -> list[str]:
     """WARN line when the summary/profile section repeats SUMMARY_REPEAT_MIN+ figures that the experience /
-    project sections already state (padding by repetition). No summary or no experience section: silent."""
+    project sections already state (padding by repetition). A WARN because one repeated figure can be a deliberate
+    headline metric. No summary or no experience section: silent."""
     secs = [(t, _typst_prose(b)) for t, b in _section_bodies(_strip_typst_comments(src))]
     summ = [b for t, b in secs if _SUMMARY_TITLE_RE.search(t) and not _EXPERIENCE_TITLE_RE.search(t)]
     rest = [b for t, b in secs if _EXPERIENCE_TITLE_RE.search(t)]
@@ -1430,6 +1471,7 @@ def _facts_items(facts_text: str) -> list[tuple[int, int, str]]:
 
 
 def _padded_words(s: str) -> str:
+    """Folded words joined by single spaces, with one at each end, so `" a b " in text` matches whole words only."""
     return " " + " ".join(re.findall(r"\w+", _fold(s).replace("-", " "))) + " "
 
 
@@ -1484,12 +1526,12 @@ def check_entry_locations(src: str, facts_text: str) -> list[str]:
 
 
 def check_bullet_chars(txt: str) -> list[str]:
-    """Extracted lines that start with a bullet or private-use character."""
+    """Extracted lines that start with a bullet or private-use character (the caller WARNs; see BULLET_CHAR_RE)."""
     return [l.strip() for l in txt.split("\n") if BULLET_CHAR_RE.match(l.strip())]
 
 
 def family_from_path(path: str) -> str | None:
-    """The family this CV is built from, for the DEVICELESS exemption.
+    """The family this CV is built from, for the DEVICELESS exemption and the drawn fill target (_drawn_fill).
 
     Read from the `// FAMILY: <name>` banner every template carries on line 1,
     NOT from the directory. A delivered CV is a copy of the template living in
@@ -1528,7 +1570,7 @@ def word_boxes(pdf: str, with_text: bool = False) -> list[list[Box]] | list[list
 
     Returns None (not a list of empties) when pdftotext is missing or fails,
     so callers can tell "no text found" from "couldn't check" and degrade to
-    the old ink-only detector rather than treating every row as furniture.
+    the ink-only detector rather than treating every row as furniture.
     """
     pages = _bbox_pages(pdf)
     if pages is None:
@@ -1559,16 +1601,6 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
                                       r'xMax="([-\d.]+)" yMax="([-\d.]+)">([^<]*)</word>', pg)]
         pages.append((float(dim[1]) if dim else 0.0, float(dim[2]) if dim else 0.0, items))
     return pages
-
-
-# pdfium's tight character boxes (ink extents) vary with the letters (a word without
-# descenders is shorter); its LOOSE boxes follow the font's ascent and descent like
-# poppler's word boxes. Measured on the shipped templates against `pdftotext -bbox`:
-# x within 0.8 pt, y within ~1 pt for most fonts (tight boxes padded by 2.5 pt per side
-# were off by up to 10 pt and cut one hard-edge line out of its band: a FAIL poppler
-# does not give).
-
-
 
 
 def _reading_order(words: list[WordBox]) -> list[WordBox]:
@@ -1652,8 +1684,12 @@ def _boxes_unavailable() -> str:
 
 
 def _pdfium_bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
-    """`_bbox_pages` on pypdfium2: words are runs of non-space characters, each box the
-    union of its loose character boxes (top-down, like pdftotext)."""
+    """`_bbox_pages` on pypdfium2: words are runs of non-space characters, each box the union of its loose character
+    boxes (top-down, like pdftotext). LOOSE boxes, because pdfium's tight ones are ink extents and vary with the
+    letters (a word without descenders is shorter), while the loose ones follow the font's ascent and descent like
+    poppler's word boxes. Measured on the shipped templates against `pdftotext -bbox`: x within 0.8 pt, y within ~1
+    pt for most fonts; tight boxes padded by 2.5 pt per side were off by up to 10 pt and cut one hard-edge line out
+    of its band, a FAIL poppler does not give."""
     try:
         doc = _pdfium_doc(pdf)
         pdfium_raw: Any = importlib.import_module("pypdfium2.raw")
@@ -1777,6 +1813,8 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
 
 # ---------- hidden text: every extracted word must be visible ----------
 
+# Calibrated on the 29 templates and 294 palette renders (CHANGELOG): weakest legitimate contrast 4.55:1, smallest
+# legitimate box 5.49 pt (a superscript).
 HIDDEN_PPI = 150          # own raster: tiny legit text needs more than the 90 ppi fill scan
 HIDDEN_MIN_BOX_PT = 4.0   # word-box height floor (pt). Legit: 7.98 for 8.5pt text, 5.49 for a
                           # superscript in 7.5-9pt body. Hidden-text intent is invisibility, not
@@ -1784,6 +1822,8 @@ HIDDEN_MIN_BOX_PT = 4.0   # word-box height floor (pt). Legit: 7.98 for 8.5pt te
 HIDDEN_FAIL_RATIO = 1.5   # WCAG contrast ratio of the strongest pixel in a word's box against the
 HIDDEN_WARN_RATIO = 3.0   # box background: below 1.5 unreadable (FAIL), below 3 barely visible (WARN)
 HIDDEN_PAD_PX = 1         # px added around each box (single-stem words like "i", "l", "二")
+# Metadata gate (check_pdf_metadata): a Keywords field over KEYWORD_MAX_TERMS terms, or any other field over
+# META_MAX_CHARS characters, is WARNed as stuffing.
 KEYWORD_MAX_TERMS = 15
 META_MAX_CHARS = 200
 
