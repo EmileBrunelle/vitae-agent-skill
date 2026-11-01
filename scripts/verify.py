@@ -1386,6 +1386,26 @@ def _entry_words(text: str) -> set[str]:
     return {w.rstrip(".-").removesuffix("s") if len(w) > 3 else w for w in words if w not in _ENTRY_STOP and len(w) > 1}
 
 
+def _call_strings(body: str, j: int) -> tuple[list[str], int]:
+    """String literals of the call whose argument list starts at `j` (just after its `(`), and the index after its `)`."""
+    depth = 1
+    strs: list[str] = []
+    while j < len(body) and depth:
+        c = body[j]
+        if c == '"':
+            e = j + 1
+            while e < len(body) and body[e] != '"':
+                e += 2 if body[e] == "\\" else 1
+            strs.append(body[j + 1:e])
+            j = e
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        j += 1
+    return strs, j
+
+
 def _entries(body: str, org_is_descriptor: bool = False) -> list[tuple[str, list[str], list[str]]]:
     """(title, descriptor segments, bullets) of each `#call("title", "org", "dates", "note")` entry in a section
     body. Descriptors are the string arguments after the title (and after the org, unless `org_is_descriptor`, as
@@ -1393,21 +1413,7 @@ def _entries(body: str, org_is_descriptor: bool = False) -> list[tuple[str, list
     calls = list(_ENTRY_CALL_RE.finditer(body))
     out = []
     for k, m in enumerate(calls):
-        j, depth = m.end(), 1
-        strs: list[str] = []
-        while j < len(body) and depth:
-            c = body[j]
-            if c == '"':
-                e = j + 1
-                while e < len(body) and body[e] != '"':
-                    e += 2 if body[e] == "\\" else 1
-                strs.append(body[j + 1:e])
-                j = e
-            elif c == "(":
-                depth += 1
-            elif c == ")":
-                depth -= 1
-            j += 1
+        strs, j = _call_strings(body, m.end())
         tail = body[j:calls[k + 1].start() if k + 1 < len(calls) else len(body)]
         bullets: list[str] = []
         for line in tail.split("\n"):
@@ -1450,6 +1456,69 @@ def check_entry_repeats(src: str) -> list[str]:
     return [f'WARN  entry "{t}": the bullet "{bl[:70]}" restates the descriptor "{seg}" — each fact once per entry '
             "(SKILL.md anti-filler clause); give the bullet a new fact (scope, outcome, figure) or cut it"
             for (t, bl), (seg, _) in best.items()]
+
+
+# Entry-location WARN: a place name in an entry's descriptor segments that its own facts.md item never mentions.
+_LOC_GENERIC = frozenset(
+    "part-time part time full-time full time remote hybrid on-site onsite contract freelance internship intern co-op coop "
+    "seasonal summer temporary volunteer stage été temps partiel plein à distance hybride contrat pigiste saisonnier "
+    "bénévole alternance gpa".split())
+_LOC_JOIN = frozenset("de du des of and et la le les sur sous upon on in".split())
+_FACTS_BLOCK_START_RE = re.compile(r"^(?:#{1,6}\s|[-*+]\s)")
+
+
+def _facts_blocks(facts_text: str) -> list[str]:
+    """facts.md items: each heading or top-level bullet with the indented lines under it, up to the next one."""
+    blocks: list[list[str]] = []
+    for line in facts_text.splitlines():
+        if _FACTS_BLOCK_START_RE.match(line) or not blocks:
+            blocks.append([])
+        blocks[-1].append(line)
+    return ["\n".join(b) for b in blocks]
+
+
+def _padded_words(s: str) -> str:
+    return " " + " ".join(re.findall(r"\w+", _fold(s).replace("-", " "))) + " "
+
+
+def check_entry_locations(src: str, facts_text: str) -> list[str]:
+    """WARN lines for an entry whose descriptor (location) segments name a proper noun that the facts.md item
+    describing that entry never mentions. The item is found by the entry's title and org (title + org, else title,
+    else a single org item); with no identifiable item, silent. Segments that are not short Title Case names (descriptions), generic words and short acronyms
+    are never flagged; accents and case are ignored. Project sections are skipped (their second argument is a description)."""
+    blocks = [(b, _padded_words(b)) for b in _facts_blocks(facts_text)]
+    out: list[str] = []
+    for sec, body in _section_bodies(_strip_typst_comments(src)):
+        if _PROJECT_TITLE_RE.search(sec):
+            continue
+        for m in _ENTRY_CALL_RE.finditer(body):
+            strs, _ = _call_strings(body, m.end())
+            if len(strs) < 3:
+                continue
+            title, org = _padded_words(strs[0]), _padded_words(strs[1])
+            found = [w for _, w in blocks if title.strip() and title in w and org in w]
+            found = found or [w for _, w in blocks if title.strip() and title in w]
+            if not found:
+                found = [w for _, w in blocks if org.strip() and org in w]
+                found = found if len(found) == 1 else []
+            if not found:
+                continue
+            missing: list[str] = []
+            for a in strs[2:]:
+                if _DATE_ARG_RE.search(a):
+                    continue
+                for seg in re.split(r"\s[·|]\s|,\s*", a):
+                    words = re.findall(r"[^\W\d_][\w'\u2019-]*", seg)
+                    if len(words) > 4 or any(not x[0].isupper() and _fold(x) not in _LOC_GENERIC | _LOC_JOIN for x in words):
+                        continue    # a place name is short and Title Case; "Back-end API development" is a description
+                    for word in words:
+                        if not word[0].isupper() or (len(word) <= 3 and word.isupper()) or _fold(word) in _LOC_GENERIC:
+                            continue
+                        if word not in missing and not any(_padded_words(word) in w for w in found):
+                            missing.append(word)
+            out.extend(f'WARN  entry "{strs[0]}": the place "{w}" is not in the facts file item for this entry — source this place '
+                       "in facts.md or remove it; do not infer it from another entry (rule 1)" for w in missing)
+    return out
 
 
 def check_bullet_chars(txt: str) -> list[str]:
@@ -4236,6 +4305,18 @@ def _selftest() -> NoReturn:
     assert not check_entry_repeats(_ex % ("React, TypeScript, Node.js", "Shipped React and TypeScript dashboard"))   # commas split like · (single-word segments)
     assert check_entry_repeats(_ex % ("Équipe de données", "Données et équipes: dashboards"))                  # French plural/accents
     assert not check_entry_repeats(_ex % ("Équipe de données", "Réduit l\u2019équipe de support de 40 à 6 personnes"))   # elision, one shared word
+    # Entry-location WARN: a place absent from the entry's own facts item; generic words, acronyms, unattached entries silent.
+    _lf = "## Education\n- DEC in Science, Collège Riverside, 2020 – 2022.\n- Cashier, Marché Bonprix (Laval), 2020\n"
+    _lt = '#section("Education")[\n#job("DEC in Science", "Collège Riverside", "2020 – 2022", "%s")\n]\n'
+    assert len(check_entry_locations(_lt % "Laval", _lf)) == 1
+    assert len(check_entry_locations(_lt % "Part-time · Laval", _lf)) == 1
+    assert not check_entry_locations(_lt % "Part-time · remote · QC", _lf)
+    assert not check_entry_locations(_lt % "Diploma of College Studies (DEC), Back-end API development", _lf)   # descriptions, not places
+    assert not check_entry_locations(_lt % "laval", _lf)                                       # lowercase: not a name
+    assert not check_entry_locations(_lt % "Laval", _lf.replace("Riverside, 2020", "Riverside (LAVAL), 2020"))   # case
+    assert not check_entry_locations(_lt.replace("DEC in Science", "Diploma").replace("Collège Riverside", "Elsewhere") % "Laval", _lf)   # unattached
+    assert not check_entry_locations(_lt % "Laval", "")
+    assert not check_entry_locations(_lt.replace("Education", "Projects") % "Laval", _lf)
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"
@@ -5624,6 +5705,8 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
             fail = 1
         else:
             for w in check_facts_coverage(txt, facts_text):
+                print(w)
+            for w in check_entry_locations(typ_text, facts_text):
                 print(w)
 
     for w in check_summary_repeats(typ_text):

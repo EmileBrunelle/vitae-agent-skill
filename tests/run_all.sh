@@ -24,7 +24,7 @@ start=$(date +%s); fails=0; total=0
 
 # Scratch copy. The repo holds no symlinks (families import ../../lib.typ), so plain -r is a faithful copy.
 cp -r "$root/templates" "$root/scripts" "$root/references" "$S"/
-mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/entry_repeat" "$root/tests/font_fallback" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
+mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/entry_repeat" "$root/tests/entry_location" "$root/tests/font_fallback" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
@@ -386,6 +386,23 @@ assert w == [], f"false positive: {w}"
 PY
 }
 check entry-repeats entry_repeats
+# entry-location WARN (--facts only): a place named on an entry but absent from that entry's facts.md item fires
+# (run 24: "Laval" on the DEC); a place sourced on its own item, a generic word, an unattachable entry and no facts stay silent.
+entry_locations() {
+  python3 -I - <<'PY' || return 1
+import sys; sys.path.insert(0, "scripts")
+import verify
+def run(typ, facts):
+    r = lambda f: open("tests/entry_location/" + f, encoding="utf-8").read()
+    return verify.check_entry_locations(r(typ), r(facts) if facts else "")
+w = run("laval-dec.typ", "facts.md")
+assert len(w) == 1 and w[0].startswith("WARN") and '"DEC in Science"' in w[0] and '"Laval"' in w[0] and "rule 1" in w[0], w
+for typ, facts in (("sourced.typ", "facts-dec-laval.md"), ("part-time-only.typ", "facts.md"), ("unattached.typ", "facts.md"), ("laval-dec.typ", None)):
+    w = run(typ, facts)
+    assert w == [], f"false positive on {typ}: {w}"
+PY
+}
+check entry-locations entry_locations
 # --text / --render: the interface the step docs promise, whatever backend is installed.
 facts_month_range() {
   python3 -I - <<'PY' || return 1
