@@ -106,8 +106,6 @@ _LOC_GENERIC_SRC = (
     "schweiz suisse suiza svizzera suíça switzerland österreich austria autriche nederland netherlands pays-bas "
     "belgique belgië belgien bélgica belgio belgium brasil brazil brésil")
 _LOC_JOIN_SRC = "de du des of and et la le les sur sous upon on in von der zu del della di dei dos das em al van het"
-# Scripts whose letters are read right to left: extraction order of a heading is not trusted there.
-_RTL_SCRIPTS = frozenset({"ARABIC", "HEBREW", "SYRIAC", "THAANA"})
 
 
 def _script_name(ch: str) -> str:
@@ -241,10 +239,6 @@ INCOMPLETE_RE = re.compile(
     r"|in progress|ongoing|scolarit[ée]|en cours|"
     r"incomplete|non compl[ée]t[ée]|not completed|" + _INCOMPLETE_EXTRA + r")\b", re.I)
 
-
-
-SUMMARY_HEADS = {"summary", "profile", "profil", "résumé", "resume", "about", "about me", "professional summary",
-                 "profil professionnel", "résumé professionnel", "à propos"}
 
 _MONTH_WORDS = (r"(?:jan(?:uary|vier)?|feb(?:ruary)?|f[ée]v(?:rier)?|mar(?:ch|s)?|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|"
            r"july|juil(?:let)?|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember)?)?|oct(?:ober|obre)?|nov(?:ember|embre)?|"

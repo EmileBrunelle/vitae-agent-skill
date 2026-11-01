@@ -5,6 +5,7 @@ documented behaviour and flip to a failure (XPASS) the day the function is fixed
 """
 import pytest
 import verify as v
+import verify_typst
 
 # --- _call_strings ---------------------------------------------------------------------------------------------
 
@@ -228,7 +229,7 @@ def test_padded_words(s, expected):
     ("", False, None),
 ])
 def test_spacing_arg(args, found, groups):
-    ok, m = v._spacing_arg(args)
+    ok, m = verify_typst._spacing_arg(args)
     assert ok is found
     assert (m.groups() if m else None) == groups
 
