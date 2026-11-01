@@ -5,7 +5,8 @@ sit at a section boundary, the colour-fill and icon candidates cut from a page r
 x-height band of a text line, relative luminance. Nothing here prints a finding, renders a PDF
 or reads module state; verify.py owns the gates and the rendering, and imports these names
 explicitly. The thresholds that locate a boundary live here with their calibration, for the
-same reason: a value moved without its measurements would be tuned blind.
+same reason: a value moved without its measurements would be tuned blind. This module never imports verify, and
+holds no module state beyond constants and the sRGB lookup table.
 """
 from __future__ import annotations
 
@@ -15,8 +16,10 @@ from typing import Any, cast
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-# Same shapes as verify.py's Box/Band: a type alias cannot be imported from verify.py
-# (it runs as __main__; importing it from here would make a second copy of it).
+# Box and Band repeat verify.py's definitions of the same names, written out structurally, because they cannot be
+# imported: verify.py runs as __main__, so `import verify` here would execute that script a second time under the
+# name `verify`. Keep the two in sync by hand (a word box is four floats, a band two ints); if they drift, the
+# boxes and bands exchanged with verify.py stop meaning the same thing.
 Box = tuple[float, float, float, float]            # x0, y0, x1, y1
 Band = tuple[int, int]                             # first, last pixel row of a run
 
@@ -28,8 +31,7 @@ Band = tuple[int, int]                             # first, last pixel row of a 
 #
 # It used to also FAIL a page whose tallest run fell under it. That is gone,
 # measured out on 2026-09-13 over the 30 rendered pages of the 29-deliverable
-# corpus, under the CURRENT instrument (see measure_fill.gaps — the sampling
-# changed at 42049f6 and nothing downstream was re-measured until now):
+# corpus, with the current instrument (scripts/measure_fill.py, `gaps`):
 #
 #   max-gap / median-gap, all 30 pages, sorted:
 #     1.89 2.00 2.00 2.12 2.15 2.21 2.27 2.31 2.38 2.40 2.56 2.62 2.73 2.78
@@ -53,8 +55,8 @@ Band = tuple[int, int]                             # first, last pixel row of a 
 #     deliverables on exactly 2.00. Taking the mean of the top 5 runs instead
 #     of the max smooths it and still yields a continuum (1.64 … 4.91).
 # Same conclusion as d7f67da reached for page-wide ink: the number is a
-# prefilter, the verdict comes from LOCATION (boundary_ink) — and the white
-# ratio is now reported, never failed.
+# prefilter, the verdict comes from LOCATION (boundary_ink), and the white
+# ratio is reported, never failed.
 BOUNDARY_RATIO = 2.0
 
 
@@ -67,7 +69,7 @@ BOUNDARY_RATIO = 2.0
 # device from the residue text leaves after its own word boxes are
 # subtracted, which is a much smaller gap to clear.
 FURNITURE_FLOOR = 0.02
-FURNITURE_PPI = 90
+FURNITURE_PPI = 90                       # raster resolution of the furniture scan
 FURNITURE_SCALE = FURNITURE_PPI / 72.0   # pdftotext boxes are in PDF points
 FURNITURE_PAD = 1.0                      # pt padding so antialiasing at a
                                          # glyph's edge doesn't read as ink
@@ -206,16 +208,20 @@ def near_boundary(band: Band, white: list[Band], med: float) -> bool:
     return False
 
 
+# sRGB channel value (0-255) to linear light, the table behind WCAG relative luminance.
 _LIN = [((c / 255) / 12.92 if c / 255 <= 0.04045 else (((c / 255) + 0.055) / 1.055) ** 2.4)
         for c in range(256)]
 
 
 def _lum(rgb: Sequence[int]) -> float:
+    """WCAG relative luminance of an sRGB colour: 0 for black, 1 for white."""
     return 0.2126 * _LIN[rgb[0]] + 0.7152 * _LIN[rgb[1]] + 0.0722 * _LIN[rgb[2]]
 
 
+# Tunables of crop_candidates and of the crops cut from its boxes. Sizes ending in `_IN` are inches, pixel counts
+# are at CROP_SCAN_PPI. Where a value has no comment of its own, no calibration is recorded for it.
 CROP_PPI = 300             # crops are cut from their own 300 ppi render (the page PNGs stay at --ppi)
-CROP_SCAN_PPI = 150       # band detection scans the same 150 ppi raster the hidden-text gate uses (HIDDEN_PPI)
+CROP_SCAN_PPI = 150       # band detection scans the same 150 ppi raster the hidden-text gate uses (verify.py's HIDDEN_PPI)
 CROP_DELTA = 24           # a pixel is non-background when any channel differs this much from the page's modal colour
 CROP_ERODE = 9            # px at 150 ppi: strokes and glyph ink vanish, a solid aplat survives
 CROP_FILL_MIN_IN = (0.5, 0.1)   # smallest aplat worth a look (inches, w x h)
@@ -377,6 +383,7 @@ def crop_bands(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, 
     return [(kind, box) for kind, box, _ in crop_candidates(im, words)]
 
 
+# Constants of the ink-gap measurement (the x-height band of each text line, in verify.py's _page_ink_gap).
 INK_DPI = 300
 INK_DELTA = 60          # a pixel counts as ink when it differs this much from the background
 RULE_PT = 10.0          # an ink run this long in one pixel row is a rule / band / underline, not glyphs

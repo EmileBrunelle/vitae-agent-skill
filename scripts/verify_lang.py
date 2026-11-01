@@ -11,6 +11,10 @@ guessing. Python keeps what is deterministic (geometry, fonts, fill, numbers, re
 
 Full data: English and French. Stop words, months, section titles, degrees, job statuses and countries: also
 German, Spanish, Italian, Portuguese, Dutch. Every other language or script: the gate stays quiet and says so.
+
+Boundary: this module never imports verify and never prints; verify.py turns what it returns into findings. Its
+only state is the month tables, built once at import and not modified afterwards. Parsing of cv.typ lives in
+verify_typst.py, which takes `_URL_TLDS` from here.
 """
 from __future__ import annotations
 
@@ -18,9 +22,10 @@ import re
 import unicodedata
 from collections import Counter
 
-# Stop words. EN and FR are the originals; the others hold only words that are NOT
-# also in EN/FR (so that Spanish "de la en" cannot read as French), no one-letter
-# words and none that are common English/French words ("do", "as", "no", "set", "il", "y").
+# Stop words that _detect_lang counts as evidence of a language. The other languages list only words that are
+# not also EN/FR stop words, so that Spanish "de la en" cannot read as French, and leave out one-letter words
+# and words that are ordinary English or French ("do", "as", "no", "set", "il", "y"), which would vote for the
+# wrong language on a short text.
 _EN_STOP = frozenset("the and of with to in for on by from at is are was".split())
 _FR_STOP = frozenset("le la les et des du de avec pour dans sur par au aux est sont une un en".split())
 _OTHER_STOP_SRC = {
@@ -32,19 +37,21 @@ _OTHER_STOP_SRC = {
 }
 _OTHER_STOP: dict[str, frozenset[str]] = {
     k: frozenset(v.split()) - _EN_STOP - _FR_STOP for k, v in _OTHER_STOP_SRC.items()}
-# Words of the EN/FR lists that these languages ALSO use: Spanish "de la en un" are not evidence of French.
+# EN/FR stop words that each of these languages also uses as its own. _detect_lang does not count them against
+# the language being tested: German "in" is not evidence of English, Spanish "de la en un" is not evidence of French.
 _OTHER_SHARED: dict[str, frozenset[str]] = {
     "de": frozenset("in des".split()), "es": frozenset("de la en un".split()), "it": frozenset("la un in".split()),
     "pt": frozenset("de".split()), "nl": frozenset("de en in is".split())}
 _LANG_NAMES = {"en": "English", "fr": "French", "de": "German", "es": "Spanish",
                "it": "Italian", "pt": "Portuguese", "nl": "Dutch"}
-# Names of scripts (first word of the Unicode character name) for the INFO line.
+# Display names for the INFO line, keyed by the first word of the Unicode character name (see _script_name).
+# A script missing here is shown as that word, capitalised, followed by "script".
 _SCRIPT_LABELS = {"CJK": "CJK (Chinese/Japanese)", "HIRAGANA": "Japanese", "KATAKANA": "Japanese",
                   "HANGUL": "Korean (Hangul)", "CYRILLIC": "Cyrillic script", "GREEK": "Greek",
                   "ARABIC": "Arabic script", "HEBREW": "Hebrew", "DEVANAGARI": "Devanagari script",
                   "THAI": "Thai"}
-# Elisions glued to a name by an apostrophe: French one-letter (J', L', d') and the
-# common Italian ones (dell', all', nell', sull', dall', un', quell'...).
+# Elisions glued to a name by an apostrophe: French one-letter (J', L', d') and the common Italian ones (dell',
+# all', nell', sull', dall', un', quell'...). Stripped before a word is compared with the facts file.
 _ELISION_RE = re.compile(r"^(?:[A-Za-z\u00c0-\u00ff]|dell|all|nell|sull|dall|coll|un|quell|quest|bell)['\u2019](?=\w)", re.I)
 
 # Month names, twelve strings in calendar order: the full name, then the usual abbreviations. EN and FR are in
@@ -66,10 +73,12 @@ _MONTH_NAMES_OTHER = {
     "nl": ["januari jan", "februari feb", "maart mrt", "april apr", "mei", "juni jun", "juli jul", "augustus aug",
            "september sep sept", "oktober okt", "november nov", "december dec"],
 }
-# Seasons used as a date ("Summer 2019", "Sommer 2019"); EN/FR stay in _SEASON beside the date regexes.
+# Seasons used as a date ("Summer 2019", "Sommer 2019"). The EN/FR seasons are not here: they sit in verify.py's
+# _SEASON, next to the date regexes that join both lists.
 _SEASONS_OTHER = ("sommer herbst winter frühling frühjahr verano otoño invierno primavera estate autunno inverno "
                   "verão outono zomer herfst lente").split()
-# Words that join the two ends of a date range, besides a dash (the English "to" stays out: "2019 to 2021" never matched).
+# Words that join the two ends of a date range, besides a dash. The English "to" is left out on purpose: "2019 to
+# 2021" was never matched as a range.
 _RANGE_WORDS = ("à", "bis", "a", "tot", "до")
 # Section titles, matched as a case-insensitive substring of a #section("...") title. Summary: EN FR ES PT, then DE IT NL.
 _SUMMARY_TITLES = ("summary|profile|profil|perfil|objective|about|résumé|resume|à propos"
@@ -88,7 +97,8 @@ _URL_TLDS = "com|ca|org|io|net|dev|me|de|fr|es|it|pt|nl|uk|eu|ch|be|br|se|pl|ru|
 _DEGREE_EXTRA = r"Laurea|Grado|Licenciatura|Bacharelado|Diplom|Magister|Dottorato|Mestrado|Maestr[ií]a"
 _INCOMPLETE_EXTRA = (r"laufend|nicht abgeschlossen|unvollst[äa]ndig|in arbeit|en curso|cursando|sin finalizar|incompleto"
                      r"|no finalizado|in corso|non completato|em curso|em andamento|lopend|niet afgerond|onvolledig|bezig")
-# Job-status words and countries that are never a place (check_entry_locations): EN FR, then DE ES IT PT NL.
+# Job-status words, provinces and countries that are never a place (check_entry_locations): EN FR, then DE ES IT PT NL.
+# Compared accent-folded, so the accented forms below also cover their unaccented spelling.
 _LOC_GENERIC_SRC = (
     "part-time part time full-time full time remote hybrid on-site onsite contract contractor consultant freelance freelancer "
     "self-employed internship intern co-op coop seasonal summer temporary temp casual volunteer stage été temps partiel plein "
@@ -105,6 +115,8 @@ _LOC_GENERIC_SRC = (
     "deutschland germany allemagne alemania alemanha germania españa spain espagne italia italy italie portugal "
     "schweiz suisse suiza svizzera suíça switzerland österreich austria autriche nederland netherlands pays-bas "
     "belgique belgië belgien bélgica belgio belgium brasil brazil brésil")
+# Lowercase words that join the parts of a place name ("Sainte-Anne-de-Bellevue", "Frankfurt am Main") and are
+# never a place on their own; check_entry_locations skips them along with the generic words above.
 _LOC_JOIN_SRC = "de du des of and et la le les sur sous upon on in von der zu del della di dei dos das em al van het"
 
 
@@ -147,13 +159,15 @@ for _i in range(12):
 _MONTH_EXTRA_RE = "|".join(re.escape(_n) for _n in sorted(_MONTH_EXTRA, key=len, reverse=True))
 
 
-# Explicit EN+FR months (full, abbreviated, accented) and seasons, so that
-# "Marketing", "Mayor" or "Decorator" are never read as a month.
+# Explicit EN+FR months (full, abbreviated, accented) instead of a loose prefix match, so that "Marketing",
+# "Mayor" or "Decorator" are never read as a month. Seasons are separate (_SEASONS_OTHER, verify.py's _SEASON).
 _MONTH_ENFR = (r"(?:jan(?:uary|vier|v)?|f[ée]v(?:rier|r)?|feb(?:ruary)?|mar(?:ch|s)?"
                r"|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|jul(?:y)?|juil(?:l(?:et)?)?"
                r"|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember|embre)?)?|oct(?:ober|obre)?"
                r"|nov(?:ember|embre)?|dec(?:ember)?|d[eé]c(?:embre)?)")
 
+# Words of résumé section headings and their joiners, EN and FR, with and without accents. The facts check never
+# reports a heading ("WORK EXPERIENCE", "Compétences") as an acronym or a proper name missing from the facts file.
 _HEADING_WORDS = set("""work experience professional employment education skills technical profile summary
 languages language projects project certifications certification awards interests volunteer volunteering
 references publications contact about core competencies selected key highlights career objective
@@ -161,10 +175,13 @@ experience expérience formation compétences competences profil langues projets
 benevolat intérêts interets résumé resume parcours professionnel professionnelle technique techniques
 and et of de the""".split())
 
+# Lowercase joiners that may sit inside a capitalised name ("Bank of America", "Université de Montréal"). The facts
+# check ignores them when it decides whether every word of a name is already in the facts file.
 _LINKS = ("of", "de", "du", "des", "la", "le", "and", "et", "for", "the", "&", "à", "au", "aux")
 
-# Verbs that open a bullet ("Built Python services"): the only words dropped from the head
-# of a capitalized sequence. Anything else at the head is part of a name and is checked.
+# Verbs that open a bullet ("Built Python services"): the only words dropped from the head of a capitalised
+# sequence. Anything else at the head is part of a name and is checked. EN, then FR (past participles); the last
+# lines hold prepositions and determiners that open a phrase the same way.
 _ACTION_VERB_SRC = """
 accelerated achieved acted adapted administered advised analysed analyzed anchored architected assembled assessed assisted
 audited authored automated balanced benchmarked boosted briefed brought budgeted built calculated captained chaired championed
@@ -224,15 +241,15 @@ def _detect_lang(text: str) -> tuple[str | None, str]:
 
 
 
-# A degree token next to a non-completion marker: the Eightfold-class parsers
-# read "B.Eng. program" as a degree HELD (ats.md). Wording that says what it is
-# ("Undergraduate coursework") carries no degree token and passes.
+# A degree token next to a non-completion marker (INCOMPLETE_RE): Eightfold-class ATS parsers read "B.Eng.
+# program" as a degree HELD (references/ats.md). Wording that says what it is ("Undergraduate coursework") carries
+# no degree token and passes.
 DEGREE_RE = re.compile(
     r"(?<!\w)(?:B\.?\s?Eng|B\.?\s?Sc|M\.?\s?Sc|Bachelor(?:'?s)?|Baccalaur[ée]at"
     r"|Bac(?![\w+])\.?|Master(?:'?s)?|Ma[iî]trise|Licence|" + _DEGREE_EXTRA + r")(?!\w)", re.I)
-# "Program Manager" etc. is a job title, not a non-completion marker. (The
-# window stops at a comma/semicolon, so "Master's degree, program in CS" no
-# longer WARNs; "Master's degree program in CS" does. Only a WARN either way.)
+# "Program Manager" and the like is a job title, not a non-completion marker, hence the negative lookahead. The
+# caller's window stops at a comma or semicolon: "Master's degree, program in CS" does not WARN, "Master's degree
+# program in CS" does. The result is only ever a WARN.
 INCOMPLETE_RE = re.compile(
     r"\b(?:coursework|program(?:me)?(?!\s+(?:manager|director|coordinator|lead"
     r"|officer|analyst|gestionnaire|directeur|directrice|coordonnat)\w*)"
@@ -244,6 +261,8 @@ _MONTH_WORDS = (r"(?:jan(?:uary|vier)?|feb(?:ruary)?|f[ée]v(?:rier)?|mar(?:ch|s
            r"july|juil(?:let)?|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember)?)?|oct(?:ober|obre)?|nov(?:ember|embre)?|"
            r"dec(?:ember)?|d[ée]c(?:embre)?|" + _MONTH_EXTRA_RE + r")\.?")
 
+# Function words and generic verbs (EN, then FR) that carry no content when a bullet is compared with its entry's
+# descriptor line: what remains must reach two words before the bullet counts as a restatement.
 _ENTRY_STOP = frozenset(
     "a an the of and or for in on at to with by from as is are was were be it its this that into using used via per "
     "built build made make created wrote written designed developed led ran run work worked project personal one what does line clause "

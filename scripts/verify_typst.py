@@ -5,6 +5,9 @@ non-markup stripped, `#section(...)` bodies, `#entry(...)` string arguments,
 `#set par/text/list` leading and size) and returns values. Nothing here prints,
 opens a PDF or looks at page geometry; verify.py owns the checks, the reporting
 and the rendering, and imports these names explicitly.
+
+The only import from this package is verify_lang (for `_URL_TLDS`); never verify. No module state beyond
+compiled regular expressions.
 """
 from __future__ import annotations
 
@@ -31,6 +34,8 @@ def _section_bodies(src: str) -> list[tuple[str, str]]:
     return out
 
 
+# An http(s):// or www. address, or a bare name under one of the _URL_TLDS endings with an optional path. Masked
+# out of prose so the digits of "linkedin.com/in/jo-1234" are not read as figures.
 _URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:%s)(?!\w)(?:/\S*)?" % _URL_TLDS, re.I)
 
 
@@ -62,7 +67,10 @@ def _typst_prose(body: str) -> str:
     return _URL_RE.sub(" ", text)
 
 
+# A call that starts at column 0 (`#entry(`, `#project(`): the unit _entries splits a section body on. Calls
+# nested in a line or an indented block are arguments, not entries.
 _ENTRY_CALL_RE = re.compile(r"^#[A-Za-z_][\w.-]*\(", re.M)
+# A string argument that is a date (a year, or present/current/now, EN and FR): never a descriptor segment.
 _DATE_ARG_RE = re.compile(r"\b(?:19|20)\d{2}\b|\b(?:present|current|now\b|présent|actuel|aujourd)", re.I)
 
 
@@ -134,6 +142,7 @@ def _strip_typst_comments(src: str) -> str:
             continue
         elif c == '"':
             q = True; out.append(c)
+        # A `//` right after a colon is a URL scheme (`https://`), not a comment.
         elif src.startswith("//", i) and (i == 0 or src[i - 1] != ":"):
             while i < n and src[i] != "\n":
                 i += 1
@@ -183,6 +192,7 @@ def _mask_non_markup(src: str) -> str:
                 else:
                     j += 1
             blank(j)
+        # Same URL-scheme exception as _strip_typst_comments.
         elif src.startswith("//", i) and (i == 0 or src[i - 1] != ":"):
             j = src.find("\n", i)
             blank(n if j < 0 else j)
@@ -202,10 +212,13 @@ def _mask_non_markup(src: str) -> str:
     return "".join(out)
 
 
+# `#set par(... leading: Xem ... spacing: Yem)`, the pair --tune rewrites. It only matches leading before spacing
+# and em units: accepting the reverse order would make _write_par swap the two values (verify_selftest pins this).
 PAR_RE = re.compile(r"(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(em[^)]*?spacing:\s*)([0-9.]+)(em)")
 
 
 def _read_par(text: str) -> tuple[float, float] | None:
+    """(leading, spacing) in em of the first `#set par(...)` that PAR_RE matches, None when none does."""
     m = PAR_RE.search(text)
     if not m:
         return None
@@ -213,11 +226,13 @@ def _read_par(text: str) -> tuple[float, float] | None:
 
 
 def _write_par(text: str, leading: float, spacing: float) -> str:
+    """text with the first PAR_RE match rewritten to these values (three decimals); other rules are untouched."""
     return PAR_RE.sub(
         lambda m: "%s%.3f%s%.3f%s" % (m.group(1), leading, m.group(3), spacing,
                                       m.group(5)), text, count=1)
 
 
+# The set rules _doc_par_list_size reads; only at column 0, so a rule inside a #let or #show body never counts.
 _SET_RE = re.compile(r"^#set\s+(par|text|list|enum)\(")
 _LEAD_ARG = re.compile(r"(?:^|[,(\s])leading\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
 _SPACING_KEY = re.compile(r"(?:^|[,(\s])spacing\s*:\s*")
@@ -243,10 +258,12 @@ _SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
 
 
 def _doc_leading(text: str) -> float | None:
+    """The document's paragraph leading in em; see _doc_par_list_size."""
     return _doc_par_list(text)[0]
 
 
 def _doc_par_list(text: str) -> tuple[float | None, float | None]:
+    """(leading, list spacing) in em; see _doc_par_list_size."""
     return _doc_par_list_size(text)[:2]
 
 
@@ -257,10 +274,14 @@ def _doc_body_size(text: str) -> float | None:
 
 
 def _doc_par_list_size(text: str) -> tuple[float | None, float | None, float | None]:
-    """(leading, list spacing) in em: the document's effective paragraph leading in em, read from the LAST
-    top-level (column 0, not inside a #let / #show body) `#set par(... leading:
-    ...)` before the body, in any argument order; pt is converted with the last
-    top-level `#set text(size: X pt)` (11pt when absent). None when there is none."""
+    """(leading, list spacing, body size): leading and list spacing in em, body size in pt, each None when the
+    document sets none.
+
+    Leading is that of the LAST top-level `#set par(... leading: ...)` before the body, in any argument order;
+    list spacing is read the same way from `#set list(... spacing: ...)` and is None when it is not numeric
+    (`auto`). Top-level means column 0 and outside any #let / #show body. A value in pt is converted to em with the
+    text size set so far, 11 pt (Typst's default) before any `#set text(size: X pt)`. The returned body size is
+    the last explicit one only, never that default."""
     masked = _mask_non_markup(text)
     depth, size, lead, lsp, i, n = 0, 11.0, None, None, 0, len(masked)
     explicit: float | None = None

@@ -4,7 +4,8 @@ which face a PDF character was drawn in.
 Pure text in, values out: `requested_families` reads Typst source and returns family keys;
 `classify_font_fallback` compares (character, PDF font) pairs against those keys and returns
 the findings. Nothing here opens a PDF, compiles or prints; verify.py owns the gate that
-feeds the PDF's characters in, and imports these names explicitly.
+feeds the PDF's characters in, and imports these names explicitly. This module never imports
+verify, and keeps no module state beyond compiled regular expressions and constants.
 """
 from __future__ import annotations
 
@@ -15,8 +16,10 @@ from collections import Counter
 from collections.abc import Sequence
 from typing import Literal
 
-# Same shape as verify.py's Level/Finding: a type alias cannot be imported from verify.py
-# (it runs as __main__; importing it from here would make a second copy of it).
+# Level and Finding repeat verify.py's definitions of the same names, written out structurally, because they
+# cannot be imported: verify.py runs as __main__, so `import verify` here would execute that script a second
+# time under the name `verify`. Keep the two in sync by hand (same four levels, same (level, message) tuple);
+# if they drift, the findings built here no longer describe what verify.py consumes.
 Level = Literal["FAIL", "WARN", "OK", "INFO"]
 Finding = tuple[Level, str]
 
@@ -24,21 +27,29 @@ Finding = tuple[Level, str]
 # A family that EXISTS but lacks the glyphs (fontsource's `*-latin-ext-*` files carry the
 # family name and no basic Latin and shadow the `*-latin-*` ones) draws the text in whatever
 # face Typst finds next, usually its bundled Libertinus Serif, WITHOUT a warning. The PDF is
-# the only witness: pdfium reports the font of every character. Rule chosen: the full one.
+# the only witness: pdfium reports the font of every character.
 # A character is "fallen back" when the PDF font's family is named by no `font:` expression
-# of the CV sources (cv.typ and the local files it imports); FAIL when an ASCII letter or digit
-# fell back, or when more than FONT_FALLBACK_SHARE of the visible characters did; WARN for a few
-# other glyphs (a symbol the chosen face lacks, an accented letter).
+# of the CV sources (cv.typ and the local files it imports). FAIL when an ASCII letter or digit
+# fell back, or when more than FONT_FALLBACK_SHARE of the Latin letters and digits did. WARN for
+# accented letters and punctuation, other scripts, and Latin text in a later bundled member of
+# the font tuple; INFO for symbols and emoji (see classify_font_fallback).
+# Calibration of the gate (CHANGELOG, font-fallback entry): zero FAIL and zero WARN on all shipped
+# templates and on the 57 past run outputs that compile.
 FONT_FALLBACK_SHARE = 0.05
+# What Typst draws with when the sources name no font; used as the request in that case.
 TYPST_DEFAULT_FAMILIES = ("Libertinus Serif", "New Computer Modern", "DejaVu Sans Mono")   # PDF: LibertinusSerif, NewCM10, DejaVuSansMono
+# Words that may follow a family name in a PDF base-font name without making it another family: weights, slants,
+# widths, "Pro"/"Std", and optical sizes ("96pt"). "mono" is absent on purpose: NotoSansMono is not Noto Sans.
+# A face whose style word is missing from this list reads as another family, so add the word rather than the family.
 _FONT_STYLE_RE = re.compile(r"^(?:\d+|pt|variable|regular|roman|book|medium|semibold|bold|extrabold|black|heavy|"
                             r"thin|light|extralight|italic|oblique|condensed|semicondensed|cond|narrow|display|text|"
                             r"psmt|mt|vf|upright|pro|std|semi|demi|ultra|extra)*$")
-# Typst's bundled faces, by the base-font key their PDF names start with
+# Typst's bundled faces, as the _fam_key form of the start of their PDF base-font names
 BUNDLED_KEYS = ("libertinus", "newcm", "dejavusansmono")
 
 
 def _fam_key(name: str) -> str:
+    """Lowercase letters and digits only: the form in which family names and PDF font names are compared."""
     return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
@@ -60,7 +71,9 @@ def _family_requested(psname: str, requested: set[str]) -> bool:
 
 
 def _font_sources(typ: str, root: str | None = None, seen: set[str] | None = None) -> str:
-    """The text of the CV source and of every local .typ it imports or includes."""
+    """The text of the CV source and of every local .typ it imports or includes ("" for a file that cannot be read).
+    `@preview/...` packages are not followed. A path starting with "/" is resolved from `root`, Typst's project root,
+    when one is given; `seen` breaks import cycles."""
     seen = set() if seen is None else seen
     path = os.path.realpath(typ)
     if path in seen or len(seen) > 20:
@@ -127,6 +140,7 @@ def requested_families(src: str, firsts: set[str] | None = None) -> set[str]:
     if not names:                       # nothing asked for: Typst's own defaults are the request
         names.update(_fam_key(x) for x in TYPST_DEFAULT_FAMILIES)
         first.update(names)
+    # Raw text (backticks, #raw) is set in Typst's monospace default.
     if re.search(r"`|#raw\b|\braw\(", src):
         names.add(_fam_key("DejaVu Sans Mono"))
         first.add(_fam_key("DejaVu Sans Mono"))
@@ -134,7 +148,8 @@ def requested_families(src: str, firsts: set[str] | None = None) -> set[str]:
         names.add("newcm")
         if "newcomputermodern" in first:
             first.add("newcm")
-    if "$" in src:                      # math is set in the math face of the text face's family
+    # Math is typeset in a math face that Typst picks itself, so these are legitimate without being asked for.
+    if "$" in src:
         names.update(("newcmmath", "libertinusmath", "stixtwomath", "notosansmath"))
     if firsts is not None:
         firsts.update(first)
