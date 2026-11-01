@@ -100,6 +100,50 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fill  # noqa: E402
 
+# ======================================================================
+# LANGUAGE DATA -- every word list in this file that depends on a human
+# language, in ONE block so it can be moved whole.
+#
+# Design rule: a gate that depends on the language is SILENT or NEUTRAL when
+# the language or the script is unknown to it -- never a FAIL, and no WARN in
+# bulk because of a language it does not know. When it cannot judge, it prints
+# ONE line `INFO  not checked for <language>: <check> -- the agent compares
+# this by hand (see step 6 list)` instead of guessing. Python keeps what is
+# deterministic (geometry, fonts, fill, numbers, recognised dates).
+# Full data: English and French. Stop words, months, section titles, degrees,
+# job statuses and countries: also German, Spanish, Italian, Portuguese, Dutch.
+# Every other language or script: the gate stays quiet and says so.
+# ======================================================================
+
+# Stop words. EN and FR are the originals; the others hold only words that are NOT
+# also in EN/FR (so that Spanish "de la en" cannot read as French), no one-letter
+# words and none that are common English/French words ("do", "as", "no", "set", "il", "y").
+_EN_STOP = frozenset("the and of with to in for on by from at is are was".split())
+_FR_STOP = frozenset("le la les et des du de avec pour dans sur par au aux est sont une un en".split())
+_OTHER_STOP_SRC = {
+    "de": "der die das und mit für von zum zur im auf ist sind nicht ein eine einer einem den dem auch bei nach über oder wir ich",
+    "es": "el los las del una con para por pero también sobre entre desde como más sus sin muy esta este",
+    "it": "lo gli di del della dei delle degli nel nella nei alla alle ed anche più sono che per una con",
+    "pt": "os dos das da uma com para não são também pelo pela ao aos em na nas nos num numa",
+    "nl": "het een van met voor op bij naar zijn niet aan als dat ook worden voor over door",
+}
+_OTHER_STOP: dict[str, frozenset[str]] = {
+    k: frozenset(v.split()) - _EN_STOP - _FR_STOP for k, v in _OTHER_STOP_SRC.items()}
+# Words of the EN/FR lists that these languages ALSO use: Spanish "de la en un" are not evidence of French.
+_OTHER_SHARED: dict[str, frozenset[str]] = {
+    "de": frozenset("in des".split()), "es": frozenset("de la en un".split()), "it": frozenset("la un in".split()),
+    "pt": frozenset("de".split()), "nl": frozenset("de en in is".split())}
+_LANG_NAMES = {"en": "English", "fr": "French", "de": "German", "es": "Spanish",
+               "it": "Italian", "pt": "Portuguese", "nl": "Dutch"}
+# Names of scripts (first word of the Unicode character name) for the INFO line.
+_SCRIPT_LABELS = {"CJK": "CJK (Chinese/Japanese)", "HIRAGANA": "Japanese", "KATAKANA": "Japanese",
+                  "HANGUL": "Korean (Hangul)", "CYRILLIC": "Cyrillic script", "GREEK": "Greek",
+                  "ARABIC": "Arabic script", "HEBREW": "Hebrew", "DEVANAGARI": "Devanagari script",
+                  "THAI": "Thai"}
+# Elisions glued to a name by an apostrophe: French one-letter (J', L', d') and the
+# common Italian ones (dell', all', nell', sull', dall', un', quell'...).
+_ELISION_RE = re.compile(r"^(?:[A-Za-z\u00c0-\u00ff]|dell|all|nell|sull|dall|coll|un|quell|quest|bell)['\u2019](?=\w)", re.I)
+
 # ---------- shapes passed around ----------
 # Geometry, in PDF points unless said otherwise (pdftotext -bbox).
 Box = tuple[float, float, float, float]            # x0, y0, x1, y1
@@ -930,7 +974,15 @@ _RANGE_MY_RE = re.compile(
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _NUM_RE = re.compile(r"[$€£]?(\d+(?:[.,]\d+)*)\s?(%|[kKmM](?![^\W\d_])|)")
-_CAP = r"[A-ZÀ-ÖØ-Þ][\w'’&-]*(?:\.[\w'’&-]+)*"     # a dot only INSIDE a word (B.Sc, Node.js)
+def _upper_letters() -> str:
+    """Regex class body of every capital letter (category Lu) of the Latin, Greek and Cyrillic
+    blocks (Latin Extended-A/B and Additional included): `À-Ö Ø-Þ` missed Ł, Š, Ž, Ő, Ǎ, Ț, Ạ, Greek and Cyrillic."""
+    spans = ((0xC0, 0x24F), (0x370, 0x3FF), (0x400, 0x52F), (0x1E00, 0x1FFF))
+    return "A-Z" + "".join(re.escape(chr(c)) for a, b in spans for c in range(a, b + 1)
+                           if unicodedata.category(chr(c)) == "Lu")
+
+
+_CAP = r"[%s][\w'’&-]*(?:\.[\w'’&-]+)*" % _upper_letters()     # a dot only INSIDE a word (B.Sc, Node.js)
 _WORD_RE = re.compile(r"(?<![^\W\d_])%s" % _CAP)
 _CAPSEQ_RE = re.compile(r"(?<![^\W\d_])%s(?:[ \t]+(?:(?:of|de|du|des|la|le|for|the|and|et|au|aux|à|&)[ \t]+)?%s)+" % (_CAP, _CAP))
 _HEADING_WORDS = set("""work experience professional employment education skills technical profile summary
@@ -993,6 +1045,22 @@ _ACTION_VERBS = frozenset(_fold(_v) for _v in _ACTION_VERB_SRC.split())
 # A phone number is a contact detail, not a claim: its digit groups are neither years nor numbers.
 _PHONE_RE = re.compile(
     r"(?<![\w])(?:\+?\d{1,2}[ .\-\u00a0]?)?(?:\(\d{3}\)|\d{3})[ .\-\u00a0]?\d{3}[ .\-\u00a0]?\d{4}(?!\d)")
+# The same outside North America: "06 12 34 56 78", "+49 30 1234567", "0151-2345678". A leading + or 0, then digit groups
+# split by space/dot/hyphen. Only 8+ digits in 2+ groups (or a + prefix) count as a number, so "300 staff", "840 ms",
+# "1 500 000" (no leading 0) and "2019 - 2021" are never read as one.
+_PHONE_GEN_RE = re.compile(r"(?<![\w.,])(?:\+\d{1,3}|0)(?:[ .\-\u00a0]?\(?\d{1,8}\)?)+(?!\d)")
+
+
+def _blank_phones(line: str) -> str:
+    """`line` with every phone number replaced by spaces (same length: spans carry over)."""
+    line = _PHONE_RE.sub(lambda m: " " * len(m.group(0)), line)
+
+    def generic(m: re.Match[str]) -> str:
+        t = m.group(0)
+        digits = len(re.sub(r"\D", "", t))
+        groups = len(re.findall(r"\d+", t))
+        return " " * len(t) if digits >= 8 and (t.startswith("+") or groups >= 2) else t
+    return _PHONE_GEN_RE.sub(generic, line)
 _NAME_SUFFIX_RE = re.compile(r"\b(?:inc|ltee|ltd|corp|llc|sa|sas|gmbh)\b")
 
 
@@ -1005,23 +1073,37 @@ def _name_norm(s: str) -> str:
 
 
 def _clean_word(w: str) -> str:
-    """Drop a possessive ('s), a French elision (J’, L’) and trailing punctuation."""
+    """Drop a possessive ('s), an elision (French J’, L’; Italian dell’, all’) and trailing punctuation."""
     w = re.sub(r"['’]s$", "", w.rstrip(".,'’&-"))
-    return re.sub(r"^[A-ZÀ-Þa-zà-ÿ]['’](?=\w)", "", w)
+    return _ELISION_RE.sub("", w)
 
 
 def _num_values(text: str) -> set[float]:
     text = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", text)
     out: set[float] = set()
     for m in _NUM_RE.finditer(text):
-        raw = re.sub(r",(?=\d{3}(?!\d))", "", m.group(1)).replace(",", ".")
-        try:
-            v = float(raw)
-        except ValueError:
-            continue
         u = m.group(2).lower()
-        out.add(v * (1000 if u == "k" else 1_000_000 if u == "m" else 1))
+        for v in _readings(m.group(1)):
+            out.add(v * (1000 if u == "k" else 1_000_000 if u == "m" else 1))
     return out
+
+
+def _readings(raw: str) -> list[float]:
+    """Values a digit string can mean. "1.500" is BOTH 1500 (thousands: DE/ES/IT/PT/NL/TR) and 1.5 (decimal), so both
+    readings are returned; "1,500" stays 1500 (thousands: EN), "1.5", "3,14" and "1,5000" are decimals;
+    "1.500.000" and "1.500,5" read the dots as thousands. Any other shape reads as it always did."""
+    parts = re.split(r"[.,]", raw)
+    seps = re.findall(r"[.,]", raw)
+    try:
+        if seps == ["."] and len(parts[1]) == 3 and len(parts[0]) <= 3 and not parts[0].startswith("0"):
+            return [float(parts[0] + parts[1]), float(parts[0] + "." + parts[1])]
+        if len(seps) > 1 and all(len(p) == 3 for p in parts[1:]) and len(parts[0]) <= 3:
+            return [float("".join(parts))]                        # 1,500,000 / 1.500.000
+        if len(seps) > 1 and len(set(seps[:-1])) == 1 and seps[-1] != seps[0] and all(len(p) == 3 for p in parts[1:-1]):
+            return [float("".join(parts[:-1]) + "." + parts[-1])]  # 1.500,50 / 1,500.50
+        return [float(re.sub(r",(?=\d{3}(?!\d))", "", raw).replace(",", "."))]
+    except ValueError:
+        return []
 
 
 def _month_years(text: str) -> set[tuple[int, int]]:
@@ -1036,24 +1118,59 @@ def _month_years(text: str) -> set[tuple[int, int]]:
     return out
 
 
-_EN_STOP = frozenset("the and of with to in for on by from at is are was".split())
-_FR_STOP = frozenset("le la les et des du de avec pour dans sur par au aux est sont une un en".split())
-_LANG_NAMES = {"en": "English", "fr": "French"}
 _ALNUM_TOKEN_RE = re.compile(r"(?<![\w.])(?=[^\W\d_]*\d)(?=\d*[^\W\d_])[\w]{2,}(?![\w.])")
 
 
-def _guess_lang(text: str) -> str | None:
-    """'en' or 'fr' by stopword counts, None when unclear or too short."""
+def _script_name(ch: str) -> str:
+    """First word of the Unicode name of a letter: LATIN, CYRILLIC, GREEK, ARABIC, CJK, THAI ..."""
+    try:
+        return unicodedata.name(ch).split()[0]
+    except ValueError:
+        return ""
+
+
+def _detect_lang(text: str) -> tuple[str | None, str]:
+    """(code, label) of what a text is written in. code: 'en', 'fr', one of _OTHER_STOP ('de' 'es' 'it' 'pt' 'nl'),
+    'other' (a script that is not Latin, or Latin letters in no language this file has words for), or None when it
+    is too short or unclear (the caller then keeps its EN/FR behaviour). 'other' needs enough text to be sure: a short
+    snippet is never called foreign for lack of stop words."""
+    letters = [c for c in text if c.isalpha()]
+    scripts = Counter(_script_name(c) for c in letters)
+    if letters:
+        top, n = max(((k, v) for k, v in scripts.items() if k != "LATIN"), key=lambda kv: kv[1], default=("", 0))
+        if n >= 8 and n * 2 >= len(letters):
+            return "other", _SCRIPT_LABELS.get(top, top.title() + " script")
     words = re.findall(r"[^\W\d_]+", text.lower())
     en = sum(w in _EN_STOP for w in words)
     fr = sum(w in _FR_STOP for w in words)
+    oc = {k: sum(w in v for w in words) for k, v in _OTHER_STOP.items()}
+    best, bc = max(oc.items(), key=lambda kv: kv[1])
+    # another language wins when it has 3+ words of its own and EN/FR have no more words that it does NOT share
+    en_only = sum(w in _EN_STOP and w not in _OTHER_SHARED[best] for w in words)
+    fr_only = sum(w in _FR_STOP and w not in _OTHER_SHARED[best] for w in words)
+    if bc >= 3 and bc >= max(en_only, fr_only):
+        return best, _LANG_NAMES[best]
+    if en + fr + sum(oc.values()) < 0.03 * len(words) and len(words) >= 40:
+        return "other", "an unrecognised language"
     if en + fr < 8:
-        return None
+        return None, ""
     if en >= 2 * fr:
-        return "en"
+        return "en", _LANG_NAMES["en"]
     if fr >= 2 * en:
-        return "fr"
-    return None
+        return "fr", _LANG_NAMES["fr"]
+    return None, ""
+
+
+def _guess_lang(text: str) -> str | None:
+    """'en' or 'fr' by stopword counts; None when unclear, too short, or another language (see _detect_lang)."""
+    code = _detect_lang(text)[0]
+    return code if code in ("en", "fr") else None
+
+
+def _not_checked(label: str, check: str) -> str:
+    """The one INFO line a language-dependent check prints instead of guessing (references/steps/6-verify.md)."""
+    return (f"INFO  not checked for {label}: {check} — the agent compares this by hand "
+            "(see step 6 list)")
 
 
 def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
@@ -1070,17 +1187,21 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
     facts_my = _month_years(facts_text)
     facts_nums = _num_values(facts_text)
     found: dict[str, None] = {}
-    lf, lc = _guess_lang(facts_text), _guess_lang(pdf_text)
-    cross = lf is not None and lc is not None and lf != lc
+    (cf, nf), (cc, nc) = _detect_lang(facts_text), _detect_lang(pdf_text)
+    lf, lc = (cf if cf in ("en", "fr") else None), (cc if cc in ("en", "fr") else None)
+    foreign = [n for c, n in ((cc, nc), (cf, nf)) if c not in (None, "en", "fr")]
+    cross = (lf is not None and lc is not None and lf != lc) or bool(foreign)
     facts_w = " " + re.sub(r"[\W_]+", " ", facts) + " "    # words only: "d'IP" holds "ip"
     info = ([f"INFO  facts file is {_LANG_NAMES[lf]}, CV is {_LANG_NAMES[lc]}: coverage limited to dates, "
              "numbers and acronyms — names and titles are not cross-checked across languages"]
             if cross and lf and lc else [])
+    if foreign:     # German, Spanish, Cyrillic...: no verb or heading lists, so capitalised names cannot be judged
+        info = [_not_checked(" and ".join(dict.fromkeys(foreign)), "capitalised names and titles against the facts file")]
     for raw in pdf_text.split("\n"):
         line = raw.strip()
         if not line:
             continue
-        line = _PHONE_RE.sub(lambda m: " " * len(m.group(0)), line)
+        line = _blank_phones(line)
         if not line.strip():
             continue
         fl = _fold1(line)                   # same length as `line`: spans carry over
