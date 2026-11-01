@@ -185,6 +185,24 @@ _URL_TLDS = "com|ca|org|io|net|dev|me|de|fr|es|it|pt|nl|uk|eu|ch|be|br|se|pl|ru|
 _DEGREE_EXTRA = r"Laurea|Grado|Licenciatura|Bacharelado|Diplom|Magister|Dottorato|Mestrado|Maestr[ií]a"
 _INCOMPLETE_EXTRA = (r"laufend|nicht abgeschlossen|unvollst[äa]ndig|in arbeit|en curso|cursando|sin finalizar|incompleto"
                      r"|no finalizado|in corso|non completato|em curso|em andamento|lopend|niet afgerond|onvolledig|bezig")
+# Job-status words and countries that are never a place (check_entry_locations): EN FR, then DE ES IT PT NL.
+_LOC_GENERIC_SRC = (
+    "part-time part time full-time full time remote hybrid on-site onsite contract contractor consultant freelance freelancer "
+    "self-employed internship intern co-op coop seasonal summer temporary temp casual volunteer stage été temps partiel plein "
+    "à distance hybride contrat pigiste saisonnier bénévole alternance télétravail gpa "
+    # provinces, states and countries, FR and EN forms
+    "québec quebec qc ontario alberta manitoba saskatchewan brunswick nouveau-brunswick scotia nouvelle-écosse labrador "
+    "columbia colombie-britannique canada usa états-unis etats-unis united states france uk "
+    # DE ES IT PT NL: job statuses and countries
+    "vollzeit teilzeit praktikum werkstudent freiberuflich befristet festanstellung homeoffice "
+    "tiempo completo medio parcial prácticas pasantía autónomo teletrabajo presencial "
+    "tempo pieno parziale tirocinio libero professionista "
+    "integral estágio meio período freelancer efetivo "
+    "voltijd deeltijd stagiair zzp thuiswerk "
+    "deutschland germany allemagne alemania alemanha germania españa spain espagne italia italy italie portugal "
+    "schweiz suisse suiza svizzera suíça switzerland österreich austria autriche nederland netherlands pays-bas "
+    "belgique belgië belgien bélgica belgio belgium brasil brazil brésil")
+_LOC_JOIN_SRC = "de du des of and et la le les sur sous upon on in von der zu del della di dei dos das em al van het"
 # Scripts whose letters are read right to left: extraction order of a heading is not trusted there.
 _RTL_SCRIPTS = frozenset({"ARABIC", "HEBREW", "SYRIAC", "THAANA"})
 
@@ -1685,14 +1703,8 @@ def check_entry_repeats(src: str) -> list[str]:
 
 # Entry-location WARN: a place name in an entry's descriptor segments that is sourced on ANOTHER facts.md item but
 # not on the item describing this entry (run 24: "Laval", from the cashier job, on the DEC).
-_LOC_GENERIC = frozenset(_fold(w) for w in (
-    "part-time part time full-time full time remote hybrid on-site onsite contract contractor consultant freelance freelancer "
-    "self-employed internship intern co-op coop seasonal summer temporary temp casual volunteer stage été temps partiel plein "
-    "à distance hybride contrat pigiste saisonnier bénévole alternance télétravail gpa "
-    # provinces, states and countries, FR and EN forms
-    "québec quebec qc ontario alberta manitoba saskatchewan brunswick nouveau-brunswick scotia nouvelle-écosse labrador "
-    "columbia colombie-britannique canada usa états-unis etats-unis united states france uk").split())
-_LOC_JOIN = frozenset("de du des of and et la le les sur sous upon on in".split())
+_LOC_GENERIC = frozenset(_fold(w) for w in _LOC_GENERIC_SRC.split())
+_LOC_JOIN = frozenset(_LOC_JOIN_SRC.split())
 _LOC_SKIP = _LOC_GENERIC | _LOC_JOIN
 _HEADING_RE = re.compile(r"^(#{1,6})\s")
 _BULLET0_RE = re.compile(r"^[-*+]\s")
@@ -5966,8 +5978,12 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         else:
             for w in check_facts_coverage(txt, facts_text):
                 print(w)
-            for w in check_entry_locations(typ_text, facts_text):
-                print(w)
+            foreign = [n for c, n in (_detect_lang(txt), _detect_lang(facts_text)) if c == "other"]
+            if foreign:     # no status or country words for this language or script: say so, do not guess
+                print(_not_checked(" and ".join(dict.fromkeys(foreign)), "a place on an entry against its facts-file item"))
+            else:
+                for w in check_entry_locations(typ_text, facts_text):
+                    print(w)
 
     for w in check_summary_repeats(typ_text):
         print(w)

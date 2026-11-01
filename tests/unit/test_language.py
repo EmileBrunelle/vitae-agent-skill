@@ -389,3 +389,27 @@ def test_degree_tokens_en_fr_unchanged():
     assert v.check_degree_tokens("B.Eng. program, software engineering")
     assert v.check_degree_tokens("Baccalauréat en cours, génie logiciel")
     assert not v.check_degree_tokens("Program Manager | Master Builder, Bachelor of Arts")
+
+
+# --- check_entry_locations: status words and countries of the other languages ---------------------------------------------
+
+LOC_FACTS = """# Facts
+## Experience
+- **Cashier**, Marché Bonprix (Hamburg), Jun 2020 – Aug 2022, Vollzeit, Deutschland, España, Italia, Schweiz, Österreich, tiempo completo, medio tiempo, tempo pieno
+- **IT Support**, Collège Riverside (Laval), Sep 2022 – Apr 2025
+"""
+
+
+@pytest.mark.parametrize("segment", [
+    "Laval · Vollzeit", "Laval · Teilzeit", "Laval · tiempo completo", "Laval · medio tiempo", "Laval · tempo pieno",
+    "Laval · Deutschland", "Laval · España", "Laval · Italia", "Laval · Schweiz", "Laval · Österreich",
+])
+def test_status_words_and_countries_are_not_places(segment):
+    typ = f'#section("Experience")[\n#job("IT Support", "Collège Riverside", "Sep 2022 – Apr 2025", "{segment}")\n]\n'
+    assert v.check_entry_locations(typ, LOC_FACTS) == []
+
+
+def test_a_borrowed_place_still_warns():
+    typ = '#section("Experience")[\n#job("IT Support", "Collège Riverside", "Sep 2022 – Apr 2025", "Hamburg")\n]\n'
+    out = v.check_entry_locations(typ, LOC_FACTS)
+    assert len(out) == 1 and '"Hamburg"' in out[0]
