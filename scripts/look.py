@@ -30,6 +30,10 @@ items read `L<n> (<scope>) <question>`, scope = page (one call per page, FAIL if
 prefixed p<N>) | pages (all pages in one call) | crops (all zoomed crops) | crops:fill / crops:icon (only that crop type);
 the pages when no crop of that type was given, so a crops item is never judged on nothing). An untagged item counts as `pages`.
 
+--allow-remote: by default the images (a résumé = personal data) go only to a loopback or private-network host
+(127.x, ::1, RFC1918, link-local, IPv6 ULA); a public or unresolvable host is refused (exit 2) unless this flag is given.
+The check resolves the host NAME only (no connection); --list-models sends no image and is not checked.
+
 --timeout is per HTTP call (default 600 s). A full run on a local model can take many minutes:
 agents should run it in the background or with a long Bash timeout. --list-models prints the ids
 served at <base-url>/models (exit 0, or 2 if unreachable).
@@ -37,13 +41,16 @@ served at <base-url>/models (exit 0, or 2 if unreachable).
 import argparse
 import base64
 import http.client
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
-from typing import Any, NamedTuple, NoReturn, Optional, Sequence
+from typing import Any, Callable, NamedTuple, NoReturn, Optional, Sequence
 
 DEFAULT_CHECKLIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "look-checklist.md")
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
@@ -203,6 +210,52 @@ def render(ids: Sequence[str], verdicts: dict[str, tuple[str, str]], model: str,
     else:
         lines.append(f"{label}: other-model {model}")
     return lines, bad
+
+
+def _is_local_host(addrs: Sequence[str]) -> bool:
+    """True when addrs is non-empty and EVERY address is loopback, private (RFC1918, ULA) or link-local."""
+    if not addrs:
+        return False
+    for raw in addrs:
+        try:
+            ip = ipaddress.ip_address(raw.split("%", 1)[0])
+        except ValueError:
+            return False
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+            ip = ip.ipv4_mapped
+        if not (ip.is_loopback or ip.is_private or ip.is_link_local):
+            return False
+    return True
+
+
+def _resolve(host: str) -> list[str]:
+    """Addresses the host NAME resolves to (no connection made); [] when it does not resolve."""
+    try:
+        return sorted({str(info[4][0]) for info in socket.getaddrinfo(host, None)})
+    except (socket.gaierror, UnicodeError, OSError):
+        return []
+
+
+def _check_remote(base_url: str, allow_remote: bool,
+                  resolver: Callable[[str], Sequence[str]] = _resolve) -> Optional[str]:
+    """None when the images may be sent to base_url; else the refusal message. A non-local host (any public
+    address, or a name that does not resolve) is refused unless allow_remote, which returns None."""
+    try:
+        host = urllib.parse.urlsplit(base_url).hostname
+    except ValueError:
+        host = None
+    if not host:
+        return f"cannot read a host from --base-url {base_url!r}"
+    if _is_local_host(resolver(host)):
+        return None
+    if allow_remote:
+        return None
+    return (f"refusing to send the résumé images to {host!r}: it is not a loopback or private-network host "
+            f"(or does not resolve). Pass --allow-remote if you accept sending personal data there")
+
+
+def is_remote(base_url: str, resolver: Callable[[str], Sequence[str]] = _resolve) -> bool:
+    return _check_remote(base_url, False, resolver) is not None
 
 
 def http_json(url: str, body: Optional[bytes], timeout: float, model: str = "") -> Any:
@@ -405,6 +458,8 @@ def _main(argv: Optional[Sequence[str]] = None) -> None:
     ap.add_argument("--label", default="Visual pass", help="final line is `<label>: other-model <model>` (all PASS) or `<label>: FAIL other-model ...`")
     ap.add_argument("--per-item", action="store_true", help="fresh request per checklist item (and per page for page-scope items)")
     ap.add_argument("--list-models", action="store_true", help="print the model ids served at <base-url>/models")
+    ap.add_argument("--allow-remote", action="store_true", help="allow a base URL whose host is not loopback or "
+                    "private-network (the résumé images go there); refused by default")
     ap.add_argument("png", nargs="*")
     a = ap.parse_args(argv)
     if a.list_models:
@@ -415,6 +470,11 @@ def _main(argv: Optional[Sequence[str]] = None) -> None:
         ap.error("--model is required (or use --list-models)")
     if not a.png:
         ap.error("at least one PNG is required")
+    refusal = _check_remote(a.base_url, a.allow_remote)
+    if refusal:
+        die(refusal)
+    if a.allow_remote and is_remote(a.base_url):
+        print("WARNING  look.py: sending résumé images to a non-local host", file=sys.stderr)
     try:
         with open(a.checklist, encoding="utf-8") as f:
             ctext = f.read()
