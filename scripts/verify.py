@@ -181,6 +181,10 @@ _EXPERIENCE_TITLES = ("experience|expérience|projects?|projets?|work|employment
 _PROJECT_TITLES = "projects?|projets?|projekte?|proyectos?|progetti|projetos?|projectos?|projecten"
 # Web addresses to mask: any http(s):// or www. address, whatever its ending, plus bare names under these endings.
 _URL_TLDS = "com|ca|org|io|net|dev|me|de|fr|es|it|pt|nl|uk|eu|ch|be|br|se|pl|ru|jp|cn|au|nz|app|ai|co|info|edu|gov|xyz|tech|cloud"
+# Degree names (DE ES IT PT) and "not finished" wording (DE ES IT PT NL) added to the EN/FR ones in DEGREE_RE / INCOMPLETE_RE.
+_DEGREE_EXTRA = r"Laurea|Grado|Licenciatura|Bacharelado|Diplom|Magister|Dottorato|Mestrado|Maestr[ií]a"
+_INCOMPLETE_EXTRA = (r"laufend|nicht abgeschlossen|unvollst[äa]ndig|in arbeit|en curso|cursando|sin finalizar|incompleto"
+                     r"|no finalizado|in corso|non completato|em curso|em andamento|lopend|niet afgerond|onvolledig|bezig")
 # Scripts whose letters are read right to left: extraction order of a heading is not trusted there.
 _RTL_SCRIPTS = frozenset({"ARABIC", "HEBREW", "SYRIAC", "THAANA"})
 
@@ -1448,7 +1452,7 @@ def _fill_args_ok(*vals: str | None) -> bool:
 # ("Undergraduate coursework") carries no degree token and passes.
 DEGREE_RE = re.compile(
     r"(?<!\w)(?:B\.?\s?Eng|B\.?\s?Sc|M\.?\s?Sc|Bachelor(?:'?s)?|Baccalaur[ée]at"
-    r"|Bac(?![\w+])\.?|Master(?:'?s)?|Ma[iî]trise|Licence)(?!\w)", re.I)
+    r"|Bac(?![\w+])\.?|Master(?:'?s)?|Ma[iî]trise|Licence|" + _DEGREE_EXTRA + r")(?!\w)", re.I)
 # "Program Manager" etc. is a job title, not a non-completion marker. (The
 # window stops at a comma/semicolon, so "Master's degree, program in CS" no
 # longer WARNs; "Master's degree program in CS" does. Only a WARN either way.)
@@ -1456,7 +1460,7 @@ INCOMPLETE_RE = re.compile(
     r"\b(?:coursework|program(?:me)?(?!\s+(?:manager|director|coordinator|lead"
     r"|officer|analyst|gestionnaire|directeur|directrice|coordonnat)\w*)"
     r"|in progress|ongoing|scolarit[ée]|en cours|"
-    r"incomplete|non compl[ée]t[ée]|not completed)\b", re.I)
+    r"incomplete|non compl[ée]t[ée]|not completed|" + _INCOMPLETE_EXTRA + r")\b", re.I)
 
 
 # Adjacent, not merely on the same line: prose such as "coursework at Polytechnique Exemple, I am

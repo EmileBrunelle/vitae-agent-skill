@@ -366,3 +366,26 @@ def test_typst_prose_keeps_names_that_look_like_domains(text):
 def test_project_title_re_covers_the_other_languages():
     for t in ("Projects", "Projets", "Projekte", "Proyectos", "Progetti", "Projetos", "Projecten"):
         assert v._PROJECT_TITLE_RE.search(t), t
+
+
+# --- check_degree_tokens: degree names and "not finished" wording of the other languages ------------------------------------
+
+@pytest.mark.parametrize("line", [
+    "Laurea in corso, Informatica", "Licenciatura en curso, Ingeniería", "Bacharelado em andamento, Informática",
+    "Diplom Informatik laufend", "Magister nicht abgeschlossen", "Dottorato in corso", "Grado en Informática incompleto",
+    "Bachelor Informatica lopend", "Mestrado em curso",
+])
+def test_degree_tokens_read_the_other_languages(line):
+    assert v.check_degree_tokens(line) == [line]
+
+
+@pytest.mark.parametrize("line", ["Laurea in Informatica, 2018", "Licenciatura en Ingeniería, 2018", "Diplom-Informatiker, 2018",
+                                  "Diplomatic corps, in progress", "Grado de satisfacción: 4,5", "Bachelor Informatica, 2018"])
+def test_degree_tokens_stay_quiet_on_a_finished_degree(line):
+    assert v.check_degree_tokens(line) == []
+
+
+def test_degree_tokens_en_fr_unchanged():
+    assert v.check_degree_tokens("B.Eng. program, software engineering")
+    assert v.check_degree_tokens("Baccalauréat en cours, génie logiciel")
+    assert not v.check_degree_tokens("Program Manager | Master Builder, Bachelor of Arts")
