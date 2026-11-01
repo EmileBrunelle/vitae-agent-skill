@@ -1125,7 +1125,7 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
                     found[m.group(0)] = None
             continue
 
-        def at_start(pos: int) -> bool:
+        def at_start(pos: int, rest: str = rest) -> bool:
             before = rest[:pos].strip()
             return not before or before[-1] in ".:;!?•·▪–—-|"
 
@@ -1733,7 +1733,8 @@ def _pdfium_bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | N
             box: list[float] = []
             size: list[float] = [0.0]
 
-            def flush(chars: list[str] = chars, box: list[float] = box, items: list[WordBox] = items) -> None:
+            def flush(chars: list[str] = chars, box: list[float] = box, items: list[WordBox] = items,
+                      size: list[float] = size, ph: float = ph) -> None:
                 if chars and box:
                     # a mark pdfium splits off a word (Arabic dots, accents) has a sliver of a box:
                     # never under the font size, like the line it belongs to in poppler's boxes
@@ -2459,7 +2460,7 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
                     runs.append((" ".join(text.split()), x, y, (fs or 0) * det ** 0.5))
                 pg.extract_text(visitor_text=visit)
 
-                def script_of(i: int) -> bool:
+                def script_of(i: int, runs: list[tuple[str, float, float, float]] = runs) -> bool:
                     t, x, y, sz = runs[i]
                     for step in (-1, 1):
                         j = i + step
@@ -2908,7 +2909,7 @@ def _page_ink_gap(pdf: str) -> GapFn:
                     strip = im.crop((sx[0], 0, sx[1], im.height))
                     sd, sw = strip.tobytes(), strip.width
                     stb = bytes(1 if abs(v - lbg) <= INK_DELTA else 0 for v in range(256))
-                    full = lambda r: sd[r * sw:(r + 1) * sw].translate(stb).count(b"\x01") >= 0.9 * sw
+                    full = lambda r, sd=sd, sw=sw, stb=stb: sd[r * sw:(r + 1) * sw].translate(stb).count(b"\x01") >= 0.9 * sw
                     c = (ya + yb) // 2
                     if not full(c):
                         continue

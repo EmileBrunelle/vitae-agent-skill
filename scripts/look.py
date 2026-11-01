@@ -347,7 +347,7 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
     for it in items:
         prompt = ITEM_PROMPT.format(id=it.id, text=it.text)
 
-        def one(imgs: Sequence[str]) -> tuple[Optional[tuple[str, str]], str]:
+        def one(imgs: Sequence[str], prompt: str = prompt, item_id: str = it.id) -> tuple[Optional[tuple[str, str]], str]:
             nonlocal tp, tc
             try:
                 text, p, c = ask(a.base_url, a.model, prompt, imgs, a.max_tokens, a.timeout,
@@ -358,7 +358,7 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
                 return ("FAIL", f"inconclusive (truncated at {a.max_tokens} tokens)"), ""
             tp += p
             tc += c
-            return parse_verdicts(text, [it.id]).get(it.id), text
+            return parse_verdicts(text, [item_id]).get(item_id), text
 
         if it.scope == "page":
             fails: list[str] = []
