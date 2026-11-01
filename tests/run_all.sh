@@ -397,7 +397,13 @@ def run(typ, facts):
     return verify.check_entry_locations(r(typ), r(facts) if facts else "")
 w = run("laval-dec.typ", "facts.md")
 assert len(w) == 1 and w[0].startswith("WARN") and '"DEC in Science"' in w[0] and '"Laval"' in w[0] and "rule 1" in w[0], w
-for typ, facts in (("sourced.typ", "facts-dec-laval.md"), ("part-time-only.typ", "facts.md"), ("unattached.typ", "facts.md"), ("laval-dec.typ", None)):
+# a Laval borrowed from another entry still fires when the argument also holds a date
+for typ in ("date-arg.typ", "date-arg-depuis.typ"):
+    w = run(typ, "facts.md")
+    assert len(w) == 1 and '"DEC in Science"' in w[0] and '"Laval"' in w[0], (typ, w)
+# negatives: headings + flat bullets, French accents/hyphens, status words, province/country variants, two items on one org
+for typ, facts in (("sourced.typ", "facts-dec-laval.md"), ("part-time-only.typ", "facts.md"), ("unattached.typ", "facts.md"), ("laval-dec.typ", None),
+                   ("flat-headings.typ", "flat-headings.md"), ("variants.typ", "variants.md")):
     w = run(typ, facts)
     assert w == [], f"false positive on {typ}: {w}"
 PY

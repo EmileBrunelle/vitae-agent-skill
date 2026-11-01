@@ -1458,23 +1458,42 @@ def check_entry_repeats(src: str) -> list[str]:
             for (t, bl), (seg, _) in best.items()]
 
 
-# Entry-location WARN: a place name in an entry's descriptor segments that its own facts.md item never mentions.
-_LOC_GENERIC = frozenset(
-    "part-time part time full-time full time remote hybrid on-site onsite contract freelance internship intern co-op coop "
-    "seasonal summer temporary volunteer stage été temps partiel plein à distance hybride contrat pigiste saisonnier "
-    "bénévole alternance gpa".split())
+# Entry-location WARN: a place name in an entry's descriptor segments that is sourced on ANOTHER facts.md item but
+# not on the item describing this entry (run 24: "Laval", from the cashier job, on the DEC).
+_LOC_GENERIC = frozenset(_fold(w) for w in (
+    "part-time part time full-time full time remote hybrid on-site onsite contract contractor consultant freelance freelancer "
+    "self-employed internship intern co-op coop seasonal summer temporary temp casual volunteer stage été temps partiel plein "
+    "à distance hybride contrat pigiste saisonnier bénévole alternance télétravail gpa "
+    # provinces, states and countries, FR and EN forms
+    "québec quebec qc ontario alberta manitoba saskatchewan brunswick nouveau-brunswick scotia nouvelle-écosse labrador "
+    "columbia colombie-britannique canada usa états-unis etats-unis united states france uk").split())
 _LOC_JOIN = frozenset("de du des of and et la le les sur sous upon on in".split())
-_FACTS_BLOCK_START_RE = re.compile(r"^(?:#{1,6}\s|[-*+]\s)")
+_LOC_SKIP = _LOC_GENERIC | _LOC_JOIN
+_HEADING_RE = re.compile(r"^(#{1,6})\s")
+_BULLET0_RE = re.compile(r"^[-*+]\s")
 
 
-def _facts_blocks(facts_text: str) -> list[str]:
-    """facts.md items: each heading or top-level bullet with the indented lines under it, up to the next one."""
-    blocks: list[list[str]] = []
-    for line in facts_text.splitlines():
-        if _FACTS_BLOCK_START_RE.match(line) or not blocks:
-            blocks.append([])
-        blocks[-1].append(line)
-    return ["\n".join(b) for b in blocks]
+def _facts_items(facts_text: str) -> list[tuple[int, int, str]]:
+    """facts.md items as (first line, end line, text): a heading with everything under it up to the next heading of the
+    same or a higher level, and a top-level bullet with its indented lines. Each item's text also carries the heading
+    lines above it (its parent titles), so a place given in a parent title counts for the items under it."""
+    lines = facts_text.splitlines()
+    heads: list[tuple[int, int]] = []     # (level, line) of the headings open at the current line
+    out: list[tuple[int, int, str]] = []
+    for i, line in enumerate(lines):
+        m = _HEADING_RE.match(line)
+        if m:
+            lvl = len(m.group(1))
+            heads = [h for h in heads if h[0] < lvl]
+            end = next((j for j in range(i + 1, len(lines))
+                        if (hm := _HEADING_RE.match(lines[j])) and len(hm.group(1)) <= lvl), len(lines))
+            parents = [lines[h[1]] for h in heads]
+            out.append((i, end, "\n".join(parents + lines[i:end])))
+            heads.append((lvl, i))
+        elif _BULLET0_RE.match(line):
+            end = next((j for j in range(i + 1, len(lines)) if _HEADING_RE.match(lines[j]) or _BULLET0_RE.match(lines[j])), len(lines))
+            out.append((i, end, "\n".join([lines[h[1]] for h in heads] + lines[i:end])))
+    return out
 
 
 def _padded_words(s: str) -> str:
@@ -1483,10 +1502,15 @@ def _padded_words(s: str) -> str:
 
 def check_entry_locations(src: str, facts_text: str) -> list[str]:
     """WARN lines for an entry whose descriptor (location) segments name a proper noun that the facts.md item
-    describing that entry never mentions. The item is found by the entry's title and org (title + org, else title,
-    else a single org item); with no identifiable item, silent. Segments that are not short Title Case names (descriptions), generic words and short acronyms
-    are never flagged; accents and case are ignored. Project sections are skipped (their second argument is a description)."""
-    blocks = [(b, _padded_words(b)) for b in _facts_blocks(facts_text)]
+    describing that entry never mentions although ANOTHER part of facts.md does (a place borrowed from another entry;
+    a word absent from facts.md altogether is check_facts_coverage's). The item is the smallest heading or top-level
+    bullet found by the entry's title and org (title + org, else title, else a single org item), with its parent
+    titles; no identifiable item, silent, and a facts.md in prose or a table has no items, so silent too. Only short
+    Title Case segments count (not descriptions); generic and job-status words, provinces, countries and short
+    acronyms are never flagged; accents and case are ignored. Date-bearing segments are dropped, the rest of the
+    argument is checked. Project sections are skipped (their second argument is a description)."""
+    items = [(i, e, _padded_words(t)) for i, e, t in _facts_items(facts_text)]
+    whole = _padded_words(facts_text)
     out: list[str] = []
     for sec, body in _section_bodies(_strip_typst_comments(src)):
         if _PROJECT_TITLE_RE.search(sec):
@@ -1496,28 +1520,33 @@ def check_entry_locations(src: str, facts_text: str) -> list[str]:
             if len(strs) < 3:
                 continue
             title, org = _padded_words(strs[0]), _padded_words(strs[1])
-            found = [w for _, w in blocks if title.strip() and title in w and org in w]
-            found = found or [w for _, w in blocks if title.strip() and title in w]
+            found = [x for x in items if title.strip() and title in x[2] and org in x[2]]
+            found = found or [x for x in items if title.strip() and title in x[2]]
             if not found:
-                found = [w for _, w in blocks if org.strip() and org in w]
-                found = found if len(found) == 1 else []
+                found = [x for x in items if org.strip() and org in x[2]]
+                found = found if len({(x[0], x[1]) for x in found}) == 1 else []
+            # keep the most specific items: drop one that encloses another match
+            found = [x for x in found if not any(y is not x and x[0] <= y[0] and y[1] <= x[1] and (y[0], y[1]) != (x[0], x[1]) for y in found)]
             if not found:
                 continue
+            item = [x[2] for x in found]
+            own = title + org
             missing: list[str] = []
             for a in strs[2:]:
-                if _DATE_ARG_RE.search(a):
-                    continue
                 for seg in re.split(r"\s[·|]\s|,\s*", a):
+                    if _DATE_ARG_RE.search(seg):
+                        continue
                     words = re.findall(r"[^\W\d_][\w'\u2019-]*", seg)
-                    if len(words) > 4 or any(not x[0].isupper() and _fold(x) not in _LOC_GENERIC | _LOC_JOIN for x in words):
+                    if len(words) > 4 or any(not x[0].isupper() and _fold(x) not in _LOC_SKIP for x in words):
                         continue    # a place name is short and Title Case; "Back-end API development" is a description
                     for word in words:
-                        if not word[0].isupper() or (len(word) <= 3 and word.isupper()) or _fold(word) in _LOC_GENERIC:
+                        if not word[0].isupper() or (len(word) <= 3 and word.isupper()) or _fold(word) in _LOC_SKIP:
                             continue
-                        if word not in missing and not any(_padded_words(word) in w for w in found):
+                        pw = _padded_words(word)
+                        if word not in missing and pw in whole and pw not in own and not any(pw in w for w in item):
                             missing.append(word)
-            out.extend(f'WARN  entry "{strs[0]}": the place "{w}" is not in the facts file item for this entry — source this place '
-                       "in facts.md or remove it; do not infer it from another entry (rule 1)" for w in missing)
+            out.extend(f'WARN  entry "{strs[0]}": the place "{w}" is not in the facts file item for this entry but is in another one — source this '
+                       "place on this entry in facts.md or remove it; do not borrow it from another entry (rule 1)" for w in missing)
     return out
 
 
@@ -4316,6 +4345,10 @@ def _selftest() -> NoReturn:
     assert not check_entry_locations(_lt % "Laval", _lf.replace("Riverside, 2020", "Riverside (LAVAL), 2020"))   # case
     assert not check_entry_locations(_lt.replace("DEC in Science", "Diploma").replace("Collège Riverside", "Elsewhere") % "Laval", _lf)   # unattached
     assert not check_entry_locations(_lt % "Laval", "")
+    assert len(check_entry_locations(_lt % "Laval, 2020", _lf)) == 1                                  # a date does not hide the place
+    assert not check_entry_locations(_lt % "Quebec City · Team Lead · QC", _lf)                        # in no facts item at all: coverage's job
+    assert not check_entry_locations(_lt % "Montreal", _lf.replace("Riverside, 2020", "Riverside (Montréal), 2020"))   # accents folded
+    assert not check_entry_locations(_lt % "Laval", "### DEC in Science, Collège Riverside\n- Laval\n- 2020\n### Cashier, Marché Bonprix\n- Laval\n")   # flat bullets under their heading
     assert not check_entry_locations(_lt.replace("Education", "Projects") % "Laval", _lf)
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
