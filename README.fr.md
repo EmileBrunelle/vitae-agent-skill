@@ -130,6 +130,8 @@ scripts/gen_palette.py           # palettes génératives à contraste validé (
 scripts/measure_fill.py          # mesure de la couverture d'encre
 scripts/harvest_icons.py         # récupère les données de tracé des icônes de contact/plateforme dans un icons.typ généré au moment du build du CV (n'écrase jamais le repli vide versionné)
 scripts/verify.py                # portail + doctor : compilation + pages + remplissage + extraction, toute plateforme; --tune fait une bissection sur #set par(leading:, spacing:) vers la cible de remplissage (ne remplace pas le portail — le lancer après)
+scripts/verify_lang.py           # données linguistiques de verify.py : listes de mots, tables de mois, motifs de titres de section, mots vides (ajouter une langue ici seulement)
+scripts/verify_typst.py          # lecture de cv.typ pour verify.py : texte en entrée, valeurs en sortie (commentaires retirés, corps de section, arguments d'entrée, lecture des `#set par/text/list`); aucun affichage, aucun rendu
 scripts/verify_academic.py       # portail du mode académique : vérification des sauts de page au niveau de l'entrée + comptes/ordre déclarés vs extraits, confrontés au fichier de données TOML (ne réutilise que la mécanique de verify.py, aucune de ses constantes de remplissage)
 scripts/verify_letter.py         # portail des lettres de présentation : exactement une page, employeur et intitulé exact du poste tous deux présents dans le texte extrait
 scripts/verify.sh                # enveloppe POSIX autour de verify.py (2 lignes)

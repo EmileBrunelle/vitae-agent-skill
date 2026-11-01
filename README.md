@@ -131,6 +131,8 @@ scripts/gen_palette.py           # generative, contrast-validated palettes (duot
 scripts/measure_fill.py          # ink-coverage measurement
 scripts/harvest_icons.py         # fetches contact/platform icon path data into a generated icons.typ at CV-build time (never overwrites the committed empty fallback)
 scripts/verify.py                # gate + doctor: compile + pages + fill + extraction, any platform; --tune bisects #set par(leading:, spacing:) to the fill target (does not replace the gate — run it after)
+scripts/verify_lang.py           # verify.py's language data: word lists, month tables, section-title patterns, stop words (add a language here only)
+scripts/verify_typst.py          # verify.py's cv.typ parsing: pure text in, values out (comments stripped, section bodies, entry arguments, `#set par/text/list` readers); no printing, no rendering
 scripts/verify_academic.py       # academic-mode gate: entry-level page-break check + declared vs. extracted counts/order, round-tripped against the TOML data file (reuses verify.py's plumbing only, none of its fill constants)
 scripts/verify_letter.py         # cover-letter gate: exactly one page, employer and exact job title both present in the extracted text
 scripts/verify.sh                # POSIX wrapper around verify.py (2 lines)
