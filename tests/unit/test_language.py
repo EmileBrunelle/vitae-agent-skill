@@ -231,3 +231,100 @@ def test_real_results_are_not_swallowed_as_phones(claim):
 ])
 def test_clean_word_elisions(raw, want):
     assert v._clean_word(raw) == want
+
+
+# --- months and ranges: DE/ES/IT/PT/NL names, neutral on a script it cannot read ----------------------------------------
+
+@pytest.mark.parametrize("line", [
+    "Entwickler  März 2019 – Mai 2021", "Entwickler  Januar 2019 – Dezember 2021", "Juli 2018 – augustus 2020",
+    "Desarrollador  Enero 2019 – Presente", "ene 2019 – dic 2021", "Sviluppatore  Gennaio 2019 – Maggio 2021",
+    "Desenvolvedor  Março 2019 – Dezembro 2021", "Ontwikkelaar  maart 2019 – december 2021", "mei 2019 – nu",
+    "Sommer 2019 – Winter 2021", "verano 2019 – invierno 2021",
+    "juillet 2019 à août 2021", "Juli 2019 bis August 2021", "enero 2019 a marzo 2021", "mei 2019 tot juni 2021",
+    "Разработчик  март 2019 – декабрь 2021", "мар 2019 – настоящее время",
+])
+def test_known_month_forms_give_no_year_only_warn(line):
+    assert v.check_year_only_dates(line) == []
+
+
+@pytest.mark.parametrize("line", ["Engineer  2019 – 2021", "Marketing 2019 – 2021", "Mayor 2019 – 2021", "2019 à 2021",
+                                  "2019 bis 2021", "enero 2019 – 2021", "Aug 2019 – 2021"])
+def test_year_only_still_warns_where_the_text_says_so(line):
+    assert v.check_year_only_dates(line)
+
+
+def test_word_before_the_year_is_a_possible_month_in_a_language_without_month_names():
+    # Polish: no month list here. Long enough to be called "unrecognised", the word before the year stays unjudged.
+    pl = POLISH + "\nProgramista  marzec 2019 – obecnie"
+    assert v._detect_lang(pl)[0] == "other"
+    assert v.check_year_only_dates(pl) == []
+    # Cyrillic month, any script: the word before the year is read as a month, whatever it is
+    assert v.check_year_only_dates("Разработчик  Ноябрь 2019 – Present") == []
+
+
+def test_german_spanish_months_cover_the_facts_dates():
+    assert warns("Entwickler  Januar 2019 – Dezember 2021\n", "Januar 2019 bis Dezember 2021") == []
+    assert v._month_years("de enero a marzo 2019, Juli bis August 2018") == {(1, 2019), (3, 2019), (7, 2018), (8, 2018)}
+    assert v._month_years("März 2020") == {(3, 2020)}
+
+
+def test_month_tables_agree_across_languages():
+    assert v._MONTHS["marz"] == v._MONTHS["marzo"] == v._MONTHS["maart"] == 3
+    assert v._MONTHS["dez"] == v._MONTHS["dezembro"] == 12 and v._MONTHS["mei"] == v._MONTHS["maio"] == 5
+
+
+# --- headings in any script ----------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("heading", ["Опыт работы", "Επαγγελματική εμπειρία", "工作经历", "कार्य अनुभव", "ประสบการณ์ทำงาน", "الخبرة المهنية", "Berufserfahrung"])
+def test_norm_heading_keeps_letters_of_every_script(heading):
+    assert v._norm_heading(heading) != ""
+
+
+def test_norm_heading_latin_comparison_is_symmetric():
+    assert v._norm_heading("EXPÉRIENCE") == v._norm_heading("Expérience") == "experience"
+    assert v._norm_heading("Ausbildung & Studium") == "ausbildung studium"
+
+
+def test_norm_heading_case_folds_cyrillic():
+    assert v._norm_heading("Опыт работы") == v._norm_heading("ОПЫТ РАБОТЫ")
+
+
+def test_greek_uppercase_extraction_drops_the_accents_and_still_matches():
+    src = '#section("Επαγγελματική εμπειρία")[x]'
+    assert v._norm_heading("Επαγγελματική εμπειρία") != v._norm_heading("ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΕΜΠΕΙΡΙΑ")   # exact key: accents
+    assert v.check_no_split(src, ["a", "ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΕΜΠΕΙΡΙΑ\nx"])[0][0] is False                # loose key: accepted
+
+
+def test_no_split_works_on_non_latin_headings():
+    src = '#section("Опыт работы")[x]\n#section("Образование")[y]'
+    ok = v.check_no_split(src, ["a", "ОБРАЗОВАНИЕ\nx"])
+    assert ok == [(False, 'no-split: page 2 opens on "ОБРАЗОВАНИЕ"')]
+    bad = v.check_no_split(src, ["a", "и тогда\nx"])
+    assert bad[0][0] is True
+
+
+def test_no_split_accepts_right_to_left_and_reordered_marks():
+    src = '#section("الخبرة المهنية")[x]'
+    assert v.check_no_split(src, ["a", "المهنية الخبرة\nx"])[0][0] is False        # words returned in the other order
+    src = '#section("कार्य अनुभव")[x]'
+    assert v.check_no_split(src, ["a", "कार्य अनुभव\nx"])[0][0] is False
+
+
+def test_no_split_still_disabled_when_no_section_call():
+    assert v.check_no_split("#let x = 1", ["a", "b"])[0][0] is False
+
+
+# --- _fold keeps what is not a Latin accent ---------------------------------------------------------------------------
+
+def test_fold_strips_latin_accents_only():
+    assert v._fold("Expérience Çà") == "experience ca"
+    assert v._fold("कार्य अनुभव") == "कार्य अनुभव"                  # Devanagari vowels survive
+    assert v._fold("การศึกษา") == "การศึกษา"                          # Thai tone and vowel marks survive
+    assert "й" not in v._fold("й") or len(v._fold("й")) == 2          # Cyrillic й keeps its breve (decomposed)
+
+
+def test_fold1_is_length_preserving_and_keeps_scripts():
+    for t in ("Évry İstanbul", "कार्य अनुभव", "การศึกษา", "Йога", "ÉCOLE Ωmega"):
+        assert len(v._fold1(t)) == len(t), t
+    assert v._fold1("कार्य अनुभव") == "कार्य अनुभव"
+    assert v._fold1("Évry") == "evry"

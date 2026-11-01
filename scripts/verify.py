@@ -144,6 +144,72 @@ _SCRIPT_LABELS = {"CJK": "CJK (Chinese/Japanese)", "HIRAGANA": "Japanese", "KATA
 # common Italian ones (dell', all', nell', sull', dall', un', quell'...).
 _ELISION_RE = re.compile(r"^(?:[A-Za-z\u00c0-\u00ff]|dell|all|nell|sull|dall|coll|un|quell|quest|bell)['\u2019](?=\w)", re.I)
 
+# Month names, twelve strings in calendar order: the full name, then the usual abbreviations. EN and FR are in
+# folded form (no accents); the other languages are written as printed and folded when the table is built.
+_MONTH_NAMES_ENFR = [
+    "jan january janvier janv", "feb february fevrier fev febr fevr", "mar march mars",
+    "apr april avril avr", "may mai", "jun june juin", "jul july juillet juil juill",
+    "aug august aout", "sep sept september septembre", "oct october octobre",
+    "nov november novembre", "dec december decembre"]
+_MONTH_NAMES_OTHER = {
+    "de": ["januar jänner jan", "februar feb", "märz mär mrz", "april apr", "mai", "juni jun", "juli jul", "august aug",
+           "september sep sept", "oktober okt", "november nov", "dezember dez"],
+    "es": ["enero ene", "febrero feb", "marzo mar", "abril abr", "mayo may", "junio jun", "julio jul", "agosto ago",
+           "septiembre setiembre sep sept set", "octubre oct", "noviembre nov", "diciembre dic"],
+    "it": ["gennaio gen genn", "febbraio feb febb", "marzo mar", "aprile apr", "maggio mag magg", "giugno giu",
+           "luglio lug", "agosto ago", "settembre set sett", "ottobre ott", "novembre nov", "dicembre dic"],
+    "pt": ["janeiro jan", "fevereiro fev", "março mar", "abril abr", "maio mai", "junho jun", "julho jul", "agosto ago",
+           "setembro set", "outubro out", "novembro nov", "dezembro dez"],
+    "nl": ["januari jan", "februari feb", "maart mrt", "april apr", "mei", "juni jun", "juli jul", "augustus aug",
+           "september sep sept", "oktober okt", "november nov", "december dec"],
+}
+# Seasons used as a date ("Summer 2019", "Sommer 2019"); EN/FR stay in _SEASON beside the date regexes.
+_SEASONS_OTHER = ("sommer herbst winter frühling frühjahr verano otoño invierno primavera estate autunno inverno "
+                  "verão outono zomer herfst lente").split()
+# Words that join the two ends of a date range, besides a dash (the English "to" stays out: "2019 to 2021" never matched).
+_RANGE_WORDS = ("à", "bis", "a", "tot", "до")
+# Scripts whose letters are read right to left: extraction order of a heading is not trusted there.
+_RTL_SCRIPTS = frozenset({"ARABIC", "HEBREW", "SYRIAC", "THAANA"})
+
+
+def _script_name(ch: str) -> str:
+    """First word of the Unicode name of a letter: LATIN, CYRILLIC, GREEK, ARABIC, CJK, THAI ..."""
+    try:
+        return unicodedata.name(ch).split()[0]
+    except ValueError:
+        return ""
+
+
+def _is_latin(c: str) -> bool:
+    return ord(c) < 0x250 or 0x1E00 <= ord(c) < 0x1F00 or _script_name(c) == "LATIN"
+
+
+def _strip_latin_marks(s: str) -> str:
+    """NFKD, then drop the combining marks that sit on a LATIN base letter (é -> e). Marks on any other script stay:
+    they are the vowels and tones of Devanagari, Thai, Hebrew and Arabic, and part of the letter in й or ё."""
+    out: list[str] = []
+    latin = True
+    for c in unicodedata.normalize("NFKD", s):
+        if unicodedata.combining(c):
+            if latin:
+                continue
+        else:
+            latin = _is_latin(c)
+        out.append(c)
+    return "".join(out)
+
+_MONTHS: dict[str, int] = {}                      # folded name -> month number, every language
+_MONTH_EXTRA: set[str] = set()                     # DE/ES/IT/PT/NL names, as printed and folded, for raw-text regexes
+for _i in range(12):
+    for _n in _MONTH_NAMES_ENFR[_i].split():
+        _MONTHS[_n] = _i + 1
+    for _lang_months in _MONTH_NAMES_OTHER.values():
+        for _n in _lang_months[_i].split():
+            _f = _strip_latin_marks(_n)
+            assert _MONTHS.setdefault(_f, _i + 1) == _i + 1, _n     # one name, one month, in every language
+            _MONTH_EXTRA |= {_n, _f}
+_MONTH_EXTRA_RE = "|".join(re.escape(_n) for _n in sorted(_MONTH_EXTRA, key=len, reverse=True))
+
 # ---------- shapes passed around ----------
 # Geometry, in PDF points unless said otherwise (pdftotext -bbox).
 Box = tuple[float, float, float, float]            # x0, y0, x1, y1
@@ -779,8 +845,25 @@ PAGINATION_RE = re.compile(r"\b\d+\s*/\s*\d+\b|\bpage\s+\d+\b", re.I)
 
 def _norm_heading(s: str) -> str:
     """Compare headings on letters and digits only: the extraction upper-cases
-    them, and a family's device may add or drop punctuation around one."""
-    return re.sub(r"[^a-z0-9]+", " ", s.casefold()).strip()
+    them, and a family's device may add or drop punctuation around one. Any
+    script: case-folded, accents dropped from Latin letters only, everything
+    that is not a letter, digit or mark is a separator."""
+    s = _strip_latin_marks(s.casefold())
+    return " ".join("".join(c if c.isalnum() or unicodedata.category(c)[0] == "M" else " " for c in s).split())
+
+
+def _heading_words(s: str) -> frozenset[str]:
+    """Loose key of a NON-Latin heading: its words with every combining mark, joiner and
+    format character removed, as a set. Extraction may reorder the marks of Devanagari or Thai,
+    reshape Arabic, return right-to-left words in another order, or upper-case Greek without its
+    accents (ΕΜΠΕΙΡΙΑ for εμπειρία); none of that is a section split, so a heading that matches on this
+    key is accepted. Latin headings: empty (exact only)."""
+    h = _norm_heading(s)
+    if all(_is_latin(c) for c in h if c.isalpha()):
+        return frozenset()
+    bare = "".join(c for c in unicodedata.normalize("NFKD", h)
+                   if not unicodedata.combining(c) and unicodedata.category(c) not in ("Cf", "Mn"))
+    return frozenset(bare.split())
 
 
 def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
@@ -799,6 +882,7 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
     """
     headings = {_norm_heading(t) for t in SECTION_CALL_RE.findall(source)}
     headings.discard("")
+    loose = [hw for hw in (_heading_words(t) for t in SECTION_CALL_RE.findall(source)) if hw]
     if not headings:
         return [(False, 'no-split: no #section("...") call in the source '
                         "-- not checked")]
@@ -822,6 +906,8 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
         # Loose in the only direction that is safe: the line still has to sit
         # at the very top of the page to be considered at all.
         ok = bool(f) and any(h == f or h.startswith(f + " ") for h in headings)
+        fw = _heading_words(first)
+        ok = ok or bool(fw) and any(fw <= hw for hw in loose)   # non-Latin: marks and word order not trusted
         out.append((not ok,
                     f'no-split: page {pageno} opens on "{first[:60]}"'
                     + ("" if ok else " -- not a section heading, so the "
@@ -922,29 +1008,42 @@ DEVICELESS = {
 # (a degree year) is not a range and never matches.
 # Explicit EN+FR months (full, abbreviated, accented) and seasons, so that
 # "Marketing", "Mayor" or "Decorator" are never read as a month.
-_MONTH = (r"(?:jan(?:uary|vier|v)?|f[ée]v(?:rier|r)?|feb(?:ruary)?|mar(?:ch|s)?"
-          r"|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|jul(?:y)?|juil(?:l(?:et)?)?"
-          r"|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember|embre)?)?|oct(?:ober|obre)?"
-          r"|nov(?:ember|embre)?|dec(?:ember)?|d[eé]c(?:embre)?)")
-_SEASON = r"(?:fall|autumn|summer|winter|spring|automne|[ée]t[ée]|hiver|printemps)"
+_MONTH_ENFR = (r"(?:jan(?:uary|vier|v)?|f[ée]v(?:rier|r)?|feb(?:ruary)?|mar(?:ch|s)?"
+               r"|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|jul(?:y)?|juil(?:l(?:et)?)?"
+               r"|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember|embre)?)?|oct(?:ober|obre)?"
+               r"|nov(?:ember|embre)?|dec(?:ember)?|d[eé]c(?:embre)?)")
+_MONTH = r"(?:%s|%s)" % (_MONTH_ENFR, _MONTH_EXTRA_RE)      # + German, Spanish, Italian, Portuguese, Dutch
+_SEASON = (r"(?:fall|autumn|summer|winter|spring|automne|[ée]t[ée]|hiver|printemps|%s)"
+           % "|".join(re.escape(w) for w in _SEASONS_OTHER))
 _DATED = r"(?:%s|%s)\.?\s+" % (_MONTH, _SEASON)
 # Both ends of a range need a month (or season): `Aug 2019 – 2021` and
 # `2019 – Aug 2021` WARN as well as `2019 – 2021`. Present/now as the end is fine.
 YEAR_RANGE_RE = re.compile(
-    r"(?<!\d)((?:19|20)\d{2})\s*[–—-]\s*"
+    r"(?<!\d)((?:19|20)\d{2})(?:\s*[–—-]\s*|\s+(?:%s)\s+)"
     r"(%s)?"
-    r"((?:19|20)\d{2}(?!\d)|present|now|aujourd.hui|pr[ée]sent)" % _DATED, re.I)
+    r"((?:19|20)\d{2}(?!\d)|present|now|aujourd.hui|pr[ée]sent)" % ("|".join(_RANGE_WORDS), _DATED), re.I)
 MONTH_BEFORE_RE = re.compile(r"(?<![^\W\d_])" + _DATED.replace(r"\s+", r"\s*") + r"$", re.I)
+
+
+def _month_before(prefix: str, lenient: bool) -> bool:
+    """A month or season sits just before the range start. Neutral on what it cannot read: a word with no Latin
+    letter (Cyrillic, Greek, CJK, Arabic, Devanagari, Thai...) may be a month, and so may ANY word when the text is in a
+    language this file has no month names for (`lenient`). A Latin-script word of a known language must be a month."""
+    if MONTH_BEFORE_RE.search(prefix):
+        return True
+    w = re.search(r"([^\W\d_]+)\.?\s*$", prefix)
+    return w is not None and (lenient or not any(_is_latin(c) for c in w.group(1)))
 
 
 def check_year_only_dates(txt: str) -> list[str]:
     """Lines carrying a range where either end lacks a month (or season)."""
     out = []
+    lenient = _detect_lang(txt)[0] == "other"
     for line in txt.split("\n"):
         for m in YEAR_RANGE_RE.finditer(line):
             end_ok = (m.group(2) is not None
                       or not m.group(3)[0].isdigit())
-            if not (MONTH_BEFORE_RE.search(line[:m.start()]) and end_ok):
+            if not (_month_before(line[:m.start()], lenient) and end_ok):
                 out.append(line.strip())
                 break
     return out
@@ -956,21 +1055,15 @@ def _year_only_msg(line: str) -> str:
             '(SKILL.md rule 1)')
 
 
-_MONTHS: dict[str, int] = {}
-for _i, _names in enumerate([
-        "jan january janvier janv", "feb february fevrier fev febr fevr", "mar march mars",
-        "apr april avril avr", "may mai", "jun june juin", "jul july juillet juil juill",
-        "aug august aout", "sep sept september septembre", "oct october octobre",
-        "nov november novembre", "dec december decembre"], 1):
-    for _n in _names.split():
-        _MONTHS[_n] = _i
 _MONTH_YEAR_RE = re.compile(
     r"(?<![^\W\d_])(%s)\.?\s+((?:19|20)\d{2})(?!\d)" % "|".join(sorted(_MONTHS, key=len, reverse=True)))
 # "juillet – août 2019": the year closes the range and applies to the month before the dash too
 # (the month before the dash is the earlier year when it is the later one in the calendar: "déc. – janv. 2020")
+_RANGE_FOLDED = "|".join(dict.fromkeys(_strip_latin_marks(w) for w in _RANGE_WORDS))   # applied to folded text
 _RANGE_MY_RE = re.compile(
-    r"(?<![^\W\d_])(%s)\.?(?:\s*-\s*|\s+(?:to|a|au|through)\s+)(%s)\.?\s+((?:19|20)\d{2})(?!\d)"
-    % (("|".join(sorted(_MONTHS, key=len, reverse=True)),) * 2))
+    r"(?<![^\W\d_])(%s)\.?(?:\s*-\s*|\s+(?:to|au|through|%s)\s+)(%s)\.?\s+((?:19|20)\d{2})(?!\d)"
+    % ("|".join(sorted(_MONTHS, key=len, reverse=True)), _RANGE_FOLDED,
+       "|".join(sorted(_MONTHS, key=len, reverse=True))))
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _NUM_RE = re.compile(r"[$€£]?(\d+(?:[.,]\d+)*)\s?(%|[kKmM](?![^\W\d_])|)")
@@ -1026,16 +1119,19 @@ across through as my our their his her its this that these those each every all
 
 
 def _fold1(s: str) -> str:
-    """Length-preserving fold (one output char per input char)."""
-    import unicodedata
-    return "".join(unicodedata.normalize("NFKD", c)[0] for c in s).lower()
+    """Length-preserving fold (one output char per input char): accents go on Latin letters only, so the vowels
+    and tones of Devanagari or Thai keep their code points."""
+    out = []
+    for c in s:
+        d = unicodedata.normalize("NFKD", c)[0] if _is_latin(c) else c
+        low = d.lower()
+        out.append(low if len(low) == 1 else d)
+    return "".join(out)
 
 
 def _fold(s: str) -> str:
-    """Lower-case, accents stripped, dashes unified, whitespace collapsed."""
-    import unicodedata
-    s = unicodedata.normalize("NFKD", s)
-    s = "".join(c for c in s if not unicodedata.combining(c)).lower()
+    """Lower-case, accents stripped from Latin letters, dashes unified, whitespace collapsed."""
+    s = _strip_latin_marks(s).lower()
     s = re.sub(r"[–—‒−]", "-", s).replace("’", "'")
     return re.sub(r"\s+", " ", s)
 
@@ -1119,14 +1215,6 @@ def _month_years(text: str) -> set[tuple[int, int]]:
 
 
 _ALNUM_TOKEN_RE = re.compile(r"(?<![\w.])(?=[^\W\d_]*\d)(?=\d*[^\W\d_])[\w]{2,}(?![\w.])")
-
-
-def _script_name(ch: str) -> str:
-    """First word of the Unicode name of a letter: LATIN, CYRILLIC, GREEK, ARABIC, CJK, THAI ..."""
-    try:
-        return unicodedata.name(ch).split()[0]
-    except ValueError:
-        return ""
 
 
 def _detect_lang(text: str) -> tuple[str | None, str]:
@@ -1384,7 +1472,7 @@ SUMMARY_HEADS = {"summary", "profile", "profil", "résumé", "resume", "about", 
 SUMMARY_REPEAT_MIN = 2   # distinct repeated figures from which the WARN fires (one is a headline metric)
 _MONTH_WORDS = (r"(?:jan(?:uary|vier)?|feb(?:ruary)?|f[ée]v(?:rier)?|mar(?:ch|s)?|apr(?:il)?|avr(?:il)?|may|mai|june?|juin|"
            r"july|juil(?:let)?|aug(?:ust)?|ao[uû]t?|sep(?:t(?:ember)?)?|oct(?:ober|obre)?|nov(?:ember|embre)?|"
-           r"dec(?:ember)?|d[ée]c(?:embre)?)\.?")
+           r"dec(?:ember)?|d[ée]c(?:embre)?|" + _MONTH_EXTRA_RE + r")\.?")
 _FIG_MASK = re.compile(
     r"\b\d\.\d{1,2}\s*/\s*\d\.\d{1,2}\b"                              # GPA 3.6/4.3
     r"|\b" + _MONTH_WORDS + r"\s+\d{4}\b"                                     # May 2025

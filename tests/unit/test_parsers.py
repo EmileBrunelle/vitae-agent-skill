@@ -198,10 +198,10 @@ def test_norm_heading(s, expected):
     assert v._norm_heading(s) == expected
 
 
-def test_norm_heading_accent_splits_word():
-    # Documented quirk, not asserted as correct: [^a-z0-9] treats an accented letter as a separator, so
-    # "Expérience" != "Experience"; both sides of a real comparison go through it, so it stays consistent.
-    assert v._norm_heading("EXPÉRIENCE") == "exp rience"
+def test_norm_heading_drops_accents_on_latin_letters():
+    # "Expérience" and "EXPÉRIENCE" meet on "experience"; both sides of a real comparison go through it.
+    assert v._norm_heading("EXPÉRIENCE") == "experience"
+    assert v._norm_heading("Expérience") == v._norm_heading("EXPERIENCE")
 
 
 # --- _padded_words ---------------------------------------------------------------------------------------------
