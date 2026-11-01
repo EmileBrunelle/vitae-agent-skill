@@ -24,7 +24,7 @@ start=$(date +%s); fails=0; total=0
 
 # Scratch copy. The repo holds no symlinks (families import ../../lib.typ), so plain -r is a faithful copy.
 cp -r "$root/templates" "$root/scripts" "$root/references" "$S"/
-mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/entry_repeat" "$root/tests/entry_location" "$root/tests/font_fallback" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
+mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/entry_repeat" "$root/tests/entry_location" "$root/tests/font_fallback" "$root/tests/language" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
@@ -453,6 +453,21 @@ for abbr in ("févr.", "janv.", "avr.", "juil.", "sept.", "oct.", "nov.", "déc.
 PY
 }
 check facts-year-cross facts_year_cross
+# A CV and its facts file in German and in Russian (tests/language): `--facts` prints no name or year-only WARN for a language
+# it has no word lists for, and says so in one `INFO  not checked for <language>` line per language-dependent check.
+language_facts() {
+  local d="$S/tests/language" l log want
+  for l in de ru; do
+    log="$d/$l.log"
+    python3 -I scripts/verify.py "$d/$l.typ" 1 --facts "$d/$l-facts.md" >"$log" 2>&1 || true
+    ! grep -q '^FAIL  compile' "$log" || { echo "$l.typ did not compile"; cat "$log"; return 1; }
+    want="German"; [ "$l" = ru ] && want="Cyrillic script"
+    grep -q "^INFO  not checked for $want: capitalised names" "$log" || { echo "$l: no INFO not-checked line for $want"; cat "$log"; return 1; }
+    ! grep -Eq '^WARN  (not in facts file|year-only date range)' "$log" || { echo "$l: false name/date WARN"; grep -E '^WARN' "$log"; return 1; }
+    ! grep -Eq '^FAIL  (no-split|hidden|font fallback)' "$log" || { echo "$l: unexpected FAIL"; grep -E '^FAIL' "$log"; return 1; }
+  done
+}
+check language-facts language_facts
 text_render() {
   local pdf r
   pdf="$(ls "$out"/pdf/*.pdf 2>/dev/null | head -1)"; [ -n "$pdf" ] || { echo "no PDF from the template runs"; return 1; }

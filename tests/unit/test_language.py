@@ -156,6 +156,18 @@ def test_scripts_give_no_warns(key):
     assert "the agent compares this by hand (see step 6 list)" in out[0]
 
 
+def test_names_absent_from_the_facts_wording_do_not_warn_in_german_or_russian():
+    # The facts file words it differently (lower-case verbs, no capitalised heading); the CV's capitalised words are
+    # not in it verbatim. English logic would WARN on Entwickelte, Datenbanken, Kundenprojekte, Разработал.
+    de_cv = ("Berufserfahrung\nEntwickelte Datenbanken für die Kundenprojekte der Abteilung und betreute die "
+             "Anwendungen in der Cloud mit dem Team.")
+    de_facts = "erfahrung: datenbanken entwickelt für die kundenprojekte der abteilung, betreut die anwendungen in der cloud mit dem team"
+    assert warns(de_cv, de_facts) == [] and len(infos(de_cv, de_facts)) == 1
+    ru_cv = "Опыт работы\nРазработал Систему для клиентов компании и руководил командой из пяти разработчиков в Москве."
+    ru_facts = "опыт: разработал систему для клиентов компании и руководил командой из пяти разработчиков в москве"
+    assert warns(ru_cv, ru_facts) == [] and len(infos(ru_cv, ru_facts)) == 1
+
+
 def test_unrecognised_latin_language_gives_no_warns():
     facts = "# Doświadczenie\nProgramista w firmie Polskie Systemy w Warszawie. " + POLISH
     assert warns(POLISH, facts) == []
