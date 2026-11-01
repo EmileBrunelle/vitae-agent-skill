@@ -331,6 +331,13 @@ else
   echo "SKIP ruff (not installed: pip install ruff)"
 fi
 
+# Unit tests of verify.py's pure parsers (tests/unit). Runs on the repo itself. Optional locally.
+if python3 -c "import pytest" 2>/dev/null; then
+  check pytest bash -c 'cd "$1" && PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider tests/unit' _ "$root"
+else
+  echo "SKIP pytest (not installed: pip install pytest)"
+fi
+
 # Template targets come from pick_design.FAMILIES[f]['page']['fill'] ("A-B").
 targets="$(python3 -I -c "
 import sys; sys.path.insert(0, 'scripts'); import pick_design as p

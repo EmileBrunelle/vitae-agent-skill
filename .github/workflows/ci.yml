@@ -39,7 +39,7 @@ jobs:
       - name: Python dependencies
         # typst + pypdfium2 are what run_all's compare_backends step and the equivalence bench
         # need next to the CLI/poppler; typst-py is pinned to its own PyPI version.
-        run: pip install Pillow pypdf mypy==2.4.1 ruff pypdfium2 "typst==$TYPST_PY_VERSION"
+        run: pip install Pillow pypdf mypy==2.4.1 ruff pytest pypdfium2 "typst==$TYPST_PY_VERSION"
 
       - name: Typst ${{ env.TYPST_VERSION }}
         run: |
@@ -70,6 +70,9 @@ jobs:
 
       - name: Lint (pyproject.toml)
         run: ruff check scripts tests
+
+      - name: Unit tests (tests/unit)
+        run: python -m pytest -q tests/unit
 
       - name: Run all checks
         run: tests/run_all.sh "$RUNNER_TEMP/out"
@@ -110,8 +113,9 @@ jobs:
 
       - name: Lint (pyproject.toml)
         run: |
-          pip install ruff
+          pip install ruff pytest
           ruff check scripts tests
+          python -m pytest -q tests/unit
 
       - uses: ./.github/actions/fonts
 
