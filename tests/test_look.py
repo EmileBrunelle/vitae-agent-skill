@@ -16,7 +16,7 @@ from typing import Any, Callable, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
-import look
+import look  # noqa: E402 -- must follow the sys.path insert above
 
 N = 0
 IDS = ["L1", "L2", "L3"]

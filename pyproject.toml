@@ -1,9 +1,15 @@
 [tool.ruff]
 target-version = "py311"
-# Longest code lines are ~250 chars; E501 is not selected (154 hits at 120), so this only documents intent.
+# Longest code lines are ~250 chars; E501 is ignored below, so this only documents intent.
 line-length = 120
 
 [tool.ruff.lint]
-# Reduced to the rules that pass clean today. Not yet selected (265 findings at E,F,I,B): E501 154, E702 29,
-# E741 19, B023 19, E731 11, B007 8, I001 7, F541 6, B905 5, E401 2, F401 2, E402 1, E701 1, B904 1.
-select = ["E71", "E72", "E9", "F6", "F7", "F82", "F811", "F821", "F822", "F823", "F841", "E401", "E701", "F401", "F541", "I001", "B904", "B023", "B006", "B008", "B015", "B018", "B020", "B025", "B026", "B027"]
+select = ["E", "F", "I", "B"]
+ignore = [
+    "E501",  # long lines: no reformatting of the codebase (code lines reach ~250 chars)
+    "E702",  # several statements on one line with ';' is this repo's style
+    "E731",  # assigned lambdas are kept for short local helpers
+    "E741",  # ambiguous l/O/I names: renaming them in a ~5900-line file is risky for little gain
+    "B007",  # unused loop variable: kept for readable tuple unpacking
+    "B905",  # zip() without strict=: adding it would change behaviour on unequal lengths
+]
