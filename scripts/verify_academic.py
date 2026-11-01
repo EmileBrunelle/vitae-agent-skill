@@ -33,13 +33,12 @@ from __future__ import annotations
 import argparse
 import os
 import re
-import subprocess
 import shutil
+import subprocess
 import sys
 import tempfile
-from typing import Any, NoReturn, TypedDict, cast
-
 import tomllib  # stdlib, py3.11+
+from typing import Any, NoReturn, TypedDict, cast
 
 
 class Section(TypedDict):
@@ -56,9 +55,8 @@ StreamLine = tuple[int, str, str, bool]
 Footer = tuple[int, int] | None
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import verify  # noqa: E402 -- plumbing only, see module docstring
 import measure_fill  # noqa: E402 -- measure() only, reported not failed
-
+import verify  # noqa: E402 -- plumbing only, see module docstring
 
 # ---------------------------------------------------------------- constants
 # The skill's own finite heading set for the math/CS academic variant

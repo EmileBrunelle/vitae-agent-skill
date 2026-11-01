@@ -73,10 +73,10 @@ from __future__ import annotations
 import argparse
 import atexit
 import contextlib
+import functools
 import glob
 import hashlib
 import html
-import functools
 import importlib
 import importlib.metadata
 import importlib.util
@@ -99,7 +99,6 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fill  # noqa: E402
-
 
 # ---------- shapes passed around ----------
 # Geometry, in PDF points unless said otherwise (pdftotext -bbox).
@@ -2634,10 +2633,10 @@ def check_whitespace(path: str, boxes: Sequence[Box] | None = None, family: str 
                "the heading (ticks, side bars) are invisible to this run. "
                "Install poppler-utils to restore the check"
                if degraded else
-               f" — add the family's device at each boundary, or a thin `soft` "
-               f"hairline above each section (design.md § Boundaries carry ink "
-               f"by default); if the gap is doing the work instead, give it "
-               f"back to body leading")
+               " — add the family's device at each boundary, or a thin `soft` "
+               "hairline above each section (design.md § Boundaries carry ink "
+               "by default); if the gap is doing the work instead, give it "
+               "back to body leading")
             + (f" — EXEMPT: {family} is on DEVICELESS (its device is real "
                f"but of a kind no row scan can see)" if exempt else ""))
     else:
@@ -4022,8 +4021,8 @@ def check_all(directory: str) -> int:
                            + args)
         fail |= bool(r.returncode)
     if unchecked:
-        print(f"\nNOTE — page count inferred from the file name, fill not "
-              f"checked (add `// vitae: pages=N fill=A-B` to pin either):")
+        print("\nNOTE — page count inferred from the file name, fill not "
+              "checked (add `// vitae: pages=N fill=A-B` to pin either):")
         for t in unchecked:
             print(f"  {t}")
     print("\n" + ("FAIL — see above" if fail else
@@ -5350,7 +5349,8 @@ def _selftest() -> NoReturn:
     # leading clamped at the cap even when the caller passes 0.40 1.60; an
     # over-full doc keeps the old advice; a normal doc converges in the cap.
     if preflight()[0]:
-        import io, contextlib
+        import contextlib
+        import io
         def _tune_doc(nlines: int, *rng: float, fmin: int = 94
                       ) -> tuple[int, str, str | None, tuple[float, float] | None]:
             with tempfile.TemporaryDirectory() as _d:

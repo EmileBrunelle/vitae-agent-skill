@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Regenerate fixtures: family prefix (setup + header, up to the first #section
 call) from templates/families/<f>/resume.typ + a neutral spacing-measurement body."""
-import pathlib, re
+import pathlib
+
 root = pathlib.Path(__file__).resolve().parents[2]
 BODY = '''
 // ---------- spacing-measurement body (neutral fake content) ----------
@@ -46,7 +47,8 @@ BODY = '''
 ]
 '''
 for d in sorted((root/"templates/families").iterdir()):
-    if not d.is_dir(): continue
+    if not d.is_dir():
+        continue
     src = (d/"resume.typ").read_text().splitlines()
     i = next(n for n,l in enumerate(src) if l.startswith("#section("))
     pre = "\n".join(src[:i])

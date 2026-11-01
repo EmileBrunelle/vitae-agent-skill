@@ -1108,7 +1108,7 @@ def _write_nofollow(path: str, data: bytes) -> None:
     try:
         fd = os.open(path, flags, 0o644)
     except OSError as e:
-        raise SystemExit("--init: cannot write %s (%s)" % (path, e.strerror))
+        raise SystemExit("--init: cannot write %s (%s)" % (path, e.strerror)) from e
     with os.fdopen(fd, "wb") as fh:
         fh.write(data)
 
@@ -1146,7 +1146,6 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
     preamble's known `#let` / `#set par` lines (the family's own icon helpers,
     selective imports and devices are untouched — a wholesale preamble swap
     would drop them: color-band keeps its own ic-* defs, avant-poster its `mx`)."""
-    import shutil
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fam, d, fp = p["family"], p["recipe"], FONTS[p["family"]]
     fdir = os.path.join(root, "templates", "families", fam)

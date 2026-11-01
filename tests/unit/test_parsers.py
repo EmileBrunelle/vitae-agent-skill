@@ -6,7 +6,6 @@ documented behaviour and flip to a failure (XPASS) the day the function is fixed
 import pytest
 import verify as v
 
-
 # --- _call_strings ---------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("body, j, strs, end", [

@@ -110,7 +110,9 @@ def main() -> int:
     quick = "--quick" in sys.argv
     args = [a for a in sys.argv[1:] if a != "--quick"]
     try:
-        import PIL, pypdfium2, typst  # noqa: F401, E401
+        import PIL  # noqa: F401  -- availability probe only
+        import pypdfium2  # noqa: F401
+        import typst  # noqa: F401
     except ImportError as e:
         print(f"SKIP backend_equiv: {e.name} not installed"); return 0
     if not all(shutil.which(t) for t in ("typst", "pdftotext", "pdfinfo", "pdftoppm")):
