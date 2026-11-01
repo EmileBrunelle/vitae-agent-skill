@@ -455,6 +455,9 @@ PY
 check facts-year-cross facts_year_cross
 # A CV and its facts file in German and in Russian (tests/language): `--facts` prints no name or year-only WARN for a language
 # it has no word lists for, and says so in one `INFO  not checked for <language>` line per language-dependent check.
+# tests/language/{de,ru}.typ are bare Typst without lib.typ, so verify.py legitimately prints `FAIL boundaries carry no ink`
+# and `WARN ... not measured: no lib entry()/srow() heads` on them. Those gates read pixels and lib.typ markers, not the
+# language, so this test deliberately rejects only the no-split|hidden|font fallback FAILs below.
 language_facts() {
   local d="$S/tests/language" l log want
   for l in de ru; do
