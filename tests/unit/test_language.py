@@ -328,3 +328,41 @@ def test_fold1_is_length_preserving_and_keeps_scripts():
         assert len(v._fold1(t)) == len(t), t
     assert v._fold1("कार्य अनुभव") == "कार्य अनुभव"
     assert v._fold1("Évry") == "evry"
+
+
+# --- check_summary_repeats: section titles in DE/ES/IT/PT/NL, any web address ----------------------------------------------
+
+def _cv(summary_title: str, exp_title: str, summary: str, bullet: str) -> str:
+    return (f'#section("{summary_title}")[\n{summary}\n]\n'
+            f'#section("{exp_title}")[\n#entry("Dev", "Acme", "2019 – 2021")\n- {bullet}\n]\n')
+
+
+@pytest.mark.parametrize("summary_title, exp_title", [
+    ("Über mich", "Berufserfahrung"), ("Perfil", "Experiencia"), ("Profilo", "Esperienza"),
+    ("Perfil profissional", "Experiência"), ("Profiel", "Werkervaring"), ("Samenvatting", "Projecten"),
+    ("Resumen", "Experiencia laboral"), ("Zusammenfassung", "Projekte"), ("Chi sono", "Progetti"),
+])
+def test_summary_repeats_reads_titles_of_the_other_languages(summary_title, exp_title):
+    src = _cv(summary_title, exp_title, "Réduit les coûts de 40 % et sert 12 000 clients.", "Réduit les coûts de 40 % pour 12 000 clients.")
+    assert len(v.check_summary_repeats(src)) == 1, (summary_title, exp_title)
+
+
+def test_summary_repeats_unknown_titles_stay_silent():
+    src = _cv("Резюме", "Опыт работы", "Снизил затраты на 40 % и обслужил 12 000 клиентов.", "Снизил затраты на 40 % для 12 000 клиентов.")
+    assert v.check_summary_repeats(src) == []
+
+
+@pytest.mark.parametrize("url", ["https://github.com/jo/x", "http://example.xyz/a", "www.mon-site.fr/cv", "https://portfolio.example.рф/x",
+                                 "https://exemple.quebec/a?b=1234", "linkedin.com/in/jo-1234", "jo.de", "https://foo.bar.baz/12345"])
+def test_typst_prose_masks_every_web_address(url):
+    assert "1234" not in v._typst_prose(f"see {url} for 40 %") and "12345" not in v._typst_prose(f"see {url} for 40 %")
+
+
+@pytest.mark.parametrize("text", ["Node.js", "B.Sc", "Ph.D", "Vue.js 3", "Next.js"])
+def test_typst_prose_keeps_names_that_look_like_domains(text):
+    assert v._typst_prose(text) == text
+
+
+def test_project_title_re_covers_the_other_languages():
+    for t in ("Projects", "Projets", "Projekte", "Proyectos", "Progetti", "Projetos", "Projecten"):
+        assert v._PROJECT_TITLE_RE.search(t), t

@@ -168,6 +168,19 @@ _SEASONS_OTHER = ("sommer herbst winter frühling frühjahr verano otoño invier
                   "verão outono zomer herfst lente").split()
 # Words that join the two ends of a date range, besides a dash (the English "to" stays out: "2019 to 2021" never matched).
 _RANGE_WORDS = ("à", "bis", "a", "tot", "до")
+# Section titles, matched as a case-insensitive substring of a #section("...") title. Summary: EN FR ES PT, then DE IT NL.
+_SUMMARY_TITLES = ("summary|profile|profil|perfil|objective|about|résumé|resume|à propos"
+                   "|zusammenfassung|kurzprofil|über mich|resumen|resumo|sobre m[ií]|sobre mim|riepilogo|sintesi|chi sono"
+                   "|profiel|samenvatting|over mij|objetivo|obiettivo|doelstelling")
+# Experience / projects / research: EN FR, then DE ES IT PT NL.
+_EXPERIENCE_TITLES = ("experience|expérience|projects?|projets?|work|employment|research"
+                      "|berufserfahrung|arbeitserfahrung|erfahrung|projekte?|forschung|beruflicher werdegang"
+                      "|experienci?a|proyectos?|investigaci[óo]n|esperienza|progetti|ricerca"
+                      "|experi[êe]ncia|projetos?|projectos?|pesquisa|investiga[çc][ãa]o"
+                      "|werkervaring|ervaring|projecten|onderzoek")
+_PROJECT_TITLES = "projects?|projets?|projekte?|proyectos?|progetti|projetos?|projectos?|projecten"
+# Web addresses to mask: any http(s):// or www. address, whatever its ending, plus bare names under these endings.
+_URL_TLDS = "com|ca|org|io|net|dev|me|de|fr|es|it|pt|nl|uk|eu|ch|be|br|se|pl|ru|jp|cn|au|nz|app|ai|co|info|edu|gov|xyz|tech|cloud"
 # Scripts whose letters are read right to left: extraction order of a heading is not trusted there.
 _RTL_SCRIPTS = frozenset({"ARABIC", "HEBREW", "SYRIAC", "THAANA"})
 
@@ -1524,9 +1537,9 @@ def _section_bodies(src: str) -> list[tuple[str, str]]:
     return out
 
 
-_SUMMARY_TITLE_RE = re.compile(r"summary|profile|profil|perfil|objective|about|résumé|resume|à propos", re.I)
-_EXPERIENCE_TITLE_RE = re.compile(r"experience|expérience|projects?|projets?|work|employment|research", re.I)
-_URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:com|ca|org|io|net|dev|me)(?:/\S*)?", re.I)
+_SUMMARY_TITLE_RE = re.compile(_SUMMARY_TITLES, re.I)
+_EXPERIENCE_TITLE_RE = re.compile(_EXPERIENCE_TITLES, re.I)
+_URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:%s)(?!\w)(?:/\S*)?" % _URL_TLDS, re.I)
 
 
 def _typst_prose(body: str) -> str:
@@ -1582,7 +1595,7 @@ _ENTRY_STOP = frozenset(
     "le la les un une des du de et ou pour en sur au aux par avec dans est son sa ses ce cette qui que ont a été "
     "conçu conçue conçus développé développée développés réalisé réalisée réalisés construit construite construits "
     "créé créée créés mis mise rédigé dirigé projet personnel ligne".split())
-_PROJECT_TITLE_RE = re.compile(r"projects?|projets?", re.I)
+_PROJECT_TITLE_RE = re.compile(_PROJECT_TITLES, re.I)
 _ENTRY_CALL_RE = re.compile(r"^#[A-Za-z_][\w.-]*\(", re.M)
 _DATE_ARG_RE = re.compile(r"\b(?:19|20)\d{2}\b|\b(?:present|current|now\b|présent|actuel|aujourd)", re.I)
 
