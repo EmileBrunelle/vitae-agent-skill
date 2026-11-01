@@ -80,6 +80,10 @@ Just ask naturally — the skill triggers on résumé/CV work:
 
 The agent will collect facts, pick the regional conventions, draft from the template, verify page count / fill / extraction mechanically, and offer an adversarial review pass before delivering PDFs + editable `.typ` sources.
 
+## Languages
+
+The CV can be in any language Typst can set. The checks that do not depend on the language work everywhere: page count and fill, section breaks (including non-Latin headings), fonts and missing glyphs, hidden or clipped text, bullet characters, spacing and separators, and the figures in `--facts` (years, numbers, recognised month dates, with "1.500" read as 1500 or 1.5 and phone numbers ignored). The checks that read words have data for English, French, German, Spanish, Italian, Portuguese and Dutch: month names, section titles, degree names, job statuses, countries, undated academic statuses. For any other language or script, those checks stay quiet instead of guessing and print one `INFO  not checked for <language>: <check>` line each; the agent then compares proper names, section titles, degrees, dates and academic-entry statuses with the facts by hand (list in [`references/steps/6-verify.md`](references/steps/6-verify.md)). This is not a promise of full support for a language: an `INFO` line is a check that did not run, never a pass.
+
 ## Requirements
 
 `typst` 0.15+ (older versions lay the templates out differently and miss their fill targets) and Python 3.11+ with Pillow for the fill measurement. `pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdfium2` (then `pypdf`) automatically when only those are installed; `pypdf` also runs the tiny-text check. Run `python3 scripts/verify.py --doctor` (any platform) to diagnose — read-only, prints the right install command per platform, official repos first. LibreOffice/soffice is optional, only needed to generate editable copies (.docx/.odt) derived from the compiled PDF.
