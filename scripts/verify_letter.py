@@ -52,7 +52,7 @@ def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tu
 
         txt = verify.extract_text(pdf, backend)
         for label, needle in (("employer", employer), ("job title", job_title)):
-            if needle.lower() not in txt.lower():
+            if needle.casefold() not in txt.casefold():     # casefold, not lower: "Straße" meets "STRASSE"
                 fail = True
                 msgs.append((True, f'{label} "{needle}" not found in the letter text'))
             else:

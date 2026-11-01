@@ -477,3 +477,46 @@ def test_translated_academic_cv_with_the_template_headings_is_checked_normally()
     results, _, info = va.analyze_for_language(text, SECTIONS, "Dupont", ())
     assert info == [] and all(ok for _, ok, _ in results), results
 
+
+# --- verify_letter and pick_design: case-folding and word starts ---------------------------------------------------------------
+
+import pick_design as pd  # noqa: E402
+import verify_letter as vl  # noqa: E402
+
+
+def _letter(monkeypatch, text, employer, title):
+    monkeypatch.setattr(v, "preflight", lambda: (True, True, "x"))
+    monkeypatch.setattr(v, "ensure_icons", lambda typ: None)
+    monkeypatch.setattr(v, "compile_pdf", lambda typ, pdf, cli: (True, ""))
+    monkeypatch.setattr(v, "count_pages", lambda pdf, backend: "1")
+    monkeypatch.setattr(v, "extract_text", lambda pdf, backend: text)
+    monkeypatch.setattr(v, "check_hidden_text", lambda pdf: [])
+    return vl.check_letter("letter.typ", employer, title)
+
+
+def test_letter_finds_the_employer_across_sharp_s_and_case(monkeypatch):
+    ok, msgs = _letter(monkeypatch, "Sehr geehrte Damen und Herren, bei der STRASSENBAU AG als LEITERIN bewerbe ich mich.",
+                       "Straßenbau AG", "Leiterin")
+    assert ok, msgs
+
+
+def test_letter_still_fails_when_the_employer_is_absent(monkeypatch):
+    ok, msgs = _letter(monkeypatch, "Dear team, I apply as a developer.", "Acme", "Developer")
+    assert not ok and any(f and "employer" in m for f, m in msgs)
+
+
+@pytest.mark.parametrize("field, want", [
+    ("Département de la santé", None), ("html developer", None), ("syntax tutor", None), ("suite logicielle", None),
+    ("art director", "creative"), ("UX designer", "creative"), ("graphic design", "creative"), ("arts visuels", "creative"),
+    ("legal counsel", "conservative"), ("financial analyst", "conservative"), ("tax advisor", "conservative"),
+    ("lawyer", "conservative"), ("insurance broker", "conservative"), ("public administration", "conservative"),
+    ("marketing", "creative"), ("Software engineer", None),
+])
+def test_domain_register_matches_words_not_fragments(field, want):
+    assert pd.domain_register(field) == want
+
+
+@pytest.mark.parametrize("field, want", [("ML engineer", True), ("HTML templates", False), ("cybersecurity", True),
+                                         ("Département de la santé", False), ("data scientist", True), ("fashion designer", False)])
+def test_gutter_rail_domain_is_a_word_start(field, want):
+    assert any(pd._field_has(field, t) for t in pd.GUTTER_RAIL_DOMAIN) is want

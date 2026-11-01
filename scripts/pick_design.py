@@ -631,7 +631,8 @@ CAREER: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
 }
 
 # Field → how the pool and the colour dial lean. DATA, not logic: extend it.
-# Matched as a substring of the lowercased --field; first hit wins.
+# Matched in the case-folded --field (see _field_has: short keys must begin a word, so "art" no longer hits
+# "département" nor "ml" "html"; longer keys and stems stay substrings); first hit wins.
 DOMAIN_REGISTER: dict[str, str] = {
     # creative: the CV is itself a portfolio piece — expressive families first
     "design": "creative", "graphic": "creative", "ux": "creative",
@@ -648,10 +649,17 @@ DOMAIN_REGISTER: dict[str, str] = {
 }
 
 
+def _field_has(field: str | None, key: str) -> bool:
+    """`key` is in the case-folded field. A SHORT key (up to 4 letters: art, ui, ux, ml, tax, law, data, sre) must
+    begin a word, so it cannot sit inside another one ("département", "html", "syntax"); a longer key stays a plain
+    substring, stems and compounds included ("financ" in "finance", "security" in "cybersecurity")."""
+    f = (field or "").casefold()
+    return re.search(r"(?<!\w)" + re.escape(key), f) is not None if len(key) <= 4 else key in f
+
+
 def domain_register(field: str | None) -> str | None:
-    f = (field or "").lower()
     for k, v in DOMAIN_REGISTER.items():
-        if k in f:
+        if _field_has(field, k):
             return v
     return None                                    # unknown field: full pool
 
@@ -773,7 +781,7 @@ def pick(name: str, field: str | None, career: str = "early",
     # this lock: a fashion designer passing --creative drew it, and the device
     # was simply wrong for the trade. The creative unlock is necessary, not
     # sufficient.
-    if not any(t in (field or "").lower() for t in GUTTER_RAIL_DOMAIN):
+    if not any(_field_has(field, t) for t in GUTTER_RAIL_DOMAIN):
         hard = [f for f in hard if f != "gutter-rail"]
     if not hard:
         raise SystemExit("no family satisfies those flags — pick one by hand")
