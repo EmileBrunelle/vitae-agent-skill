@@ -13,7 +13,9 @@ A missing, unparsable or self-contradicting item counts FAIL. Last line, all PAS
 `<label>: other-model <model>` (--label default `Visual pass`; the layout reviewer passes
 `--label "Layout review"`). On any FAIL the last line is instead
 `<label>: FAIL other-model <model> (<n> items: L…)`, which is NOT a reportable line: fix and re-run.
-Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output in a single call).
+Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output in a single call, and an answer in which
+no line reads as a verdict: `unparseable verdicts`, nothing counted). Verdict words are read in English, French, Spanish and
+German as well (ÉCHEC / RÉUSSI, FALLO / APROBADO, FEHLGESCHLAGEN / BESTANDEN); the output is always PASS|FAIL.
 --temperature (default 0), --top-p and --top-k (LM Studio extension) go into the request; the last two only when given.
 --per-item: a response cut off at --max-tokens (finish_reason=length) makes that item `FAIL … inconclusive
 (truncated at <n> tokens)`; the run continues with the remaining items and exits 1.
@@ -47,6 +49,7 @@ import os
 import re
 import socket
 import sys
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -59,10 +62,32 @@ ITEM_RE = re.compile(r"^[\s>*#\-|`_\d.)]*(L\d+)\b", re.M)
 ITEM_LINE_RE = re.compile(
     r"^[\s>*#\-|`_\d.)]*\*{0,2}(L\d+)\*{0,2}[\s*]*(?:\((pages?|crops(?::(?:fill|icon))?)\))?[\s*:]*(.*?)\s*$", re.I)
 LEAD_RE = re.compile(r"^[\s>#|*_\-]*(?:\d+[.)]\s+)?[\s>#|*_\-]*")
-ANS_A = re.compile(r"^(PASS|FAIL)\b[\s:\-–—]*L0*(\d+)\b\s*(?:\([^)]*\))?\s*(?:[—–:\-]+\s*)?(.*)$", re.I)
-ANS_B = re.compile(r"^L0*(\d+)\b\s*(?:\([^)]*\))?\s*[:\-–—]*\s*(PASS|FAIL)\b\s*(?:[—–:\-]+\s*)?(.*)$", re.I)
+# LANGUAGE DATA: the verdict words a model may answer in. The prompt asks for PASS|FAIL, but a model told to
+# answer "in the user's language" (or a French/Spanish/German checklist) says ÉCHEC / FALLO / FEHLGESCHLAGEN.
+# Folded to PASS or FAIL when read; the output of this script stays PASS|FAIL.
+VERDICT_WORDS = {
+    "PASS": ("pass", "passed", "réussi", "réussie", "réussis", "succès", "aprobado", "aprobada", "correcto", "superado",
+             "bestanden", "superato", "aprovado", "aprovada"),
+    "FAIL": ("fail", "failed", "échec", "échoué", "échouée", "raté", "fallo", "suspendido", "fehlgeschlagen",
+             "nicht bestanden", "durchgefallen", "fallito", "reprovado", "falhou"),
+}
+
+
+def _fold_word(w: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFKD", w.casefold()) if not unicodedata.combining(c))
+
+
+_VERDICT_CANON = {_fold_word(w): k for k, ws in VERDICT_WORDS.items() for w in ws}
+_V = "|".join(re.escape(w) for w in sorted((w for ws in VERDICT_WORDS.values() for w in ws), key=len, reverse=True))
+ANS_A = re.compile(r"^(%s)\b[\s:\-–—]*L0*(\d+)\b\s*(?:\([^)]*\))?\s*(?:[—–:\-]+\s*)?(.*)$" % _V, re.I)
+ANS_B = re.compile(r"^L0*(\d+)\b\s*(?:\([^)]*\))?\s*[:\-–—]*\s*(%s)\b\s*(?:[—–:\-]+\s*)?(.*)$" % _V, re.I)
 CELL_ID = re.compile(r"^L0*(\d+)$", re.I)
-CELL_VERDICT = re.compile(r"^(PASS|FAIL)$", re.I)
+CELL_VERDICT = re.compile(r"^(%s)$" % _V, re.I)
+
+
+def canon_verdict(word: str) -> str:
+    """PASS or FAIL for any accepted verdict word (case and accents ignored)."""
+    return _VERDICT_CANON[_fold_word(word)]
 CLOSED_THINK_RE = re.compile(r"<think(?:ing)?>.*?</think(?:ing)?>", re.S | re.I)
 OPEN_THINK_RE = re.compile(r"<think(?:ing)?>.*\Z", re.S | re.I)
 STRAY_CLOSE_RE = re.compile(r"</think(?:ing)?>", re.I)
@@ -163,14 +188,14 @@ def _answer(line: str) -> Optional[tuple[str, str, str]]:
         m = CELL_ID.match(cells[ii])
         assert m
         zone = " | ".join(c for k, c in enumerate(cells) if k not in (vi, ii) and c)
-        return "L" + str(int(m.group(1))), cells[vi].upper(), zone
+        return "L" + str(int(m.group(1))), canon_verdict(cells[vi]), zone
     s = LEAD_RE.sub("", raw.replace("**", "").replace("`", ""))
     m = ANS_A.match(s)
     if m:
-        return "L" + str(int(m.group(2))), m.group(1).upper(), m.group(3).strip(" *_`")
+        return "L" + str(int(m.group(2))), canon_verdict(m.group(1)), m.group(3).strip(" *_`")
     m = ANS_B.match(s)
     if m:
-        return "L" + str(int(m.group(1))), m.group(2).upper(), m.group(3).strip(" *_`")
+        return "L" + str(int(m.group(1))), canon_verdict(m.group(2)), m.group(3).strip(" *_`")
     return None
 
 
@@ -497,6 +522,12 @@ def _main(argv: Optional[Sequence[str]] = None) -> None:
         except Truncated as e:
             die(str(e))
         verdicts = parse_verdicts(text, ids)
+        if not verdicts and clean_content(text):
+            # an answer with no recognisable line is not "every item failed": say what was read, count nothing
+            first = clean_content(text).splitlines()[0][:80]
+            die(f'unparseable verdicts: no line of the model answer reads as "PASS|FAIL L<n>" (also read: ÉCHEC / RÉUSSI, '
+                f'FALLO / APROBADO, FEHLGESCHLAGEN / BESTANDEN); first line: "{first}". Nothing was counted — '
+                "re-run, or answer the checklist by hand", 2)
         calls = "single call"
     lines, bad = render(ids, verdicts, a.model, a.label)
     print("\n".join(lines))

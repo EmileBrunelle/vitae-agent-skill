@@ -66,6 +66,13 @@ check("table", "| id | verdict | zone |\n|---|---|---|\n| L1 | PASS | top |\n| L
 check("table verdict first", "| PASS | L1 | top |\n| PASS | L2 | mid |\n| **FAIL** | **L3** | low |", 1, ["FAIL L3 — low"])
 check("L01", "PASS L01 — a\nPASS L02 — b\nPASS L03 — c", 0, ["PASS L1 — a"])
 check("lowercase", "pass L1 — a\nfail l2 — b\npass L3 — c", 1, ["FAIL L2 — b"])
+check("french verdicts", "RÉUSSI L1 — a\nÉCHEC L2 — b\nRéussie L3 — c", 1, ["PASS L1 — a", "FAIL L2 — b", "PASS L3 — c"])
+check("spanish verdicts", "Aprobado L1 — a\nFALLO L2 — b\nAPROBADO L3 — c", 1, ["FAIL L2 — b"])
+check("german verdicts", "BESTANDEN L1 — a\nL2: nicht bestanden — b\nFehlgeschlagen L3 — c", 2, ["PASS L1 — a", "FAIL L2 — b", "FAIL L3 — c"])
+check("localized table", "| id | verdict | zone |\n|---|---|---|\n| L1 | Réussi | top |\n| L2 | ÉCHEC | mid |\n| L3 | Fallo | low |", 2,
+      ["PASS L1 — top", "FAIL L2 — mid"])
+check("passed/failed", "PASSED L1 — a\nFAILED L2 — b\nPASSED L3 — c", 1, ["FAIL L2 — b"])
+check("mixed languages conflict -> FAIL", "RÉUSSI L1 — a\nPASS L2 — b\nPASS L3 — c\nÉCHEC L3 — d", 1, [])
 check("content parts", [{"type": "text", "text": "PASS L1 — a\nPASS L2 — b"}, {"type": "text", "text": "PASS L3 — c"}], 0, [])
 ok(look.checklist_ids("1. **L1** a\nL2: b\n- L3 c\nL1 again\nL04 x") == ["L1", "L2", "L3", "L4"])
 
@@ -202,6 +209,11 @@ ok(c == 2 and "empty" in e, (c, e))
 # 3 exit-2 anomalies
 c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat([{"type": "text", "text": "PASS L1 — a\nPASS L2 — b\nPASS L3 — c"}]))
 ok(c == 0, (c, e))
+# an answer with no recognisable verdict line: one clear error, nothing counted as FAIL
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("Je ne vois aucune image, désolé.\nVoici mon analyse."))
+ok(c == 2 and "unparseable verdicts" in e and "Je ne vois aucune image" in e and "FAIL L" not in o and o == "", (c, o, e))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("ÉCHEC L1 — a\nRÉUSSI L2 — b\nRÉUSSI L3 — c"))
+ok(c == 1 and "FAIL L1 — a" in o and "PASS L2 — b" in o, (c, o))
 c, _, e = cli("--checklist", CL_OLD, P1, resp=lambda r: (200, b"\xff\xfe\xfa"))
 ok(c == 2 and "UTF-8" in e, (c, e))
 c, _, e = cli("--checklist", CL_OLD, P1, resp=lambda r: (-1, b""))
