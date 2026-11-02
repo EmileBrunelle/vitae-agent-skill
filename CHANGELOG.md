@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.7.7 - 2026-11-01
 
 - `verify.py` language detection knows German, Spanish, Italian, Portuguese and Dutch stop words and non-Latin scripts: a CV in another language is no longer classed `fr` (Spanish "de la en") or `en` (German "in", "on"). `--facts` then compares dates, numbers and acronyms only and prints one `INFO  not checked for <language>: capitalised names and titles ...` line, instead of a WARN for every German noun or Russian name; the new unit tests are in `tests/unit/test_language.py`, with a German and a Russian CV + facts end to end in `tests/language/` (`language-facts` in `tests/run_all.sh`).
 - `verify.py`: capital letters are every Lu letter of the Latin, Greek and Cyrillic blocks (Ł, Š, Ő, Ț...), "1.500" in the CV matches 1500 and 1.5 in the facts ("1.500.000" and "1.500,50" read as thousands), and generic phone numbers ("06 12 34 56 78", "+49 30 1234567") are ignored, and results such as "300 staff" or "840 ms" are not swallowed (a numeric date with a leading-zero day was still blanked as a phone number, see Fixed below); `_clean_word` drops the common Italian elisions (dell', all', nell').
