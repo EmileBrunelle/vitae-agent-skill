@@ -2,17 +2,33 @@
 can verify their install (lib.typ integrity, tuner regex round-trips, poppler and
 typst present, the hidden-text / raster / date-adjacency measurements, ...).
 
-Why a separate module: the self-test is ~1,200 lines, a quarter of verify.py, and
-none of it runs during a real verification. verify.py imports it lazily inside its
-`--selftest` branch, so a normal run never loads it; it is reachable ONLY through
-`verify.py --selftest` (there is no CLI of its own). Run with `python -I`.
+What it covers: verify.py's own gates and readers. Each block of `run()` builds a
+synthetic case (a PIL-drawn page, a typst snippet compiled to a PDF, a source string,
+a temp directory) and asserts that one gate FAILs or WARNs on the defect and stays
+silent on the legitimate shape next to it. A gate whose self-test case is deleted can
+turn into a no-op or a false alarm with nothing else in the suite noticing, which is
+why the cases come in pairs (fires / stays quiet) and why most assertions carry a
+message naming what would break. The blocks that need typst, pdftoppm or pdftotext
+print `SKIPPED` when they are missing instead of failing; the tuner block runs only
+when `preflight()` finds a PDF backend.
 
-Why `sys.modules.setdefault("verify", ...)` in verify.py: run as a script, verify.py
-is `__main__`, so the `from verify import ...` below would import a SECOND copy of
-verify.py (module state duplicated, the script executed twice). Registering the
-running module under the name `verify` first makes the import resolve to it. Hence
-`_VERIFY_FILE` replaces `__file__` in the moved code: the self-test spawns verify.py
-as a subprocess and feeds it to is_letter / is_academic.
+How it is invoked: only through `python -I scripts/verify.py --selftest` (the
+`selftest-verify` case of tests/run_all.sh runs exactly that). There is no CLI of
+its own, and the entry point is `run()`, which ends in `sys.exit(0)` or raises
+AssertionError. verify.py imports this module lazily inside its `--selftest` branch,
+so a normal run never loads it (the self-test is ~1,200 lines, a quarter of what
+verify.py was, and none of it runs during a real verification).
+
+How it reaches verify: run as a script, verify.py is `__main__`, so the
+`from verify import ...` below would import a SECOND copy of verify.py (module state
+duplicated, the script executed twice). verify.py therefore registers the running
+module first, with `sys.modules.setdefault("verify", sys.modules[__name__])`, and the
+import resolves to it. Hence `_VERIFY_FILE` replaces `__file__` in the moved code: the
+self-test spawns verify.py as a subprocess and feeds it to is_letter / is_academic.
+
+What it does not cover: verify_letter.py, verify_academic.py and pick_design.py each
+have their own `--selftest`; the end-to-end fixtures, the per-template gates and the
+backend comparisons live in tests/run_all.sh, not here.
 
 Not printed by --help (verify.py's usage text is separate)."""
 
@@ -117,6 +133,10 @@ def run() -> NoReturn:
     assert not _family_requested("NotoSansMono-Regular", _req), "NotoSansMono is not Noto Sans"
     assert _family_requested("BricolageGrotesque-Regular", {"bricolagegrotesque96pt"})
     assert _family_requested("Adwaita-Mono-Bold", {"adwaitamono"})
+    # Font-fallback tiers (CHANGELOG, font-fallback gate): Latin letters or digits drawn in a face the
+    # source never asks for FAIL (also past 5 % of the Latin letters); accented letters and punctuation
+    # WARN; another script drawn in an unnamed face WARN; symbols and emoji INFO. Each assert below pins
+    # one tier. `_okf` is the baseline text, drawn in the requested face.
     _okf = [(c, "ABCDEF+NotoSans-Regular") for c in "Hello 1"]
     assert classify_font_fallback(_okf, _req) == []
     _libertinus = [(c, "LibertinusSerif-Regular") for c in "Hello"]
@@ -130,6 +150,8 @@ def run() -> NoReturn:
     assert [x[0] for x in classify_font_fallback(_okf * 3 + _cjk, _req)] == ["WARN"]   # another script: WARN, never the latin-ext hint
     assert "latin-ext" not in classify_font_fallback(_okf * 3 + _cjk, _req)[0][1]
     assert classify_font_fallback(_okf + [(c, "Sora-Regular") for c in "Привет"], _req | {"sora"}) == []
+    # Math faces count as requested only when the source has math, and NewCM10 is New Computer Modern
+    # (CHANGELOG, font-fallback gate).
     _math = requested_families('#set text(font: "Noto Sans")\n$O(n^2)$\n')
     assert classify_font_fallback(_okf + [("O", "NewCMMath-Regular"), ("n", "NewCMMath-Regular")], _math) == []
     assert classify_font_fallback(_okf + [("O", "NewCMMath-Regular")], _req)[0][0] == "FAIL"     # no math in the source
@@ -190,11 +212,15 @@ def run() -> NoReturn:
         open(_bs_f, "w", encoding="utf-8").write("#set par(leading: 0.6em)\n")
         assert _body_size_warn(_bs_f) == ""
     _bsz_root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(_VERIFY_FILE))), "templates")
+    # Not a synthetic case: every shipped template (lib.typ and icons.typ are libraries, not CVs) must
+    # stay silent, the premise of BODY_SIZE_WARN ("shipped templates: 10.5pt, margin-index and letter 11pt").
     for _bsr, _bsd, _bsfs in os.walk(_bsz_root):
         for _bsn in _bsfs:
             if _bsn.endswith(".typ") and _bsn not in ("lib.typ", "icons.typ"):
                 assert _body_size_warn(os.path.join(_bsr, _bsn)) == "", os.path.join(_bsr, _bsn)
     # Summary-repeats WARN: >= 2 distinct figures shared with the other sections; one headline metric is fine.
+    # `_sr` shares three figures (840, 210, 40) between Profile and Experience, which is exactly what the
+    # asserted message lists. The variants below take figures away or move them out of scope.
     _sr = ('#section("Profile")[\nCut p95 latency from 840 ms to 210 ms and a report from 40 minutes to 6.\n]\n'
            '#section("Experience")[\n- p95 latency 840 ms #sym.arrow 210 ms\n- nightly report 40 min to 6 min\n]\n')
     _srw = check_summary_repeats(_sr)
@@ -206,6 +232,8 @@ def run() -> NoReturn:
         '#section("Education")[\nGPA 3.6/4.3, May 2025 - 2026, 2024-2026\n]\n')
     assert not check_summary_repeats('#section("Experience")[\n- cut 840 ms to 210 ms\n]\n')   # no summary: silent
     assert check_summary_repeats(_sr.replace("Profile", "Profil"))
+    # the summary section is found by its title: French and Spanish forms (Profil, Perfil) and other
+    # English names count too
     for _t in ("Objective", "Summary of Qualifications", "Perfil", "Professional Summary"):
         assert check_summary_repeats(_sr.replace("Profile", _t)), _t
     assert check_summary_repeats(_sr.replace('("Profile")', '("Profile", airy: true)'))             # extra section args
@@ -231,6 +259,9 @@ def run() -> NoReturn:
     assert check_entry_repeats(_ex % ("Équipe de données", "Données et équipes: dashboards"))                  # French plural/accents
     assert not check_entry_repeats(_ex % ("Équipe de données", "Réduit l\u2019équipe de support de 40 à 6 personnes"))   # elision, one shared word
     # Entry-location WARN: a place absent from the entry's own facts item; generic words, acronyms, unattached entries silent.
+    # `_lf` is a facts file with two items; the Cashier item names Laval, the DEC item does not. `_lt` is an
+    # Education entry whose descriptor slot (%s) carries the place under test: Laval on the DEC entry is the
+    # place its own facts item never mentions (the "run 24 Laval" case, commit 6b5b696).
     _lf = "## Education\n- DEC in Science, Collège Riverside, 2020 – 2022.\n- Cashier, Marché Bonprix (Laval), 2020\n"
     _lt = '#section("Education")[\n#job("DEC in Science", "Collège Riverside", "2020 – 2022", "%s")\n]\n'
     assert len(check_entry_locations(_lt % "Laval", _lf)) == 1
@@ -254,6 +285,8 @@ def run() -> NoReturn:
     _yo = _year_only_msg("Acme 2019 – 2021")
     assert "KEEP it year-only" in _yo and "NEVER invent or estimate months" in _yo, _yo
     assert "month+year both ends" not in _yo, _yo
+    # `_good` re-spells the facts (accents stripped, $50k for $50,000) and must stay silent: a faithful
+    # paraphrase is not an invention. Every WARN below must name something the facts do not say.
     _facts = ("Jane Roe\nAnalyst, Acme Corp, 2020–2022 (year only, no months known)\n"
               "- Cut reporting time by 40%, saving $50,000 across 12 teams. Python, SQL.\n"
               "Education: B.Sc. Université de Montréal, 2018\n")
@@ -304,6 +337,8 @@ def run() -> NoReturn:
     assert any('"3.12"' in x for x in check_facts_coverage("Python 3.12\n", _f2))
     assert check_facts_coverage("Python 3.11\n", _f2) == []
     # drawn fill target: family table wins over header; no/disagreeing header WARNs
+    # The family banner is the authority, not the editable header (CHANGELOG, drawn fill target). A header
+    # beyond the first 3 lines counts as absent; with no family known the header is read on line 1 only.
     with tempfile.TemporaryDirectory(prefix="vitae-drawn-") as _td:
         import pick_design as _pd
         _fam = next(iter(_pd.FAMILIES))
@@ -322,11 +357,13 @@ def run() -> NoReturn:
             _dt, _dw = _drawn_fill(_ft)
             assert _dt == _want_t and len(_dw) == _want_w, (_body, _dt, _dw)
             assert all(str(_exp[0]) in _w and str(_exp[1]) in _w for _w in _dw), _dw
+    # a non-integer fill argument exits non-zero with a FAIL line, never a ValueError traceback (CHANGELOG, drawn fill target)
     _r = subprocess.run([sys.executable, "-I", os.path.abspath(_VERIFY_FILE), "x.typ", "1", "9x", "96"],
                         capture_output=True, text=True)
     assert _r.returncode != 0 and "FAIL  fill args must be integers" in _r.stdout, (_r.stdout, _r.stderr)
     assert "Traceback" not in _r.stderr, _r.stderr
     assert pages_from_name("a/resume.typ") == "1"
+    # the name pattern is `[-_]2\s*p(ages)?` not followed by a letter: `2pager` and `12p` stay 1-page
     for n in ("CV_X_2p.typ", "cv_2page.typ", "cv_2pages.typ", "cv-2p.typ",
               "cv-2pages.typ", "CV-2 page.typ"):
         assert pages_from_name(n) == "2", n
@@ -334,6 +371,8 @@ def run() -> NoReturn:
         assert pages_from_name(n) == "1", n
     assert is_gated("CV_A_1p.typ") and not is_gated("Guide_X.typ")
     assert is_gated("Jane_Doe.typ") and is_gated("lebenslauf.typ")
+    # --all gates every .typ except guide / letter / cover / lisez-moi / readme by name (NON_CV_RE); a
+    # `// vitae:` header opts a file back in (Odd_Letter, Guide_Hdr), a headerless CV name is gated by default.
     with tempfile.TemporaryDirectory() as td:
         for n, body in (("Odd_Letter.typ", "// vitae: pages=1\n"),
                         ("Guide_Candidature_X.typ", "x\n"),
@@ -352,6 +391,12 @@ def run() -> NoReturn:
     # Two synthetic pages, drawn with PIL so the check needs no Typst.
     from PIL import Image, ImageDraw
 
+    # Synthetic page factory: 1275x1650 px, 4 sections of 6 text rows of 16 dark blocks. `rule_luma` draws a
+    # hairline AT each of the first `rules` boundaries (None: none), `gap` is the white run left above each
+    # section's text, `underline` the number of sections with an underlined link mid-body. 1275 px is the
+    # width of the renders the gate was calibrated on (verify.py DEVICELESS note). Measured with
+    # check_whitespace, biggest gap over median: thin (gap 75, 4 rules) 5.62x, bare (gap 90) 7.92x, airy
+    # (gap 53) 5.08x, inked (gap 45) 4.46x, tight (gap 25) 1.77x. The block, row and tick sizes are not recorded.
     @overload
     def _page(rule_luma: int | None = ..., gap: int = ..., rule_len: int = ...,
               underline: int = ..., rules: int = ..., want_boxes: Literal[False] = ...) -> str: ...
@@ -722,6 +767,11 @@ def run() -> NoReturn:
         _hdr = ('#set page(width: 300pt, height: 200pt, margin: 20pt)\n'
                 '#set text(font: "Liberation Sans", size: 9pt)\n'
                 'Jane Doe, backend developer. Built the billing API in Python and Django.\n\n')
+        # Thresholds the cases below straddle (CHANGELOG, hidden-text gate; HIDDEN_FAIL_RATIO / HIDDEN_WARN_RATIO):
+        # contrast under 1.5:1 FAIL, under 3:1 WARN; a box under 4pt FAIL, a font size under 5pt WARN,
+        # superscripts exempt. 4.5pt sits between the two size lines; #767676 is the weakest legitimate grey
+        # measured (4.55:1); computed against white, #bbbbbb is about 1.9:1 and #d8d8d8 about 1.4:1, and
+        # #8a8a8a on a #767676 band about 1.3:1.
         _bandtxt = lambda fill, txt: (f'#rect(width: 100%, fill: rgb("{fill}"), inset: 4pt)'
                                    f'[#text(fill: rgb("{txt}"))[{_lure}]]')
         _fonts = "\n".join(typst_fonts() or [])
@@ -778,6 +828,9 @@ def run() -> NoReturn:
                     assert _got[0].startswith("hidden text: remove ") and "(p.1)" in _got[0], _got
                     if _name == "text wholly off the page" and pdf_backend() == "pdfium":
                         assert len(_got) == 1, _got       # pdfium AND pypdf both see it: one FAIL, not two
+            # PDF metadata stuffing (check_pdf_metadata): Keywords over KEYWORD_MAX_TERMS (15), a repeated term
+            # or a word used three times, any other field over META_MAX_CHARS (200). So: 20 keywords, a
+            # duplicated "kubernetes", a 240-character title and description, and author "aws" four times.
             _ml = "x" * 120 + " "
             for _doc, _warn in (('#set document(keywords: ("python", "django", "billing api"), title: "Jane Doe CV")', False),
                                 ("#set document(keywords: (" + ", ".join(f'"skill{n}"' for n in range(20)) + "))", True),
@@ -855,6 +908,7 @@ def run() -> NoReturn:
         _rb, _lb = _rast("Kill Hill, ghj. Thick fly (gypsy) Jeff's pig")   # ascenders and descenders
         assert abs(_ra - _rb) <= 0.1 and 0.85 <= _ra < 3, (_ra, _rb)
         assert _la == _lb == "OK", (_la, _lb)
+        # the squeezed layout must land under PROX_FAIL (0.7 in verify.py, the between/internal gap ratio)
         _rt, _lt = _rast("a sure sun runs very scarce, even once", squeeze=11)
         assert _lt == "FAIL" and _rt < PROX_FAIL, (_rt, _lt)
         print(f"selftest raster path: ratio {_ra:.2f} (x-height words) vs {_rb:.2f} (ascender words); squeezed {_rt:.2f} FAILs")
@@ -1185,6 +1239,8 @@ def run() -> NoReturn:
     assert not check_forced_linebreak("- see https://example.com/a // and path C:\\\\dir\n")
 
     # duplicate name: a section title reused as a row label (any case) FAILs
+    # two things with one name read as one list to a human and to an ATS (check_duplicate_names' docstring);
+    # a longer label ("Programming languages") or an entry row is a different name
     _sec: list[Mark] = [{"text": "LANGUAGES", "page": 1, "y": 10.0}, {"text": "Skills", "page": 1, "y": 80.0}]
     assert check_duplicate_names(_sec, [{"kind": "skill", "text": "Languages"}])
     assert check_duplicate_names(_sec, [{"kind": "skill", "text": "languages:"}])
@@ -1192,6 +1248,9 @@ def run() -> NoReturn:
     assert not check_duplicate_names(_sec, [{"kind": "entry", "text": "Languages"}])
 
     # lib.typ integrity: current / older release / rewritten / no import
+    # check_lib_integrity: a lib.typ next to the CV that matches the skill's current one (CRLF and BOM
+    # tolerated) is silent, a known older release WARNs, a rewrite FAILs with the `cp` that restores it,
+    # and a CV that does not really import it (commented, in a raw span) WARNs.
     with tempfile.TemporaryDirectory() as _li_d:
         _li_sk = os.path.join(_li_d, "skill"); _li_cv = os.path.join(_li_d, "cv")
         os.makedirs(os.path.join(_li_sk, "templates")); os.makedirs(_li_cv)
@@ -1278,6 +1337,9 @@ def run() -> NoReturn:
             _lm = _leading_warn(_lwf)
             assert bool(_lm) == _lwant, (_lv, _lm)
         assert "DOUBLE-SPACED" in _lm and "1.100em" in _lm, _lm
+        # Tuples are (leading, list spacing, expect WARN) around LEADING_RATIO_WARN (1.95, strictly above fires):
+        # 1.0/0.5 is the real run (ratio 2.00) that read double-spaced; 0.85/0.45 computes to 1.89, the value
+        # verify.py records as the highest shipped template.
         # Relative check: leading / explicit list spacing, strictly above 1.95.
         for _rl, _rs, _rwant in ((0.942, 0.45, True), (0.90, 0.45, True), (1.0, 0.5, True), (0.85, 0.45, False), (0.839, 0.45, False),
                                  (0.942, 0.55, False), (0.9, 0.5, False)):
