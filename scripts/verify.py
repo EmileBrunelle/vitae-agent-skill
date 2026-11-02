@@ -1079,23 +1079,41 @@ _PHONE_RE = re.compile(
 # split by space/dot/hyphen. Only 8+ digits in 2+ groups (or a + prefix) count as a number, so "300 staff", "840 ms",
 # "1 500 000" (no leading 0) and "2019 - 2021" are never read as one.
 _PHONE_GEN_RE = re.compile(r"(?<![\w.,])(?:\+\d{1,3}|0)(?:[ .\-\u00a0]?\(?\d{1,8}\)?)+(?!\d)")
-# A numeric date ("01.03.2019", "05-06-2021") also fits the pattern above when its day starts with 0: it is a date, not a phone.
-_NUM_DATE_RE = re.compile(r"(?:0?[1-9]|[12]\d|3[01])([./-])(?:0?[1-9]|1[0-2])\1\d{4}")
+# A numeric date ("01.03.2019", "05-06-2021") fits the pattern above when its day starts with 0, so dates are found first
+# and masked: a phone match must never swallow one, and a phone beside a date is still blanked. The year is limited to
+# 19xx/20xx and a date may not touch another digit group ("04-12-3456-7890", "05-06-2021-1234" are phones) unless that
+# group is itself a date (a range such as "01.03.2019-05.06.2021").
+_DATE_CORE = r"(?:0?[1-9]|[12]\d|3[01])([./-])(?:0?[1-9]|1[0-2])\1(?:19|20)\d\d"
+_NUM_DATE_SCAN_RE = re.compile(r"(?<!\d)" + _DATE_CORE + r"(?!\d)(?![./-](?!" + _DATE_CORE.replace(r"\1", r"\2") + r")\d)")
+_NUM_DATE_END_RE = re.compile(_DATE_CORE + r"$")
 
 
 def _blank_phones(line: str) -> str:
     """`line` with every phone number replaced by spaces (same length: spans carry over)."""
-    line = _PHONE_RE.sub(lambda m: " " * len(m.group(0)), line)
+    masked = list(line)
+    dates: list[tuple[int, int]] = []
+    for m in _NUM_DATE_SCAN_RE.finditer(line):
+        i = m.start()
+        # "1234-05-06-2021": a date glued to a digit group by a separator is part of a longer number, not a date.
+        if i >= 2 and line[i - 1] in "./-" and line[i - 2].isdigit() and not _NUM_DATE_END_RE.search(line[:i - 1]):
+            continue
+        masked[i:m.end()] = "#" * (m.end() - i)
+        dates.append((i, m.end()))
+    text = "".join(masked)
+    text = _PHONE_RE.sub(lambda m: " " * len(m.group(0)), text)
 
     def generic(m: re.Match[str]) -> str:
         t = m.group(0)
         digits = len(re.sub(r"\D", "", t))
         groups = len(re.findall(r"\d+", t))
-        d = _NUM_DATE_RE.match(t)
-        if d and re.fullmatch(r"(?:\s*[-\u2013\u2014]\s*.*)?", t[d.end():], re.S) and not t[:1] == "+":
-            return t        # a date (or the start of a date range), not a phone
         return " " * len(t) if digits >= 8 and (t.startswith("+") or groups >= 2) else t
-    return _PHONE_GEN_RE.sub(generic, line)
+    text = _PHONE_GEN_RE.sub(generic, text)
+    out = list(text)
+    for i, j in dates:      # the placeholders are the only non-phone text there: put the dates back
+        out[i:j] = line[i:j]
+    return "".join(out)
+
+
 _NAME_SUFFIX_RE = re.compile(r"\b(?:inc|ltee|ltd|corp|llc|sa|sas|gmbh)\b")
 
 

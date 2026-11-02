@@ -247,6 +247,34 @@ def test_numeric_dates_are_not_blanked_as_phones(dates):
 def test_phones_are_still_blanked():
     assert v._blank_phones("06 12 34 56 78").strip() == ""
     assert v._blank_phones("01.23.45.67.89").strip() == ""
+    assert v._blank_phones("+49 170 1234567").strip() == ""
+    assert v._blank_phones("0170 1234567").strip() == ""
+
+
+@pytest.mark.parametrize("line", [
+    "(05.06.2021)", "(01.03.2019 – 05.06.2021)", "Developer (05.06.2021)", "05.06.2021 12.07.2022 13.08.2023",
+    "01.03.2019 1500 staff", "01.03.2019 2024 award"])
+def test_dates_survive_parentheses_and_neighbouring_numbers(line):
+    assert v._blank_phones(line) == line
+
+
+def test_dates_in_parentheses_and_beside_numbers_still_warn_on_invented_years():
+    assert any("2021" in x for x in warns("Developer (05.06.2021)", "Developer at Acme, 2015 to 2016."))
+    assert any("2024" in x for x in warns("01.03.2019 2024 award", "Award, 2019."))
+    out = warns("01.03.2019 – 05.06.2021 12.07.2022", "Developer at Acme, 2015 to 2016.")
+    assert any("2022" in x for x in out)
+    assert not any("1500" in x for x in warns("Developer, 01.03.2019 1500 staff", "Developer, 2019. 1500 staff."))
+
+
+@pytest.mark.parametrize("phone", ["04-12-3456-7890", "05-06-2021-1234 5678", "03-12-2012-3456"])
+def test_date_shaped_phones_are_blanked(phone):
+    assert v._blank_phones(phone).strip() == ""
+    assert v._blank_phones(f"Tel {phone}").strip() == "Tel"
+
+
+def test_phone_next_to_a_date_is_blanked_and_the_date_kept():
+    assert v._blank_phones("01.03.2019 - 06 12 34 56 78") == "01.03.2019 -" + " " * 15
+    assert v._blank_phones("1500 staff") == "1500 staff"
 
 
 # --- elisions ----------------------------------------------------------------------------------------------------------
