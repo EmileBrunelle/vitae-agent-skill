@@ -2082,12 +2082,6 @@ def check_pdf_metadata(pdf: str) -> list[str]:
     return out
 
 
-def check_pdf_keywords(pdf: str) -> str | None:
-    """First metadata WARN text, else None. Kept for callers that want a single line."""
-    msgs = check_pdf_metadata(pdf)
-    return msgs[0] if msgs else None
-
-
 TINY_TEXT_PT = 5.0   # real font size under which a run is "tiny" (WARN): nobody reads it
 
 
