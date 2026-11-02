@@ -134,6 +134,7 @@ scripts/verify.py                # gate + doctor: compile + pages + fill + extra
 scripts/verify_lang.py           # verify.py's language data: word lists, month tables, section-title patterns, stop words (add a language here only)
 scripts/verify_typst.py          # verify.py's cv.typ parsing: pure text in, values out (comments stripped, section bodies, entry arguments, `#set par/text/list` readers); no printing, no rendering
 scripts/verify_selftest.py       # verify.py --selftest, moved out of verify.py (about 1,200 lines): lib.typ integrity, tuner regex round-trips, poppler/typst present; loaded lazily, reachable only through `verify.py --selftest`
+scripts/verify_level.py          # severity levels (FAIL / WARN / OK / INFO) shared by verify.py and its helpers; stdlib only, imports nothing from verify
 scripts/verify_fonts.py          # verify.py's font handling: which families a CV asks for (`font:` arguments resolved through `#let` chains) and which face the PDF drew each character in; no PDF access, no printing
 scripts/verify_page.py           # verify.py's page measurement helpers: ink bands outside the word boxes, which of them sit at a section boundary, fill and icon candidates cut from a page raster, x-height band of a text line; pixels and boxes in, numbers out, no findings printed, no rendering
 scripts/verify_academic.py       # academic-mode gate: entry-level page-break check + declared vs. extracted counts/order, round-tripped against the TOML data file (reuses verify.py's plumbing only, none of its fill constants)
