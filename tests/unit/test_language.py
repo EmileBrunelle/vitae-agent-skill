@@ -235,6 +235,20 @@ def test_real_results_are_not_swallowed_as_phones(claim):
     assert v._blank_phones(claim) == claim
 
 
+@pytest.mark.parametrize("dates", [
+    "01.03.2019 – 05.06.2021", "01.03.2019 - 05.06.2021", "01.03.2019-05.06.2021", "01-03-2019 – 05-06-2021",
+    "01/03/2019 – 05/06/2021", "1.3.2019 – 5.6.2021", "10.03.2019 – 30.06.2021"])
+def test_numeric_dates_are_not_blanked_as_phones(dates):
+    assert v._blank_phones(dates) == dates
+    out = warns(f"Developer, {dates}", "Developer at Acme, 2015 to 2016.")
+    assert any("2019" in x for x in out) and any("2021" in x for x in out)
+
+
+def test_phone_next_to_a_date_is_still_blanked():
+    assert v._blank_phones("06 12 34 56 78").strip() == ""
+    assert v._blank_phones("01.23.45.67.89").strip() == ""
+
+
 # --- elisions ----------------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("raw, want", [

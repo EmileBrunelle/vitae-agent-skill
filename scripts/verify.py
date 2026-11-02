@@ -1079,6 +1079,8 @@ _PHONE_RE = re.compile(
 # split by space/dot/hyphen. Only 8+ digits in 2+ groups (or a + prefix) count as a number, so "300 staff", "840 ms",
 # "1 500 000" (no leading 0) and "2019 - 2021" are never read as one.
 _PHONE_GEN_RE = re.compile(r"(?<![\w.,])(?:\+\d{1,3}|0)(?:[ .\-\u00a0]?\(?\d{1,8}\)?)+(?!\d)")
+# A numeric date ("01.03.2019", "05-06-2021") also fits the pattern above when its day starts with 0: it is a date, not a phone.
+_NUM_DATE_RE = re.compile(r"(?:0?[1-9]|[12]\d|3[01])([./-])(?:0?[1-9]|1[0-2])\1\d{4}")
 
 
 def _blank_phones(line: str) -> str:
@@ -1089,6 +1091,9 @@ def _blank_phones(line: str) -> str:
         t = m.group(0)
         digits = len(re.sub(r"\D", "", t))
         groups = len(re.findall(r"\d+", t))
+        d = _NUM_DATE_RE.match(t)
+        if d and re.fullmatch(r"(?:\s*[-\u2013\u2014]\s*.*)?", t[d.end():], re.S) and not t[:1] == "+":
+            return t        # a date (or the start of a date range), not a phone
         return " " * len(t) if digits >= 8 and (t.startswith("+") or groups >= 2) else t
     return _PHONE_GEN_RE.sub(generic, line)
 _NAME_SUFFIX_RE = re.compile(r"\b(?:inc|ltee|ltd|corp|llc|sa|sas|gmbh)\b")
