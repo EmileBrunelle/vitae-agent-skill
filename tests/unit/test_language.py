@@ -244,7 +244,7 @@ def test_numeric_dates_are_not_blanked_as_phones(dates):
     assert any("2019" in x for x in out) and any("2021" in x for x in out)
 
 
-def test_phone_next_to_a_date_is_still_blanked():
+def test_phones_are_still_blanked():
     assert v._blank_phones("06 12 34 56 78").strip() == ""
     assert v._blank_phones("01.23.45.67.89").strip() == ""
 

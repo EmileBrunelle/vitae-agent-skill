@@ -2,7 +2,8 @@
 
 Every word list, month table, section-title pattern and stop-word set that depends on a human language lives
 here, plus the few helpers that read a script or detect a language from those lists. Adding a language means
-editing this file only: verify.py, verify_academic.py and verify_letter.py hold no language words of their own.
+editing this file, plus the two language-data places of verify_academic.py (the status words that open an undated entry,
+`STATUS_WORDS`, and the English heading set of its template). verify.py and verify_letter.py hold no language words of their own.
 
 Design rule: Python stays silent or neutral where it cannot judge a language, never a FAIL because a language
 or a script is unknown to it, and no WARN in bulk. When a gate cannot judge, it prints ONE line

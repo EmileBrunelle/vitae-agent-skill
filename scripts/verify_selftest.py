@@ -16,8 +16,8 @@ How it is invoked: only through `python -I scripts/verify.py --selftest` (the
 `selftest-verify` case of tests/run_all.sh runs exactly that). There is no CLI of
 its own, and the entry point is `run()`, which ends in `sys.exit(0)` or raises
 AssertionError. verify.py imports this module lazily inside its `--selftest` branch,
-so a normal run never loads it (the self-test is ~1,200 lines, a quarter of what
-verify.py was, and none of it runs during a real verification).
+so a normal run never loads it (the self-test is a large share of what
+verify.py once was, and none of it runs during a real verification).
 
 How it reaches verify: run as a script, verify.py is `__main__`, so the
 `from verify import ...` below would import a SECOND copy of verify.py (module state

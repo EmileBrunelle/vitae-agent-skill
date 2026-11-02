@@ -1,7 +1,8 @@
 """Font handling, separated from the checks that use it: which families a CV asks for and
 which face a PDF character was drawn in.
 
-Pure text in, values out: `requested_families` reads Typst source and returns family keys;
+Text in, values out: `requested_families` reads Typst source (`_font_sources` reads cv.typ and the local
+`.typ` files it imports from disk, the only file access here) and returns family keys;
 `classify_font_fallback` compares (character, PDF font) pairs against those keys and returns
 the findings. Nothing here opens a PDF, compiles or prints; verify.py owns the gate that
 feeds the PDF's characters in, and imports these names explicitly. This module never imports
