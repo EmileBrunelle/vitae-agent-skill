@@ -772,7 +772,7 @@ def run() -> NoReturn:
         # superscripts exempt. 4.5pt sits between the two size lines; #767676 is the weakest legitimate grey
         # measured (4.55:1); computed against white, #bbbbbb is about 1.9:1 and #d8d8d8 about 1.4:1, and
         # #8a8a8a on a #767676 band about 1.3:1.
-        _bandtxt = lambda fill, txt: (f'#rect(width: 100%, fill: rgb("{fill}"), inset: 4pt)'
+        _bandtxt: Callable[[str, str], str] = lambda fill, txt: (f'#rect(width: 100%, fill: rgb("{fill}"), inset: 4pt)'
                                    f'[#text(fill: rgb("{txt}"))[{_lure}]]')
         _fonts = "\n".join(typst_fonts() or [])
         _cases = {   # name -> (body, worst level expected: "", "WARN" or "FAIL")
@@ -815,7 +815,7 @@ def run() -> NoReturn:
             _cases["text wholly off the page"] = (
                 f'#place(top + left, dx: 40pt, dy: 260pt, box(width: 200pt, [{_lure}]))', "FAIL")
         _rank = {"": 0, "WARN": 1, "FAIL": 2}
-        _worst = lambda res: max((lv for lv, _ in res if lv in _rank), key=_rank.__getitem__, default="")
+        _worst: Callable[[Any], str] = lambda res: max((lv for lv, _ in res if lv in _rank), key=_rank.__getitem__, default="")
         with tempfile.TemporaryDirectory() as td:
             _t, _f = os.path.join(td, "h.typ"), os.path.join(td, "h.pdf")
             for _name, (_body, _want) in _cases.items():
@@ -874,7 +874,7 @@ def run() -> NoReturn:
         return [ln(100, 10, "Role One") + ln(113, 9, "Acme Corp") + ln(125, 10, "first bullet")
                 + ln(138, 10, "second bullet") + ln(next_top, 10, "Role Two") + ln(next_top + 13, 9, "Beta Inc")
                 + ln(next_top + 25, 10, "only bullet") + ln(next_top + 38, 10, "last bullet")]
-    _flat = lambda ws: [w for part in ws for w in part]
+    _flat: Callable[[Any], list[Any]] = lambda ws: [w for part in ws for w in part]
     _hd: list[Mark] = [{"kind": "entry", "text": "Role One", "org": "Acme Corp", "page": 1, "x": 50.0, "y": 105.0},
            {"kind": "entry", "text": "Role Two", "org": "Beta Inc", "page": 1, "x": 50.0, "y": 0.0}]
     for top, want_fail in ((149, True), (160, False)):
@@ -1254,11 +1254,11 @@ def run() -> NoReturn:
     with tempfile.TemporaryDirectory() as _li_d:
         _li_sk = os.path.join(_li_d, "skill"); _li_cv = os.path.join(_li_d, "cv")
         os.makedirs(os.path.join(_li_sk, "templates")); os.makedirs(_li_cv)
-        _li_w = lambda p, t: open(p, "w", encoding="utf-8").write(t)
+        _li_w: Callable[[str, str], int] = lambda p, t: open(p, "w", encoding="utf-8").write(t)
         _li_w(os.path.join(_li_sk, "templates", "lib.typ"), "#let derive() = 1\n")
         _li_w(os.path.join(_li_cv, "cv.typ"), '#import "lib.typ": *\n')
         _li_old = hashlib.sha256(b"#let old = 1\n").hexdigest()
-        _li_chk = lambda: check_lib_integrity(os.path.join(_li_cv, "cv.typ"), _li_sk, {_li_old})
+        _li_chk: Callable[[], list[Any]] = lambda: check_lib_integrity(os.path.join(_li_cv, "cv.typ"), _li_sk, {_li_old})
         _li_w(os.path.join(_li_cv, "lib.typ"), "#let derive() = 1\n")
         assert _li_chk() == [], _li_chk()
         _li_w(os.path.join(_li_cv, "lib.typ"), "#let old = 1\n")

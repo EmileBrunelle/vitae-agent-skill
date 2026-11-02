@@ -108,11 +108,19 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fill  # noqa: E402
 from verify_fonts import (  # noqa: E402 -- font families asked for vs drawn: pure text and tuples
-    _fam_key,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
-    _family_requested,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
+    _fam_key as _fam_key,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
+)
+from verify_fonts import (
+    _family_requested as _family_requested,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
+)
+from verify_fonts import (
     _font_sources,
-    classify_font_fallback,
-    requested_families,
+)
+from verify_fonts import (
+    classify_font_fallback as classify_font_fallback,
+)
+from verify_fonts import (
+    requested_families as requested_families,
 )
 from verify_lang import (  # noqa: E402 -- language data: edit verify_lang.py to add a language
     _ACTION_VERB_SRC,
@@ -134,9 +142,11 @@ from verify_lang import (  # noqa: E402 -- language data: edit verify_lang.py to
     _SUMMARY_TITLES,
     DEGREE_RE,
     INCOMPLETE_RE,
-    _detect_lang,
     _is_latin,
     _strip_latin_marks,
+)
+from verify_lang import (
+    _detect_lang as _detect_lang,
 )
 from verify_page import (  # noqa: E402 -- page geometry and pixel measurement: pixels and boxes in, numbers out
     BOUNDARY_RATIO,
@@ -144,17 +154,23 @@ from verify_page import (  # noqa: E402 -- page geometry and pixel measurement: 
     CROP_PAD_IN,
     CROP_PPI,
     CROP_SCAN_PPI,
-    FURNITURE_SCALE,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
     INK_DELTA,
     INK_DPI,
     RULE_PT,
     _lum,
     _row_stats,
-    _xheight_band,
     boundary_ink,
     crop_candidates,
-    furniture_ink,
     near_boundary,
+)
+from verify_page import (
+    FURNITURE_SCALE as FURNITURE_SCALE,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
+)
+from verify_page import (
+    _xheight_band as _xheight_band,
+)
+from verify_page import (
+    furniture_ink as furniture_ink,
 )
 from verify_typst import (  # noqa: E402 -- cv.typ parsing: pure text in, values out
     _DATE_ARG_RE,
@@ -164,11 +180,17 @@ from verify_typst import (  # noqa: E402 -- cv.typ parsing: pure text in, values
     _doc_par_list,
     _entries,
     _mask_non_markup,
-    _read_par,
     _section_bodies,
-    _strip_typst_comments,
     _typst_prose,
-    _write_par,
+)
+from verify_typst import (
+    _read_par as _read_par,
+)
+from verify_typst import (
+    _strip_typst_comments as _strip_typst_comments,
+)
+from verify_typst import (
+    _write_par as _write_par,
 )
 
 # ---------- shapes passed around ----------
@@ -2356,6 +2378,7 @@ def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Any] 
             return None
         try:   # typst-py: same query / eval fallback and root as the CLI calls below
             comp = mod.Compiler(typ, root=root, **typst_font_kw()) if root else mod.Compiler(typ, **typst_font_kw())
+            fn: Callable[[], Any]
             for fn in (lambda: comp.query(selector, field="value", one=False),
                        lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json")):
                 try:
@@ -2377,7 +2400,7 @@ def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Any] 
             return None
         if r.returncode == 0 and r.stdout.strip().startswith("["):
             try:
-                return json.loads(r.stdout)
+                return cast("list[Any]", json.loads(r.stdout))
             except ValueError:
                 continue
     return None
@@ -2522,7 +2545,7 @@ def _page_ink_gap(pdf: str) -> GapFn:
                     strip = im.crop((sx[0], 0, sx[1], im.height))
                     sd, sw = strip.tobytes(), strip.width
                     stb = bytes(1 if abs(v - lbg) <= INK_DELTA else 0 for v in range(256))
-                    full = lambda r, sd=sd, sw=sw, stb=stb: sd[r * sw:(r + 1) * sw].translate(stb).count(b"\x01") >= 0.9 * sw
+                    full: Callable[..., bool] = lambda r, sd=sd, sw=sw, stb=stb: sd[r * sw:(r + 1) * sw].translate(stb).count(b"\x01") >= 0.9 * sw
                     c = (ya + yb) // 2
                     if not full(c):
                         continue
@@ -2594,7 +2617,7 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     skipped = 0
     # the marks tagged with their kind ("h" head / "s" section): a widened dict, so Any
     marks: list[dict[str, Any]] = [dict(h, _k="h") for h in heads] + [dict(s, _k="s") for s in secs]
-    box = lambda ln: [ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]]
+    box: Callable[[Any], list[Any]] = lambda ln: [ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]]
     for h in sorted(heads, key=lambda h: (h["page"], h["y"])):
         if h["page"] - 1 >= len(pages_words):
             skipped += 1
@@ -2761,7 +2784,7 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
             out.append(("OK", f'section proximity: {len(sec)} titles, gap above >= {PROX_WARN} x gap below '
                         f'(tightest "{s["text"][:30]}": ratio {s["ratio"]:.2f})'))
     m = min(grp, key=lambda r: r["ratio"])
-    q = lambda t: '"' + t + '"'
+    q: Callable[[str], str] = lambda t: '"' + t + '"'
     worst = (f'(worst {q(m["text"][:30])}: largest gap inside {m["internal"]:.1f}pt '
              f'({q(m["pair_in"][0])} -> {q(m["pair_in"][1])}), gap to the next block '
              f'{m["between"]:.1f}pt ({q(m["pair_btw"][0])} -> {q(m["pair_btw"][1])}), ratio {m["ratio"]:.2f}')

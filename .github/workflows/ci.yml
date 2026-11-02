@@ -65,7 +65,7 @@ jobs:
           done < .github/actions/fonts/families.txt
           exit $missing
 
-      - name: Type check (mypy.ini)
+      - name: Type check (mypy.ini, strict)
         run: python -m mypy
 
       - name: Lint (pyproject.toml)

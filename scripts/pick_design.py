@@ -1173,7 +1173,7 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
     disp_c = _chain(fp["display"], p["display"], "display", p["have"])
 
     def head_names(src: str) -> tuple[re.Match[str] | None, re.Match[str] | None]:
-        g = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.M)
+        g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.M)
         return g("bodyf"), g("dispf")
     # pair B iff the drawn faces are the second pair's lead faces
     pick_file, best = "resume.typ", -1
@@ -1210,7 +1210,7 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
     if p["accent2"]:
         pat, afn = accent_line("accent2", p["accent2"])
         src = _sub1(src, pat, afn, "#let accent2", fam)
-    sub = lambda v: (lambda mm: mm.group(1) + v + (mm.group(2) or ""))
+    sub: Callable[[str], Callable[[re.Match[str]], str]] = lambda v: (lambda mm: mm.group(1) + v + (mm.group(2) or ""))
     src = _sub1(src, lead("bodyf"), sub(body_c), "#let bodyf", fam)
     if re.search(r'^#let dispf = monof\b', src, re.M):
         # mono-technical: the display face IS the mono face
