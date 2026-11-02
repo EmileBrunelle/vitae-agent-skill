@@ -14,6 +14,13 @@ Usage:
     verify_letter.py --selftest
 
 Exit codes: 0 PASS, 1 FAIL, 2 usage error.
+
+Run as a CLI step of the skill's letter workflow (references/companion-guide.md), never imported: verify.py only
+points at it (is_letter() makes verify.py's own CV gate step aside for a
+letter, since that gate would misjudge one). The hidden-text check is the one
+shared gate that applies to a letter too, because an ATS reads a letter's text
+as readily as a CV's. Deliberately NOT checked: layout quality, fill, section
+separation, tone or length of the prose.
 """
 from __future__ import annotations
 
@@ -29,7 +36,11 @@ import verify  # noqa: E402 — reuse compile_pdf/count_pages/extract_text only
 
 
 def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tuple[bool | None, str]]]:
-    """Returns (ok, messages) — messages are (is_fail, text) pairs."""
+    """Returns (ok, messages) — messages are (is_fail, text) pairs.
+
+    is_fail is True for a FAIL, False for an informational OK line, and None
+    for a WARN that is printed but never fails the gate (hidden-text warnings).
+    """
     ok, use_cli, backend = verify.preflight()
     if not ok:
         return False, [(True, "missing dependency — see --doctor output above")]
@@ -58,6 +69,7 @@ def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tu
             else:
                 msgs.append((False, f'{label} "{needle}" found'))
 
+        # shared with verify.py and verify_academic.py: a letter can hide text too
         # is_fail None = WARN (printed, never fails)
         for lvl, msg in verify.check_hidden_text(pdf):
             msgs.append((True if lvl == "FAIL" else None, msg))

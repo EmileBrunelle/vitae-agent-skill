@@ -27,6 +27,13 @@ Usage:
     verify_academic.py --doctor
 
 Exit codes: 0 PASS, 1 FAIL, 2 usage error.
+
+Run as a CLI step 6 of academic mode (references/academic-mode.md), never imported by another
+module: verify.py's is_academic() makes its own gate step aside for an
+academic CV and points here instead. The checks, by id: A = declared count
+and entry numbering, B = antechronology, C = no orphan heading, D = no entry
+straddling a page break, E = running head and pagination (beyond 2 pages).
+Hidden-text detection is the shared verify.check_hidden_text gate.
 """
 from __future__ import annotations
 
@@ -114,6 +121,7 @@ YEAR_RE = re.compile(r'\d{4}')
 
 
 def dget(d: Any, path: tuple[str, ...], default: Any = 0) -> Any:
+    """Nested dict lookup along `path`; `default` as soon as a key is absent or a level is not a dict."""
     cur = d
     for k in path:
         if not isinstance(cur, dict) or k not in cur:
@@ -136,6 +144,8 @@ def parse_span(token: str) -> tuple[int, int] | None:
 
 # --------------------------------------------------------- pdftotext parsing
 def extract_layout_text(pdf: str) -> str:
+    """The PDF as `pdftotext -layout` text. -layout keeps the date column left of the entry body, which is
+    what lets ENTRY_START_RE recognise an entry by its leading year token."""
     if not shutil.which("pdftotext"):
         raise RuntimeError("pdftotext (poppler-utils) is required for the "
                             "-layout column structure the checks depend on")
@@ -153,7 +163,7 @@ def parse_pages(text: str) -> list[str]:
 
 def classify(text: str, headings_set: set[str], surname: str) -> tuple[
         list[list[str]], list[StreamLine], list[Footer], list[bool]]:
-    """Returns (pages_lines, stream, total_pages).
+    """Returns (pages_lines, stream, per_page_footer, per_page_surname).
 
     pages_lines: list (per page) of raw content lines, header/footer lines
     stripped out.
@@ -172,7 +182,7 @@ def classify(text: str, headings_set: set[str], surname: str) -> tuple[
             s = raw.strip()
             if s == "":
                 continue
-            if surname and s == surname:
+            if surname and s == surname:    # the running head is a line that is exactly the surname
                 had_surname = True
                 continue
             m = FOOTER_RE.match(s)
@@ -389,6 +399,9 @@ def analyze(text: str, sections: list[Section], surname: str,
 
 # --------------------------------------------------------------- real usage
 def build_sections_spec(data: dict[str, Any]) -> list[Section]:
+    """Turn the TOML's [counts] / [undated_prefix] tables into the per-heading spec the checks consume.
+    A section missing from [counts] raises rather than defaulting to 0, so a stale data file cannot
+    silently declare an empty section."""
     counts = data.get("counts", {})
     prefixes = data.get("undated_prefix", {})
     sections: list[Section] = []
@@ -408,6 +421,8 @@ def hidden_text_msgs(pdf: str) -> list[tuple[bool | None, str]]:
 
 
 def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, str]], list[str]]:
+    """Compile `typ`, run the checks against the declared `toml_path`.
+    Returns (passed, (is_fail, msg) pairs, reported-only INFO lines); is_fail None = WARN."""
     ok, use_cli, backend = verify.preflight()
     if not shutil.which("pdftotext"):
         ok = False
@@ -417,7 +432,7 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
     with open(toml_path, "rb") as f:
         data = tomllib.load(f)
     sections = build_sections_spec(data)
-    surname = data["meta"]["name"].split(" ")[-1]
+    surname = data["meta"]["name"].split(" ")[-1]    # the running head prints the last space-separated word of the name
 
     # NOTE: deliberately no verify.ensure_icons(typ) here -- lib-academic.typ
     # never imports icons.typ (icons/photo are an explicit anti-goal for this
@@ -464,6 +479,7 @@ HEADER_FOOTER = ''',
 
 
 def _compile_and_extract(src: str) -> str:
+    """Selftest helper: compile a Typst fixture string and return its layout text."""
     with tempfile.TemporaryDirectory() as tmp:
         typ = os.path.join(tmp, "fixture.typ")
         pdf = os.path.join(tmp, "fixture.pdf")
