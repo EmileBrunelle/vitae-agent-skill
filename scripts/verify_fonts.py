@@ -14,6 +14,7 @@ import re
 import unicodedata
 from collections import Counter
 from collections.abc import Sequence
+from enum import StrEnum
 
 from verify_level import Level
 
@@ -156,19 +157,27 @@ def requested_families(src: str, firsts: set[str] | None = None) -> set[str]:
     return names
 
 
-def _char_kind(c: str) -> str:
+class CharKind(StrEnum):
+    """What a character is, for the font-fallback gate. Values are the exact words the code used as strings."""
+    SKIP = "skip"
+    SYM = "sym"
+    LATIN = "latin"
+    OTHER = "other"
+
+
+def _char_kind(c: str) -> CharKind:
     """`skip` (marks, controls, separators), `sym` (symbols and emoji), `latin` (Latin-script
     letters and digits), `other` (any other script, punctuation)."""
     cat = unicodedata.category(c)
     if cat[0] in "MCZ":
-        return "skip"
+        return CharKind.SKIP
     if cat[0] == "S":
-        return "sym"
+        return CharKind.SYM
     if c.isascii() and c.isalnum():
-        return "latin"
+        return CharKind.LATIN
     if cat[0] == "L" and unicodedata.name(c, "").startswith("LATIN"):
-        return "latin"
-    return "other"
+        return CharKind.LATIN
+    return CharKind.OTHER
 
 
 def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
@@ -182,17 +191,17 @@ def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
     face was not used, `firsts` given). INFO: symbols and emoji only (unicode category S*)."""
     pretty = ", ".join(sorted(req))
     kinds = [(c, f, _char_kind(c)) for c, f in chars]
-    latin_total = sum(1 for _, f, k in kinds if f and k == "latin")
-    bad = [(c, f, k) for c, f, k in kinds if f and k != "skip" and not _family_requested(f, req)]
+    latin_total = sum(1 for _, f, k in kinds if f and k == CharKind.LATIN)
+    bad = [(c, f, k) for c, f, k in kinds if f and k != CharKind.SKIP and not _family_requested(f, req)]
 
-    def fam_of(rows: Sequence[tuple[str, str, str]]) -> str:
+    def fam_of(rows: Sequence[tuple[str, str, CharKind]]) -> str:
         fams = Counter(re.sub(r"^[A-Z]{6}\+", "", f).split("-")[0] for _, f, _ in rows)
         return ", ".join(f"{n} ({k})" for n, k in fams.most_common(3))
 
-    def sample(rows: Sequence[tuple[str, str, str]]) -> str:
+    def sample(rows: Sequence[tuple[str, str, CharKind]]) -> str:
         return "".join(dict.fromkeys(c for c, _, _ in rows))[:20]
     out: list[Finding] = []
-    latin = [r for r in bad if r[2] == "latin"]
+    latin = [r for r in bad if r[2] == CharKind.LATIN]
     ascii_n = sum(1 for c, _, _ in latin if c.isascii())
     share = len(latin) / max(1, latin_total)
     if ascii_n or share > FONT_FALLBACK_SHARE:
@@ -205,21 +214,21 @@ def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
         out.append((Level.WARN, f"font fallback: {len(latin)} accented letter(s) \"{sample(latin)}\" drawn in {fam_of(latin)}, "
                             f"not in the requested families ({pretty}); the face lacks them: swap the face "
                             "or the character, see references/fonts.md"))
-    other = [r for r in bad if r[2] == "other"]
+    other = [r for r in bad if r[2] == CharKind.OTHER]
     if other:
         out.append((Level.WARN, f"font fallback: {len(other)} character(s) \"{sample(other)}\" (another script or punctuation) "
                             f"drawn in {fam_of(other)}, not in the requested families ({pretty}); add a face for that "
                             "script to the font tuple (e.g. Noto Sans CJK JP for Japanese, a Cyrillic-capable face "
                             "for Russian) so the choice is yours, not Typst's"))
     if firsts and not latin:
-        late = [(c, f, k) for c, f, k in kinds if f and k == "latin" and _family_requested(f, req)
+        late = [(c, f, k) for c, f, k in kinds if f and k == CharKind.LATIN and _family_requested(f, req)
                 and _fam_key(re.sub(r"^[A-Z]{6}\+", "", f)).startswith(BUNDLED_KEYS)
                 and "math" not in f.lower() and not _family_requested(f, firsts)]
         if late:
             out.append((Level.WARN, f"font fallback: {len(late)} Latin letter(s) drawn in {fam_of(late)}, a member of the font "
                                 f"tuple but not its first; the first face ({', '.join(sorted(firsts))}) was not used. "
                                 "Missing or without Latin glyphs? see references/fonts.md"))
-    syms = [r for r in bad if r[2] == "sym"]
+    syms = [r for r in bad if r[2] == CharKind.SYM]
     if syms:
         out.append((Level.INFO, f"font fallback: {len(syms)} symbol(s) \"{sample(syms)}\" drawn in {fam_of(syms)}, outside the "
                             "requested families; the body face lacks the glyph, harmless"))
