@@ -14,13 +14,13 @@ import re
 import unicodedata
 from collections import Counter
 from collections.abc import Sequence
-from typing import Literal
 
-# Level and Finding repeat verify.py's definitions of the same names, written out structurally, because they
-# cannot be imported: verify.py runs as __main__, so `import verify` here would execute that script a second
-# time under the name `verify`. Keep the two in sync by hand (same four levels, same (level, message) tuple);
-# if they drift, the findings built here no longer describe what verify.py consumes.
-Level = Literal["FAIL", "WARN", "OK", "INFO"]
+from verify_level import Level
+
+# Finding repeats verify.py's definition of the same name, written out structurally, because verify.py cannot
+# be imported here: it runs as __main__, so `import verify` would execute that script a second time under the
+# name `verify`. Level lives in verify_level.py (no verify import) and is shared. Keep the (level, message)
+# tuple in sync by hand.
 Finding = tuple[Level, str]
 
 
@@ -196,18 +196,18 @@ def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
     ascii_n = sum(1 for c, _, _ in latin if c.isascii())
     share = len(latin) / max(1, latin_total)
     if ascii_n or share > FONT_FALLBACK_SHARE:
-        out.append(("FAIL", f"font fallback: {len(latin)} of {latin_total} Latin letters/digits ({ascii_n} ASCII, "
+        out.append((Level.FAIL, f"font fallback: {len(latin)} of {latin_total} Latin letters/digits ({ascii_n} ASCII, "
                             f"{share:.0%}) are drawn in {fam_of(latin)}, not in the requested families ({pretty}); "
                             f"sample \"{sample(latin)}\". Typst falls back SILENTLY when a family exists without the "
                             "glyphs: a font file missing the basic Latin range, or subset files shadowing the real ones "
                             "(fontsource `*-latin-ext-*`); see references/fonts.md"))
     elif latin:
-        out.append(("WARN", f"font fallback: {len(latin)} accented letter(s) \"{sample(latin)}\" drawn in {fam_of(latin)}, "
+        out.append((Level.WARN, f"font fallback: {len(latin)} accented letter(s) \"{sample(latin)}\" drawn in {fam_of(latin)}, "
                             f"not in the requested families ({pretty}); the face lacks them: swap the face "
                             "or the character, see references/fonts.md"))
     other = [r for r in bad if r[2] == "other"]
     if other:
-        out.append(("WARN", f"font fallback: {len(other)} character(s) \"{sample(other)}\" (another script or punctuation) "
+        out.append((Level.WARN, f"font fallback: {len(other)} character(s) \"{sample(other)}\" (another script or punctuation) "
                             f"drawn in {fam_of(other)}, not in the requested families ({pretty}); add a face for that "
                             "script to the font tuple (e.g. Noto Sans CJK JP for Japanese, a Cyrillic-capable face "
                             "for Russian) so the choice is yours, not Typst's"))
@@ -216,11 +216,11 @@ def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
                 and _fam_key(re.sub(r"^[A-Z]{6}\+", "", f)).startswith(BUNDLED_KEYS)
                 and "math" not in f.lower() and not _family_requested(f, firsts)]
         if late:
-            out.append(("WARN", f"font fallback: {len(late)} Latin letter(s) drawn in {fam_of(late)}, a member of the font "
+            out.append((Level.WARN, f"font fallback: {len(late)} Latin letter(s) drawn in {fam_of(late)}, a member of the font "
                                 f"tuple but not its first; the first face ({', '.join(sorted(firsts))}) was not used. "
                                 "Missing or without Latin glyphs? see references/fonts.md"))
     syms = [r for r in bad if r[2] == "sym"]
     if syms:
-        out.append(("INFO", f"font fallback: {len(syms)} symbol(s) \"{sample(syms)}\" drawn in {fam_of(syms)}, outside the "
+        out.append((Level.INFO, f"font fallback: {len(syms)} symbol(s) \"{sample(syms)}\" drawn in {fam_of(syms)}, outside the "
                             "requested families; the body face lacks the glyph, harmless"))
     return out

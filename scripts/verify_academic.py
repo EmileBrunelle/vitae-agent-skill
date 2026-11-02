@@ -64,6 +64,7 @@ Footer = tuple[int, int] | None
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fill  # noqa: E402 -- measure() only, reported not failed
 import verify  # noqa: E402 -- plumbing only, see module docstring
+from verify_level import Level  # noqa: E402
 
 # ---------------------------------------------------------------- constants
 # LANGUAGE DATA of this gate, in two places kept together here: SECTION_DEFS / NONDATED_HEADINGS / EXTRA_HEADINGS
@@ -417,7 +418,7 @@ def build_sections_spec(data: dict[str, Any]) -> list[Section]:
 
 def hidden_text_msgs(pdf: str) -> list[tuple[bool | None, str]]:
     """The shared hidden-text gate as (is_fail, msg) pairs; is_fail None = WARN."""
-    return [(True if lvl == "FAIL" else None, msg) for lvl, msg in verify.check_hidden_text(pdf)]
+    return [(True if lvl == Level.FAIL else None, msg) for lvl, msg in verify.check_hidden_text(pdf)]
 
 
 def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, str]], list[str]]:

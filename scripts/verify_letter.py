@@ -33,6 +33,7 @@ from typing import NoReturn
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import verify  # noqa: E402 — reuse compile_pdf/count_pages/extract_text only
+from verify_level import Level  # noqa: E402
 
 
 def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tuple[bool | None, str]]]:
@@ -72,8 +73,8 @@ def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tu
         # shared with verify.py and verify_academic.py: a letter can hide text too
         # is_fail None = WARN (printed, never fails)
         for lvl, msg in verify.check_hidden_text(pdf):
-            msgs.append((True if lvl == "FAIL" else None, msg))
-            fail = fail or lvl == "FAIL"
+            msgs.append((True if lvl == Level.FAIL else None, msg))
+            fail = fail or lvl == Level.FAIL
 
     return not fail, msgs
 

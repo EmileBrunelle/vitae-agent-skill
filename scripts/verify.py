@@ -148,6 +148,7 @@ from verify_lang import (  # noqa: E402 -- language data: edit verify_lang.py to
 from verify_lang import (
     _detect_lang as _detect_lang,
 )
+from verify_level import Level  # noqa: E402
 from verify_page import (  # noqa: E402 -- page geometry and pixel measurement: pixels and boxes in, numbers out
     BOUNDARY_RATIO,
     CROP_CAP,
@@ -201,7 +202,6 @@ Word = tuple[float, float, float, float, str]      # x0, y0, x1, y1, text
 Band = tuple[int, int]                             # first, last pixel row of a run
 LineBox = list[float]                              # [x0, x1, y0, y1] of one text line
 GapFn = Callable[[int, LineBox, LineBox], float]   # optical gap (pt) between two lines
-Level = Literal["FAIL", "WARN", "OK", "INFO"]
 Finding = tuple[Level, str]                        # one gate line: level, message
 # One extracted word of the hidden-text gate: page, word, box, box height (pt),
 # contrast against its own background (None: no raster), off the page.
@@ -2191,12 +2191,12 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
     text laid exactly over visible text."""
     pages = _bbox_pages(pdf)
     if pages is None:
-        return [("WARN", f"hidden-text gate skipped: {_boxes_unavailable()}")]
+        return [(Level.WARN, f"hidden-text gate skipped: {_boxes_unavailable()}")]
     msgs: list[Finding] = []
     with tempfile.TemporaryDirectory() as tmp:
         pngs = _render_pages_png(pdf, tmp)
         if not pngs:
-            msgs.append(("WARN", "hidden-text ink check skipped: pdftoppm not found (install poppler-utils); "
+            msgs.append((Level.WARN, "hidden-text ink check skipped: pdftoppm not found (install poppler-utils); "
                                  "size and off-page checks still ran"))
         stats = hidden_word_stats(pdf, pages=pages, pngs=pngs)
     if detail is not None:
@@ -2228,29 +2228,29 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
         if pdf_backend() == "pdfium":
             # pdfium keeps off-page glyphs, so the word-box check above covered them; the
             # tiny-text check is pypdf's alone
-            msgs.append(("WARN", "hidden text: off-page check ran on pdfium word boxes only; tiny-text "
+            msgs.append((Level.WARN, "hidden text: off-page check ran on pdfium word boxes only; tiny-text "
                                  "check not run (pypdf missing)"))
         else:
-            msgs.append(("WARN", "hidden text: off-page check not run (pypdf missing)"))
+            msgs.append((Level.WARN, "hidden text: off-page check not run (pypdf missing)"))
     # Cap the output: five FAIL lines, the last one counting the rest; three lines per WARN kind.
     for n, (pno, text) in enumerate(found):
         if n == 5:
-            msgs.append(("FAIL", f"hidden text: remove all {len(found) - 5} other hidden run(s) too — " + HIDDEN_TAIL))
+            msgs.append((Level.FAIL, f"hidden text: remove all {len(found) - 5} other hidden run(s) too — " + HIDDEN_TAIL))
             break
-        msgs.append(("FAIL", f'hidden text: remove "{text[:60]}" (p.{pno}) — ' + HIDDEN_TAIL))
+        msgs.append((Level.FAIL, f'hidden text: remove "{text[:60]}" (p.{pno}) — ' + HIDDEN_TAIL))
     for n, (pno, text) in enumerate(runs(lambda st: st[4] is not None and HIDDEN_FAIL_RATIO <= st[4] < HIDDEN_WARN_RATIO
                                          and not st[5] and st[3] >= HIDDEN_MIN_BOX_PT)):
         if n == 3:
             break
-        msgs.append(("WARN", f'low contrast: "{text[:60]}" (p.{pno}) — barely visible (under {HIDDEN_WARN_RATIO:g}:1), '
+        msgs.append((Level.WARN, f'low contrast: "{text[:60]}" (p.{pno}) — barely visible (under {HIDDEN_WARN_RATIO:g}:1), '
                              "raise its contrast or remove it"))
     for n, (pno, text, sz) in enumerate(tiny):
         if n == 3:
             break
-        msgs.append(("WARN", f'tiny text: "{text[:60]}" (p.{pno}) is set at {sz:.1f}pt — below {TINY_TEXT_PT:g}pt '
+        msgs.append((Level.WARN, f'tiny text: "{text[:60]}" (p.{pno}) is set at {sz:.1f}pt — below {TINY_TEXT_PT:g}pt '
                              "nobody reads it; if it is a keyword block, remove it"))
     for m in check_pdf_metadata(pdf):
-        msgs.append(("WARN", m))
+        msgs.append((Level.WARN, m))
     return msgs
 
 
@@ -2740,18 +2740,18 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
         pages = [[(b[0], b[1], b[2], b[3], t) for b, t in pg] for pg in wb] if wb else None
     if heads is None or pages is None:
         if pdf_backend() == "pdfium":
-            return [("WARN", "group proximity NOT checked (typst query unavailable or word positions "
+            return [(Level.WARN, "group proximity NOT checked (typst query unavailable or word positions "
                              "unreadable: " + _boxes_unavailable() + ")")]
-        return [("WARN", "group proximity NOT checked (typst query or pdftotext unavailable)")]
+        return [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
     if not heads:
-        return [("WARN", "group proximity not measured: no lib entry()/srow() heads")]
+        return [(Level.WARN, "group proximity not measured: no lib entry()/srow() heads")]
     # DETAIL lines are machine-readable and printed here, not returned: the self-test and --gates read them
     rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
     if detail is not None:
         detail.extend(rows)
     grp = [r for r in rows if r["kind"] == "group"]
     if not grp:
-        return [("WARN", f"group proximity: no checkable group ({skipped} head(s) not located) — unchecked")]
+        return [(Level.WARN, f"group proximity: no checkable group ({skipped} head(s) not located) — unchecked")]
     for r in grp:
         print(f'DETAIL group "{r["text"][:30]}" p{r["page"]} lines={r["n"]} internal={r["internal"]:.2f}pt '
               f'between={r["between"]:.2f}pt ratio={r["ratio"]:.2f}')
@@ -2761,7 +2761,7 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
                   f'bar-to-first={row["after"]:.2f}pt ratio={row["ratio"]:.2f}')
     out: list[Finding] = []
     if skipped:
-        out.append(("WARN", f"group proximity not measured for {skipped} head(s) (multi-column layout, "
+        out.append((Level.WARN, f"group proximity not measured for {skipped} head(s) (multi-column layout, "
                     "rail title or head not located in the PDF text)"))
     sec = [r for r in rows if r["kind"] == "sec"]
     if sec:
@@ -2774,14 +2774,14 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
         sbad = [r for r in sec if not r["ratio"] >= PROX_FAIL]
         sweak = [r for r in sec if not r["ratio"] >= PROX_WARN]
         if sbad:
-            out.append(("FAIL", f"section proximity: {len(sbad)}/{len(sec)} titles sit closer to the block "
+            out.append((Level.FAIL, f"section proximity: {len(sbad)}/{len(sec)} titles sit closer to the block "
                         f"above than to their own first line {sw}; need >= {PROX_FAIL}) — fix the family's "
                         "`section` (its `above` and the gap under the title), not the content file"))
         elif sweak:
-            out.append(("WARN", f"section proximity: {len(sweak)}/{len(sec)} titles barely separated from "
+            out.append((Level.WARN, f"section proximity: {len(sweak)}/{len(sec)} titles barely separated from "
                         f"the block above {sw}; aim for >= {PROX_WARN})"))
         else:
-            out.append(("OK", f'section proximity: {len(sec)} titles, gap above >= {PROX_WARN} x gap below '
+            out.append((Level.OK, f'section proximity: {len(sec)} titles, gap above >= {PROX_WARN} x gap below '
                         f'(tightest "{s["text"][:30]}": ratio {s["ratio"]:.2f})'))
     m = min(grp, key=lambda r: r["ratio"])
     q: Callable[[str], str] = lambda t: '"' + t + '"'
@@ -2791,18 +2791,18 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     # `not x >= t` rather than `x < t`: a NaN ratio must count as failing
     bad = [r for r in grp if not r["ratio"] >= PROX_FAIL]
     if bad:
-        return out + [("FAIL", f'group proximity: {len(bad)}/{len(grp)} groups sit closer to the next block than '
+        return out + [(Level.FAIL, f'group proximity: {len(bad)}/{len(grp)} groups sit closer to the next block than '
                  f'their own lines are to each other {worst}; need >= {PROX_FAIL})\n'
                  "      do not override entry/srow above/gap/below per entry; look for a manual #v, linebreak "
                  "or blank line inside that entry (a gap that is too big inside is as bad as one too small after);\n"
                  "      if the CV uses the family file as shipped, report it: it is a template bug (never edit lib.typ)")]
     weak = [r for r in grp if not r["ratio"] >= PROX_WARN]
     if weak:
-        return out + [("WARN", f'group proximity: {len(weak)}/{len(grp)} groups barely separated from the next block '
+        return out + [(Level.WARN, f'group proximity: {len(weak)}/{len(grp)} groups barely separated from the next block '
                  f'{worst}; aim for >= {PROX_WARN})\n'
                  "      do not override entry/srow above/gap/below per entry; check for a manual #v, linebreak or "
                  "blank line inside that entry")]
-    return out + [("OK", f"group proximity: {len(grp)} groups, gap to next block >= {PROX_WARN} x internal gap "
+    return out + [(Level.OK, f"group proximity: {len(grp)} groups, gap to next block >= {PROX_WARN} x internal gap "
              f'(tightest "{m["text"][:30]}": ratio {m["ratio"]:.2f}, {m["between"]:.1f}pt vs {m["internal"]:.1f}pt)')]
 
 
@@ -3108,7 +3108,7 @@ def check_font_fallback(typ: str, pdf: str, root: str | None = None) -> list[Fin
     fallback). Without pypdfium2 it WARNs and names the manual check; it cannot FAIL blind."""
     chars = pdf_char_fonts(pdf)
     if chars is None:
-        return [("WARN", "font fallback NOT checked (needs pypdfium2: pip install pypdfium2); "
+        return [(Level.WARN, "font fallback NOT checked (needs pypdfium2: pip install pypdfium2); "
                          "by hand: pdffonts cv.pdf, every family listed must be one cv.typ asks for")]
     firsts: set[str] = set()
     req = requested_families(_font_sources(typ, root), firsts)
@@ -3122,7 +3122,7 @@ def run_hidden_gate(pdf: str) -> int:
     msgs = check_hidden_text(pdf, detail=det)
     for lvl, msg in msgs:
         print(f"{lvl:<5} {msg}")
-        fail |= lvl == "FAIL"
+        fail |= lvl == Level.FAIL
     if det and not msgs:
         print(f"OK    hidden text: {len(det)} words, each visibly inked (weakest contrast "
               f"{min(d[4] for d in det if d[4] is not None):.1f}:1, smallest box {min(d[3] for d in det):.1f}pt)")
@@ -3137,10 +3137,10 @@ def run_new_gates(typ: str, pdf: str, txt: str, src: str, root: str | None = Non
     fail = run_hidden_gate(pdf)
     for lvl, msg in check_font_fallback(typ, pdf, root=root):
         print(f"{lvl:<5} {msg}")
-        fail |= lvl == "FAIL"
+        fail |= lvl == Level.FAIL
     for lvl, msg in check_group_proximity(typ, pdf, root=root, detail=detail):
         print(f"{lvl:<5} {msg}")
-        fail |= lvl == "FAIL"
+        fail |= lvl == Level.FAIL
     marks = _typst_query(typ, ENTRY_MARKS, root)
     heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
     if heads is not None and not any(h.get("kind") == "entry" for h in heads):
@@ -3507,7 +3507,7 @@ def digest_of(f: str) -> str:
 
 def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
                         known: set[str] | None = None) -> list[Finding]:
-    """Return [(level, msg)] for the lib.typ the CV imports ("FAIL"/"WARN");
+    """Return [(level, msg)] for the lib.typ the CV imports (Level.FAIL/Level.WARN);
     empty when it is the skill's own lib or the CV imports none. Runs before
     compilation so the message survives a Typst error.
 
@@ -3541,7 +3541,7 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
             todo.append(path)
     if lib is None and os.path.isfile(ref) and os.path.isfile(
             os.path.join(os.path.dirname(os.path.abspath(typ_path)), "lib.typ")):
-        return [("WARN", "lib import not recognised: a lib.typ sits next to the CV but no #import "
+        return [(Level.WARN, "lib import not recognised: a lib.typ sits next to the CV but no #import "
                          "resolves to it, so its integrity was NOT checked")]
     if lib is None or not os.path.isfile(ref):
         return []
@@ -3554,16 +3554,16 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
         # import still climbs out of the CV folder. Copy lib.typ NEXT TO cv.typ.
         cp = f"cp {shlex.quote(ref)} {shlex.quote(here + '/')}"
         if not os.path.isfile(lib) or digest_of(lib) != digest_of(ref):
-            return [("FAIL", f'cv.typ imports "{shown}" (outside this folder): change the import to '
+            return [(Level.FAIL, f'cv.typ imports "{shown}" (outside this folder): change the import to '
                              f'`#import "lib.typ": *` and copy lib.typ next to cv.typ: {cp}')]
     if not os.path.isfile(lib):
-        return [("FAIL", f"{shown} is imported but missing — copy it: {cp}")]
+        return [(Level.FAIL, f"{shown} is imported but missing — copy it: {cp}")]
     h = digest_of(lib)
     if h == digest_of(ref):
         return []
     if h in known:
-        return [("WARN", f"lib.typ is from an older vitae release; recopy to get fixes: {cp}")]
-    return [("FAIL", "lib.typ is not a copy of the skill's lib (rewritten or edited) "
+        return [(Level.WARN, f"lib.typ is from an older vitae release; recopy to get fixes: {cp}")]
+    return [(Level.FAIL, "lib.typ is not a copy of the skill's lib (rewritten or edited) "
                      f"— recopy it byte-for-byte: {cp}")]
 
 
@@ -3693,7 +3693,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
 
     for level, msg in check_lib_integrity(typ):
         print(f"{level}  {msg}")
-        fail |= level == "FAIL"
+        fail |= level == Level.FAIL
 
     ensure_icons(typ)     # the icons file the CV imports must exist before it compiles
     ok, err = compile_pdf(typ, pdf, use_cli)
@@ -3862,7 +3862,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         fail |= run_hidden_gate(pdf)
         for lvl, msg in check_font_fallback(typ, pdf):
             print(f"{lvl:<5} {msg}")
-            fail |= lvl == "FAIL"
+            fail |= lvl == Level.FAIL
         for msg in check_forced_linebreak(typ_text) + check_literal_tilde(typ_text):
             print("FAIL  " + msg)
             fail = 1

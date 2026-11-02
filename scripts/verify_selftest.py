@@ -54,7 +54,6 @@ from verify import (  # noqa: E402
     SEPARATION_CEILING,
     Box,
     DetailRow,
-    Level,
     Mark,
     Word,
     WordBox,
@@ -105,6 +104,7 @@ from verify import (  # noqa: E402
     typst_fonts,
     word_boxes,
 )
+from verify_level import Level
 from verify_typst import _doc_leading
 
 _VERIFY_FILE = _v.__file__
