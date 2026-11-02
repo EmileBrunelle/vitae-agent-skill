@@ -283,11 +283,20 @@ def is_remote(base_url: str, resolver: Callable[[str], Sequence[str]] = _resolve
     return _check_remote(base_url, False, resolver) is not None
 
 
+def _open(req: urllib.request.Request, url: str, timeout: float) -> Any:
+    """Open req. A local base URL (the case that needs no --allow-remote) bypasses proxy environment
+    variables, so images meant for loopback/private hosts never travel through a proxy; a remote URL
+    (--allow-remote) keeps the default, proxy-honouring behaviour."""
+    if _check_remote(url, False, _resolve) is None:
+        return urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout)
+    return urllib.request.urlopen(req, timeout=timeout)
+
+
 def http_json(url: str, body: Optional[bytes], timeout: float, model: str = "") -> Any:
     headers = {"Content-Type": "application/json"} if body is not None else {}
     req = urllib.request.Request(url, data=body, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with _open(req, url, timeout) as r:
             return json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:400]
