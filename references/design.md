@@ -560,8 +560,8 @@ The DEVICES are not in the lib and never will be (§ Where the mechanics stop an
 Target (measured on the FULL page height, margins included — that is what `measure_fill.py` reports): last ink row at **(100 − bottom-margin%) − 0..2%**. Examples: 1.2 cm bottom margin on US Letter (27.94 cm) ≈ 4.3% → aim 94-96%; 2 cm on A4 (29.7 cm) ≈ 6.7% → aim 91-93%. Do NOT chase a literal "95-100%" regardless of margins. The target applies to every page, including the last page of a multi-page version. Anti-filler clause and regional page-count priority: SKILL.md rules 5 and step 3. Measure, never eyeball:
 
 ```
-typst compile cv.typ p{p}.png --format png --ppi 90
-python3 scripts/measure_fill.py p*.png     # prints "ink from X% to Y%"
+python3 scripts/verify.py --render cv.pdf --out . --ppi 90   # or: typst compile cv.typ cv-p{p}.png --format png --ppi 90
+python3 scripts/measure_fill.py cv-p*.png                    # prints "ink from X% to Y%"
 ```
 
 A decorative full-width band at the top of the page (page `background`) makes ink start at 0% — normal; the fill target applies to the LAST ink row only. The fill measurement does NOT catch internal holes — two checks users actually demanded:

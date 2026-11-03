@@ -12,8 +12,8 @@ Usage:
     python3 scripts/pick_design.py --name "Firstname Lastname" \
         --field software --market north-america \
         [--career early|mid|senior] [--photo] [--conservative] \
-        [--audacity sober|expressive|bold] [--creative] [--emit-typ] \\
-        [--init <cv folder> [--force]]
+        [--audacity sober|expressive|bold] [--creative] [--offline] \
+        [--emit-typ] [--init <cv folder> [--force]]
     python3 scripts/pick_design.py --list        # families, registers, gamuts
     python3 scripts/pick_design.py --selftest    # assert determinism + pools
 
@@ -44,6 +44,10 @@ Usage:
                     code gutter, so it also needs a TECHNICAL --field
                     (GUTTER_RAIL_DOMAIN below). The creative unlock alone never
                     draws it for a non-technical trade.
+    --offline       sandbox with no network to fetch missing fonts: filter the
+                    eligible pool to families that already have at least one
+                    locally installed face in every font role (display, body,
+                    and mono where declared).
     --init FOLDER   the ONE-COMMAND start: prints the report, then writes
                     FOLDER/lib.typ + icons.typ (byte copies) and FOLDER/cv.typ
                     (the drawn family's worked file with the drawn palette,
@@ -750,10 +754,18 @@ def _pick_font(pool: list[Font], key: str, salt: str,
     return drawn, None, "NO pool member installed — install one before drafting"
 
 
+def _family_usable(fam: str, have: set[str]) -> bool:
+    """Every font role of `fam` has at least one member installed in `have`."""
+    fp = FONTS[fam]
+    return all(any(_installed(n, have) for n, _ in cast(Any, fp)[role])
+               for role in ("display", "body", "mono") if role in fp)
+
+
 def pick(name: str, field: str | None, career: str = "early",
          photo: bool = False, conservative: bool = False,
          audacity: Audacity = "sober", check_fonts: bool = True,
-         creative: bool = False) -> Pick:
+         creative: bool = False, offline: bool = False,
+         have_fonts: set[str] | None = None) -> Pick:
     key = "%s+%s" % (name, field)
     dom = domain_register(field)
     conservative = conservative or dom == "conservative"
@@ -783,6 +795,17 @@ def pick(name: str, field: str | None, career: str = "early",
     # sufficient.
     if not any(_field_has(field, t) for t in GUTTER_RAIL_DOMAIN):
         hard = [f for f in hard if f != "gutter-rail"]
+    have = have_fonts if have_fonts is not None else (
+        _fonts_available() if check_fonts else None)
+    # In an offline sandbox (--offline), restrict `hard` to families whose font
+    # roles all have at least one locally installed face (when at least one
+    # eligible family is usable), so the draw never lands on a family whose
+    # display or mono pool has 0 installed members (run 17: 7/14 families were
+    # installed, yet keyline-corporate was drawn with no display face).
+    if offline and have is not None:
+        usable = [f for f in hard if _family_usable(f, have)]
+        if usable:
+            hard = usable
     if not hard:
         raise SystemExit("no family satisfies those flags — pick one by hand")
 
@@ -812,7 +835,6 @@ def pick(name: str, field: str | None, career: str = "early",
     fam = eligible[_idx(key, len(eligible))]
     d = FAMILIES[fam]
     ai = _idx(key, len(d["accents"]), "accent|")
-    have = _fonts_available() if check_fonts else None
     fp = FONTS[fam]
     disp, disp_want, disp_note = _pick_font(fp["display"], key, "display|", have)
     body, body_want, body_note = _pick_font(fp["body"], key, "body|", have)
@@ -911,6 +933,11 @@ def report(p: Pick, market: str) -> str:
         lines.append(
             "                  the licence and both installation routes "
             "(~/.local/share/fonts + fc-cache, or --font-path).")
+    if any((nt or "").startswith("NO pool member") for nt in notes) and p["have"] is not None:
+        lines.append(
+            "                  offline sandbox (cannot fetch fonts)? Re-run "
+            "pick_design.py with --offline to draw from locally installed "
+            "families only.")
     pg = d["page"]
     lines += [
         "par leading     : %s      spacing: %s" % (d["leading"], d["spacing"]),
@@ -1259,6 +1286,12 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
                  r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.M)
     _write_nofollow(out, (_vitae_header(pg) + "\n" + src).encode("utf-8"))
     lo, hi = pg["fill"].split("-")
+    if any((cast(str, p.get(k)) or "").startswith("NO pool member")
+           for k in ("display_note", "body_note", "mono_note")):
+        kept.append("at least one font role of %s has NO pool member installed "
+                    "locally — install the face above before verifying, or in "
+                    "an offline sandbox re-run pick_design.py with --offline --force"
+                    % fam)
     print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "
           "byte-for-byte)" % (out, fam, fam, pick_file))
     for k in kept:
@@ -1311,6 +1344,19 @@ def selftest() -> None:
     assert _nt == ["DM Sans", "Sora", "Red Hat Display"], _nt
     _nt = re.findall(r'"([^"]+)"', _chain([("Sora", "GF")], ("Sora", "GF"), "display", None))
     assert _nt == ["Sora", "Noto Sans"], _nt
+    # --offline: filters eligible families to those with >=1 installed face per
+    # role (run 17 sandbox: 7/14 families installed, keyline-corporate's display
+    # pool missing).
+    _r17_have = {"Liberation Sans", "Noto Sans", "DejaVu Sans Mono", "P052",
+                 "Cantarell", "PT Sans", "Adwaita Sans", "Adwaita Mono",
+                 "URW Gothic", "Libertinus Serif"}
+    assert not _family_usable("keyline-corporate", _r17_have)
+    assert _family_usable("humanist-quiet", _r17_have)
+    _po = pick("Candidate A", "operations", offline=True, have_fonts=_r17_have)
+    assert all(_family_usable(_f, _r17_have) for _f in _po["eligible"]), _po["eligible"]
+    assert "keyline-corporate" not in _po["eligible"]
+    assert not _po["display_note"].startswith("NO pool member"), _po
+    assert not _po["body_note"].startswith("NO pool member"), _po
     a = pick("Candidate A", "software", check_fonts=False)
     assert a == pick("Candidate A", "software", check_fonts=False), \
         "not deterministic"
@@ -1474,6 +1520,9 @@ if __name__ == "__main__":
     ap.add_argument("--force", action="store_true",
                     help="with --init: overwrite an existing cv.typ")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--offline", action="store_true",
+                    help="restrict the eligible pool to families whose font "
+                         "roles all have at least one locally installed face")
     ap.add_argument("--no-font-check", action="store_true",
                     help="skip the local `typst fonts` availability check")
     ap.add_argument("--selftest", action="store_true")
@@ -1503,7 +1552,8 @@ if __name__ == "__main__":
                         "%s [%s]" % nv for nv in FONTS[f][role])))
     elif a.name and a.field:
         p = pick(a.name, a.field, a.career, a.photo, a.conservative,
-                 cast(Audacity, a.audacity), not a.no_font_check, a.creative)
+                 cast(Audacity, a.audacity), not a.no_font_check, a.creative,
+                 a.offline)
         if a.init:
             print(report(p, a.market))
             print()

@@ -2,6 +2,14 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- `templates/lib.typ`: `masthead()` default `bottom` padding rises from `5pt` to `8pt` so a wrapped contact row without a `baseline: 1.4pt` icon strut still clears descenders inside the band (`run16`); the 0.7.7 `lib.typ` digest is added to `KNOWN_LIB_SHA256`.
+- `scripts/pick_design.py`: new `--offline` flag (and `_family_usable()` helper shared with `verify.py --doctor`) restricts the eligible pool to families whose font roles all have at least one locally installed face, preventing an offline sandbox from drawing a family with no installed display or mono face (`run17`); `report()` and `--init` also print an `--offline` hint when a role has no pool member installed.
+- `scripts/verify.py`: lowering `FILL_MIN` below `LOWERED_FILL_FLOOR = 80` on a drawn CV is now a `FAIL` rather than a `WARN` (honest thin-facts runs sit at 85-92%; a floor prevents bypassing the fill gate with a dummy target).
+- `references/steps/6-verify.md`, `references/design.md`: step 6 and the manual fill-loop snippet use `verify.py` (`--render`) so they work in pip-only sandboxes without the `typst` or `pdfinfo` CLIs.
+- Internal: `Finding = tuple[Level, str]` is shared from `scripts/verify_level.py` instead of duplicated in `scripts/verify_fonts.py`; remaining threshold constants and heuristics across `scripts/verify*.py` are documented (AST-identical).
+
 ## 0.7.7 - 2026-11-01
 
 - `verify.py` language detection knows German, Spanish, Italian, Portuguese and Dutch stop words and non-Latin scripts: a CV in another language is no longer classed `fr` (Spanish "de la en") or `en` (German "in", "on"). `--facts` then compares dates, numbers and acronyms only and prints one `INFO  not checked for <language>: capitalised names and titles ...` line, instead of a WARN for every German noun or Russian name; the new unit tests are in `tests/unit/test_language.py`, with a German and a Russian CV + facts end to end in `tests/language/` (`language-facts` in `tests/run_all.sh`).

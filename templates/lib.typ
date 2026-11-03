@@ -660,11 +660,12 @@
 // 2.5/21 x shorter side; ratios against the page size; inside/outside by page
 // parity) and bled over by `outset`, so the band reaches to the paper
 // edge whatever `#set page(margin: ..)` the family declares. `bottom` is the
-// padding under the last line INSIDE the band; `gap` is the space between the
-// band and what follows (the larger of it and the next block's own `above`). The
-// defaults reproduce the old fixed band's look and page fill exactly; both are
-// explicit, so ambient `set block(spacing: ..)` does not change them.
-#let masthead(fill, body, bottom: 5pt, gap: 8pt) = context {
+// padding under the last line's baseline INSIDE the band (`8pt` clears descenders
+// even when the last contact line wraps and carries no `baseline: 1.4pt` icon
+// strut); `gap` is the space between the band and what follows (the larger of it
+// and the next block's own `above`). Both are explicit, so ambient
+// `set block(spacing: ..)` does not change them.
+#let masthead(fill, body, bottom: 8pt, gap: 8pt) = context {
   let pw = page.width
   let ph = if page.height == auto { pw } else { page.height }   // workday: continuous page
   let dflt = 2.5 / 21 * calc.min(pw, ph)

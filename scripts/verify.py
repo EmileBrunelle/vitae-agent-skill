@@ -498,9 +498,7 @@ def check_fonts() -> None:
         print("WARN  fonts not checked (`typst fonts` failed or timed out)")
         return
     pools = pd.FONTS
-    usable = sum(1 for fp in pools.values()
-                 if all(any(pd._installed(f[0], have) for f in cast(Any, fp)[role])
-                        for role in ("display", "body", "mono") if role in fp))
+    usable = sum(1 for f in pools if pd._family_usable(f, have))
     if usable < pd.MIN_POOL:
         print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
               f"(pick_design draws from at least {pd.MIN_POOL}), so it will substitute.")
@@ -942,9 +940,9 @@ SEPARATION_CEILING = 6.0
 # page exists in the corpus — the thinnest is page 2 of swiss-grid's 2-pager
 # with 5 — so a per-boundary pairing is not worth its code yet.
 DEVICE_QUORUM = 2
-# Internal white runs are judged as fractions of page height, never pixels (references/design.md, "Internal-gap
-# scan"): a run over BOUNDARY_CEILING is a canyon wherever it sits; a run over CANYON is a hole unless it is a section
-# boundary (a run of at least BOUNDARY_RATIO x the median run).
+# Internal white runs are judged as fractions of page height, never pixels (references/design.md § Invariants &
+# Page-fill tuning loop): >5% of page height (~1.4 cm on US Letter) is a canyon anywhere; >3.5% (~1.0 cm) inside
+# a section is a hole unless it is a section boundary (a run >= BOUNDARY_RATIO x the median run).
 CANYON = 0.035          # a hole this tall (fraction of page height) is a defect
 BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run this tall
 
@@ -1385,6 +1383,7 @@ def check_degree_tokens(txt: str) -> list[str]:
 BULLET_CHAR_RE = re.compile("^[\u25c6\u25c7\u2022\u25aa\u25ab\u25ba\u25cf\u25a0\u25e6\u2023\u2219\u27a2\ue000-\uf8ff]")
 
 
+# Calibrated in 0.7.3 (CHANGELOG): 1 shared figure is a legitimate headline metric; 2+ is padding by repetition.
 SUMMARY_REPEAT_MIN = 2   # distinct repeated figures from which the WARN fires (one is a headline metric)
 _FIG_MASK = re.compile(
     r"\b\d\.\d{1,2}\s*/\s*\d\.\d{1,2}\b"                              # GPA 3.6/4.3
@@ -1439,6 +1438,8 @@ def check_summary_repeats(src: str) -> list[str]:
             "metrics, or cut the summary and add a real fact"]
 
 
+# Calibrated in 0.7.5 (CHANGELOG, zero hits across all shipped templates and fixtures): a bullet restates
+# a descriptor segment when it shares >=2 content words AND covers >=50% of the segment's content words.
 ENTRY_REPEAT_MIN = 2        # content words a bullet must share with a descriptor segment ...
 ENTRY_REPEAT_RATIO = 0.5    # ... and the share of that segment's content words it covers
 _PROJECT_TITLE_RE = re.compile(_PROJECT_TITLES, re.I)
@@ -1664,6 +1665,7 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
         if rows:
             rb = [words[k][0] for k in rows[-1]]
             ryc = sum((q[1] + q[3]) / 2 for q in rb) / len(rb)
+            # 0.4x box height (~4pt on 10pt text): keeps bold/regular or small-caps words on one baseline together
             if abs(yc - ryc) <= 0.4 * min(hh, min(q[3] - q[1] for q in rb)):
                 rows[-1].append(i)
                 continue
@@ -1675,6 +1677,7 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
         for i in sorted(row, key=lambda k: words[k][0][0]):
             if cur:
                 prev = words[cur[-1]][0]
+                # >1.5x box height (~15pt): wider than word/separator spacing, splits a right-flushed date or column cell
                 if words[i][0][0] - prev[2] > 1.5 * min(prev[3] - prev[1], words[i][0][3] - words[i][0][1]):
                     pieces.append(cur)
                     piece_row.append(r)
@@ -1809,6 +1812,8 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
     def column_edges(x: float, ya: int, yb: int) -> list[int]:
         x = min(max(int(x), 0), w - 1)
         edges: list[int] = []
+        # 3px above and 3px below at 90 ppi (~2.4pt each): a filled band is flat (spread <=30 luma) on both
+        # sides and steps by >60 luma across its edge; a 1-2px hairline rule is not flat over 3px.
         for y in range(max(ya, 3), min(yb, h - 3) + 1):
             above = [px[x, y - k] for k in (3, 2, 1)]
             below = [px[x, y + k] for k in (0, 1, 2)]
@@ -1825,6 +1830,7 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
             continue   # lone punctuation sits between neighbours' glyph edges: noise
         region = [rgb[x, y] for y in range(ya, yb + 1) for x in range(xa, xb + 1)]
         base = max(set(region), key=region.count)
+        # <40 RGB delta across the whole word box: no visible glyph contrast against the box modal colour
         if max(max(abs(c - b) for c, b in zip(p, base)) for p in region) < 40:
             found.append(("hidden", ya, word))
             continue
@@ -1867,7 +1873,8 @@ HIDDEN_FAIL_RATIO = 1.5   # WCAG contrast ratio of the strongest pixel in a word
 HIDDEN_WARN_RATIO = 3.0   # box background: below 1.5 unreadable (FAIL), below 3 barely visible (WARN)
 HIDDEN_PAD_PX = 1         # px added around each box (single-stem words like "i", "l", "二")
 # Metadata gate (check_pdf_metadata): a Keywords field over KEYWORD_MAX_TERMS terms, or any other field over
-# META_MAX_CHARS characters, is WARNed as stuffing.
+# META_MAX_CHARS characters, is WARNed as stuffing (heuristic ceiling: a normal Title/Author/Subject is one
+# short line, and a real keyword list is a handful of terms).
 KEYWORD_MAX_TERMS = 15
 META_MAX_CHARS = 200
 
@@ -2126,6 +2133,8 @@ def check_pdf_metadata(pdf: str) -> list[str]:
     return out
 
 
+# Smallest legitimate text in the templates is 7.5-8.5pt metadata (superscripts exempted by script_of below);
+# <5.0pt is unreadable print (WARN; boxes <4.0pt FAIL in check_hidden_text).
 TINY_TEXT_PT = 5.0   # real font size under which a run is "tiny" (WARN): nobody reads it
 
 
@@ -2441,6 +2450,8 @@ def _lines(words: Sequence[Word], x_min: float) -> list[_Line]:
     out: list[_Line] = []
     for w in ws:
         c = (w[1] + w[3]) / 2
+        # 3.0pt y-centre tolerance: words of slightly different sizes/weights on one baseline stay in one line
+        # while adjacent lines (~12-15pt baseline-to-baseline) never merge.
         if out and abs(c - out[-1]["c"]) <= 3.0:     # same text line: centres within 3pt
             ln = out[-1]
             ln["words"].append(w)
@@ -2455,6 +2466,7 @@ def _lines(words: Sequence[Word], x_min: float) -> list[_Line]:
 def _find_run(words: Sequence[Word], text: str, ytyp: float) -> list[Word] | None:
     """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of
     word tuples, or None."""
+    # Up to 4 tokens is enough to identify an entry head uniquely without crossing a line wrap.
     toks = [t for t in (_gnorm(w) for w in text.split()) if t][:4]
     if not toks:
         return None
@@ -2476,6 +2488,7 @@ def _find_run(words: Sequence[Word], text: str, ytyp: float) -> list[Word] | Non
             yc = (words[j][1] + words[j][3]) / 2
             if best is None or abs(yc - ytyp) < best[0]:
                 best = (abs(yc - ytyp), run)
+    # >30pt (~2 lines) from the <vitae-head> marker's y: a match that far away is a repeated word elsewhere on the page.
     if best is None or best[0] > 30:     # nearest match is over 30pt from the marker's y: not located
         return None
     return [words[k] for k in best[1]]
@@ -2576,6 +2589,7 @@ def _page_ink_gap(pdf: str) -> GapFn:
                         t -= 1
                     while b < im.height - 1 and full(b + 1):
                         b += 1
+                    # <=3x the text line height: a title bar/pill around the line, whereas a sidebar or page fill is much taller.
                     if b - t + 1 <= 3 * (yb - ya):       # a band round the line, not a page-high field
                         res = (t, b)
                         break
@@ -3241,6 +3255,8 @@ LEADING_CAP = 1.10     # em; largest shipped body leading 0.96 x 1.15
 SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
 
 
+# Default search bounds [0.80 * l0, max(1.30 * l0, 1.10)] and bisection step 0.005em (~7-8 probes):
+# 0.005em changes a 1-page CV's bottom ink row by <0.5% of page height, finer than the 2%-wide fill band.
 def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
          hi: float | None = None, step: float = 0.005) -> int:
     """--tune: bisect `#set par(leading:, spacing:)` in `typ` to the largest rhythm that holds
@@ -3370,6 +3386,8 @@ def pages_from_name(typ: str) -> str:
                             os.path.basename(typ), re.I) else "1"
 
 
+# Whole-word stems of non-CV companion deliverables (step 7 application guide, cover letter, readme)
+# that `verify.py --all` skips when they carry no `// vitae:` header (step 6).
 NON_CV_RE = re.compile(
     r"(?<![^\W\d_])(?:guide|lettre|letter|cover|lisez-moi|readme)(?![^\W\d_])",
     re.I)
@@ -3387,7 +3405,8 @@ def is_gated(typ: str) -> bool:
         return False
 
 
-# Both markers are looked for in the first 4096 bytes: they are line-1 comments of the templates.
+# Both markers (and HEADER_RE in is_gated/check_all) are looked for in the first 4096 bytes:
+# they sit on line 1 (or in the opening comment block) so reading 4 KiB avoids loading large files.
 ACADEMIC_MARKER = "// vitae-academic:"
 LETTER_MARKER = "// vitae letter template"
 
@@ -3515,6 +3534,7 @@ KNOWN_LIB_SHA256 = {
     "7f50222c3394eee82bbfc1ac470c691c4b3756da0c0615d91e23d6d1394af8f9",
     "c037a4309decb8dfcf10058624f0b0ded8d466606bcabf9e327766bb99e6a99b",
     "817c4ec76e6e55e5767ecb402b2c2ff44ae167f91416ca40f573b42d87e2d76e",
+    "1f8970ebd32e8d21814c299b3e5d21e78cc39c94d2aa24bc426f8e01ff19f17a",
 }
 
 
@@ -3613,9 +3633,17 @@ _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Ad
 _footer: str | None = None
 
 
+# Lowering FILL_MIN below the drawn target is a WARN down to LOWERED_FILL_FLOOR (honest
+# thin-facts runs across runs 15-24 sit at 85-92%); below LOWERED_FILL_FLOOR it is a FAIL
+# so a dummy target (e.g. `1 10 100`) cannot bypass the fill gate.
+LOWERED_FILL_FLOOR = 80
 _LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} — allowed ONLY if "
                  "the facts are exhausted; tell the user the page is under-filled and which "
                  "facts would fill it; never pad or invent to reach it (rule 1)")
+_LOWERED_FAIL = ("FAIL  fill target lowered to {lo}-{hi}% is below the lowered-target floor "
+                 "({fl}%, drawn target {a}) — an exhausted fact sheet lowers the target by a "
+                 "few points, never below {fl}%; ask the user for more facts, drop to fewer "
+                 "pages, or raise FILL_MIN")
 
 
 # The shipped templates top out at 0.96em body leading; the tuner may go to LEADING_CAP
@@ -3704,6 +3732,10 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         if not (fmin and fmax):
             fmin, fmax = str(drawn[0]), str(drawn[1])
             print(f"INFO  fill target {fmin}-{fmax}% drawn for this CV (family table / cv.typ header)")
+        elif int(fmin) < min(drawn[0], LOWERED_FILL_FLOOR):
+            print(_LOWERED_FAIL.format(lo=fmin, hi=fmax, fl=LOWERED_FILL_FLOOR,
+                                       a=f"{drawn[0]}-{drawn[1]}"))
+            fail = 1
         elif int(fmin) < drawn[0]:
             lowered = f"{drawn[0]}-{drawn[1]} → {fmin}-{fmax}"
             print(_LOWERED_WARN.format(a=f"{drawn[0]}-{drawn[1]}"))

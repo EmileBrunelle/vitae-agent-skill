@@ -50,6 +50,7 @@ from verify import (  # noqa: E402
     ENTRY_MARKS,
     FURNITURE_SCALE,
     LEADING_CAP,
+    LOWERED_FILL_FLOOR,
     PROX_FAIL,
     SEPARATION_CEILING,
     Box,
@@ -358,6 +359,7 @@ def run() -> NoReturn:
             assert _dt == _want_t and len(_dw) == _want_w, (_body, _dt, _dw)
             assert all(str(_exp[0]) in _w and str(_exp[1]) in _w for _w in _dw), _dw
     # a non-integer fill argument exits non-zero with a FAIL line, never a ValueError traceback (CHANGELOG, drawn fill target)
+    assert LOWERED_FILL_FLOOR == 80
     _r = subprocess.run([sys.executable, "-I", os.path.abspath(_VERIFY_FILE), "x.typ", "1", "9x", "96"],
                         capture_output=True, text=True)
     assert _r.returncode != 0 and "FAIL  fill args must be integers" in _r.stdout, (_r.stdout, _r.stderr)
@@ -391,12 +393,12 @@ def run() -> NoReturn:
     # Two synthetic pages, drawn with PIL so the check needs no Typst.
     from PIL import Image, ImageDraw
 
-    # Synthetic page factory: 1275x1650 px, 4 sections of 6 text rows of 16 dark blocks. `rule_luma` draws a
+    # Synthetic page factory: 1275x1650 px (US Letter 8.5x11 in at 150 ppi), 4 sections of 6 text rows of 16
+    # dark blocks (44x8 px words every 60 px, row step 22 px => 14 px median white gap). `rule_luma` draws a
     # hairline AT each of the first `rules` boundaries (None: none), `gap` is the white run left above each
-    # section's text, `underline` the number of sections with an underlined link mid-body. 1275 px is the
-    # width of the renders the gate was calibrated on (verify.py DEVICELESS note). Measured with
+    # section's text, `underline` the number of sections with an underlined link mid-body. Measured with
     # check_whitespace, biggest gap over median: thin (gap 75, 4 rules) 5.62x, bare (gap 90) 7.92x, airy
-    # (gap 53) 5.08x, inked (gap 45) 4.46x, tight (gap 25) 1.77x. The block, row and tick sizes are not recorded.
+    # (gap 53) 5.08x, inked (gap 45) 4.46x, tight (gap 25) 1.77x.
     @overload
     def _page(rule_luma: int | None = ..., gap: int = ..., rule_len: int = ...,
               underline: int = ..., rules: int = ..., want_boxes: Literal[False] = ...) -> str: ...
