@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.7.8 - 2026-11-03
 
 - `templates/lib.typ`: `masthead()` default `bottom` padding rises from `5pt` to `8pt` so a wrapped contact row without a `baseline: 1.4pt` icon strut still clears descenders inside the band (`run16`); the 0.7.7 `lib.typ` digest is added to `KNOWN_LIB_SHA256`.
 - `scripts/pick_design.py`: new `--offline` flag (and `_family_usable()` helper shared with `verify.py --doctor`) restricts the eligible pool to families whose font roles all have at least one locally installed face, preventing an offline sandbox from drawing a family with no installed display or mono face (`run17`); `report()` and `--init` also print an `--offline` hint when a role has no pool member installed (the `--offline` re-run hint, not the install-the-face note, is suppressed when `--offline` is already active). `--offline` now warns on stderr when no family has all roles installed (falls back to the full pool) and when combined with `--no-font-check` (ignored); seeded output without `--offline` is unchanged.
