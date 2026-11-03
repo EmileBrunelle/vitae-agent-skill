@@ -153,6 +153,7 @@ class Pick(TypedDict):
     key: str
     family: str
     have: set[str] | None
+    offline: bool
     eligible: list[str]
     recipe: Family
     mono: Font | None
@@ -802,10 +803,16 @@ def pick(name: str, field: str | None, career: str = "early",
     # eligible family is usable), so the draw never lands on a family whose
     # display or mono pool has 0 installed members (run 17: 7/14 families were
     # installed, yet keyline-corporate was drawn with no display face).
-    if offline and have is not None:
+    if offline and have is None:
+        print("warning: --offline is ignored with --no-font-check (no installed-font "
+              "list to filter by); drawing from the full pool", file=sys.stderr)
+    elif offline and have is not None:
         usable = [f for f in hard if _family_usable(f, have)]
         if usable:
             hard = usable
+        else:
+            print("warning: --offline: no family in the pool has all font roles "
+                  "installed; falling back to the full pool", file=sys.stderr)
     if not hard:
         raise SystemExit("no family satisfies those flags — pick one by hand")
 
@@ -857,7 +864,7 @@ def pick(name: str, field: str | None, career: str = "early",
             continue
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
         lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
-    return dict(key=key, family=fam, have=have, eligible=eligible, recipe=d,
+    return dict(key=key, family=fam, have=have, offline=offline, eligible=eligible, recipe=d,
                 mono=mono, mono_note=mono_note, variant=variant,
                 career=career, domain=dom or "unknown", audacity=audacity,
                 accent=d["accents"][ai],
@@ -933,7 +940,8 @@ def report(p: Pick, market: str) -> str:
         lines.append(
             "                  the licence and both installation routes "
             "(~/.local/share/fonts + fc-cache, or --font-path).")
-    if any((nt or "").startswith("NO pool member") for nt in notes) and p["have"] is not None:
+    if any((nt or "").startswith("NO pool member") for nt in notes) \
+            and p["have"] is not None and not p["offline"]:
         lines.append(
             "                  offline sandbox (cannot fetch fonts)? Re-run "
             "pick_design.py with --offline to draw from locally installed "
@@ -1289,9 +1297,10 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
     if any((cast(str, p.get(k)) or "").startswith("NO pool member")
            for k in ("display_note", "body_note", "mono_note")):
         kept.append("at least one font role of %s has NO pool member installed "
-                    "locally — install the face above before verifying, or in "
-                    "an offline sandbox re-run pick_design.py with --offline --force"
-                    % fam)
+                    "locally — install the face above before verifying%s"
+                    % (fam, "" if p["offline"] else
+                       ", or in an offline sandbox re-run pick_design.py "
+                       "with --offline --force"))
     print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "
           "byte-for-byte)" % (out, fam, fam, pick_file))
     for k in kept:
@@ -1357,6 +1366,35 @@ def selftest() -> None:
     assert "keyline-corporate" not in _po["eligible"]
     assert not _po["display_note"].startswith("NO pool member"), _po
     assert not _po["body_note"].startswith("NO pool member"), _po
+    # --offline edge cases warn on stderr (fallback behaviour unchanged)
+    import contextlib
+    import io
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        _pe = pick("Candidate A", "operations", offline=True, have_fonts={"Nope"})
+    assert "no family in the pool has all font roles installed" in _err.getvalue(), _err.getvalue()
+    assert _pe["family"] == pick("Candidate A", "operations", have_fonts={"Nope"})["family"]
+    assert "with --offline to draw" not in report(_pe, "us")
+    assert "with --offline to draw" in report(pick("Candidate A", "operations", have_fonts={"Nope"}), "us")
+    import tempfile
+    for _off in (True, False):
+        _pi = pick("Candidate A", "operations", offline=_off, have_fonts={"Nope"})
+        _buf = io.StringIO()
+        with tempfile.TemporaryDirectory() as _td, contextlib.redirect_stdout(_buf), \
+                contextlib.redirect_stderr(io.StringIO()):
+            init_folder(_pi, _td + "/cv")
+        _o = _buf.getvalue()
+        assert "install the face above before verifying" in _o, _o
+        assert ("--offline --force" in _o) == (not _off), _o
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        _pn = pick("Candidate A", "operations", offline=True, check_fonts=False)
+    assert "--offline is ignored with --no-font-check" in _err.getvalue(), _err.getvalue()
+    assert _pn["family"] == pick("Candidate A", "operations", check_fonts=False)["family"]
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        pick("Candidate A", "operations", offline=True, have_fonts=_r17_have)
+    assert _err.getvalue() == "", _err.getvalue()
     a = pick("Candidate A", "software", check_fonts=False)
     assert a == pick("Candidate A", "software", check_fonts=False), \
         "not deterministic"
