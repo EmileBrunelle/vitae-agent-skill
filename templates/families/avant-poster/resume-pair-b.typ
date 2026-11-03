@@ -1,5 +1,5 @@
 // FAMILY: avant-poster — constructivist poster, two-ink discipline
-// REGISTER: creative (never in the default pool — design.md § The creative
+// REGISTER: creative (never in the default pool — core.md § The creative
 // register: unlocked by a creative target field or an explicit request, capped
 // back out by a conservative market).
 // ---------- Shared mechanics (templates/lib.typ) ----------
@@ -9,7 +9,7 @@
 #import "../../lib.typ": *
 #let accent = rgb("#b3261e")    // hue A — the bleeding bars (masthead + sections)
 #let accent2 = rgb("#1f3a5f")   // hue B — the diagonal, the dividers, markers, icons
-// DUOTONE family (design.md § Duotone). The constructivist poster is a
+// DUOTONE family (core.md § Duotone). The constructivist poster is a
 // TWO-INK medium by construction — one colour plus black — which is also why
 // this family survives a grayscale photocopy: both hues are deep, and nothing
 // on the page encodes information in the difference between them.

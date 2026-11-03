@@ -773,7 +773,7 @@ def extract_text(pdf: str, backend: PdfBackend) -> str:
 # No font-size heuristic survives the family roster; a grep does.
 SECTION_CALL_RE = re.compile(r'#section\(\s*"([^"]*)"')
 
-# lib.typ's `runhead` emits `name #h(1fr) n / total` (design.md § the device
+# lib.typ's `runhead` emits `name #h(1fr) n / total` (core.md § the device
 # table: placed IN THE FLOW, because a page `header:` field is dropped by many
 # parsers). pdftotext may put the name and the `n / total` on one line or two,
 # in either order, so the pagination token is what identifies the band — and a
@@ -867,7 +867,7 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
 # It cannot be calibrated between populations, because there is only one: the
 # device-less pages run 2.38 2.56 2.86 2.86 3.29 3.57 3.86 4.00 4.17 5.00,
 # continuously, and the roster's highest page of any kind is margin-index at
-# 5.14 (a deliberately device-less family, which design.md says legitimately
+# 5.14 (a deliberately device-less family, which core.md says legitimately
 # owes a HIGH ratio — failing it for that would contradict the rule it serves).
 # So the ceiling is placed ABOVE the entire roster and BELOW the no-boundary-
 # system pages the selftest draws (6.77 for one lone flourish, 7.92 for none at
@@ -883,7 +883,7 @@ SEPARATION_CEILING = 6.0
 # page exists in the corpus — the thinnest is page 2 of swiss-grid's 2-pager
 # with 5 — so a per-boundary pairing is not worth its code yet.
 DEVICE_QUORUM = 2
-# Internal white runs are judged as fractions of page height, never pixels (references/design.md § Invariants &
+# Internal white runs are judged as fractions of page height, never pixels (references/design/core.md § Invariants &
 # Page-fill tuning loop): >5% of page height (~1.4 cm on US Letter) is a canyon anywhere; >3.5% (~1.0 cm) inside
 # a section is a hole unless it is a section boundary (a run >= BOUNDARY_RATIO x the median run).
 CANYON = 0.035          # a hole this tall (fraction of page height) is a defect
@@ -893,7 +893,7 @@ BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run thi
 # FAIL only (check_whitespace looks the family up with family_from_path). Measured 2026-09-13; each is a device
 # nature, not a tuning miss:
 DEVICELESS = {
-    "humanist-quiet",   # no ink at all, by doctrine (design.md: pure gap)
+    "humanist-quiet",   # no ink at all, by doctrine (core.md: pure gap)
     "clause-index",     # the device is a numeral — text, not furniture
     "gutter-rail",      # the bar is VERTICAL: never forms a row band
     "mono-technical",   # 6pt inline squares, ~1% of width, under any floor
@@ -2288,7 +2288,7 @@ def check_whitespace(path: str, boxes: Sequence[Box] | None = None, family: str 
                       f"carries. REPORTED, NOT FAILED: the ratio does not rank "
                       f"separation (see BOUNDARY_RATIO). Look at the page")
     # The half of the invariant the white scan alone could never check: a boundary carries
-    # INK by default (design.md, "Boundaries carry ink by default"). With no device AT A
+    # INK by default (core.md, "Boundaries carry ink by default"). With no device AT A
     # BOUNDARY, whitespace is the whole separator, and a wide boundary on top of that is
     # the failure this gate exists to catch: separators are wanted, not empty space.
     if len(union) < DEVICE_QUORUM:
@@ -2308,7 +2308,7 @@ def check_whitespace(path: str, boxes: Sequence[Box] | None = None, family: str 
                "Install poppler-utils to restore the check"
                if degraded else
                " — add the family's device at each boundary, or a thin `soft` "
-               "hairline above each section (design.md § Boundaries carry ink "
+               "hairline above each section (core.md § Boundaries carry ink "
                "by default); if the gap is doing the work instead, give it "
                "back to body leading")
             + (f" — EXEMPT: {family} is on DEVICELESS (its device is real "
@@ -3770,10 +3770,10 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                 fail = fail or int(is_fail)
 
     # Clone markers: the template's own accent and its "Category: items" skills block, left in
-    # place, make every CV from the skill look alike (references/design.md, three clone markers).
+    # place, make every CV from the skill look alike (references/design/core.md, three clone markers).
     typ_text = open(typ, encoding="utf-8").read()
     if "7d2231" in typ_text.lower():
-        print("WARN  template default accent (#7d2231) — run scripts/pick_design.py and apply the family it draws (references/design.md § Design families)")
+        print("WARN  template default accent (#7d2231) — run scripts/pick_design.py and apply the family it draws (references/design/families/<family>.md)")
     if "[#cat:]" in typ_text:
         print("WARN  template skills block (\"Category: items\") — clone marker #2; use the chosen family's skills shape")
 

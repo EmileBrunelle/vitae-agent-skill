@@ -6,7 +6,7 @@
 #import "../../lib.typ": *
 #let accent = rgb("#1f3a5f")    // hue A — the band + the heading bars
 #let accent2 = rgb("#502d66")   // hue B — the dates + the list markers
-// DUOTONE family (design.md § Duotone): the pair is validated together
+// DUOTONE family (core.md § Duotone): the pair is validated together
 // (far-analogous, +62°) — never mix hue A of one row with hue B of another.
 // Coordinated palette: two accents + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).
@@ -116,7 +116,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 //     1.5cm + short -> ORPHAN         1.4cm + short -> ORPHAN
 // So the x margin is irrelevant to this trap and the descriptor LENGTH is the
 // whole cause. An earlier revision widened the measure to x: 1.4cm to "make the
-// long descriptor fit"; that both broke the ≥1.5cm margin invariant (design.md §
+// long descriptor fit"; that both broke the ≥1.5cm margin invariant (core.md §
 // Invariants) and misdiagnosed the bug — at 9pt the long descriptor fits on one
 // line at 1.5cm with room to spare. Keep the margin at 1.5cm and keep this
 // descriptor LONG. Do not shorten it to satisfy line integrity: it does not wrap.

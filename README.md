@@ -41,9 +41,9 @@ Battle-tested method distilled from a real end-to-end résumé project that went
 
 ## Design families
 
-Fourteen reference implementations, one per family, live under `templates/families/<name>/`, across four categories (neutral, classic, modern, creative). Full recipes (heading device, header composition, fonts, boundary treatment) are in [`references/design.md`](references/design.md); full-page renders of all fourteen are in [GALLERY.md](GALLERY.md).
+Fourteen reference implementations, one per family, live under `templates/families/<name>/`, across four categories (neutral, classic, modern, creative). Full recipes (heading device, header composition, fonts, boundary treatment) are in [`references/design/families/<name>.md`](references/design/families/) (shared rules in [`references/design/core.md`](references/design/core.md)); full-page renders of all fourteen are in [GALLERY.md](GALLERY.md).
 
-The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in `references/design.md`.
+The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in `references/design/core.md`.
 
 [`templates/academic/**`](templates/academic) (the academic-CV mode's gabarit) is **out of this industry calibration**: the fill targets, section-separation devices, and the fourteen-family roster above describe industry résumés only and say nothing about academic dossiers.
 
@@ -101,7 +101,9 @@ SKILL.md                         # slim entry point: non-negotiable rules + one 
 references/steps/                # step bodies 0-8 (N-<slug>.md + tune/companions sub-files), read when the step starts
 references/academic-mode.md      # academic-CV mode workflow (moved out of SKILL.md)
 references/known-traps.md        # known traps (moved out of SKILL.md)
-references/design.md             # design system + page-fill tuning loop
+references/design/core.md        # shared design rules: invariants, tokens, primitives, page-fill tuning loop
+references/design/families/      # one recipe file per design family (14), read whole for the family drawn
+references/icons.md              # icon provenance and how to source a new mark
 references/ats.md                # parsing rules + verification commands
 references/workday.md            # Workday autofill: measured behaviour + parse-only build
 references/regional.md           # regional router: universal rules + matrix

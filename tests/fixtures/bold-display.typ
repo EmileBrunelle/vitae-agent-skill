@@ -7,7 +7,7 @@
 #import "../../templates/lib.typ": *
 #let accent = rgb("#8c3b00")    // hue A — the name, and nothing else
 #let accent2 = rgb("#105a90")   // hue B — heading underlines, markers, icons
-// DUOTONE family (design.md § Duotone): the pair is validated together
+// DUOTONE family (core.md § Duotone): the pair is validated together
 // (complementary) — never mix hue A of one row with hue B of another.
 // Coordinated palette: two accents + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).

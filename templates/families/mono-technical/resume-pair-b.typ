@@ -14,7 +14,7 @@
 #let muted = ink
 #let dark = pal.dark
 // pool pair 1 of 2 verified at the gate: local faces first so the compile is
-// warning-free (`typst fonts` check, references/design.md § font pools)
+// warning-free (`typst fonts` check, references/design/core.md § font pools)
 #let bodyf = ("Noto Sans", "Liberation Sans")
 #let monof = ("Adwaita Mono", "Noto Sans Mono")
 #let dispf = monof

@@ -79,7 +79,7 @@
 // reference row of small label/value pairs — the Bezugszeichenzeile of the
 // German business-letter standard (DIN 676), which is where this family's
 // header composition comes from. Then the SPECIALITIES LINE: this is the one
-// neutral family that carries one (design.md § Specialities line), set in the
+// neutral family that carries one (core.md § Specialities line), set in the
 // label register so it reads as a data row and not as a slogan.
 #block(above: 0pt, below: 10pt)[
   // The reference row and the specialities line live INSIDE the left zone, not

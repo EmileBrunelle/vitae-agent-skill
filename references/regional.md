@@ -45,7 +45,7 @@ Cautions the matrix compresses: **paper is us-letter in exactly two places** (No
 - **Gloss local institutions and diplomas** for foreign readers: keep the original name + a short gloss rather than a lossy translation. The gloss may only restate what the fact sheet says; any explanation of your own ("two-year pre-university program") is an addition — flag it to the user for approval, never print it unapproved (SKILL.md: page text is facts only).
 - **Translation is adaptation, not word-mapping.** Watch for calques (FR→EN "within a team" → "on a team"); include a native-reviewer pass in the adversarial loop for any translated version.
 - Set `lang:` on `#set text(...)` per document — it drives hyphenation and smart-quote behavior.
-- **The target market caps the visual audacity dial, never raises it.** A conservative target market forces `sober` (`references/design.md` § colour; `scripts/pick_design.py --conservative`), whatever the candidate's field or the design family. Whether a market is conservative for this purpose is established the same way as everything else in this file — the market's own file, current sources, or the user — never assumed from training data, and the assumption gets labelled in the deliverable when it cannot be verified. A market may also cap it *below* the candidate's request; the dial is only ever raised by the explicit request of the candidate or user.
+- **The target market caps the visual audacity dial, never raises it.** A conservative target market forces `sober` (`references/design/core.md` § colour; `scripts/pick_design.py --conservative`), whatever the candidate's field or the design family. Whether a market is conservative for this purpose is established the same way as everything else in this file — the market's own file, current sources, or the user — never assumed from training data, and the assumption gets labelled in the deliverable when it cannot be verified. A market may also cap it *below* the candidate's request; the dial is only ever raised by the explicit request of the candidate or user.
 
 ## Section names per language
 
@@ -61,7 +61,7 @@ Cautions the matrix compresses: **paper is us-letter in exactly two places** (No
 
 Derive the target-field section name with the same pattern for any field ("Expérience en soins infirmiers", "Nursing Experience"). Keep names close to conventional stems — a qualifier after a conventional stem is safe; fully exotic names risk ATS misclassification.
 
-**Accepted variants** (the lexical skeleton is part of the anti-clone system — `references/design.md` § Section labels; each design family carries its own defaults and `scripts/pick_design.py` draws a variant per candidate):
+**Accepted variants** (the lexical skeleton is part of the anti-clone system — `references/design/core.md` § Section labels; each design family carries its own defaults and `scripts/pick_design.py` draws a variant per candidate):
 
 | | FR | EN |
 |---|---|---|

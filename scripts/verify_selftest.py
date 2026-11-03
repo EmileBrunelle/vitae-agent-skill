@@ -631,7 +631,7 @@ def run() -> NoReturn:
                    check_whitespace(airy, family="humanist-quiet")), \
         "SEPARATION_CEILING must sit above the roster's highest page " \
         f"(5.14x); at {SEPARATION_CEILING} an exempt device-less family " \
-        "that compensates with white — which design.md requires of it " \
+        "that compensates with white — which core.md requires of it " \
         "— must not fail on the ratio"
     assert any(f for f, _ in check_whitespace(airy)), \
         "the same page with no family exemption must FAIL the quorum"

@@ -31,7 +31,7 @@
    then compiles with no icons and its contact URLs in plain text. Icons are all-or-nothing: `marks()` in `lib.typ` returns no mark for ANY item unless every mark of the kit has data, so a partial harvest gives a text-only contact line (the script prints `WARN  ICONS: incomplete harvest`) rather than icons on some items only — tell the user when that happens. `verify.py`
    copies the empty fallback in if the folder has none, so the gate never
    fails for a missing `icons.typ`, load the field pack if one exists, keep the design system's
-   invariants (`references/design.md` — read its shared sections plus ONLY the recipe of the family `pick_design.py` drew, via offset/limit; its "Design families — jump to your family" index gives the lines; never the whole file). All fourteen family files
+   invariants (`references/design/core.md`, the shared rules, read whole — then read whole ONLY the family file `pick_design.py` printed, `references/design/families/<family>.md`; never another family's). All fourteen family files
    (`templates/families/<family>/resume.typ`) are gate-passing, with
    `resume-pair-b.typ` beside each showing the same recipe on its second font
    pair.
@@ -43,7 +43,7 @@
    must be passed as `--conservative` (the `--field` table also flips it on by
    itself for law, finance, accounting, insurance, government…).
    Build it by following that family's recipe in
-   `references/design.md` § Design families (heading device, skills-block
+   `references/design/families/<family>.md` (heading device, skills-block
    shape, accent role, contact icons, platform marks, header composition,
    verified leading/spacing/`above`). **Fourteen families in four registers**,
    and the pool is widened until at least **five** are eligible for any
@@ -73,7 +73,7 @@
    drawn variant too.
    Every dated entry must use lib `entry()`: a hand-built grid is not measured by the date-adjacency gate. Check that verify.py's `INFO  date adjacency: N lib entries measured, …` line counts every dated entry in the CV.
    Fresh fonts beyond the pool: only on the user's explicit request, or when
-   nothing in the pool is available — then follow design.md § Font pools
+   nothing in the pool is available — then follow core.md § Font pools
    (vetting checklist, no over-used display defaults, add the winner back into
    `FONTS` once it passed the gate). The draw is deterministic per candidate,
    so the 1-page, 2-page and translated versions share one look. The user may
@@ -86,7 +86,7 @@
    key="Firstname Lastname+software"
    h=$(printf '%s' "$key" | sha256sum | cut -c1-8)
    # n = number of ELIGIBLE families: apply the flags and the career/field
-   # register weighting by hand from design.md's register column. The eligible
+   # register weighting by hand from core.md's register column. The eligible
    # list EXCLUDES the three creative-register families unless creative is
    # unlocked (a creative --field, or --creative). Widen one register tier at a
    # time (career order), adding families ALPHABETICALLY and STOPPING as soon
@@ -111,9 +111,9 @@
    Shipping the template's own combination (bordeaux `#7d2231`, accent tick +
    full-width hairline under an UPPERCASE accent title, `Category: items`,
    Carlito body + Montserrat headings) is a defect — Montserrat is also one of
-   the over-used faces design.md bans as a *display* face, which is one more
+   the over-used faces core.md bans as a *display* face, which is one more
    reason the template's look is a starting point and never a deliverable. The bar the result must clear is
-   design.md's **non-recognition** test: a recruiter who has seen two CVs from
+   core.md's **non-recognition** test: a recruiter who has seen two CVs from
    this skill must not recognise the third, and no page may pass for a consumer
    tool's default template.
    Before writing any job title onto the page, check each title in the fact

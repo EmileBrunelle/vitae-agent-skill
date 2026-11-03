@@ -57,7 +57,7 @@ Usage:
     --emit-typ      print a ready-to-paste Typst PREAMBLE for the drawn recipe
                     (tokens, fonts, page/text/par) — never the devices: the
                     heading device, skills block, accent roles and header
-                    composition stay in references/design.md, because they ARE
+                    composition stay in references/design/families/<name>.md, because they ARE
                     the recipe and the whole anti-clone system.
 
 Fourteen families, and every profile draws from at least MIN_POOL = 5 of them
@@ -66,12 +66,12 @@ Secondary parameters, drawn from the same hash: accent (plus its paired duotone
 hue B where the family has one), list marker, section-label variant, the
 family's own VARIANT where it declares one, and the font pair from the family's
 own typographic pool. FONTS below is the single
-source of truth for typography — design.md describes the registers and the
+source of truth for typography — core.md describes the registers and the
 vetting checklist and does NOT repeat the lists (a second list drifts).
 
 The recipes themselves (heading device, skills block, accent role, icons,
-verified leading/spacing) live in references/design.md § Design families. This
-script only decides WHICH one; design.md says how to build it.
+verified leading/spacing) live in references/design/families/<name>.md. This
+script only decides WHICH one; that file says how to build it.
 
 Only name+field enter the hash: the same person keeps their look when the CV
 is retargeted, unless a flag changes which families are eligible.
@@ -80,7 +80,7 @@ POSIX fallback (no python3) — same result for the family choice:
     key="Firstname Lastname+software"
     h=$(printf '%s' "$key" | sha256sum | cut -c1-8)
     # n = number of ELIGIBLE families: apply the flags and the career/field
-    # register weighting by hand from design.md's register column. The eligible
+    # register weighting by hand from core.md's register column. The eligible
     # list EXCLUDES the three creative-register families unless creative is
     # unlocked (a creative --field, or --creative). Widen one register tier at a
     # time (career order), adding families ALPHABETICALLY and STOPPING as soon
@@ -285,7 +285,7 @@ FAMILIES: dict[str, Family] = {
         # lightness the 6:1 guardrail forces, a hue in that band is not a red,
         # it is a brown, and hue B here carries the page's SMALLEST ink (8.5pt
         # dates, the 1.5pt change-bar) where a brown reads as faded black
-        # rather than as a colour. Measured on 300dpi crops — design.md § 14.
+        # rather than as a colour. Measured on 300dpi crops — references/design/families/gutter-rail.md.
         accents2=["#6a2f4d", "#983e6a", "#2e6b24", "#1b6a63"],
         markers=["▎ (vector change-bar, hue B)", "▎"],
         labels=Labels(profile="Profile", skills="Skills", soft="Working Style"),
@@ -443,7 +443,7 @@ FAMILIES: dict[str, Family] = {
 }
 
 # ---------------------------------------------------------------- font pools
-# ONE source of truth for typography; references/design.md describes the
+# ONE source of truth for typography; references/design/core.md describes the
 # REGISTER each pool serves and never repeats the lists (a second list drifts).
 # Entry = (family name exactly as `typst fonts` reports it, provenance).
 # Hard rule: no display face is shared between two families — the display face
@@ -461,7 +461,7 @@ FAMILIES: dict[str, Family] = {
 # neo-grotesque would erase the family. The exemption is creative-register
 # only, their BODY pools do carry a local member, and the hand-off names the
 # package to install. Every other family keeps the rule.
-# Extending a pool: run design.md's vetting checklist first, then add here.
+# Extending a pool: run core.md's vetting checklist first, then add here.
 FONTS: dict[str, FontPool] = {
     "swiss-grid": FontPool(
         register="neo-grotesque, one family for display and body",
@@ -537,7 +537,7 @@ FONTS: dict[str, FontPool] = {
               ("Manrope", "GF (OFL)")]),
     "bold-display": FontPool(
         register="geometric display for the name + a neutral sans body",
-        # Montserrat was removed here on purpose: design.md § Font pools bans
+        # Montserrat was removed here on purpose: core.md § Font pools bans
         # the over-used defaults (Inter, Roboto, Montserrat, Lato, Open Sans)
         # as DISPLAY faces, and leaving it in the pool meant drawing a banned
         # face on ~6% of the draws. Three members left = the documented minimum.
@@ -972,8 +972,9 @@ def report(p: Pick, market: str) -> str:
         ]
     lines += [
         "",
-        "Apply the family's recipe from references/design.md § Design families,",
-        "then re-run scripts/verify.py — the leading/spacing above were verified",
+        "Apply the family's recipe: read references/design/families/%s.md whole" % p["family"],
+        "(plus references/design/core.md, the shared rules), then re-run",
+        "scripts/verify.py — the leading/spacing above were verified",
         "on the template's own filler content, not on this candidate's, and a",
         "different font pair shifts the fill: re-run the tuning loop.",
     ]
@@ -1024,7 +1025,7 @@ def _vitae_header(pg: Any) -> str:
 
 def emit_typ(p: Pick, market: str) -> str:
     """A ready-to-paste PREAMBLE for the drawn recipe — not a whole CV, and
-    deliberately not the devices (those are the recipe: design.md)."""
+    deliberately not the devices (those are the recipe: references/design/families/<family>.md)."""
     d, fp, pg = p["recipe"], FONTS[p["family"]], p["recipe"]["page"]
     lo, hi = pg["fill"].split("-")
     try:                                  # the duotone hue jobs live next door
@@ -1055,7 +1056,7 @@ def emit_typ(p: Pick, market: str) -> str:
         o.append('#let accent2 = rgb("%s")%s' % (
             p["accent2"], "       // hue B — %s" % jobs[2] if jobs else
             "       // hue B, paired with hue A by index"))
-        o.append("// Each hue keeps 1-2 jobs, never more (design.md § Tokens).")
+        o.append("// Each hue keeps 1-2 jobs, never more (core.md § Tokens).")
     o += ["#let pal = derive(accent)",
           "#let soft = pal.soft        // decorative hairlines only, never text",
           "#let ink = pal.ink          // metadata gray, biased to the accent hue",
@@ -1121,7 +1122,7 @@ def emit_typ(p: Pick, market: str) -> str:
                  "to EVERY item on it.")
     o += ["// Heading device, skills-block shape, accent roles and header "
           "composition are NOT",
-          "// emitted: see references/design.md § Design families. They ARE "
+          "// emitted: see references/design/families/<family>.md. They ARE "
           "the recipe, and",
           "// emitting them is what would turn fourteen families back into one "
           "template.",
@@ -1510,7 +1511,7 @@ def selftest() -> None:
             assert default is None or default in LABEL_VARIANTS[role], (f, role)
         # no two families ship the SAME default triple, over all fourteen:
         # three of them used to default to "Profile / Technical Skills / Core
-        # Strengths", which is exactly the lexical fingerprint design.md
+        # Strengths", which is exactly the lexical fingerprint core.md
         # denounces
         t = tuple(d["labels"][r] for r in ("profile", "skills", "soft"))
         assert t not in triples, ("duplicate default labels", t, f, triples[t])

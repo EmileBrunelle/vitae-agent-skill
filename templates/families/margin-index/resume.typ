@@ -14,7 +14,7 @@
 #let dispf = bodyf
 
 // this family carries no generic icons by principle — the
-// platform marks are identifiers, not ornament (design.md).
+// platform marks are identifiers, not ornament (core.md).
 #let ic-col = ink
 #let mk = marks(ic-col)
 
@@ -112,7 +112,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // ---------- Education: linear one-line entry, NOT the grid job() shape ----------
 // NOTE (this family, 2025-08 audit): the grid entry() orphaned this date to
 // the end of the pdftotext extraction once the note was shortened to one
-// line (design.md § Line integrity fix). Switched to `earlyline` (role,
+// line (core.md § Line integrity fix). Switched to `earlyline` (role,
 // org+note, year all in one paragraph) per the known trap in ats.md — a
 // bullet-less grid entry can orphan its date; the linear variant can't,
 // since there is always text on both sides of the date in the same run.

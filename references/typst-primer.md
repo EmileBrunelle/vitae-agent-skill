@@ -16,7 +16,7 @@ Escape `\#  \$  \[  \]  \~  \@` in generated text. A literal tilde (`~25 users`,
 
 - `C#` unescaped → *expected expression*. Write `C\#`.
 - Adding extra brackets inside a bullet — `- [*text*]` → *unclosed delimiter*. A bullet body is ALREADY markup: write `- *text*` directly.
-- Giving up on `#box` for fragile tokens when unsure of the syntax. Don't: `#box[*C\#/.NET*]` in markup/content context is all it takes, and keeping fragile tokens unbroken is a design rule (design.md).
+- Giving up on `#box` for fragile tokens when unsure of the syntax. Don't: `#box[*C\#/.NET*]` in markup/content context is all it takes, and keeping fragile tokens unbroken is a design rule (core.md).
 - Guessing instead of testing: `typst eval '<snippet>'` (or compiling a 3-line scratch file) verifies any doubtful construct in milliseconds.
 
 ## Everything the template uses — nothing else is needed

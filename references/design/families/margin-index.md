@@ -1,0 +1,13 @@
+## 7. margin-index — classic marginalia · register: classic
+
+Book typography (Bringhurst school), the second *classic* current and nothing like `editorial-serif`: one text serif throughout, old-style figures, and the section titles **hanging in the left margin beside their own content** instead of sitting over it. There is no rule, bar or panel anywhere in the document.
+
+- **Heading device**: a **short 2.5cm accent rule above the margin title**, the width of the margin column only — book furniture, never a rule under or beside the heading — and the title lives in a 2.5cm left column of a single-ROW `grid` (title cell first, so extraction stays heading → body; verified), right-aligned against the gutter, 10.5pt bold in the accent. Nobody else colours its section titles.
+- **Skills block**: *italic* run-in label, then the items in roman — **no separator glyph at all**; the italic/roman jump does the separating.
+- **Accent role**: the margin titles and the list markers (`—`). Roles, organizations and dates stay `dark`/`ink`.
+- **Icons**: all-or-nothing on the contact line (amended: city/phone were bare while the platform marks carried icons — worse than either extreme). Every contact item rides the line marked, in `ink` — `mk.pin` / `mk.phone` added to `lib.typ` alongside the platform marks, same provenance. Marginalia still bolts no *decorative* ornament onto the page — the no-generic-icon principle governs headings and section devices, not whether the contact line is consistently marked.
+- **Header**: name + italic role line in the *content* column, contacts on one line below it (the margin column stays empty, and is the photo slot when a market asks for one).
+- **Type**: a text serif with real italics and old-style figures (`number-type: "old-style"` is part of the recipe, not decoration), one family for both roles. Pool: `pick_design.py` FONTS `margin-index`.
+- **Accents** (mono harmony): `#4a2f10` walnut · `#1f3a5f` navy · `#5b2a5e` plum.
+- **Verified**: body **11pt** (the measure is narrow — 15.5cm — so the type goes up, not down), leading `0.80em`, spacing `1.00em`, section `above` 30pt (35pt airy) → 1 page, fill 96%, white-run ratio 5.14, tallest gap 3.6% of page height (re-measured 2026-09-13; 7.40 under the pre-42049f6 sampling — a boundary, so under the 5% ceiling and not a hole). No heading→body gap exists here — title and body share the grid row — so the 2:1 ratio does not apply and the section gap plus the margin rule carry the whole boundary. Widest gaps of the roster: re-scan this family first after any content edit.
+- Markets: academia, law, public sector, publishing, DACH, France. Safe for conservative. Photo: yes (margin column).

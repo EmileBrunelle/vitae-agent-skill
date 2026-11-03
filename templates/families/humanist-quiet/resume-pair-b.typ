@@ -18,7 +18,7 @@
 #let dispf = ("Cantarell", "Noto Sans", "Liberation Sans")
 
 // this family carries no generic icons by principle — the
-// platform marks are identifiers, not ornament (design.md).
+// platform marks are identifiers, not ornament (core.md).
 #let ic-col = accent
 #let mk = marks(ic-col)
 

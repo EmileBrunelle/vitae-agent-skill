@@ -7,7 +7,7 @@
 #import "../../templates/lib.typ": *
 #let accent = rgb("#1f3a5f")    // hue A — the band + the heading bars
 #let accent2 = rgb("#502d66")   // hue B — the dates + the list markers
-// DUOTONE family (design.md § Duotone): the pair is validated together
+// DUOTONE family (core.md § Duotone): the pair is validated together
 // (far-analogous, +62°) — never mix hue A of one row with hue B of another.
 // Coordinated palette: two accents + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).

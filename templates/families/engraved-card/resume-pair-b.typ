@@ -150,7 +150,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // engraved-card ships `soft: None`: the engraved-card register is terse, and
 // an evidence-line soft-skills section is the one section a formal card would
 // not have carried. Dropping a section is a documented option of the label
-// system (design.md § Section labels), not a fill trick — but it is also what
+// system (core.md § Section labels), not a fill trick — but it is also what
 // buys this family its airy gabarit: with 2cm margins, eight sections of the
 // reference content do not hold one page and seven do (measured both ways).
 

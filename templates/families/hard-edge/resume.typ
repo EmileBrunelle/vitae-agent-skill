@@ -1,5 +1,5 @@
 // FAMILY: hard-edge — neo-brutalist hard borders + monospace metadata
-// REGISTER: creative (never in the default pool — design.md § The creative
+// REGISTER: creative (never in the default pool — core.md § The creative
 // register: unlocked by a creative target field or an explicit request, capped
 // back out by a conservative market).
 // ---------- Shared mechanics (templates/lib.typ) ----------
@@ -9,7 +9,7 @@
 #import "../../lib.typ": *
 #let accent = rgb("#b3261e")    // hue A — the monogram block + the specialities line
 #let accent2 = rgb("#0f4c5c")   // hue B — the dates, the markers, the icons
-// DUOTONE family (design.md § Duotone): the pair is validated together —
+// DUOTONE family (core.md § Duotone): the pair is validated together —
 // never mix hue A of one row with hue B of another.
 #let pal = derive(accent)
 #let soft = pal.soft

@@ -149,7 +149,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 ]
 
 // ---------- Skills: 5-7 linear rows, every keyword defensible ----------
-// LINE INTEGRITY (design.md § Rules common to every family): every row holds
+// LINE INTEGRITY (core.md § Rules common to every family): every row holds
 // ONE line. `Tools & DevOps` was one row that wrapped; it is two rows now —
 // more rows with fewer items each, which is the prescribed fix and costs the
 // page nothing (the wrapped line it replaces was already a second line).
@@ -167,7 +167,7 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // engraved-card ships `soft: None`: the engraved-card register is terse, and
 // an evidence-line soft-skills section is the one section a formal card would
 // not have carried. Dropping a section is a documented option of the label
-// system (design.md § Section labels), not a fill trick — but it is also what
+// system (core.md § Section labels), not a fill trick — but it is also what
 // buys this family its airy gabarit: with 2cm margins, eight sections of the
 // reference content do not hold one page and seven do (measured both ways).
 

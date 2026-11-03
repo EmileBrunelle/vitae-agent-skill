@@ -149,7 +149,7 @@ def gaps(path: str, thr: int = 150) -> tuple[int, list[int]]:
     2026-09-13 against the 30 rendered pages of the 29-deliverable corpus.
     Any future change to the sampling step, the crop (6-94% x 2-97%) or `thr`
     invalidates every number in verify.py's separation block and in
-    references/design.md § Invariants: re-measure the corpus before trusting
+    references/design/core.md § Invariants: re-measure the corpus before trusting
     them, and record the date and commit here as this note does.
     """
     h, white, _ = bands(path, thr)

@@ -33,9 +33,9 @@ three creative ones, hard-edge, avant-poster and gutter-rail): they get a second
 hue with its own named jobs, derived by the family's harmony rule and validated
 in the same draw — if hue B fails its contrast the whole palette is re-drawn, so
 an invalid pair can never be emitted. The other eight stay monochrome by design;
-see references/design.md § Duotone.
+see references/design/core.md § Duotone.
 
-The curated gamuts in references/design.md stay the defaults and the worked
+The curated gamuts in references/design/core.md stay the defaults and the worked
 examples; this generator extends past them when a candidate wants a hue that
 is not in the list. Invariants hold at every level of the dial: contrast
 validated on the real background, the accent keeps the role its family
@@ -93,7 +93,7 @@ EXCLUDE_HUE = (40, 70)
 # +180°/+62° off hue A with no say over where that lands; when it lands here
 # AND gets darkened to the sober contrast floor (L≈30) it stops being a red
 # and becomes a brown — R > G > B with B lowest — which is exactly where the
-# curated gutter-rail rows failed (see references/design.md § 14, "brown").
+# curated gutter-rail rows failed (see references/design/families/gutter-rail.md, "brown").
 # Unlike EXCLUDE_HUE this is not a redraw trigger: the fix is a hue ROTATION
 # (never a lightness cut — the low lightness is *why* it reads brown, cutting
 # it further only makes it worse), applied only to hue B, never hue A.
@@ -133,7 +133,7 @@ HARMONY: dict[str, str] = {
 # Six families now, not three: the three creative ones are duotone by
 # construction (a two-ink poster, a two-ink brutalist grid, and a chrome hue
 # against the one reserved live-state accent of a themed environment).
-# Each hue keeps at most 1-2 jobs (design.md § Tokens): with two hues the old
+# Each hue keeps at most 1-2 jobs (core.md § Tokens): with two hues the old
 # "one accent doing six jobs" trap applies per hue, not per document.
 DUOTONE: dict[str, tuple[str, str, str]] = {
     "color-band":     ("far-analogous", "the band + the heading bars",
@@ -230,7 +230,7 @@ def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
     """Deterministic per (family, seed, audacity). Rejects and re-draws until
     every role clears its threshold — the returned palette is always valid."""
     if family not in HARMONY:
-        raise SystemExit("unknown family %r (see references/design.md)" % family)
+        raise SystemExit("unknown family %r (see references/design/families/)" % family)
     if audacity not in DIAL:
         raise SystemExit("audacity must be one of %s" % ", ".join(DIAL))
     (smin, smax), (lmin, lmax) = DIAL[audacity]

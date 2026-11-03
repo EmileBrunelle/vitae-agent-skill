@@ -19,7 +19,7 @@
 #let dispf = bodyf
 
 // this family carries no generic icons by principle — the
-// platform marks are identifiers, not ornament (design.md).
+// platform marks are identifiers, not ornament (core.md).
 #let ic-col = dark
 #let mk = marks(ic-col)
 

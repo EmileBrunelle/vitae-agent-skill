@@ -1,5 +1,5 @@
 // FAMILY: gutter-rail — the themed developer environment, read in print
-// REGISTER: creative (never in the default pool — design.md § The creative
+// REGISTER: creative (never in the default pool — core.md § The creative
 // register: unlocked by a creative target field, by a SOFTWARE field plus an
 // explicit request, or by --creative; capped back out by a conservative
 // market).
@@ -17,12 +17,12 @@
 // re-derived per surface instead of inverted).
 //
 // NOT a screenshot of one editor or one distro: the non-recognition bar covers
-// products too (design.md § The final bar). No line numbers, no syntax
+// products too (core.md § The final bar). No line numbers, no syntax
 // colouring, no tab bar, no dark background — those are what make a page
 // identifiable as VS Code or as one rice.
 // ---------- Shared mechanics (templates/lib.typ) ----------
 #import "../../lib.typ": *
-// SUPPORT DE DESTINATION (design.md § The destination support): the PRINT-SAFE
+// SUPPORT DE DESTINATION (core.md § The destination support): the PRINT-SAFE
 // build below is the CANONICAL one and it is the one that ships — nobody
 // controls what a recipient does with a PDF, and a photocopier is the worst
 // case that has to survive. `screen: true` emits the screen-first build of the
@@ -44,7 +44,7 @@
 #let paper = if screen { rgb("#1b1d23") } else { white }
 #let accent = if screen { rgb("#7eb2c8") } else { rgb("#286983") }   // hue A — the CHROME: the gutter rails + the crumb marks
 #let accent2 = if screen { rgb("#d289ad") } else { rgb("#6a2f4d") }  // hue B — the LIVE STATE: the drawn marks + the dates
-// DUOTONE family (design.md § Duotone). The A→B pairs are validated together,
+// DUOTONE family (core.md § Duotone). The A→B pairs are validated together,
 // never mixed across rows. The role split is harvested, not invented: the
 // opinionated-rice configs reserve ONE accent, outside the theme system, for
 // active/live modules and leave every other surface on the chrome colour.

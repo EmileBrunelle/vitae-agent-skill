@@ -13,7 +13,7 @@
 //
 //   DEVICES DO NOT live here — section heading devices, header composition,
 //   glyphs, colour roles, the *shape* of the skills row, the fonts. Those are
-//   the property of each design family (references/design.md § Design
+//   the property of each design family (references/design/core.md § Design
 //   families). Mutualising them rebuilds the attractor this whole system
 //   exists to break: every CV out of the skill would look like the same CV.
 //   A primitive here therefore never chooses a colour, a size or a face — it
@@ -449,7 +449,7 @@
 // Contact icons drawn from Typst primitives — no external files, and they emit
 // NO text (verified in every family's extraction). Two styles, each belonging
 // to a family's register; a family may also carry NONE, which is itself the
-// style choice (references/design.md § Contact icons). Both take the colour as
+// style choice (references/design/core.md § Contact icons). Both take the colour as
 // a parameter: the icon colour is part of the family's accent budget.
 //
 // `icons-line(c)` — 0.9pt stroke, rounded. Returns (pin, tel, mail, web).

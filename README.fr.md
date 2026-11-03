@@ -41,9 +41,9 @@ Méthode éprouvée, distillée d'un vrai projet de CV de bout en bout ayant tra
 
 ## Familles de design
 
-Quatorze implémentations de référence, une par famille, se trouvent sous `templates/families/<name>/`, réparties en quatre catégories (neutre, classique, moderne, créatif). Les recettes complètes (dispositif de titre, composition de l'en-tête, polices, traitement des frontières) sont dans [`references/design.md`](references/design.md); les rendus pleine page des quatorze familles sont dans [GALLERY.md](GALLERY.md).
+Quatorze implémentations de référence, une par famille, se trouvent sous `templates/families/<name>/`, réparties en quatre catégories (neutre, classique, moderne, créatif). Les recettes complètes (dispositif de titre, composition de l'en-tête, polices, traitement des frontières) sont dans [`references/design/families/<name>.md`](references/design/families/) (règles communes dans [`references/design/core.md`](references/design/core.md)); les rendus pleine page des quatorze familles sont dans [GALLERY.md](GALLERY.md).
 
-Le registre `creative` (`hard-edge`, `avant-poster`, `gutter-rail`) n'est jamais tiré par défaut — voir la section « Design families » de `references/design.md`.
+Le registre `creative` (`hard-edge`, `avant-poster`, `gutter-rail`) n'est jamais tiré par défaut — voir la section « Design families » de `references/design/core.md`.
 
 [`templates/academic/**`](templates/academic) (le gabarit du mode CV académique) est **hors de cet étalonnage industriel** : les cibles de remplissage, les dispositifs de séparation des sections et la liste des quatorze familles ci-dessus décrivent uniquement les CV du secteur privé et ne disent rien des dossiers académiques.
 
@@ -100,7 +100,9 @@ SKILL.md                         # point d'entrée allégé : règles non négoc
 references/steps/                # corps des étapes 0-8 (N-<slug>.md + sous-fichiers tune/companions), lus au début de l'étape
 references/academic-mode.md      # workflow du mode CV académique (sorti de SKILL.md)
 references/known-traps.md        # pièges connus (sortis de SKILL.md)
-references/design.md             # système de design + boucle d'ajustement du remplissage de page
+references/design/core.md        # règles de design communes : invariants, tokens, primitives, boucle d'ajustement du remplissage
+references/design/families/      # une recette par famille de design (14), lue en entier pour la famille tirée
+references/icons.md              # provenance des icônes et ajout d'une marque
 references/ats.md                # règles d'analyse + commandes de vérification
 references/workday.md            # Workday : comportement mesuré + version d'analyse seule
 references/regional.md           # routeur régional : règles universelles + matrice

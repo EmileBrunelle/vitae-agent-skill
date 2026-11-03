@@ -1,5 +1,5 @@
 // vitae template — fill the data, keep the system.
-// Design rules: references/design.md · ATS rules: references/ats.md
+// Design rules: references/design/core.md · ATS rules: references/ats.md
 // Verify after EVERY edit: scripts/verify.sh resume.typ 1 94 96
 
 // ---------- Shared mechanics (templates/lib.typ) ----------
@@ -12,7 +12,7 @@
 //
 // The DEVICES below — the heading device, the header composition, the skills
 // shape, the accent role — are deliberately NOT in the lib: they belong to the
-// design FAMILY the recipe draws (references/design.md § Design families).
+// design FAMILY the recipe draws (references/design/families/<family>.md).
 // What this template ships is a placeholder that belongs to no family, and
 // shipping it as-is is the defect the whole system exists to prevent.
 //
@@ -29,7 +29,7 @@
 #let muted = pal.ink
 #let dark = pal.dark
 
-#let ic-col = muted        // the family decides this colour (design.md)
+#let ic-col = muted        // the family decides this colour (core.md)
 #let mk = marks(ic-col)    // email · LinkedIn · GitHub · site, in every family
 
 // Paper: "us-letter" (Canada/USA) or "a4" (most of the rest) — see regional.md
@@ -79,7 +79,7 @@
 
 // ---------- Header (centered; platform marks only, no generic icons) ----------
 // The marks are vector and emit no text; the readable URL beside each one is
-// what an ATS reads. Colour them per the chosen family (design.md § Contact icons).
+// what an ATS reads. Colour them per the chosen family (core.md § Contact icons).
 #align(center)[
   #text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
     size: 23pt, weight: "bold")[Firstname Lastname]

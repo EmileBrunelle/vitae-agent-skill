@@ -86,4 +86,4 @@ Themed developer environment: a gutter rail runs down the margin, UI grotesque +
 
 ![gutter-rail](assets/families/gutter-rail.png)
 
-The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in `references/design.md`.
+The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in `references/design/core.md`.
