@@ -148,7 +148,7 @@ from verify_lang import (  # noqa: E402 -- language data: edit verify_lang.py to
 from verify_lang import (
     _detect_lang as _detect_lang,
 )
-from verify_level import Level  # noqa: E402
+from verify_level import Finding, Level  # noqa: E402
 from verify_page import (  # noqa: E402 -- page geometry and pixel measurement: pixels and boxes in, numbers out
     BOUNDARY_RATIO,
     CROP_CAP,
@@ -202,7 +202,6 @@ Word = tuple[float, float, float, float, str]      # x0, y0, x1, y1, text
 Band = tuple[int, int]                             # first, last pixel row of a run
 LineBox = list[float]                              # [x0, x1, y0, y1] of one text line
 GapFn = Callable[[int, LineBox, LineBox], float]   # optical gap (pt) between two lines
-Finding = tuple[Level, str]                        # one gate line: level, message
 # One extracted word of the hidden-text gate: page, word, box, box height (pt),
 # contrast against its own background (None: no raster), off the page.
 HiddenStat = tuple[int, str, Box, float, float | None, bool]

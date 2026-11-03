@@ -17,14 +17,7 @@ from collections import Counter
 from collections.abc import Sequence
 from enum import StrEnum
 
-from verify_level import Level
-
-# Finding repeats verify.py's definition of the same name, written out structurally, because verify.py cannot
-# be imported here: it runs as __main__, so `import verify` would execute that script a second time under the
-# name `verify`. Level lives in verify_level.py (no verify import) and is shared. Keep the (level, message)
-# tuple in sync by hand.
-Finding = tuple[Level, str]
-
+from verify_level import Finding, Level
 
 # A family that EXISTS but lacks the glyphs (fontsource's `*-latin-ext-*` files carry the
 # family name and no basic Latin and shadow the `*-latin-*` ones) draws the text in whatever
