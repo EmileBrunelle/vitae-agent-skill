@@ -28,8 +28,9 @@ from verify_level import Finding, Level
 # fell back, or when more than FONT_FALLBACK_SHARE of the Latin letters and digits did. WARN for
 # accented letters and punctuation, other scripts, and Latin text in a later bundled member of
 # the font tuple; INFO for symbols and emoji (see classify_font_fallback).
-# Calibration of the gate (CHANGELOG, font-fallback entry): zero FAIL and zero WARN on all shipped
-# templates and on the 57 past run outputs that compile.
+# Calibration of the gate (CHANGELOG 0.7.6, font-fallback entry): zero FAIL and zero WARN on all
+# shipped templates and on the 57 past run outputs that compile. 5% allows a handful of accented
+# loanwords or proper names (WARN) while failing wholesale Latin fallback.
 FONT_FALLBACK_SHARE = 0.05
 # What Typst draws with when the sources name no font; used as the request in that case.
 TYPST_DEFAULT_FAMILIES = ("Libertinus Serif", "New Computer Modern", "DejaVu Sans Mono")   # PDF: LibertinusSerif, NewCM10, DejaVuSansMono
@@ -71,7 +72,7 @@ def _font_sources(typ: str, root: str | None = None, seen: set[str] | None = Non
     when one is given; `seen` breaks import cycles."""
     seen = set() if seen is None else seen
     path = os.path.realpath(typ)
-    if path in seen or len(seen) > 20:
+    if path in seen or len(seen) > 20:  # recursion guard against deep/generated import chains (a CV imports 1-2 files)
         return ""
     seen.add(path)
     try:
@@ -92,7 +93,7 @@ def _font_value(src: str, pos: int) -> str:
     pos = m.end() if m else pos
     if src.startswith("(", pos):
         depth = 0
-        for k in range(pos, min(len(src), pos + 600)):
+        for k in range(pos, min(len(src), pos + 600)):  # 600 chars caps scanning on an unclosed '(' (a font tuple is <150 chars)
             depth += src[k] == "("
             depth -= src[k] == ")"
             if depth == 0:
@@ -117,6 +118,7 @@ def requested_families(src: str, firsts: set[str] | None = None) -> set[str]:
     seen: set[str] = set()
 
     def take(value: str, is_first: bool = True) -> None:
+        # {2,60}: family names are 2-60 chars; skips 1-char literals (separators/bullets) and long prose strings.
         for n, (lit, ident) in enumerate(re.findall(r'"([^"\\]{2,60})"|([A-Za-z_][\w-]*)', value)):
             lead = is_first and n == 0
             if lit:

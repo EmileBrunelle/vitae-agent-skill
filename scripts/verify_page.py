@@ -69,7 +69,7 @@ BOUNDARY_RATIO = 2.0
 # device from the residue text leaves after its own word boxes are
 # subtracted, which is a much smaller gap to clear.
 FURNITURE_FLOOR = 0.02
-FURNITURE_PPI = 90                       # raster resolution of the furniture scan
+FURNITURE_PPI = 90                       # raster resolution of the furniture scan (matches render_pngs' 90 ppi fill scan)
 FURNITURE_SCALE = FURNITURE_PPI / 72.0   # pdftotext boxes are in PDF points
 FURNITURE_PAD = 1.0                      # pt padding so antialiasing at a
                                          # glyph's edge doesn't read as ink
@@ -116,7 +116,7 @@ def furniture_ink(png: str, boxes: Sequence[Box] | None) -> list[Band]:
         for gs, ge in gaps:
             run = 0
             for x in range(gs, ge):
-                if px[x, y] < 200:
+                if px[x, y] < 200:       # <200 luma on 0..255: catches pale `soft` hairlines (luma ~180) while ignoring paper (255)
                     run += 1
                     best = max(best, run)
                 else:
@@ -320,6 +320,7 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
         box = (max(0, x0 * 3 - e), max(0, y0 * 3 - e), min(w, x1 * 3 + 3 + e), min(h, y1 * 3 + 3 + e))
         if box[2] - box[0] >= CROP_FILL_MIN_IN[0] * k and box[3] - box[1] >= CROP_FILL_MIN_IN[1] * k:
             area = (box[2] - box[0]) * (box[3] - box[1])
+            # >=80% of both page dimensions: page-spanning candidate tested against CROP_FRAME_FILL
             if box[2] - box[0] >= 0.8 * w and box[3] - box[1] >= 0.8 * h and \
                     sum(1 for v in solid.crop(box).tobytes() if v) < CROP_FRAME_FILL * area:
                 continue        # a frame stroked around the page, not a fill
@@ -384,9 +385,9 @@ def crop_bands(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, 
 
 
 # Constants of the ink-gap measurement (the x-height band of each text line, in verify.py's _page_ink_gap).
-INK_DPI = 300
-INK_DELTA = 60          # a pixel counts as ink when it differs this much from the background
-RULE_PT = 10.0          # an ink run this long in one pixel row is a rule / band / underline, not glyphs
+INK_DPI = 300           # ~42 px per 10pt line: enough vertical rows to separate x-height from ascenders/descenders
+INK_DELTA = 60          # luma delta vs background: ignores faint antialiasing fringe, keeps body/muted/accent ink
+RULE_PT = 10.0          # >=10pt (~1em) contiguous horizontal run in one row is a rule/underline/em-dash, not a glyph stem
 
 
 def _row_stats(data: bytes, w: int, r: int, tbl: bytes) -> tuple[int, int]:
@@ -410,8 +411,8 @@ def _xheight_band(prof: list[int]) -> tuple[int, int] | None:
     nz = sorted(v for v in prof if v > 0)
     if not nz:
         return None
-    peak = nz[int(0.9 * (len(nz) - 1))]          # robust: one hairline row must not set the level
-    lvl = 0.5 * peak
+    peak = nz[int(0.9 * (len(nz) - 1))]          # 90th-percentile inked row: one dense serif/underline row cannot set the peak
+    lvl = 0.5 * peak                             # half-peak threshold: x-height rows stay above it, sparse ascender/descender rows fall below
     bi: tuple[int, int] | None
     best, cur, start, bi = 0.0, 0.0, 0, None
     for i, v in enumerate(prof):

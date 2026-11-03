@@ -107,8 +107,10 @@ SECTION_DEFS: list[tuple[str, tuple[str, ...], tuple[str, ...] | None, bool]] = 
 NONDATED_HEADINGS = {"REFERENCES", "AFFILIATIONS AND LANGUAGES"}
 EXTRA_HEADINGS = ("AFFILIATIONS AND LANGUAGES",)  # heading with no counts table at all
 
+# Matches lib-academic.typ's running footer (`n / N` on its own line) for check E.
 FOOTER_RE = re.compile(r'^\s*(\d+)\s*/\s*(\d+)\s*$')
-# Words that open an UNDATED entry (an item without a year): EN, FR, ES, DE, IT, PT, NL.
+# Words that open an UNDATED entry (an item without a year, academic-mode.md §3.2 B):
+# EN, FR, ES, DE, IT, PT, NL equivalents of submitted / forthcoming / in press / in preparation.
 STATUS_WORDS = ("submitted|forthcoming|in press|in preparation"
                 "|soumis(?:e|es|s)?|à paraître|sous presse|en préparation"
                 "|en prensa|enviad[oa]s?|aceptad[oa]s?|en preparación"
@@ -117,6 +119,7 @@ STATUS_WORDS = ("submitted|forthcoming|in press|in preparation"
                 "|submetid[oa]s?|no prelo|em preparação"
                 "|ingediend|in druk|in voorbereiding")
 ENTRY_START_RE = re.compile(r'^(\d{4}(-\d{4})?|%s)\b' % STATUS_WORDS, re.I)
+# Matches reverse-numbered publication labels `[N]` in check A, and 4-digit years in parse_span.
 NUM_RE = re.compile(r'\[(\d+)\]')
 YEAR_RE = re.compile(r'\d{4}')
 
@@ -329,7 +332,7 @@ def check_no_straddle(pages_lines: list[list[str]],
         stripped = first.strip()
         ok = (stripped in headings_set
               or ((not first.startswith(" ")) and bool(ENTRY_START_RE.match(stripped))))
-        results.append(("D", ok, f'page {pi + 1} first content line: "{stripped[:60]}"'))
+        results.append(("D", ok, f'page {pi + 1} first content line: "{stripped[:60]}"'))  # [:60] keeps one-line diagnostic output
     return results
 
 

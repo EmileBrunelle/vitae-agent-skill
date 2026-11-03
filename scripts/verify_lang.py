@@ -218,6 +218,8 @@ def _detect_lang(text: str) -> tuple[str | None, str]:
     scripts = Counter(_script_name(c) for c in letters)
     if letters:
         top, n = max(((k, v) for k, v in scripts.items() if k != "LATIN"), key=lambda kv: kv[1], default=("", 0))
+        # >=8 non-Latin letters and >=50% of all letters: a math symbol (π, Δ) or one foreign proper
+        # name inside a Latin CV stays Latin; a real Cyrillic/Greek/CJK/Arabic text clears both.
         if n >= 8 and n * 2 >= len(letters):
             return "other", _SCRIPT_LABELS.get(top, top.title() + " script")
     words = re.findall(r"[^\W\d_]+", text.lower())
@@ -225,13 +227,18 @@ def _detect_lang(text: str) -> tuple[str | None, str]:
     fr = sum(w in _FR_STOP for w in words)
     oc = {k: sum(w in v for w in words) for k, v in _OTHER_STOP.items()}
     best, bc = max(oc.items(), key=lambda kv: kv[1])
-    # another language wins when it has 3+ words of its own and EN/FR have no more words that it does NOT share
+    # another language wins when it has 3+ stop words of its own (a lone "van" or "von" in a name
+    # is 1-2) and EN/FR have no more stop words that it does NOT share (e.g. Spanish "de la en")
     en_only = sum(w in _EN_STOP and w not in _OTHER_SHARED[best] for w in words)
     fr_only = sum(w in _FR_STOP and w not in _OTHER_SHARED[best] for w in words)
     if bc >= 3 and bc >= max(en_only, fr_only):
         return best, _LANG_NAMES[best]
+    # <3% stop words across all 7 tables on >=40 words: prose in a Latin-script language outside
+    # the 7 (e.g. Polish, Turkish, Finnish); shorter snippets stay None so callers do not guess.
     if en + fr + sum(oc.values()) < 0.03 * len(words) and len(words) >= 40:
         return "other", "an unrecognised language"
+    # <8 EN+FR stop words or <2:1 ratio: snippet too short or bilingual (Montréal school/org names
+    # in an EN CV, EN tech terms in a FR CV) — return None so same-language coverage still runs.
     if en + fr < 8:
         return None, ""
     if en >= 2 * fr:
