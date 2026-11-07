@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.9.1 - 2026-11-07
 
 - `verify.py`: the under-filled exit names the exact command instead of "a lower fill target": the tune UNDER-FILLED message and NEXT line give `verify.py cv.typ PAGES FILL_MIN FILL_MAX` (FILL_MIN = the lowest fill the gate prints, not below `LOWERED_FILL_FLOOR`), and the gate prints one NEXT line after its fill FAILs (lowest page decides; none below the floor, where it says a fact is missing) so it no longer sends the model back to `--tune` after UNDER-FILLED. `LOWERED_FILL_FLOOR` moves above the footers. The restored-original fill is not added to the tune FAIL: `--tune` never measures the original, so it would cost an extra compile.
 - `verify.py --tune`: the upward leading cap is now `LEADING_WARN` (1.00em) instead of `LEADING_CAP` (1.10em, constant removed), so a tuned file never trips the gate's own DOUBLE-SPACED WARN; a file already above 1.00em is not forced down.
