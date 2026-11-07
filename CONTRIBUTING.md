@@ -4,7 +4,7 @@ Thanks for helping. This project is bilingual (English and French).
 
 ## Language
 
-Issues, PR descriptions and review comments can be written in English or French. Files in the repository (`SKILL.md`, references, code, comments, commit messages) stay in English, except `README.fr.md`.
+Issues, PR descriptions and review comments can be written in English or French. Files in the repository ([`SKILL.md`](SKILL.md), references, code, comments, commit messages) stay in English, except [`README.fr.md`](README.fr.md).
 
 ## What helps most
 
@@ -42,10 +42,10 @@ Python scripts must type-check with mypy (config in `mypy.ini`, run `python3 -m 
 
 ## Where to edit
 
-`SKILL.md` is a slim entry point and `tests/run_all.sh` fails above 13000 bytes. Add or change step detail in `references/steps/N-<slug>.md` (academic mode in `references/academic-mode.md`, traps in `references/known-traps.md`); keep `SKILL.md` to the rules and the per-step skeleton. Every `references/`, `scripts/` or `templates/` path cited must exist (also gated).
+[`SKILL.md`](SKILL.md) is a slim entry point and `tests/run_all.sh` fails above 13000 bytes. Add or change step detail in `references/steps/N-<slug>.md` (academic mode in [`references/academic-mode.md`](references/academic-mode.md), traps in [`references/known-traps.md`](references/known-traps.md)); keep `SKILL.md` to the rules and the per-step skeleton. Every `references/`, `scripts/` or `templates/` path cited must exist (also gated).
 
 - Markdown prose is not hard-wrapped: one paragraph or list item per line.
 
 ## Version bump
 
-A user-visible change bumps all three together: `version:` in `SKILL.md`, the README badges (`assets/badges/status-beta.svg` and `statut-beta.svg`, regenerated from shields.io), and a [`CHANGELOG.md`](CHANGELOG.md) entry.
+A user-visible change bumps all three together: `version:` in [`SKILL.md`](SKILL.md), the README badges (`assets/badges/status-beta.svg` and `statut-beta.svg`, regenerated from shields.io), and a [`CHANGELOG.md`](CHANGELOG.md) entry.

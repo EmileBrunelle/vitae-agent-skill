@@ -11,4 +11,4 @@ Paper: us-letter. Photo on CV: never. Age/marital status: never.
 - USA: "engineer" generally unregulated for software; PE licensure applies in traditional engineering fields.
 
 ## Québec
-- TARGET market is Québec (Québec employer or posting; a Québec address alone does not make it the target): also read `references/regional/quebec.md` — French verb style, academic calendars, CPI, OQLF month forms, protected titles, foreign diplomas. Candidate who holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: also read `references/regional/quebec-outbound.md`.
+- TARGET market is Québec (Québec employer or posting; a Québec address alone does not make it the target): also read [`references/regional/quebec.md`](quebec.md) — French verb style, academic calendars, CPI, OQLF month forms, protected titles, foreign diplomas. Candidate who holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: also read [`references/regional/quebec-outbound.md`](quebec-outbound.md).

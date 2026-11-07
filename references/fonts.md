@@ -138,4 +138,4 @@ Documented exemption to the pools' "at least one local member per role" rule: **
 
 ## Adding a face to a pool
 
-Vet it first — `references/design/core.md` § Font pools has the checklist (licence, figure sets, weight coverage, no over-used display defaults, extraction behaviour). Then add it to `FONTS` in `scripts/pick_design.py`, which is the only list; adding it here as well would create a second list that drifts. This file documents *provenance and installation*, never which family may use what.
+Vet it first — [`references/design/core.md`](design/core.md) § Font pools has the checklist (licence, figure sets, weight coverage, no over-used display defaults, extraction behaviour). Then add it to `FONTS` in `scripts/pick_design.py`, which is the only list; adding it here as well would create a second list that drifts. This file documents *provenance and installation*, never which family may use what.

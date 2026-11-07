@@ -58,7 +58,7 @@ Order below is the research-track default, most common in North America. Mandato
 - References often appear on the CV itself or on a separate page — the reverse of the European norm.
 - Research statement / teaching statement / diversity statement are **separate documents**, out of scope for the CV.
 
-**Not covered:** UK, DACH, and the rest of the world. Do not invent — the same rule `regional.md` already states applies here: if the market has no file, verify with a current source or ask, and label the assumption in the deliverable.
+**Not covered:** UK, DACH, and the rest of the world. Do not invent — the same rule [`regional.md`](regional.md) already states applies here: if the market has no file, verify with a current source or ask, and label the assumption in the deliverable.
 
 ## Funding agency formats: firm recommendation — do not target them
 

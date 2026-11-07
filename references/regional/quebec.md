@@ -1,6 +1,6 @@
 # Market: Québec (Canada)
 
-Loaded on demand, in addition to `north-america.md`, only when the TARGET market is Québec (a Québec employer or posting). A Québec address alone does not make Québec the target: the target market wins. The Canada-wide and USA rules stay in `north-america.md`. For a candidate with Québec credentials targeting another market, read `quebec-outbound.md` instead, plus only this file's "Protected titles" section.
+Loaded on demand, in addition to [`north-america.md`](north-america.md), only when the TARGET market is Québec (a Québec employer or posting). A Québec address alone does not make Québec the target: the target market wins. The Canada-wide and USA rules stay in `north-america.md`. For a candidate with Québec credentials targeting another market, read [`quebec-outbound.md`](quebec-outbound.md) instead, plus only this file's "Protected titles" section.
 
 ## Length and verbs
 - Québec French: infinitive action verbs (« Concevoir… », « Livrer… ») — a convention taught by university career services, not a provincial norm; noun-phrase style is equally accepted — don't present it to the user as "the Québec convention". Months lowercase (janv., août); « Juin 2026 – présent », never « Depuis juin 2026 » (not ATS-parseable).
@@ -23,18 +23,18 @@ Loaded on demand, in addition to `north-america.md`, only when the TARGET market
 - Regulated professions: the order decides, through its own procedure; the MIFI evaluation does not replace it, and no reserved title may be used before the permit (see Protected titles).
 
 ## ATS notes
-- **Québec DEC / DEP** survive better from a French CV (`DEC, Informatique de Gestion`): this is about keyword matching, not abbreviation style. English-CV renderings: `quebec-outbound.md`.
+- **Québec DEC / DEP** survive better from a French CV (`DEC, Informatique de Gestion`): this is about keyword matching, not abbreviation style. English-CV renderings: [`quebec-outbound.md`](quebec-outbound.md).
 
 ## Diploma names and abbreviations (OQLF)
 - Default to full diploma names: « Évitez les sigles… BACC OU DÉC. Écrivez plutôt Baccalauréat ou Diplôme d'études collégiales. » (UQAM guide, https://cgc.esg.uqam.ca/wp-content/uploads/sites/104/Guide-Le_CV_et_la_lettre_de_pr%C3%A9sentation.pdf). The OQLF forms below are acceptable when space is tight; never « BACC » / « DÉC ». In running text, diploma names are written out in lowercase (« un baccalauréat en informatique »). OQLF generic abbreviations: B., M., D., C., L., dipl.; points and a (non-breaking) space between elements, with accents: B. Sc., M. Sc., B. Éd., B. Ing., M. Ing.; sigles without spaces or accents: DEC (or D.E.C.), DEP, AEC, DES; Latin forms: LL. B., Ph. D., M.D.; M.B.A. or MBA admitted. Institution names are proper nouns (« Université Laval »). Source: OQLF BDL, https://vitrinelinguistique.oqlf.gouv.qc.ca/21114/ (2018).
 
 ## Education cases (Québec)
-Generic principles: `references/education-cases.md`; this section holds the Québec wording, sources and examples.
+Generic principles: [`references/education-cases.md`](../education-cases.md); this section holds the Québec wording, sources and examples.
 
 ### Degree in progress
 - Expected date in French: « Baccalauréat en sciences comptables | obtention en mai 2027 » — UQAM ESG career centre: « Ceci informera rapidement l'employeur que vous n'avez pas terminé vos études. » (https://cgc.esg.uqam.ca/wp-content/uploads/sites/104/Guide-Le_CV_et_la_lettre_de_pr%C3%A9sentation.pdf).
 - Put it first in the section: « Commencer par le diplôme le plus récent ou en cours. » (Université Laval SDP, https://www.sdp.ulaval.ca/emplois-stages/Documents/canevas/GrilleElaborationCV.pdf).
-- Workday's « Present » rule in `workday.md` is about jobs, not degrees.
+- Workday's « Present » rule in [`workday.md`](../workday.md) is about jobs, not degrees.
 
 ### Studies stopped without the diploma
 - Wording: « Si le diplôme n'est pas complété, indiquer « Études au baccalauréat en… » ou « Études universitaires en… ». Si pertinent, ajouter entre parenthèses le nombre de crédits obtenus (ex. : 45/90 crédits). » (Université Laval SDP, same PDF).

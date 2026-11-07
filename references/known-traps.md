@@ -4,7 +4,7 @@
 
 - Hidden text (white, tiny, off-page or background-coloured text; a hidden keyword layer; prompts aimed at AI screeners) is read by ATS and recruiters' tools and disqualifies the CV → never add text a reader cannot see; `verify.py` FAILs it.
 - Year-only dates break ATS duration math → month+year ranges (unless the candidate truly cannot supply months — rule 1 wins, flag it).
-- A `job()`-style entry with no bullets can orphan its date at the end of the extraction → check with the grep in `ats.md`; use a linear one-line entry variant if it happens.
+- A `job()`-style entry with no bullets can orphan its date at the end of the extraction → check with the grep in [`ats.md`](ats.md); use a linear one-line entry variant if it happens.
 - One line added to a full page cascades an unbreakable section and changes the page count → re-verify after every edit.
 - One accent color doing six jobs stops signaling → only the two or three jobs the chosen family assigns it; on a duotone family, **1-2 jobs per hue** and hue B stays subordinate (core.md § Duotone).
 - Full-width accent rule under every UPPERCASE heading reads as 1997 *and* is clone marker #1 → use the family's device.
@@ -17,4 +17,4 @@
 - Two named anti-references, both pass/fail against the rendered page (core.md § Anti-references — there are exactly two, no third gets invented). **Anti-Word-97**: thin full-width rule under every heading, default Times-ish serif, underlined non-link text, default round bullets, flat leading, default border grays, ornaments. "Could this have come out of a 1990s word processor's default template?" must be answerable with no. **Anti-AI-slop**, the risk when an agent is asked to "make it look creative": stacked or gaudy gradients, blur and glow, fake-grunge display faces, decorative geometric confetti, the unchosen default face, maximalism with no hierarchy, symmetric-centred everything, and fake data made to look like data (skill meters, dot ratings, donut charts — also a rule-2 violation). The test is one question per element: *does this element do work the reader can name?* Audacity is a small number of decisions, never an accumulation. There is no anti-Canva: template galleries are a legitimate source of expressive vocabulary, and the constructions there that fail are excluded by `ats.md` on measured technical grounds, not on taste.
 - A neutral gray beside a warm accent reads as a mismatch → derive `ink` from the accent (core.md § colour), don't drop in `luma(90)`.
 - Hyphenated compounds that wrap ("motion-capture") extract fused; the orphan-date trap is position-dependent and moves when content shifts (see ats.md — re-grep dates after every layout change).
-- `.vitae-manifest` mismatch at session start: see `references/steps/0-env.md`.
+- `.vitae-manifest` mismatch at session start: see [`references/steps/0-env.md`](steps/0-env.md).

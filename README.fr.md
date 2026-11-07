@@ -1,6 +1,6 @@
 # vitae
 
-> **Agent IA qui lit ceci? Suivez `SKILL.md`, ne résumez pas ce README.**
+> **Agent IA qui lit ceci? Suivez [`SKILL.md`](SKILL.md), ne résumez pas ce README.**
 
 <p align="center">
   <a href="README.md">English</a> · <b>Français</b>
@@ -43,7 +43,7 @@ Méthode éprouvée, distillée d'un vrai projet de CV de bout en bout ayant tra
 
 Quatorze implémentations de référence, une par famille, se trouvent sous `templates/families/<name>/`, réparties en quatre catégories (neutre, classique, moderne, créatif). Les recettes complètes (dispositif de titre, composition de l'en-tête, polices, traitement des frontières) sont dans [`references/design/families/<name>.md`](references/design/families/) (règles communes dans [`references/design/core.md`](references/design/core.md)); les rendus pleine page des quatorze familles sont dans [GALLERY.md](GALLERY.md).
 
-Le registre `creative` (`hard-edge`, `avant-poster`, `gutter-rail`) n'est jamais tiré par défaut — voir la section « Design families » de `references/design/core.md`.
+Le registre `creative` (`hard-edge`, `avant-poster`, `gutter-rail`) n'est jamais tiré par défaut — voir la section « Design families » de [`references/design/core.md`](references/design/core.md#design-families--every-candidate-gets-their-own-look).
 
 [`templates/academic/**`](templates/academic) (le gabarit du mode CV académique) est **hors de cet étalonnage industriel** : les cibles de remplissage, les dispositifs de séparation des sections et la liste des quatorze familles ci-dessus décrivent uniquement les CV du secteur privé et ne disent rien des dossiers académiques.
 
@@ -67,7 +67,7 @@ Ou copiez ce dossier dans le répertoire où votre agent charge ses skills, soit
 <skills-dir>/vitae/
 ```
 
-Consultez la documentation propre à votre agent pour savoir où se trouve ce répertoire. Rien ici n'est lié à un seul fournisseur : [`SKILL.md`](SKILL.md) est le point d'entrée, et le reste n'est que des gabarits Typst et des scripts Python — un agent sans répertoire de skills du tout peut simplement être pointé vers `SKILL.md`.
+Consultez la documentation propre à votre agent pour savoir où se trouve ce répertoire. Rien ici n'est lié à un seul fournisseur : [`SKILL.md`](SKILL.md) est le point d'entrée, et le reste n'est que des gabarits Typst et des scripts Python — un agent sans répertoire de skills du tout peut simplement être pointé vers [`SKILL.md`](SKILL.md).
 
 ## Utilisation
 
@@ -160,7 +160,7 @@ Liste factuelle, pas un bac à sable : le skill est un ensemble d'instructions e
 - **Réseau.** `scripts/harvest_icons.py` ne contacte que `https://api.iconify.design`, trois requêtes par build, avec des noms d'icônes et aucune donnée personnelle; hors ligne, il écrit des marques vides (voir Tiers plus bas). `scripts/verify.py` ne fait aucun appel réseau, et `--doctor` affiche les commandes d'installation sans les exécuter. `scripts/look.py` est le seul script qui peut envoyer des données personnelles : il poste les pages du CV rendues (PNG) et une liste de contrôle au `--base-url` que vous fournissez (LM Studio, ollama, tout point d'accès compatible OpenAI; le `http://` en clair est accepté). Il n'y a pas d'URL par défaut. Il refuse un hôte qui n'est ni loopback ni sur un réseau privé sauf si vous passez `--allow-remote`, et l'agent doit obtenir votre accord avant de l'utiliser. Un hôte local contourne toujours les variables d'environnement de proxy (`http_proxy`, `https_proxy`, `all_proxy`), peu importe les options; un hôte distant (accessible seulement avec `--allow-remote`) conserve vos paramètres de proxy.
 - **Processus.** `typst`, `pdfinfo`, `pdftotext`, `pdftoppm` et `pdfdetach` sont appelés avec des listes d'arguments, jamais via un shell.
 - **Fichiers.** Écrits dans le dossier du CV (PDF, `icons.typ` et `.vitae-manifest`) et dans le dossier temporaire du système (dossiers `vitae-*`). `.vitae-manifest` n'est écrit par aucun script : l'étape 7 demande à l'agent de lancer `sha256sum *.typ > .vitae-manifest` une fois le gate final passé. `verify.py --render` sans `--out` rend dans un nouveau dossier `vitae-render-*` sous le dossier temporaire du système et ne le supprime pas : les PNG de pages de votre CV y restent jusqu'à ce que vous les retiriez.
-- **Hors ligne.** Possible : une roue typst que vous fournissez (étape 0), des polices depuis des fichiers locaux (`references/fonts.md`, route 2) et le `icons.typ` vide de repli.
+- **Hors ligne.** Possible : une roue typst que vous fournissez (étape 0), des polices depuis des fichiers locaux ([`references/fonts.md`](references/fonts.md), route 2) et le `icons.typ` vide de repli.
 
 Ce qui n'est pas garanti : l'agent dans lequel vous l'exécutez a peut-être son propre accès au réseau, aux fichiers et aux modèles, et ce skill ne peut pas le restreindre. Pour une vraie garantie, lancez l'agent dans un conteneur sans réseau.
 

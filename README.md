@@ -43,7 +43,7 @@ Battle-tested method distilled from a real end-to-end résumé project that went
 
 Fourteen reference implementations, one per family, live under `templates/families/<name>/`, across four categories (neutral, classic, modern, creative). Full recipes (heading device, header composition, fonts, boundary treatment) are in [`references/design/families/<name>.md`](references/design/families/) (shared rules in [`references/design/core.md`](references/design/core.md)); full-page renders of all fourteen are in [GALLERY.md](GALLERY.md).
 
-The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in `references/design/core.md`.
+The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in [`references/design/core.md`](references/design/core.md#design-families--every-candidate-gets-their-own-look).
 
 [`templates/academic/**`](templates/academic) (the academic-CV mode's gabarit) is **out of this industry calibration**: the fill targets, section-separation devices, and the fourteen-family roster above describe industry résumés only and say nothing about academic dossiers.
 
@@ -67,7 +67,7 @@ Or copy this folder into the directory your agent loads skills from, either user
 <skills-dir>/vitae/
 ```
 
-Consult your agent's own documentation for where that directory is. Nothing here is tied to one vendor: [`SKILL.md`](SKILL.md) is the entry point and the rest is Typst templates plus Python scripts, so an agent with no skills directory at all can simply be pointed at `SKILL.md`.
+Consult your agent's own documentation for where that directory is. Nothing here is tied to one vendor: [`SKILL.md`](SKILL.md) is the entry point and the rest is Typst templates plus Python scripts, so an agent with no skills directory at all can simply be pointed at [`SKILL.md`](SKILL.md).
 
 ## Usage
 
@@ -161,7 +161,7 @@ This is a factual list, not a sandbox: the skill is instructions plus Python scr
 - **Network.** `scripts/harvest_icons.py` contacts only `https://api.iconify.design`, three requests per build, carrying icon names and no personal data; offline it writes empty marks (see Third-party below). `scripts/verify.py` makes no network call, and `--doctor` prints install commands without running them. `scripts/look.py` is the one script that can send personal data: it posts the rendered CV pages (PNG) and a checklist to the `--base-url` you give it (LM Studio, ollama, any OpenAI-compatible endpoint; plain `http://` is accepted). There is no default URL. It refuses a host that is not loopback or private-network unless you pass `--allow-remote`, and the agent must ask for your agreement before using it. Local hosts always bypass proxy environment variables (`http_proxy`, `https_proxy`, `all_proxy`), whatever the flags; a remote host (only reachable with `--allow-remote`) keeps your proxy settings.
 - **Processes.** `typst`, `pdfinfo`, `pdftotext`, `pdftoppm` and `pdfdetach` are called with argument lists, never through a shell.
 - **Files.** Written in the CV folder (PDFs, `icons.typ`, and `.vitae-manifest`) and in the system temp directory (`vitae-*` folders). `.vitae-manifest` is not written by any script: step 7 instructs the agent to run `sha256sum *.typ > .vitae-manifest` once the final gate passes. `verify.py --render` without `--out` renders into a new `vitae-render-*` folder under the system temp directory and does not delete it, so page PNGs of your CV stay there until you remove them.
-- **Offline.** Possible: a typst wheel you supply (step 0), fonts from local files (`references/fonts.md`, route 2), and the empty fallback `icons.typ`.
+- **Offline.** Possible: a typst wheel you supply (step 0), fonts from local files ([`references/fonts.md`](references/fonts.md), route 2), and the empty fallback `icons.typ`.
 
 What is not guaranteed: the agent you run it in may have its own network, file and model access, and this skill cannot restrict it. For a real guarantee, run the agent in a container with no network.
 

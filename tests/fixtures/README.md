@@ -1,6 +1,6 @@
 # Regression fixtures — not templates
 
-AGENT: if you are building a CV, you do not need anything in this folder. Start from `scripts/pick_design.py --init` (see `SKILL.md`); the real templates are in `templates/families/`.
+AGENT: if you are building a CV, you do not need anything in this folder. Start from `scripts/pick_design.py --init` (see [`SKILL.md`](../../SKILL.md)); the real templates are in `templates/families/`.
 
 These 14 files (one per design family) are a neutral multi-entry body used to check that spacing and the `verify.py` gates hold across every family.
 

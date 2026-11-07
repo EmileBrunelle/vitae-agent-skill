@@ -1,6 +1,6 @@
 # Education cases
 
-Loaded on demand at step 4 when the candidate's education includes a degree in progress, studies stopped without the diploma, a transfer or program change, credit recognition, or non-degree intensive training (bootcamp). Never read otherwise. When the target market is Québec, Québec wordings and credentials (DEC-BAC, AEC) are in `regional/quebec.md`, section Education cases.
+Loaded on demand at step 4 when the candidate's education includes a degree in progress, studies stopped without the diploma, a transfer or program change, credit recognition, or non-degree intensive training (bootcamp). Never read otherwise. When the target market is Québec, Québec wordings and credentials (DEC-BAC, AEC) are in [`regional/quebec.md`](regional/quebec.md#education-cases-québec), section Education cases.
 
 Universal rule: the CV never implies a diploma the candidate does not hold. Write what was earned, where, and when; let durations and credit counts carry the weight. A diploma name is the institution's exact name (from the transcript or the program page), never a paraphrase or an upgrade.
 
