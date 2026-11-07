@@ -129,3 +129,7 @@ _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Ad
 # (1.00em). Above 1.00em multi-line text (profile summary, wrapped bullets) reads as
 # double-spaced while every mechanical check still passes.
 LEADING_WARN = 1.00    # em; strictly above it the WARN fires (largest shipped 0.96)
+
+
+# Shared by verify_pdf (render default) and verify_text (hidden-text raster).
+HIDDEN_PPI = 150          # own raster: tiny legit text needs more than the 90 ppi fill scan
