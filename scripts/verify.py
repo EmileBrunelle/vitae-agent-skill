@@ -2859,8 +2859,11 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                       "from the candidate's facts (a bullet with a measurable result, a "
                       "project, a certification) — never pad. If the facts are not in "
                       "hand, ASK the user for them; never invent. Alternative, only if the "
-                      "facts are exhausted: drop to fewer pages or accept a lower fill "
-                      "target, and say so to the user." % cap)
+                      "facts are exhausted: drop to fewer pages or pass a lowered target, "
+                      "`verify.py %s %s FILL_MIN %s` (FILL_MIN = the lowest fill the gate "
+                      "prints, not below %d; a page under %d%% has no lowered-target exit: a fact "
+                      "is missing, or fewer pages), and say so to the user."
+                      % (cap, shlex.quote(typ), expected, fmax, LOWERED_FILL_FLOOR, LOWERED_FILL_FLOOR))
             else:
                 if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
                     _footer = _FOOTER_TUNE_WIDE
@@ -3093,6 +3096,11 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
 # dependency or a usage error never gets a footer that blames cv.typ.
 _NO_READ = ("      Do not open verify.py or lib.typ: their code is not the fix, and "
             "reading them costs your context.")
+# Lowering FILL_MIN below the drawn target is a WARN down to LOWERED_FILL_FLOOR; below it
+# it is a FAIL so a dummy target (e.g. `1 10 100`) cannot bypass the fill gate.
+# 60 = below the 65% observed in the 0.9.0 real run (thin 2-job persona, facts exhausted)
+# with margin, still above a half-empty page; still a WARN.
+LOWERED_FILL_FLOOR = 60
 _FOOTER_GATE = ("NEXT  Apply the fix each FAIL above names, then re-run the same command. "
                 "Edit cv.typ only; a lib.typ FAIL is fixed by the printed `cp` command "
                 "(recopy it, never edit it).\n" + _NO_READ)
@@ -3103,7 +3111,10 @@ _FOOTER_TUNE_UNDER = ("NEXT  The page is under-filled: do not re-run --tune or w
                       "with a measurable result, a project, a certification); raising the body type size "
                       "is the same padding, not an alternative; never pad or invent "
                       "— if the facts are not in hand, ask the user. Only if the facts are "
-                      "exhausted: fewer pages or a lower fill target, and tell the user.\n" + _NO_READ)
+                      "exhausted: fewer pages or a lowered target, `verify.py cv.typ PAGES FILL_MIN FILL_MAX` "
+                      "(FILL_MIN = the lowest fill the gate prints, not below "
+                      f"{LOWERED_FILL_FLOOR}; under {LOWERED_FILL_FLOOR}% there is no lowered-target "
+                      "exit: a fact is missing, or fewer pages), and tell the user.\n" + _NO_READ)
 _FOOTER_TUNE_NOPAR = ("NEXT  Add the `#set par(leading: Xem, spacing: Yem)` line to cv.typ "
                       "(copy it from the template), then re-run the same command.\n" + _NO_READ)
 _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Add real content "
@@ -3111,11 +3122,6 @@ _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Ad
 _footer: str | None = None
 
 
-# Lowering FILL_MIN below the drawn target is a WARN down to LOWERED_FILL_FLOOR; below it
-# it is a FAIL so a dummy target (e.g. `1 10 100`) cannot bypass the fill gate.
-# 60 = below the 65% observed in the 0.9.0 real run (thin 2-job persona, facts exhausted)
-# with margin, still above a half-empty page; still a WARN.
-LOWERED_FILL_FLOOR = 60
 _LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} — allowed ONLY if "
                  "the facts are exhausted; tell the user the page is under-filled and which "
                  "facts would fill it; never pad or invent to reach it (rule 1)")
@@ -3270,6 +3276,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                   f"as scripts/verify.py {shlex.quote(typ)} {expected} FILL_MIN FILL_MAX; "
                   "the targets come from the pick_design.py report "
                   '("fill target : NN-NN%") and differ per family')
+        under_fills: list[int] = []
         for i, path in enumerate(pngs):
             result = measure_fill.measure(path)
             if "blank page" in result:
@@ -3285,6 +3292,8 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                     print(f"FAIL  fill: {path}: {result} (target {fmin}-{fmax}%) — "
                           f"run `scripts/verify.py --tune {shlex.quote(typ)} {expected} {fmin} {fmax}` "
                           "(adjusts leading), or add/cut real content")
+                    if y < int(fmin):
+                        under_fills.append(y)
                     fail = 1
                 else:
                     print(f"OK    fill: {path}: {result}")
@@ -3301,6 +3310,17 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                 print(f"{'FAIL' if is_fail else 'OK  '}  {msg}")
                 fail = fail or int(is_fail)
 
+    if under_fills:
+        lowest = min(under_fills)    # FILL_MIN applies to every page: the lowest page decides
+        if lowest < LOWERED_FILL_FLOOR:
+            print(f"NEXT  fill {lowest}% is below the {LOWERED_FILL_FLOOR}% floor, so a lowered target "
+                  "cannot pass: a fact is missing — add real facts or ask the user"
+                  + (", or drop to fewer pages" if int(expected) > 1 else ""))
+        else:
+            print("NEXT  if --tune already reported UNDER-FILLED, a fact is missing: add one, or — only "
+                  "if the facts are exhausted — pass a lowered target: "
+                  f"`scripts/verify.py {shlex.quote(typ)} {expected} {lowest} {fmax}` (FILL_MIN = the "
+                  f"lowest fill the gate prints, not below {LOWERED_FILL_FLOOR}) and tell the user")
     # Clone markers: the template's own accent and its "Category: items" skills block, left in
     # place, make every CV from the skill look alike (references/design/core.md, three clone markers).
     typ_text = open(typ, encoding="utf-8").read()

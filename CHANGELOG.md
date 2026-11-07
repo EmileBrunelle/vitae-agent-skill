@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `verify.py`: the under-filled exit names the exact command instead of "a lower fill target": the tune UNDER-FILLED message and NEXT line give `verify.py cv.typ PAGES FILL_MIN FILL_MAX` (FILL_MIN = the lowest fill the gate prints, not below `LOWERED_FILL_FLOOR`), and the gate prints one NEXT line after its fill FAILs (lowest page decides; none below the floor, where it says a fact is missing) so it no longer sends the model back to `--tune` after UNDER-FILLED. `LOWERED_FILL_FLOOR` moves above the footers. The restored-original fill is not added to the tune FAIL: `--tune` never measures the original, so it would cost an extra compile.
 - `verify.py --tune`: the upward leading cap is now `LEADING_WARN` (1.00em) instead of `LEADING_CAP` (1.10em, constant removed), so a tuned file never trips the gate's own DOUBLE-SPACED WARN; a file already above 1.00em is not forced down.
 - Font messages say what they measure: the doctor line reads "N of M design families have an installed face for every role; a drawn face may still be substituted", and `pick_design.py` prints "SUBSTITUTED: drawn A not installed, using the installed face shown — install A for the exact design" instead of "DRAWN FACE MISSING".
 - `pick_design.py` prints "field register: none, full pool" instead of "unknown" for a field with no register weighting (not an error).
