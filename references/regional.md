@@ -6,6 +6,7 @@ Apply the conventions of the market being applied to, not the user's locale. Whe
 
 - `regional/north-america.md` — Canada, Québec, USA
 - `regional/quebec.md` — Québec only, read IN ADDITION to `north-america.md`: when the market is Québec (`--region ca` with a French CV, a Québec address or a Québec employer)
+- `regional/quebec-outbound.md` — read IN ADDITION to the target market's file when the candidate holds Québec credentials (DEC, AEC, DEP, Québec degree, Québec order membership) and targets another market (rest of Canada, USA, France)
 - `regional/france.md`
 - `regional/uk-ireland.md`
 - `regional/dach.md` — Germany, Austria, Switzerland

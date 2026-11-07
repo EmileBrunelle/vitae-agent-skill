@@ -11,4 +11,4 @@ Paper: us-letter. Photo on CV: never. Age/marital status: never.
 - USA: "engineer" generally unregulated for software; PE licensure applies in traditional engineering fields.
 
 ## Québec
-- Québec market (French CV, Québec address or employer): also read `references/regional/quebec.md` — French verb style, academic calendars, CPI, CEGEP/DEC/DEP glosses, OQLF month forms.
+- Québec market (French CV, Québec address or employer): also read `references/regional/quebec.md` — French verb style, academic calendars, CPI, CEGEP/DEC/DEP glosses, OQLF month forms, protected titles, foreign diplomas. Candidate with Québec credentials targeting English Canada or the USA: also read `references/regional/quebec-outbound.md`.
