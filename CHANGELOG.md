@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## 0.9.0 — unreleased
+## 0.9.0 - 2026-11-07
 
 - Scope principle: the scripts know no language or country and measure only objective things (pages, fill, section splits, text extraction, template integrity, environment, which font drew each glyph). Conventions (names, legal suffixes, dates, degrees, headings) are left to the model and the user, who check them against facts.md.
 - `verify.py` drops the checks that read words: the year-only date-range WARN, the degree-token WARN, the summary-repeat and entry-repeat WARNs, the entry-locations WARN, the name half of `--facts`, and the "other language / not checked" INFO lines. `--facts` still WARNs when a year or a digit number (numeric dates like 03/2020 included) in the CV is absent from facts.md.
