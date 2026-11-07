@@ -305,9 +305,6 @@ from verify_pdf import (
     _pdfium_doc as _pdfium_doc,
 )
 from verify_pdf import (
-    _pdfium_error as _pdfium_error,
-)
-from verify_pdf import (
     _pdfium_page_text as _pdfium_page_text,
 )
 from verify_pdf import (

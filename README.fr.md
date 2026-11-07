@@ -136,6 +136,15 @@ scripts/verify_lang.py           # aides d'écriture de verify.py : tests d'écr
 scripts/verify_typst.py          # lecture de cv.typ pour verify.py : texte en entrée, valeurs en sortie (commentaires retirés, corps de section, arguments d'entrée, lecture des `#set par/text/list`); aucun affichage, aucun rendu
 scripts/verify_selftest.py       # verify.py --selftest, sorti de verify.py : intégrité de lib.typ, allers-retours des regex du réglage, poppler et typst présents; chargé à la demande, accessible seulement par `verify.py --selftest`
 scripts/verify_level.py          # niveaux de sévérité (FAIL / WARN / OK / INFO) et tuple Finding communs à verify.py et à ses modules utilitaires; bibliothèque standard seulement, n'importe rien de verify
+scripts/verify_base.py           # formes, constantes et état partagés des modules verify_* (une feuille : n'importe aucun frère)
+scripts/verify_env.py            # vérification des dépendances (`--doctor`) et sondes de typst-py / du CLI typst
+scripts/verify_pdf.py            # compilation Typst, nombre de pages, extraction du texte et des boîtes de mots, rendu PNG
+scripts/verify_source.py         # contrôles sur la source cv.typ : découpe en sections, sauts de ligne forcés, `~` littéral, déclaration de remplissage en en-tête
+scripts/verify_text.py           # contrôles sur le texte extrait du PDF : couverture des faits, puces, texte caché, métadonnées
+scripts/verify_layout.py         # portails de mise en page : blancs (frontières de section, canyons), texte coupé, repli silencieux de police
+scripts/verify_groups.py         # portails de regroupement, d'adjacence des dates et de doublons de noms, avec le lecteur de marques `typst query` qu'ils partagent
+scripts/verify_tune.py           # `--tune` : dichotomie sur `#set par(leading:, spacing:)` jusqu'au plus grand rythme qui garde le nombre de pages
+scripts/verify_cv.py             # portail par CV : lecture de l'en-tête, classement des fichiers, `--all`, intégrité de lib, lanceur des nouveaux portails
 scripts/verify_fonts.py          # gestion des polices de verify.py : familles demandées par un CV (arguments `font:` résolus à travers les `#let`) et face dans laquelle le PDF a dessiné chaque caractère; aucun accès au PDF, aucun affichage
 scripts/verify_page.py           # outils de mesure de page de verify.py : bandes d'encre hors des boîtes de mots, lesquelles se trouvent à une frontière de section, aplats et icônes découpés dans une image de page, bande de hauteur d'x d'une ligne de texte; pixels et boîtes en entrée, nombres en sortie, aucun constat affiché, aucun rendu
 scripts/verify_academic.py       # portail du mode académique : vérification des sauts de page au niveau de l'entrée + comptes/ordre déclarés vs extraits, confrontés au fichier de données TOML (ne réutilise que la mécanique de verify.py, aucune de ses constantes de remplissage)

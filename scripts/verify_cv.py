@@ -212,7 +212,8 @@ def check_all(directory: str) -> int:
             unchecked.append(typ)
         print(f"\n=== {typ}  (expects {' '.join(args)}"
               f"{'' if m else ' — inferred from the file name, no header'})")
-        r = subprocess.run([sys.executable, os.path.abspath(__file__), typ]
+        r = subprocess.run([sys.executable,
+                            os.path.join(os.path.dirname(os.path.abspath(__file__)), "verify.py"), typ]
                            + args)
         fail |= bool(r.returncode)
     if unchecked:

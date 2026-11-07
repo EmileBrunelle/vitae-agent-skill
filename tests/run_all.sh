@@ -370,6 +370,18 @@ drawn_header() {
   head -1 "$S/drawn/cv.typ" | grep -Eq '^// vitae: pages=1 fill=[0-9]+-[0-9]+$' || { echo "no header on line 1"; return 1; }
 }
 check drawn-header drawn_header
+
+# --all re-runs verify.py once per deliverable; a broken child must make the sweep FAIL (a child that
+# exits 0 silently once made --all report PASS on everything).
+all_flags_broken() {
+  local d="$S/all-broken" rc=0 txt
+  mkdir -p "$d"; printf '#this is not valid typst (\n' >"$d/cv.typ"
+  txt="$(python3 -I scripts/verify.py --all "$d" 2>&1)" || rc=$?
+  [ "$rc" -ne 0 ] || { echo "--all exited 0 on a broken cv.typ"; return 1; }
+  printf '%s\n' "$txt" | grep -q 'FAIL' || { echo "--all printed no FAIL"; return 1; }
+}
+check all-broken all_flags_broken
+
 lowered_fill() {
   local f a b d
   read -r f a b <<< "$(echo "$targets" | head -1)"
