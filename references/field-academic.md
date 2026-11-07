@@ -139,13 +139,13 @@ These are properties a correct academic CV has, stated as rules for whoever buil
 
 ## Sources (checked September 13, 2026)
 
-- FRQ — CV-FRQ and the end of the CCV bridge (disabled Dec 19, 2025): https://frq.gouv.qc.ca/cv-frq/ and https://frq.gouv.qc.ca/nouvelle-etape-dans-le-projet-dimplantation-du-cv-frq-fin-de-la-passerelle-vers-le-cvc/
-- CIHR — transition to the tri-agency CV: https://cihr-irsc.gc.ca/e/54668.html
-- SSHRC — narrative-style CV: https://sshrc-crsh.canada.ca/en/funding/forms-and-online-application-tools/tri-agency-cv.aspx
-- NSERC — introducing the tri-agency CV: https://nserc-crsng.canada.ca/en/news/nserc-introduce-tri-agency-cv-two-funding-opportunities
-- Galaxie / Odyssée — CNU qualification, required pieces and 2026 calendar: https://www.galaxie.enseignementsup-recherche.gouv.fr/ensup/cand_qualification_Odyssee.htm
-- CNU section 25 (mathematics) — section-specific recommendations: https://cnu25.emath.fr/qualif.html
-- UPenn Career Services — CV for a faculty job search (section order): https://careerservices.upenn.edu/application-materials-for-the-faculty-job-search/cvs-for-faculty-job-applications/
-- Dynamic Ecology — non-refereed publications in a separate section: https://dynamicecology.wordpress.com/2016/08/25/formatting-a-cv-for-a-faculty-job-application/
+- FRQ — CV-FRQ and the end of the CCV bridge (disabled Dec 19, 2025): FRQ, « CV-FRQ » and « Nouvelle étape dans le projet d’implantation du CV-FRQ : fin de la passerelle vers le CVC » (consulted 2026-11)
+- CIHR — transition to the tri-agency CV: CIHR, « Transition to the Tri-agency CV » (consulted 2026-11)
+- SSHRC — narrative-style CV: SSHRC, « Tri-agency CV » (consulted 2026-11)
+- NSERC — introducing the tri-agency CV: NSERC, « NSERC to introduce the tri-agency CV for two funding opportunities » (consulted 2026-11)
+- Galaxie / Odyssée — CNU qualification, required pieces and 2026 calendar: Ministère de l’Enseignement supérieur et de la Recherche, Galaxie, « Qualification aux fonctions de maître de conférences et de professeur des universités — Odyssée » (consulted 2026-11)
+- CNU section 25 (mathematics) — section-specific recommendations: CNU section 25, « Qualification » (consulted 2026-11)
+- UPenn Career Services — CV for a faculty job search (section order): University of Pennsylvania Career Services, « CVs for Faculty Job Applications » (consulted 2026-11)
+- Dynamic Ecology — non-refereed publications in a separate section: Dynamic Ecology, « Formatting a CV for a faculty job application » (2016-08-25)
 
 Anything above not tied to one of these sources is marked *(assumed)* or *(confirm before relying on this)* in the body of this file.
