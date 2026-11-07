@@ -379,11 +379,6 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
     return sorted(fills + icons, key=lambda b: (b[1][1], b[1][0]))
 
 
-def crop_bands(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[str, tuple[int, int, int, int]]]:
-    """crop_candidates without the score: [(kind, (x0, y0, x1, y1)), ...] in reading order."""
-    return [(kind, box) for kind, box, _ in crop_candidates(im, words)]
-
-
 # Constants of the ink-gap measurement (the x-height band of each text line, in verify.py's _page_ink_gap).
 INK_DPI = 300           # ~42 px per 10pt line: enough vertical rows to separate x-height from ascenders/descenders
 INK_DELTA = 60          # luma delta vs background: ignores faint antialiasing fringe, keeps body/muted/accent ink

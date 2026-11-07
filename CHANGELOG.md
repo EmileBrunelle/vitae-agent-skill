@@ -2,6 +2,12 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- `scripts/verify_typst.py`: `_section_bodies()` keeps the whole tail of an unclosed `#section("...")[` body instead of cutting its last character (closed brackets unchanged).
+- `scripts/verify.py`: `_name_norm()` now also drops the dotted legal suffixes `S.A.` and `S.A.S.` (previously folded to `s a` and kept, so "Société Générale S.A." did not match "Société Générale" in the facts); used by the employer/name checks in `verify_cv_facts`.
+- `scripts/verify.py`: `--doctor` no longer prints the unpinned no-root routes (typst `releases/latest` tarball by curl/python-urllib, micromamba for poppler); removed `_linux_arch`, `_py_fetch`, `_typst_noroot_lines`, `_poppler_noroot_lines`. A missing or too-old typst now points to `pip install typst==0.15.0` (no root via `--user` or a venv), poppler to the system package manager (academic mode only). `scripts/verify_page.py`: dead `crop_bands` removed. `check_typst` adds a non-blocking NOTE when typst is newer than the 0.15 calibration (`pip install typst==0.15.0` to pin); the Python-API-only branch no longer offers the pip package as a CLI; `_DOTTED_SUFFIX_RE` no longer matches inside `U.S.A.`.
+
 ## 0.7.8 - 2026-11-03
 
 - `templates/lib.typ`: `masthead()` default `bottom` padding rises from `5pt` to `8pt` so a wrapped contact row without a `baseline: 1.4pt` icon strut still clears descenders inside the band (`run16`); the 0.7.7 `lib.typ` digest is added to `KNOWN_LIB_SHA256`.

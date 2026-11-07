@@ -1,7 +1,6 @@
 """Pinned behaviour of verify.py's pure parsing helpers (development only, not shipped logic).
 
-Each test records what the function does TODAY. The two xfail(strict) cases are probable defects: they state the
-documented behaviour and flip to a failure (XPASS) the day the function is fixed, at which point drop the marker.
+Each test records what the function does TODAY. Former defects (unclosed `#section` bracket, dotted `S.A.` suffix) are now fixed and tested plainly.
 """
 import pytest
 import verify as v
@@ -37,7 +36,6 @@ def test_section_bodies_none(src):
     assert v._section_bodies(src) == []
 
 
-@pytest.mark.xfail(strict=True, reason="unclosed bracket: body is cut one char short (src[m.end():i - 1] with i == len)")
 def test_section_bodies_unclosed_keeps_whole_tail():
     assert v._section_bodies('#section("Bad")[ open') == [("Bad", " open")]
 
@@ -148,9 +146,31 @@ def test_name_norm(s, expected):
     assert v._name_norm(s) == expected
 
 
-@pytest.mark.xfail(strict=True, reason="docstring says SA is removed, but the dotted form 'S.A.' folds to 's a' and stays")
 def test_name_norm_dotted_suffix_removed():
     assert v._name_norm("Société Générale S.A.") == " societe generale "
+
+
+@pytest.mark.parametrize("s, expected", [
+    ("Renault S.A.S.", " renault "),
+    ("Renault S.A.S", " renault "),
+    ("John A.", " john a "),                # a single initial is not a suffix
+    ("Mrs.A. Smith", " mrs a smith "),      # no word boundary before the dotted form
+    ("Tesla S.A.x", " tesla s a x "),
+    ("U.S.A. Today", " u s a today "),
+    ("Made in U.S.A.", " made in u s a "),
+    ("Foo S.A.", " foo "),
+    ("FOO S.A.S", " foo "),
+    ("Acme S.A.", " acme "),
+    ("Acme S.A.S.", " acme "),
+    ("Acme S.A.S", " acme "),
+    ("acme s.a.", " acme "),
+    ("U.S.A.", " u s a "),
+    ("U.S.A.S.", " u s a s "),
+    ("Foo S.A.S.R.L", " foo s a s r l "),   # a following dot+letter blocks a prefix match
+    ("S.A.S.A", " s a s a "),
+])
+def test_name_norm_dotted_edge_cases(s, expected):
+    assert v._name_norm(s) == expected
 
 
 # --- _clean_word -----------------------------------------------------------------------------------------------
@@ -263,3 +283,16 @@ FR = "le chat et le chien sont dans la maison avec un oiseau sur le tapis par le
 ])
 def test_guess_lang(text, expected):
     assert v._guess_lang(text) == expected
+
+
+def test_typst_newer_than_calibration_note(monkeypatch, capsys):
+    monkeypatch.setattr(v.shutil, "which", lambda n: "/x/typst" if n == "typst" else None)
+    class R:
+        stdout = "typst 0.16.0 (abc)"
+    monkeypatch.setattr(v.subprocess, "run", lambda *a, **k: R())
+    assert v.check_typst() == (True, True)
+    out = capsys.readouterr().out
+    assert out.startswith("OK    typst 0.16.0") and "newer versions may measure differently" in out
+    R.stdout = "typst 0.15.1 (abc)"
+    assert v.check_typst() == (True, True)
+    assert "newer versions" not in capsys.readouterr().out

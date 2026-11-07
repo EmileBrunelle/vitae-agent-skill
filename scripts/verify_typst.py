@@ -30,7 +30,7 @@ def _section_bodies(src: str) -> list[tuple[str, str]]:
             elif c == "]":
                 depth -= 1
             i += 1
-        out.append((m.group(1), src[m.end():i - 1]))
+        out.append((m.group(1), src[m.end():i - 1 if depth == 0 else i]))
     return out
 
 

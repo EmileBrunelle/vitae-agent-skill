@@ -150,7 +150,7 @@ doctor_pip_too_old() {
   echo "$txt"
   [ "$rc" -eq 1 ] || { echo "doctor exit $rc, expected 1"; return 1; }
   echo "$txt" | grep -q '^BROKEN  typst.*too old' || { echo "no too-old line"; return 1; }
-  echo "$txt" | grep -q 'pip install -U typst' || { echo "no upgrade advice"; return 1; }
+  echo "$txt" | grep -q 'pip install typst==0.15.0' || { echo "no upgrade advice"; return 1; }
   echo "$txt" | grep -q 'force-reinstall' && { echo "advises reinstall for an old wheel"; return 1; }
   return 0
 }

@@ -286,50 +286,10 @@ def check_pillow() -> bool:
         return False
 
 
-def _linux_arch() -> str | None:
-    """'x86_64' / 'aarch64' on Linux, else None (no-root binary routes are Linux-only)."""
-    if platform.system() != "Linux":
-        return None
-    m = platform.machine().lower()
-    return {"x86_64": "x86_64", "amd64": "x86_64", "aarch64": "aarch64", "arm64": "aarch64"}.get(m)
-
-
-def _py_fetch(url: str, mode: str, member: str, exact: bool) -> str:
-    """One python3 -c line: download `url` with urllib, extract only the tar member
-    (`member` is the exact name, or a suffix) into ~/.local/bin as its basename.
-    For sandboxes where shell curl/wget are refused but Python can fetch."""
-    test = "m.name==" + repr(member) if exact else "m.name.endswith(" + repr("/" + member) + ")"
-    base = member.rsplit("/", 1)[-1]
-    return ("python3 -c \"import urllib.request as u,tarfile,os;d=os.path.expanduser('~/.local/bin');"
-            "os.makedirs(d,exist_ok=True);f=tarfile.open(fileobj=u.urlopen('" + url + "'),mode='r|" + mode + "');"
-            "[(setattr(m,'name','" + base + "'),f.extract(m,d)) for m in f if " + test + "]\"")
-
-
-def _typst_noroot_lines(arch: str) -> list[str]:
-    """Install lines for typst without root: the release tarball, by curl and by python."""
-    tgt = f"typst-{arch}-unknown-linux-musl"
-    url = f"https://github.com/typst/typst/releases/latest/download/{tgt}.tar.xz"
-    return [
-        f"  no root, curl:   mkdir -p ~/.local/bin && curl -fsSL {url} | tar -xJf - -C ~/.local/bin --strip-components=1 {tgt}/typst",
-        "  no root, python (when shell curl/wget are refused): " + _py_fetch(url, "xz", "typst", False),
-        "  (then make sure ~/.local/bin is on PATH)",
-    ]
-
-
-def _poppler_noroot_lines(arch: str) -> list[str]:
-    """Install lines for poppler without root, through micromamba from conda-forge."""
-    plat = "linux-64" if arch == "x86_64" else "linux-aarch64"
-    url = f"https://micro.mamba.pm/api/micromamba/{plat}/latest"
-    return [
-        "  no root (micromamba from conda-forge), step 1, get micromamba:",
-        f"    curl:   mkdir -p ~/.local/bin && curl -fsSL {url} | tar -xj -C ~/.local/bin --strip-components=1 bin/micromamba",
-        "    python: " + _py_fetch(url, "bz2", "bin/micromamba", True),
-        "  step 2: ~/.local/bin/micromamba create -y -p ~/poppler -c conda-forge poppler   # then put ~/poppler/bin on PATH",
-    ]
-
-
 # Oldest typst the fill targets were calibrated on; an older one still works and is reported DEGRADED, not refused.
 TYPST_MIN = (0, 15)
+_NEW_TYPST = ("fill targets are calibrated on typst 0.15; newer versions may measure differently "
+              "-- pin with pip install typst==0.15.0 if fills drift")
 _OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
               "(0.13/0.14 miss 2 templates at 91% against 93-96%)")
 
@@ -345,20 +305,19 @@ def check_typst() -> tuple[bool, bool]:
             ver = "?"
         if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
             print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
-            print("  Upgrade the CLI with ONE of:")
-            arch = _linux_arch()
-            if arch:
-                for ln in _typst_noroot_lines(arch):
-                    print(ln)
+            print("  Upgrade with ONE of:")
+            print("  pip install typst==0.15.0   # no root: add --user, or use a venv; pip picks the CPU architecture")
             print("  brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
             print("  distro packages (dnf, apt, pacman) may be older: check `typst --version` after")
             return True, True
         print(f"OK    typst {ver} (CLI)")
+        if ver != "?" and _ver_tuple(ver) > TYPST_MIN:
+            print(f"  NOTE: {_NEW_TYPST}.")
         return True, True
     mod, ver, why, full = _typst_py_probe()
     if mod is None and why.startswith("TOOLOLD"):
         print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
-        print("  Upgrade it: pip install -U typst   # or install the CLI (brew install typst | cargo install typst-cli)")
+        print("  Upgrade it: pip install typst==0.15.0   # or install the CLI (brew install typst | cargo install typst-cli)")
         return False, False
     if mod is None and why:
         print(f"BROKEN  typst: the Python package `typst` is installed but does not work ({why}).")
@@ -369,32 +328,26 @@ def check_typst() -> tuple[bool, bool]:
         print("  - date adjacency (needs `typst query`, and pdftotext)")
         print("  - group proximity (needs `typst query` and pdftotext)")
         print("  - the design font-availability check of pick_design.py (needs `typst fonts`)")
-        print("  Install the CLI with ONE of:")
-        arch = _linux_arch()
-        if arch:
-            for ln in _typst_noroot_lines(arch):
-                print(ln)
-        print("  brew install typst | cargo install typst-cli | pip install -U typst   # newer typst-py: query, eval and fonts")
+        print("  Install the CLI with ONE of (the pip package `typst` is the Python API only, it ships no CLI):")
+        print("  brew install typst | cargo install typst-cli")
         print("  winget install --id Typst.Typst | choco install typst | scoop install typst   # Windows")
         return True, False
     if mod is not None:
         if _ver_tuple(ver) < TYPST_MIN:
             print(f"DEGRADED  typst {ver} (Python API): {_OLD_TYPST}.")
-            print("  pip install -U typst")
+            print("  pip install typst==0.15.0")
             return True, False
         print(f"OK    typst {ver} (Python API: compile, query, fonts)")
+        if _ver_tuple(ver) > TYPST_MIN:
+            print(f"  NOTE: {_NEW_TYPST}.")
         return True, False
     print("MISSING  typst -- install with ONE of:")
-    print("  pip install typst                            # no CLI needed: compiles, queries and lists fonts via the Python API")
+    print("  pip install typst==0.15.0                    # no root (--user or a venv); no CLI needed: compiles, queries and lists fonts via the Python API")
     print("  brew install typst                          # macOS")
     print("  winget install --id Typst.Typst             # Windows")
     print("  choco install typst | scoop install typst   # Windows, if you already use them")
     print("  cargo install typst-cli                      # any, via Rust")
     print("  (distro packages — dnf, apt, pacman — may be older than 0.15, the version the fill targets are calibrated on)")
-    arch = _linux_arch()
-    if arch:
-        for ln in _typst_noroot_lines(arch):
-            print(ln)
     print("  OFFLINE sandbox (no DNS / pip index)? On the user's own machine run:")
     _wa = "aarch64" if platform.machine().lower() in ("aarch64", "arm64") else "x86_64"
     print(f"    pip download typst==0.15.0 --no-deps --only-binary=:all: --platform manylinux2014_{_wa} --python-version 3.11")
@@ -440,17 +393,12 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
     """Doctor lines for the PDF reader; returns (available, backend), the backend being the one pdf_backend() would
     pick. A missing pdftoppm, or pypdf standing in for poppler, only degrades: the checks it cannot serve are named
     in the output."""
-    arch = _linux_arch()
     if shutil.which("pdfinfo") and shutil.which("pdftotext"):
         if not shutil.which("pdftoppm"):
             print("DEGRADED  poppler-utils: pdftotext and pdfinfo found, pdftoppm missing. SKIPPED (WARN):")
             print("  - hidden-text ink check (also used by verify_letter.py / verify_academic.py)")
             print("  Weaker without a WARN: group proximity falls back to the pdftotext box gap instead of the ink gap")
-            print("  Install pdftoppm (part of poppler) with ONE of:")
-            if arch:
-                for ln in _poppler_noroot_lines(arch):
-                    print(ln)
-            print("  sudo dnf install poppler-utils | sudo apt install poppler-utils | brew install poppler")
+            print("  poppler (academic mode only): install `poppler-utils` (or `poppler`) with the system package manager")
             return True, "poppler"
         print("OK    poppler-utils (pdftotext, pdfinfo, pdftoppm)")
         return True, "poppler"
@@ -468,13 +416,8 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
         print("  - SKIPPED (WARN): hidden-text gate and text-clip gate (need pdftotext and pdftoppm)")
         print("  - SKIPPED (WARN): group proximity and date adjacency (need pdftotext)")
         print("  - academic mode cannot run (verify_academic.py requires pdftotext)")
-        print("  Install poppler with ONE of:")
-        if arch:
-            for ln in _poppler_noroot_lines(arch):
-                print(ln)
-        print("  - or `pip install pypdfium2`: text, word boxes, raster and metadata then run in Python close to poppler's (see the CHANGELOG)")
-        print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
-        print("  choco install poppler | scoop install poppler          # Windows")
+        print("  - `pip install pypdfium2`: text, word boxes, raster and metadata then run in Python close to poppler's (see the CHANGELOG)")
+        print("  poppler (academic mode only): install `poppler-utils` (or `poppler`) with the system package manager")
         return True, "pypdf"
     else:
         print("MISSING  poppler-utils -- needed for page-count and ATS extraction checks:")
@@ -1114,10 +1057,14 @@ def _blank_phones(line: str) -> str:
 _NAME_SUFFIX_RE = re.compile(r"\b(?:inc|ltee|ltd|corp|llc|sa|sas|gmbh)\b")
 
 
+_DOTTED_SUFFIX_RE = re.compile(r"(?<![\w.])s\.a\.(?:s\.?)?(?!\w|\.\w)")   # S.A., S.A.S. (Inc., Ltd., Corp., LLC fold fine already)
+
+
 def _name_norm(s: str) -> str:
     """Name comparison form: folded, punctuation dropped, company suffixes
     (Inc., Ltée, Corp., LLC, SA, SAS, GmbH ...) removed, single spaces, padded."""
-    s = re.sub(r"[^\w&' ]", " ", _fold(s))
+    s = _DOTTED_SUFFIX_RE.sub(" ", _fold(s))
+    s = re.sub(r"[^\w&' ]", " ", s)
     s = _NAME_SUFFIX_RE.sub(" ", s)
     return " " + re.sub(r"\s+", " ", s).strip() + " "
 
