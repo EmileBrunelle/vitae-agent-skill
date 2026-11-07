@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.8.0 - 2026-11-07
 
 - `references/design.md` (126 KB) is split so the model reads shared rules plus ONE family recipe: `references/design/core.md` (invariants, destination support, anti-references, guided creation, tokens, structure primitives, page-fill loop, micro-typography, rules common to every family), `references/design/families/<family>.md` (one per family, named as `pick_design.py` family ids) and `references/icons.md` (icon provenance and sourcing). `pick_design.py` now prints the recipe path; step 4 says to read that file whole. The "jump to your family" index is gone; `gutter-rail`'s recipe drops its design-history narrative (no rule changed).
 
