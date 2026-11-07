@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## Unreleased
+## 0.7.9 - 2026-11-07
 
 - `scripts/verify_typst.py`: `_section_bodies()` keeps the whole tail of an unclosed `#section("...")[` body instead of cutting its last character (closed brackets unchanged).
 - `scripts/verify.py`: `_name_norm()` now also drops the dotted legal suffixes `S.A.` and `S.A.S.` (previously folded to `s a` and kept, so "Société Générale S.A." did not match "Société Générale" in the facts); used by the employer/name checks in `verify_cv_facts`.
