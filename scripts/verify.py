@@ -3021,37 +3021,6 @@ def check_all(directory: str) -> int:
     return fail
 
 
-# sha256 of every templates/lib.typ ever committed (past releases). A CV whose
-# lib.typ matches one of these is a stale-but-honest copy (WARN: recopy for the fixes);
-# anything else was rewritten or edited (FAIL: the gates assume lib.typ's behaviour). The
-# CURRENT lib is not listed: it is compared by content against the skill's own file.
-# Regenerate after each release commit:
-#   for c in $(git log --format=%H -- templates/lib.typ); do
-#     git show $c:templates/lib.typ | sha256sum | cut -c1-64; done | sort -u
-# (a model once rewrote lib.typ from memory, dropped `derive()`, and looped.)
-KNOWN_LIB_SHA256 = {
-    "5f550c000b6b21f1b48e7e564ef223a76e7b34eb444cad4e1dada8054d1d7ae7",
-    "6676cfb4239ba0da1647df675731920570190a56a9a2480821e3ad3a350f37df",
-    "e83601b082f068fd3ded679358d3aeaab28ac59af812815077b95e58dab80aee",
-    "fd5a2ed352e234f476dfc6cfdb4d20bda011dae8ebb2f32f8553137cdf2ac6f1",
-    "a1b12d2fc073111d24bfb7f8ddd8ddff071ec313b213eaf9892a6448b2de7970",
-    "b8fc908c0b36bdcd923fa867b212c7f5d12347ef1b4ca1411d18008b0f0bbb80",
-    "ce6baaaa89b851cfdfced2bfcc436a67094adef8e13a89879a7d3d4f5daf3411",
-    "61dc57dfd3c47aa14dbc0a84d1eced9afffc4e2e2a248242ce01ebec2f8da74c",
-    "3bc21e1423e38f6b86234046c7f12ed2dc04eb7941ff574cf1e79c44a3269d2a",
-    "6ba83f076ddf631218165bcda09a0198a19a7f0f13c94abddbdf1b66716de368",
-    "67f96ab972f0f672e6885ead87e5b789bb37d160905127ef34590318327dc98c",
-    "e77ad87885a2e310fec8bb2b7f751f412af7878d03f1470f47ed5bdaec15675b",
-    "d8f3e08332cafa4fe8e8a2125175a1e66d94fc7ca9060adbd5bd6cc736bab38c",
-    "5cf956d8341d41f9970e23074ac362cdf52d6d79f649d8f620a53b31e5a2989f",
-    "7f50222c3394eee82bbfc1ac470c691c4b3756da0c0615d91e23d6d1394af8f9",
-    "c037a4309decb8dfcf10058624f0b0ded8d466606bcabf9e327766bb99e6a99b",
-    "817c4ec76e6e55e5767ecb402b2c2ff44ae167f91416ca40f573b42d87e2d76e",
-    "1f8970ebd32e8d21814c299b3e5d21e78cc39c94d2aa24bc426f8e01ff19f17a",
-    "90a0652b4655c79b95d9f63db31e346621ac8c09858fd24b7f64d18e2c441437",  # 0.7.8 and 0.7.9 (identical)
-}
-
-
 def digest_of(f: str) -> str:
     """sha256 of a lib file, BOM and CRLF normalised, so a copy re-saved on Windows still matches."""
     with open(f, "rb") as fh:
@@ -3061,17 +3030,15 @@ def digest_of(f: str) -> str:
     return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
-def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
-                        known: set[str] | None = None) -> list[Finding]:
+def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Finding]:
     """Return [(level, msg)] for the lib.typ the CV imports (Level.FAIL/Level.WARN);
     empty when it is the skill's own lib or the CV imports none. Runs before
     compilation so the message survives a Typst error.
 
-    FAIL for a lib that is not a byte copy (rewritten or edited: a model once rewrote it from
-    memory, dropped `derive()` and looped); WARN for a known older release; WARN, not FAIL,
+    FAIL for a lib whose content differs from the skill's (older release or edited: a model once
+    rewrote it from memory, dropped `derive()` and looped; BOM and CRLF are ignored); WARN, not FAIL,
     when a lib.typ sits beside the CV but no import resolves to it (integrity unchecked)."""
     skill_dir = skill_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    known = KNOWN_LIB_SHA256 if known is None else known
     ref = os.path.join(skill_dir, "templates", "lib.typ")
     # Follow local #import "x.typ" chains (cv.typ -> family.typ -> lib.typ).
     lib, shown, seen, todo = None, None, set(), [os.path.abspath(typ_path)]
@@ -3114,13 +3081,10 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None,
                              f'`#import "lib.typ": *` and copy lib.typ next to cv.typ: {cp}')]
     if not os.path.isfile(lib):
         return [(Level.FAIL, f"{shown} is imported but missing — copy it: {cp}")]
-    h = digest_of(lib)
-    if h == digest_of(ref):
+    if digest_of(lib) == digest_of(ref):
         return []
-    if h in known:
-        return [(Level.WARN, f"lib.typ is from an older vitae release; recopy to get fixes: {cp}")]
-    return [(Level.FAIL, "lib.typ is not a copy of the skill's lib (rewritten or edited) "
-                     f"— recopy it byte-for-byte: {cp}")]
+    return [(Level.FAIL, "lib.typ differs from the skill's (older release or edited): "
+                     f"copy it again: {cp}")]
 
 
 # The last lines printed when a run ends on a non-zero exit (see `_run`). A reader (human or

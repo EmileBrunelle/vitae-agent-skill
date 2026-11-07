@@ -2,6 +2,10 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- `verify.py` drops the `KNOWN_LIB_SHA256` allow-list of past `lib.typ` digests (and the `known` parameter of `check_lib_integrity`): a `lib.typ` whose content (BOM and CRLF ignored) differs from the skill's now always FAILs with a neutral message and the `cp` that restores it, instead of a WARN for a recognised older release. One release step less.
+
 ## 0.9.0 - 2026-11-07
 
 - Scope principle: the scripts know no language or country and measure only objective things (pages, fill, section splits, text extraction, template integrity, environment, which font drew each glyph). Conventions (names, legal suffixes, dates, degrees, headings) are left to the model and the user, who check them against facts.md.
