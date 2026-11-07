@@ -5,7 +5,7 @@
    on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
    replace the filler with the candidate's facts, then read
    `references/steps/4-tune.md`, then `--tune`, then verify. **Scripts are
-   run, never read — their printed output is the instruction.** Fallback only if
+   run, never read — their printed output is the instruction.** **Read order: run `pick_design.py` first. Then read `references/design/core.md` whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** Fallback only if
    `--init` errors: `cp <skill>/templates/families/<family>/resume.typ <folder>/cv.typ`
    (then change its `#import "../../lib.typ"` line to `#import "lib.typ"`) plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
    apply the values of `--emit-typ` by hand. **Never retype, rewrite or summarize
@@ -31,7 +31,7 @@
    then compiles with no icons and its contact URLs in plain text. Icons are all-or-nothing: `marks()` in `lib.typ` returns no mark for ANY item unless every mark of the kit has data, so a partial harvest gives a text-only contact line (the script prints `WARN  ICONS: incomplete harvest`) rather than icons on some items only — tell the user when that happens. `verify.py`
    copies the empty fallback in if the folder has none, so the gate never
    fails for a missing `icons.typ`, load the field pack if one exists, keep the design system's
-   invariants (`references/design/core.md`, the shared rules, read whole — then read whole ONLY the family file `pick_design.py` printed, `references/design/families/<family>.md`; never another family's). All fourteen family files
+   invariants (core.md and the family file, read as instructed above). All fourteen family files
    (`templates/families/<family>/resume.typ`) are gate-passing, with
    `resume-pair-b.typ` beside each showing the same recipe on its second font
    pair.
@@ -86,7 +86,7 @@
    key="Firstname Lastname+software"
    h=$(printf '%s' "$key" | sha256sum | cut -c1-8)
    # n = number of ELIGIBLE families: apply the flags and the career/field
-   # register weighting by hand from core.md's register column. The eligible
+   # register weighting by hand from core.md's "Family roster" list (id — register). The eligible
    # list EXCLUDES the three creative-register families unless creative is
    # unlocked (a creative --field, or --creative). Widen one register tier at a
    # time (career order), adding families ALPHABETICALLY and STOPPING as soon

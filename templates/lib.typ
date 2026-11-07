@@ -13,8 +13,7 @@
 //
 //   DEVICES DO NOT live here — section heading devices, header composition,
 //   glyphs, colour roles, the *shape* of the skills row, the fonts. Those are
-//   the property of each design family (references/design/core.md § Design
-//   families). Mutualising them rebuilds the attractor this whole system
+//   the property of each design family (references/design/families/<id>.md). Mutualising them rebuilds the attractor this whole system
 //   exists to break: every CV out of the skill would look like the same CV.
 //   A primitive here therefore never chooses a colour, a size or a face — it
 //   takes them as parameters, or takes already-styled content.

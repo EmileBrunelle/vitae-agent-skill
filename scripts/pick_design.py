@@ -80,7 +80,7 @@ POSIX fallback (no python3) — same result for the family choice:
     key="Firstname Lastname+software"
     h=$(printf '%s' "$key" | sha256sum | cut -c1-8)
     # n = number of ELIGIBLE families: apply the flags and the career/field
-    # register weighting by hand from core.md's register column. The eligible
+    # register weighting by hand from core.md's "Family roster" list (id — register). The eligible
     # list EXCLUDES the three creative-register families unless creative is
     # unlocked (a creative --field, or --creative). Widen one register tier at a
     # time (career order), adding families ALPHABETICALLY and STOPPING as soon
