@@ -58,3 +58,9 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 ## Tooling
 
 - S42 — PyPI — `typst` project page, « Download files » — https://pypi.org/project/typst/#files
+
+## Added 2026-11-07 (USA engineering licensure)
+
+- S43 — Cornell LII — « 22 Tex. Admin. Code § 133.31 - Educational Requirements for Applicants » — https://www.law.cornell.edu/regulations/texas/22-Tex-Admin-Code-SS-133-31
+- S44 — Engineers Canada — « Accredited engineering programs in Canada » (by institution) — https://engineerscanada.ca/accreditation/accredited-programs/institution
+- S45 — Texas Board of Professional Engineers and Land Surveyors — « Temporary International Licensure » — https://pels.texas.gov/temporary_international_licensure.htm
