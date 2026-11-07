@@ -13,11 +13,11 @@ import importlib.metadata
 import importlib.util
 import json
 import os
-import platform
 import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 import tempfile
 from typing import Any, Literal, cast
 
@@ -43,6 +43,18 @@ _NEW_TYPST = ("fill targets are calibrated on typst 0.15; newer versions may mea
               "-- pin with pip install typst==0.15.0 if fills drift")
 _OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
               "(0.13/0.14 miss 2 templates at 91% against 93-96%)")
+
+
+def _wheel_platform_tag() -> str:
+    """The running interpreter's most specific wheel platform tag (e.g. manylinux_2_28_x86_64,
+    macosx_14_0_arm64, win_amd64): from packaging/pip's tag list when importable, else sysconfig."""
+    for mod in ("packaging.tags", "pip._vendor.packaging.tags"):
+        try:
+            tags = importlib.import_module(mod)
+            return str(next(iter(tags.sys_tags())).platform)
+        except Exception:
+            continue
+    return re.sub(r"[-.]", "_", sysconfig.get_platform())
 
 
 def check_typst() -> tuple[bool, bool]:
@@ -100,9 +112,10 @@ def check_typst() -> tuple[bool, bool]:
     print("  cargo install typst-cli                      # any, via Rust")
     print("  (distro packages — dnf, apt, pacman — may be older than 0.15, the version the fill targets are calibrated on)")
     print("  OFFLINE sandbox (no DNS / pip index)? On the user's own machine run:")
-    _wa = "aarch64" if platform.machine().lower() in ("aarch64", "arm64") else "x86_64"
-    print(f"    pip download typst==0.15.0 --no-deps --only-binary=:all: --platform manylinux2014_{_wa} --python-version 3.11")
-    print(f"    (or take the cp38-abi3-manylinux_2_17_{_wa} wheel from https://pypi.org/project/typst/#files), upload the .whl, then:")
+    plat, pyver = _wheel_platform_tag(), f"{sys.version_info.major}.{sys.version_info.minor}"
+    print(f"    pip download typst==0.15.0 --no-deps --only-binary=:all: --platform {plat} --python-version {pyver}")
+    print("    (if that platform has no wheel, `python3 -m pip debug --verbose` lists every compatible tag; never install a wheel built for another platform)")
+    print("    (or pick the matching wheel from https://pypi.org/project/typst/#files), upload the .whl, then:")
     print("    pip install --no-index <path-to-wheel>")
     return False, False
 
