@@ -2,7 +2,7 @@
 
 Loaded on demand, in addition to the target market's file, when the candidate holds Québec credentials and targets a market other than Québec.
 
-Reserved-title rules for Québec orders are in the Protected titles section of `quebec.md`; the same caution applies abroad.
+Also read the "Protected titles" section of `quebec.md` (that section only): never write or translate a job title into a reserved one (ingénieur/engineer, architecte, CPA…) without confirmed membership — the same caution applies in every target market.
 
 ## Education: state facts, not equivalences
 - The Québec path is 11 years of secondary + a 2-year pre-university DEC (or 3-year technical DEC) + a bachelor's of typically 3 years (90 credits) — CICIC (Government of Canada): https://www.cicic.ca/1174/postsecondary_education_in_quebec.canada . No official source states that a Québec 3-year bachelor's "equals" a 4-year degree elsewhere: never write "equivalent to a 4-year degree". Write the durations so the reader can do the arithmetic, e.g. "B.Sc. Computer Science (3-year program following a 2-year pre-university DEC)".
