@@ -9,7 +9,7 @@ ignore = [
     "E501",  # long lines: no reformatting of the codebase (code lines reach ~250 chars)
     "E702",  # several statements on one line with ';' is this repo's style
     "E731",  # assigned lambdas are kept for short local helpers
-    "E741",  # ambiguous l/O/I names: renaming them in a ~5900-line file is risky for little gain
+    "E741",  # ambiguous l/O/I names: renaming them across the verify.py + verify_*.py modules is risky for little gain
     "B007",  # unused loop variable: kept for readable tuple unpacking
     "B905",  # zip() without strict=: adding it would change behaviour on unequal lengths
 ]
