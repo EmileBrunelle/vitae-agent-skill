@@ -45,7 +45,8 @@ import subprocess
 import sys
 import tempfile
 import tomllib  # stdlib, py3.11+
-from typing import Any, NoReturn, TypedDict, cast
+from collections.abc import Sequence
+from typing import Any, NoReturn, NotRequired, TypedDict, cast
 
 
 class Section(TypedDict):
@@ -53,6 +54,7 @@ class Section(TypedDict):
     count: int
     undated_prefix: int
     numbered: bool
+    nondated: NotRequired[bool]  # no year column (REFERENCES); default: the heading is in NONDATED_HEADINGS
 
 
 # one check result: (check id, passed, message)
@@ -67,10 +69,9 @@ import verify  # noqa: E402 -- plumbing only, see module docstring
 from verify_level import Level  # noqa: E402
 
 # ---------------------------------------------------------------- constants
-# LANGUAGE DATA of this gate, in two places kept together here: SECTION_DEFS / NONDATED_HEADINGS / EXTRA_HEADINGS
-# below (the ENGLISH headings the shipped template prints) and STATUS_WORDS (the words that open an undated entry).
-# Rule (same as verify.py): never a FAIL because a language is unknown. A CV in another language whose headings
-# are not the template's gets one `INFO  not checked for <language>` line, not a wall of FAIL.
+# The ENGLISH headings the shipped template prints (SECTION_DEFS / NONDATED_HEADINGS / EXTRA_HEADINGS below) are the
+# only language data of this gate. The gate reads no word of any language: the words that open an undated entry are
+# declared by the CV's author in the TOML (`[meta] entry_status`), never listed here.
 # The skill's own finite heading set for the math/CS academic variant
 # (cv.typ). Hardcoded here deliberately — design note §3.2 check C: "le
 # skill connaît la liste exacte de ses propres titres (il les a générés)".
@@ -106,19 +107,21 @@ SECTION_DEFS: list[tuple[str, tuple[str, ...], tuple[str, ...] | None, bool]] = 
 # entry-start rule: every non-blank line under them is its own line-item.
 NONDATED_HEADINGS = {"REFERENCES", "AFFILIATIONS AND LANGUAGES"}
 EXTRA_HEADINGS = ("AFFILIATIONS AND LANGUAGES",)  # heading with no counts table at all
+EXTRA_KEY = "affiliations"  # its `[headings]` key
 
 # Matches lib-academic.typ's running footer (`n / N` on its own line) for check E.
 FOOTER_RE = re.compile(r'^\s*(\d+)\s*/\s*(\d+)\s*$')
-# Words that open an UNDATED entry (an item without a year, academic-mode.md §3.2 B):
-# EN, FR, ES, DE, IT, PT, NL equivalents of submitted / forthcoming / in press / in preparation.
-STATUS_WORDS = ("submitted|forthcoming|in press|in preparation"
-                "|soumis(?:e|es|s)?|à paraître|sous presse|en préparation"
-                "|en prensa|enviad[oa]s?|aceptad[oa]s?|en preparación"
-                "|eingereicht|im druck|angenommen|in vorbereitung"
-                "|inviat[oa]|in stampa|in preparazione"
-                "|submetid[oa]s?|no prelo|em preparação"
-                "|ingediend|in druk|in voorbereiding")
-ENTRY_START_RE = re.compile(r'^(\d{4}(-\d{4})?|%s)\b' % STATUS_WORDS, re.I)
+
+
+def entry_start_re(statuses: Sequence[str] = ()) -> re.Pattern[str]:
+    """Regex for the start of an entry: a year or year range, or one of the DECLARED undated-entry words
+    (`[meta] entry_status`), matched case-insensitively as a whole word (or words; runs of whitespace are equivalent),
+    not a prefix: list every inflection printed. No built-in words: with none declared only a year starts an entry."""
+    words = {" ".join(w.split()) for w in statuses if w.strip()}
+    alts = "|".join(r"\s+".join(re.escape(t) for t in w.split(" ")) for w in sorted(words, key=len, reverse=True))
+    return re.compile(r'^(\d{4}(-\d{4})?%s)(?!\w)' % (f"|{alts}" if alts else ""), re.I)
+
+
 # Matches reverse-numbered publication labels `[N]` in check A, and 4-digit years in parse_span.
 NUM_RE = re.compile(r'\[(\d+)\]')
 YEAR_RE = re.compile(r'\d{4}')
@@ -149,7 +152,7 @@ def parse_span(token: str) -> tuple[int, int] | None:
 # --------------------------------------------------------- pdftotext parsing
 def extract_layout_text(pdf: str) -> str:
     """The PDF as `pdftotext -layout` text. -layout keeps the date column left of the entry body, which is
-    what lets ENTRY_START_RE recognise an entry by its leading year token."""
+    what lets entry_start_re() recognise an entry by its leading year token."""
     if not shutil.which("pdftotext"):
         raise RuntimeError("pdftotext (poppler-utils) is required for the "
                             "-layout column structure the checks depend on")
@@ -165,7 +168,8 @@ def parse_pages(text: str) -> list[str]:
     return pages
 
 
-def classify(text: str, headings_set: set[str], surname: str) -> tuple[
+def classify(text: str, headings_set: set[str], surname: str,
+             statuses: Sequence[str] = (), nondated: set[str] | frozenset[str] = frozenset(NONDATED_HEADINGS)) -> tuple[
         list[list[str]], list[StreamLine], list[Footer], list[bool]]:
     """Returns (pages_lines, stream, per_page_footer, per_page_surname).
 
@@ -198,6 +202,7 @@ def classify(text: str, headings_set: set[str], surname: str) -> tuple[
         per_page_footer.append(footer)
         per_page_surname.append(had_surname)
 
+    start_re = entry_start_re(statuses)
     stream: list[StreamLine] = []
     current_heading: str | None = None
     for pi, lines in enumerate(pages_lines):
@@ -207,11 +212,11 @@ def classify(text: str, headings_set: set[str], surname: str) -> tuple[
                 current_heading = stripped
                 stream.append((pi, raw, stripped, True))
                 continue
-            dated = current_heading not in NONDATED_HEADINGS
+            dated = current_heading not in nondated
             if dated:
-                is_start = (not raw.startswith(" ")) and bool(ENTRY_START_RE.match(stripped))
+                is_start = (not raw.startswith(" ")) and bool(start_re.match(stripped))
             else:
-                is_start = True  # one line = one entry, no year column (see NONDATED_HEADINGS)
+                is_start = True  # one line = one entry, no year column (see nondated)
             stream.append((pi, raw, stripped, is_start))
 
     return pages_lines, stream, per_page_footer, per_page_surname
@@ -219,9 +224,11 @@ def classify(text: str, headings_set: set[str], surname: str) -> tuple[
 
 # ------------------------------------------------------------------ checks
 def check_counts_and_chrono(stream: list[StreamLine], sections: list[Section],
-                            headings_set: set[str]) -> list[Result]:
+                            headings_set: set[str], statuses: Sequence[str] = (),
+                            nondated: set[str] | frozenset[str] = frozenset(NONDATED_HEADINGS)) -> list[Result]:
     """Check A (count round-trip + numbering) and B (antechronology)."""
     results: list[Result] = []
+    start_re = entry_start_re(statuses)
     positions: dict[str, int] = {}
     for idx, (pi, raw, stripped, is_start) in enumerate(stream):
         if stripped in headings_set and stripped not in positions:
@@ -238,10 +245,18 @@ def check_counts_and_chrono(stream: list[StreamLine], sections: list[Section],
                 if stripped in headings_set:
                     break
                 if is_start:
-                    m = ENTRY_START_RE.match(stripped)
+                    m = start_re.match(stripped)
                     token = m.group(0) if m else stripped
                     entries.append((stripped, token))
 
+        if start_idx is None and declared > 0 and heading not in nondated:
+            results.append(("A", False, f'{heading}: declared {declared} but this heading was not found in the PDF text '
+                                        f'(the counts check looks for the English template heading; if the CV prints another one, declare it under '
+                                        f'[headings] in the data file)'))
+            continue
+        if prefix > 0 and not statuses:
+            results.append(("A", False, f'{heading}: undated_prefix is {prefix} but [meta] entry_status is not declared, '
+                                        f'so an entry that starts with a word instead of a year cannot be recognised'))
         n_extracted = len(entries)
         ok_a = (n_extracted == declared)
         results.append(("A", ok_a,
@@ -259,7 +274,7 @@ def check_counts_and_chrono(stream: list[StreamLine], sections: list[Section],
             results.append(("A", ok_num,
                              f'{heading}: entry numbers {nums} (expected {expected})'))
 
-        if heading in NONDATED_HEADINGS:
+        if heading in nondated:
             continue  # no date field, per schema -- check B does not apply
 
         dated_entries = entries[prefix:]
@@ -319,11 +334,12 @@ def check_no_orphan_heading(stream: list[StreamLine], headings_set: set[str],
 
 
 def check_no_straddle(pages_lines: list[list[str]],
-                      headings_set: set[str]) -> list[Result]:
+                      headings_set: set[str], statuses: Sequence[str] = ()) -> list[Result]:
     """Check D: the first content line of every page AFTER a break (running
     head excluded) is a heading or an entry-start token -- never a
     continuation of the previous page's last entry."""
     results: list[Result] = []
+    start_re = entry_start_re(statuses)
     for pi in range(1, len(pages_lines)):
         lines = pages_lines[pi]
         if not lines:
@@ -331,7 +347,7 @@ def check_no_straddle(pages_lines: list[list[str]],
         first = lines[0]
         stripped = first.strip()
         ok = (stripped in headings_set
-              or ((not first.startswith(" ")) and bool(ENTRY_START_RE.match(stripped))))
+              or ((not first.startswith(" ")) and bool(start_re.match(stripped))))
         results.append(("D", ok, f'page {pi + 1} first content line: "{stripped[:60]}"'))  # [:60] keeps one-line diagnostic output
     return results
 
@@ -358,45 +374,30 @@ def check_running_head(per_page_footer: list[Footer],
     return results
 
 
-def headings_found(text: str, sections: list[Section], extra: tuple[str, ...] = ()) -> tuple[int, int]:
-    """(found, expected): how many of the declared sections (count > 0) and extra headings print their
-    heading as a line of their own in the extraction."""
-    lines = {raw.strip() for raw in text.split("\n")}
-    wanted = [s["heading"] for s in sections if s["count"] > 0] + list(extra)
-    return sum(h in lines for h in wanted), len(wanted)
-
-
-def analyze_for_language(text: str, sections: list[Section], surname: str,
-                         extra: tuple[str, ...] = ()) -> tuple[list[Result], int, list[str]]:
-    """analyze(), unless the CV is in a language other than English and does not print the template's English
-    headings: counts, order, orphan-heading and page-break checks all key on those headings, so they would FAIL
-    for a translated title. Then only the running-head check (language-free) runs, and one INFO line says what was
-    not checked. -> (results, total_pages, info lines)."""
-    found, expected = headings_found(text, sections, extra)
-    code, label = verify._detect_lang(text)
-    if found == expected or code in (None, "en"):
-        results, total = analyze(text, sections, surname, extra)
-        return results, total, []
-    headings_set = {s["heading"] for s in sections} | set(extra)
-    pages_lines, _, footers, surnames = classify(text, headings_set, surname)
-    total = len(pages_lines)
-    info = [verify._not_checked_text(
-        label, f"section counts, order and page breaks — {expected - found} of {expected} template headings are not in "
-               "the PDF (translated headings?)")]
-    return check_running_head(footers, surnames, total), total, info
+def _canonical_headings(text: str, declared: set[str]) -> str:
+    """Rewrite each line equal, up to case, to a heading DECLARED under `[headings]` into that heading's own
+    spelling. The English defaults are never folded: they match as an exact uppercase whole line only, so a body line
+    such as "Teaching" is not a heading."""
+    by_fold = {h.casefold(): h for h in declared}
+    return "\n".join(by_fold.get(ln.strip().casefold(), ln) for ln in text.split("\n"))
 
 
 def analyze(text: str, sections: list[Section], surname: str,
-            headings_extra: tuple[str, ...] = ()) -> tuple[list[Result], int]:
-    """Run all five checks. Returns (results, total_pages)."""
+            headings_extra: tuple[str, ...] = (), statuses: Sequence[str] = (),
+            declared_headings: Sequence[str] = ()) -> tuple[list[Result], int]:
+    """Run all five checks. Returns (results, total_pages). `declared_headings`: the `[headings]` values, the only
+    headings matched case-insensitively."""
     headings_set = {s["heading"] for s in sections} | set(headings_extra)
-    pages_lines, stream, per_page_footer, per_page_surname = classify(text, headings_set, surname)
+    nondated = frozenset(s["heading"] for s in sections if s.get("nondated", s["heading"] in NONDATED_HEADINGS)) \
+        | set(headings_extra)
+    text = _canonical_headings(text, set(declared_headings))
+    pages_lines, stream, per_page_footer, per_page_surname = classify(text, headings_set, surname, statuses, nondated)
     total_pages = len(pages_lines)
     declared_counts = {s["heading"]: s["count"] for s in sections}
     results: list[Result] = []
-    results += check_counts_and_chrono(stream, sections, headings_set)
+    results += check_counts_and_chrono(stream, sections, headings_set, statuses, nondated)
     results += check_no_orphan_heading(stream, headings_set, declared_counts)
-    results += check_no_straddle(pages_lines, headings_set)
+    results += check_no_straddle(pages_lines, headings_set, statuses)
     results += check_running_head(per_page_footer, per_page_surname, total_pages)
     return results, total_pages
 
@@ -408,15 +409,77 @@ def build_sections_spec(data: dict[str, Any]) -> list[Section]:
     silently declare an empty section."""
     counts = data.get("counts", {})
     prefixes = data.get("undated_prefix", {})
+    headings = data.get("headings", {})
     sections: list[Section] = []
     for heading, cpath, ppath, numbered in SECTION_DEFS:
         declared = dget(counts, cpath, default=None)
         if declared is None:
             raise ValueError(f'TOML missing counts.{".".join(cpath)}')
         prefix = dget(prefixes, ppath, default=0) if ppath else 0
-        sections.append({"heading": heading, "count": declared,
-                          "undated_prefix": prefix, "numbered": numbered})
+        printed = dget(headings, cpath, default=None)
+        sections.append({"heading": printed if isinstance(printed, str) and printed.strip() else heading,
+                          "count": declared, "undated_prefix": prefix, "numbered": numbered,
+                          "nondated": heading in NONDATED_HEADINGS})
     return sections
+
+
+def _leaf_paths(table: Any, prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
+    if not isinstance(table, dict):
+        return [prefix]
+    return [p for k, v in table.items() for p in _leaf_paths(v, prefix + (k,))]
+
+
+def _is_table_section(path: tuple[str, ...]) -> bool:
+    return any(c[:len(path)] == path and len(c) > len(path) for _, c, _, _ in SECTION_DEFS)
+
+
+def check_headings_table(data: dict[str, Any]) -> list[Result]:
+    """`[headings]` maps each [counts] section (same nesting: `education`, `publications.journal`) to the heading the
+    CV prints, plus `affiliations` (the heading of the plain affiliations block, which has no count). It must be a
+    table. A key that is not one of those, a table where a string belongs, a string where a table of subsections
+    belongs, or a value that is not a non-empty string, is a FAIL naming it."""
+    raw = data.get("headings", {})
+    if not isinstance(raw, dict):
+        return [("A", False, "[headings] must be a table")]
+    known = {cpath for _, cpath, _, _ in SECTION_DEFS} | {(EXTRA_KEY,)}
+    out: list[Result] = []
+    for path in _leaf_paths(raw):
+        if not path:
+            continue
+        name = ".".join(path)
+        val = dget(raw, path, default=None)
+        if path not in known:
+            if len(path) == 1 and _is_table_section(path):
+                continue                                  # reported below as "expects a table"
+            out.append(("A", False, f'[headings] {name}: not a section of [counts] (known: '
+                                    f'{", ".join(".".join(c) for c in sorted(known))})'))
+        elif not (isinstance(val, str) and val.strip()):
+            out.append(("A", False, f'[headings] {name}: must be a non-empty string'))
+    for k, v in raw.items():
+        if _is_table_section((k,)) and not isinstance(v, dict):
+            out.append(("A", False, f'[headings] {k}: expects a table of subsections, not a string'))
+    return out
+
+
+def printed_headings(data: dict[str, Any]) -> tuple[tuple[str, ...], list[str]]:
+    """(extra headings the CV prints, every declared `[headings]` string). The affiliations heading defaults to the
+    English one."""
+    raw = data.get("headings", {})
+    raw = raw if isinstance(raw, dict) else {}
+    declared = [dget(raw, p, default=None) for p in _leaf_paths(raw) if p]
+    declared = [d for d in declared if isinstance(d, str) and d.strip()]
+    aff = raw.get(EXTRA_KEY)
+    extra = (aff,) if isinstance(aff, str) and aff.strip() else EXTRA_HEADINGS
+    return extra, declared
+
+
+def declared_statuses(data: dict[str, Any]) -> list[str]:
+    """`[meta] entry_status`: the words the CV's author declares for entries that start with a status instead of a
+    year (e.g. ["Sous presse", "Soumis"]). Absent -> [], and the gate then recognises years only."""
+    raw = data.get("meta", {}).get("entry_status", [])
+    if not isinstance(raw, list) or not all(isinstance(w, str) for w in raw):
+        raise ValueError("[meta] entry_status must be a list of strings")
+    return raw
 
 
 def hidden_text_msgs(pdf: str) -> list[tuple[bool | None, str]]:
@@ -436,6 +499,7 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
     with open(toml_path, "rb") as f:
         data = tomllib.load(f)
     sections = build_sections_spec(data)
+    statuses = declared_statuses(data)
     surname = data["meta"]["name"].split(" ")[-1]    # the running head prints the last space-separated word of the name
 
     # NOTE: deliberately no verify.ensure_icons(typ) here -- lib-academic.typ
@@ -449,11 +513,13 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
             return False, [(True, f"compile failed: {err}")], []
 
         text = extract_layout_text(pdf)
-        results, total_pages, info = analyze_for_language(text, sections, surname, EXTRA_HEADINGS)
+        extra, declared = printed_headings(data)
+        results, total_pages = analyze(text, sections, surname, extra, statuses, declared)
+        results = check_headings_table(data) + results
 
         # ---- reported-only metrics (never failed): page count, last-page
         # fill, and a rough prose/list share. academic-mode.md §3.3/§3.4.
-        reported = info + [f'{total_pages} page(s)']
+        reported = [f'{total_pages} page(s)']
         pages_from_cli = verify.count_pages(pdf, backend)
         if pages_from_cli and str(pages_from_cli) != str(total_pages):
             reported.append(f'note: pdfinfo reports {pages_from_cli} page(s)')

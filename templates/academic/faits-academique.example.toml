@@ -17,7 +17,7 @@
 #   ("2019-2024"). For an UNDATED-PREFIX entry (submitted/forthcoming items
 #   that precede the dated sequence in publications/talks), `date` is a
 #   status string instead ("submitted", "forthcoming", "in press") — never
-#   guessed, always declared, and counted by the matching `undated_prefix`
+#   guessed, always declared (the words in `[meta] entry_status`), and counted by the matching `undated_prefix`
 #   entry in `[counts]` below.
 # - Sections are declared even when empty/optional: an optional section with
 #   zero entries still gets `count = 0` so the gate can tell "empty" from
@@ -82,6 +82,19 @@ website = "u-estrie.example/~abtremblay"
 orcid = "0000-0002-1111-2222"
 cv_date = "2026-09-01"
 lang = "en"
+# Words that open an UNDATED entry instead of a year, each matched case-insensitively as a whole word (or words) at the start of the printed line, in the
+# language of the CV (e.g. ["Sous presse", "Soumis"]); list every inflection you print (Soumis, Soumise...). The gate has no built-in list: with none declared, a line that
+# starts with a word is not an entry, and any section with undated_prefix > 0 FAILs. List every status word used by `date`.
+entry_status = ["forthcoming", "in press", "submitted"]
+
+# [headings] (optional) — only for a CV whose section headings are not the English ones the shipped template prints.
+# Same keys and nesting as [counts]; the value is the heading the CV prints, matched as a literal, case-insensitive
+# whole line. `affiliations = "..."` declares the heading of the affiliations-and-languages block. A section left out keeps its English heading. An unknown key FAILs; a counted section whose heading is
+# not found in the PDF FAILs and says to declare it here.
+#   [headings]
+#   education = "Formation"
+#   [headings.publications]
+#   journal = "Articles de revues avec comité de lecture"
 
 [counts]
 education = 2

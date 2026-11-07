@@ -82,7 +82,7 @@ The agent will collect facts, pick the regional conventions, draft from the temp
 
 ## Languages
 
-The CV can be in any language Typst can set. The checks that do not depend on the language work everywhere: page count and fill, section breaks (including non-Latin headings), fonts and missing glyphs, hidden or clipped text, bullet characters, spacing and separators, and the figures in `--facts` (years, numbers, recognised month dates, with "1.500" read as 1500 or 1.5 and phone numbers ignored). The checks that read words have data for English, French, German, Spanish, Italian, Portuguese and Dutch: month names, section titles, degree names, job statuses, countries, undated academic statuses. For any other language or script, those checks stay quiet instead of guessing and print one `INFO  not checked for <language>: <check>` line each; the agent then compares proper names, section titles, degrees, dates and academic-entry statuses with the facts by hand (list in [`references/steps/6-verify.md`](references/steps/6-verify.md)). This is not a promise of full support for a language: an `INFO` line is a check that did not run, never a pass.
+The CV can be in any language Typst can set. The checks that do not depend on the language work everywhere: page count and fill, section breaks (including non-Latin headings), fonts and missing glyphs, hidden or clipped text, bullet characters, spacing and separators, and the figures in `--facts` (years and numbers, numeric dates such as 03/2020 included, with "1.500" read as 1500 or 1.5 and phone numbers ignored). The scripts know no language or country: they measure only objective things, and the language itself is set by Typst `lang` (`pick_design.py --lang`, with `--region` for a market variant). Names, dates, degrees and section titles are left to the agent and the user, who compare them with the facts by hand (see [`references/steps/6-verify.md`](references/steps/6-verify.md)).
 
 ## Requirements
 
@@ -128,12 +128,12 @@ templates/families/<family>/     # REFERENCE IMPLEMENTATIONS of all fourteen des
                                  #   the recipe survives a different pair (not a page 2)
   (no lib.typ / icons.typ here)  #   the family files import ../../lib.typ — one source of truth, no copies, no symlinks (by hand, compile from the repo root with `typst compile --root . templates/families/<family>/resume.typ`); icons.typ resolves via lib.typ to the empty fallback, so every family compiles offline
 templates/families/swiss-grid/resume-2page.typ   # the worked 2-page sample (runhead, deliberate break, both pages measured)
-scripts/pick_design.py           # deterministic design draw: family, fonts, section labels, list markers; --emit-typ prints the ready-to-paste Typst preamble for the drawn recipe
+scripts/pick_design.py           # deterministic design draw: family, fonts, section labels, list markers; `--lang` (and optional `--region`) set the Typst `lang`/`region`; --emit-typ prints the ready-to-paste Typst preamble for the drawn recipe
 scripts/gen_palette.py           # generative, contrast-validated palettes (duotone included)
 scripts/measure_fill.py          # ink-coverage measurement
 scripts/harvest_icons.py         # fetches contact/platform icon path data into a generated icons.typ at CV-build time (never overwrites the committed empty fallback)
 scripts/verify.py                # gate + doctor: compile + pages + fill + extraction, any platform; --tune bisects #set par(leading:, spacing:) to the fill target (does not replace the gate — run it after)
-scripts/verify_lang.py           # verify.py's language data: word lists, month tables, section-title patterns, stop words (add a language here only)
+scripts/verify_lang.py           # verify.py's script helpers: Latin-script tests
 scripts/verify_typst.py          # verify.py's cv.typ parsing: pure text in, values out (comments stripped, section bodies, entry arguments, `#set par/text/list` readers); no printing, no rendering
 scripts/verify_selftest.py       # verify.py --selftest, moved out of verify.py: lib.typ integrity, tuner regex round-trips, poppler/typst present; loaded lazily, reachable only through `verify.py --selftest`
 scripts/verify_level.py          # severity levels (FAIL / WARN / OK / INFO) and Finding tuple shared by verify.py and its helpers; stdlib only, imports nothing from verify

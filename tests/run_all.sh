@@ -24,7 +24,7 @@ start=$(date +%s); fails=0; total=0
 
 # Scratch copy. The repo holds no symlinks (families import ../../lib.typ), so plain -r is a faithful copy.
 cp -r "$root/templates" "$root/scripts" "$root/references" "$S"/
-mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/entry_repeat" "$root/tests/entry_location" "$root/tests/font_fallback" "$root/tests/language" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
+mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/font_fallback" "$root/tests/language" "$root/tests/compare_backends.py" "$root/tests/test_look.py" "$S/tests/"
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
@@ -386,90 +386,33 @@ lowered_fill() {
 }
 check lowered-fill-warns lowered_fill
 
-# --facts: a month range shares its year ("juillet – août 2019" covers "Jul 2019"); an invented month still WARNs.
-# entry-repeats WARN: a bullet restating its own entry's descriptor fires; a bullet that adds facts stays silent.
-entry_repeats() {
-  python3 -I - <<'PY' || return 1
-import sys; sys.path.insert(0, "scripts")
-import verify
-w = verify.check_entry_repeats(open("tests/entry_repeat/repeat.typ", encoding="utf-8").read())
-assert len(w) == 2 and w[0].startswith("WARN") and '"TrailMap"' in w[0] and '"ledger-cli"' in w[1], w
-w = verify.check_entry_repeats(open("tests/entry_repeat/near-miss.typ", encoding="utf-8").read())
-assert w == [], f"false positive: {w}"
-w = verify.check_entry_repeats(open("tests/entry_repeat/repeat-fr.typ", encoding="utf-8").read())
-assert len(w) == 1 and '"TrailMap"' in w[0], w
-w = verify.check_entry_repeats(open("tests/entry_repeat/near-miss-fr.typ", encoding="utf-8").read())
-assert w == [], f"false positive: {w}"
-PY
-}
-check entry-repeats entry_repeats
-# entry-location WARN (--facts only): a place named on an entry but absent from that entry's facts.md item fires
-# (run 24: "Laval" on the DEC); a place sourced on its own item, a generic word, an unattachable entry and no facts stay silent.
-entry_locations() {
-  python3 -I - <<'PY' || return 1
-import sys; sys.path.insert(0, "scripts")
-import verify
-def run(typ, facts):
-    r = lambda f: open("tests/entry_location/" + f, encoding="utf-8").read()
-    return verify.check_entry_locations(r(typ), r(facts) if facts else "")
-w = run("laval-dec.typ", "facts.md")
-assert len(w) == 1 and w[0].startswith("WARN") and '"DEC in Science"' in w[0] and '"Laval"' in w[0] and "rule 1" in w[0], w
-# a Laval borrowed from another entry still fires when the argument also holds a date
-for typ in ("date-arg.typ", "date-arg-depuis.typ"):
-    w = run(typ, "facts.md")
-    assert len(w) == 1 and '"DEC in Science"' in w[0] and '"Laval"' in w[0], (typ, w)
-# negatives: headings + flat bullets, French accents/hyphens, status words, province/country variants, two items on one org
-for typ, facts in (("sourced.typ", "facts-dec-laval.md"), ("part-time-only.typ", "facts.md"), ("unattached.typ", "facts.md"), ("laval-dec.typ", None),
-                   ("flat-headings.typ", "flat-headings.md"), ("variants.typ", "variants.md")):
-    w = run(typ, facts)
-    assert w == [], f"false positive on {typ}: {w}"
-PY
-}
-check entry-locations entry_locations
 # --text / --render: the interface the step docs promise, whatever backend is installed.
-facts_month_range() {
+facts_years_and_dates() {
   python3 -I - <<'PY' || return 1
 import sys; sys.path.insert(0, "scripts")
 import verify
-f = "Stage, Acme, juillet – août 2019\n"
-w = verify.check_facts_coverage("Intern, Acme  Jul 2019 – Aug 2019\n", f)
-assert w == [], f"false positive: {w}"
-w = verify.check_facts_coverage("Intern, Acme  Jun 2019\n", f)
-assert len(w) == 1 and '"Jun 2019"' in w[0], f"invented month not flagged: {w}"
+f = "Stage, Acme, 2020-03 to 2021\n"
+for ok in ("Intern  03/2020\n", "Intern  2021\n", "Intern  Mars 2020\n"):
+    w = verify.check_facts_coverage(ok, f)
+    assert w == [], f"{ok!r}: false positive {w}"
+for bad, token in (("Intern  04/2020\n", "04/2020"), ("Intern  2019\n", "2019"), ("Intern  Dec 2022\n", "2022")):
+    w = verify.check_facts_coverage(bad, f)
+    assert len(w) == 1 and f'"{token}"' in w[0], f"{bad!r} not flagged: {w}"
 PY
 }
-check facts-month-range facts_month_range
-# a year-crossing range with one closing year: the first month is the year before; FR abbreviations parse.
-facts_year_cross() {
-  python3 -I - <<'PY' || return 1
-import sys; sys.path.insert(0, "scripts")
-import verify
-f = "Stage, Acme, déc. – janv. 2020\n"
-for ok in ("Dec 2019", "Jan 2020"):
-    w = verify.check_facts_coverage(f"Intern  {ok}\n", f)
-    assert w == [], f"{ok}: false positive {w}"
-w = verify.check_facts_coverage("Intern  Dec 2020\n", f)
-assert len(w) == 1 and '"Dec 2020"' in w[0], f"Dec 2020 hidden: {w}"
-for abbr in ("févr.", "janv.", "avr.", "juil.", "sept.", "oct.", "nov.", "déc."):
-    w = verify.check_facts_coverage("Intern  %s 2021\n" % abbr, "Stage, Acme, %s 2021\n" % abbr)
-    assert w == [], f"{abbr}: {w}"
-PY
-}
-check facts-year-cross facts_year_cross
-# A CV and its facts file in German and in Russian (tests/language): `--facts` prints no name or year-only WARN for a language
-# it has no word lists for, and says so in one `INFO  not checked for <language>` line per language-dependent check.
+check facts-years-and-dates facts_years_and_dates
+# A CV and its facts file in German and in Russian (tests/language): `--facts` reads digits only, so it prints no
+# `not in facts file` WARN when the years and numbers agree, whatever the language or script.
 # tests/language/{de,ru}.typ are bare Typst without lib.typ, so verify.py legitimately prints `FAIL boundaries carry no ink`
 # and `WARN ... not measured: no lib entry()/srow() heads` on them. Those gates read pixels and lib.typ markers, not the
 # language, so this test deliberately rejects only the no-split|hidden|font fallback FAILs below.
 language_facts() {
-  local d="$S/tests/language" l log want
+  local d="$S/tests/language" l log
   for l in de ru; do
     log="$d/$l.log"
     python3 -I scripts/verify.py "$d/$l.typ" 1 --facts "$d/$l-facts.md" >"$log" 2>&1 || true
     ! grep -q '^FAIL  compile' "$log" || { echo "$l.typ did not compile"; cat "$log"; return 1; }
-    want="German"; [ "$l" = ru ] && want="Cyrillic script"
-    grep -q "^INFO  not checked for $want: capitalised names" "$log" || { echo "$l: no INFO not-checked line for $want"; cat "$log"; return 1; }
-    ! grep -Eq '^WARN  (not in facts file|year-only date range)' "$log" || { echo "$l: false name/date WARN"; grep -E '^WARN' "$log"; return 1; }
+    ! grep -Eq '^WARN  not in facts file' "$log" || { echo "$l: false facts WARN"; grep -E '^WARN' "$log"; return 1; }
     ! grep -Eq '^FAIL  (no-split|hidden|font fallback)' "$log" || { echo "$l: unexpected FAIL"; grep -E '^FAIL' "$log"; return 1; }
   done
 }

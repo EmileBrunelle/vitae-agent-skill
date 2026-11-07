@@ -1,5 +1,5 @@
 // Russian CV + Russian facts (Cyrillic): no WARN for names or dates, no FAIL, section breaks still read (check_no_split
-// no longer switches itself off on a non-Latin heading); only `INFO  not checked for Cyrillic script` lines appear.
+// no longer switches itself off on a non-Latin heading); the script says nothing about the language.
 #set page(paper: "a4", margin: 2cm)
 #set text(font: "Noto Sans", size: 10pt, lang: "ru")
 #let section(title, body) = [#upper(title) #v(2pt) #body #v(8pt)]

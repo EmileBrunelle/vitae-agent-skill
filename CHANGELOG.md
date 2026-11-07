@@ -2,6 +2,18 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## 0.9.0 — unreleased
+
+- Scope principle: the scripts know no language or country and measure only objective things (pages, fill, section splits, text extraction, template integrity, environment, which font drew each glyph). Conventions (names, legal suffixes, dates, degrees, headings) are left to the model and the user, who check them against facts.md.
+- `verify.py` drops the checks that read words: the year-only date-range WARN, the degree-token WARN, the summary-repeat and entry-repeat WARNs, the entry-locations WARN, the name half of `--facts`, and the "other language / not checked" INFO lines. `--facts` still WARNs when a year or a digit number (numeric dates like 03/2020 included) in the CV is absent from facts.md.
+- `pick_design.py` takes `--lang <iso639>` (default `en`) and an optional `--region <iso3166 alpha-2>`; `--init` and `--emit-typ` write them into `#set text(lang: …, region: …)`.
+- The academic gate reads publication statuses from an explicit declaration in the TOML instead of a built-in word list.
+- Breaking for academic CVs: `[meta] entry_status` (a list of the words that open an undated entry) must be declared whenever `undated_prefix` is above 0, or the gate FAILs; and a CV whose section headings are not the English ones must declare them under the new `[headings]` table (same keys as `[counts]`), or the counts check FAILs naming the missing heading. The `INFO  not checked for <language>` line is gone.
+- Removed public functions, for anyone importing them: `check_year_only_dates`, `check_degree_tokens`, `check_summary_repeats`, `check_entry_repeats`, `check_entry_locations` and the language detection.
+- `[meta] entry_status` words match as whole words (list every inflection, e.g. Soumis, Soumise), and runs of whitespace are collapsed before matching.
+- The `[headings]` table can also declare `affiliations`. The default English headings still match exactly, in uppercase.
+- `--facts` may WARN on a year that exists in facts.md only inside a month-name range (e.g. "déc. 2019 – janv. 2020" vs "2019"): check it against facts.md.
+
 ## 0.8.0 - 2026-11-07
 
 - `references/design.md` (126 KB) is split so the model reads shared rules plus ONE family recipe: `references/design/core.md` (invariants, destination support, anti-references, guided creation, tokens, structure primitives, page-fill loop, micro-typography, rules common to every family), `references/design/families/<family>.md` (one per family, named as `pick_design.py` family ids) and `references/icons.md` (icon provenance and sourcing). `pick_design.py` now prints the recipe path; step 4 says to read that file whole. The "jump to your family" index is gone; `gutter-rail`'s recipe drops its design-history narrative (no rule changed).

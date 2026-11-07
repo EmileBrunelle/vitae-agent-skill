@@ -1,8 +1,7 @@
 """verify.py outside English and French (development only).
 
-A gate that depends on the language must be silent or neutral on a language or script it has no data for: never a
-FAIL, no WARN in bulk, and one `INFO  not checked for <language>: ...` line when it cannot judge. Each test feeds a
-short extract of real running text (CV-like, as pdftotext returns it) and its facts file.
+The scripts know no language: a gate reads digits, geometry and fonts, never a word. Each test feeds a short extract of
+real running text (CV-like, as pdftotext returns it) and its facts file.
 """
 import pytest
 import verify as v
@@ -100,107 +99,29 @@ def warns(cv: str, facts: str) -> list[str]:
     return [x for x in v.check_facts_coverage(cv, facts) if x.startswith("WARN")]
 
 
-def infos(cv: str, facts: str) -> list[str]:
-    return [x for x in v.check_facts_coverage(cv, facts) if x.startswith("INFO")]
-
-
-# --- language detection ----------------------------------------------------------------------------------------
+# --- check_facts_coverage: digits only, in any language ------------------------------------------------------------
 
 @pytest.mark.parametrize("key", sorted(SAMPLES))
-def test_latin_languages_are_not_classed_en_or_fr(key):
-    code, label, cv, facts = SAMPLES[key]
-    assert v._detect_lang(cv) == (code, label)
-    assert v._guess_lang(cv) is None and v._guess_lang(facts) is None     # "neither EN nor FR"
-
-
-@pytest.mark.parametrize("key", sorted(SCRIPTS))
-def test_scripts_are_detected_by_letters(key):
-    label, cv, facts = SCRIPTS[key]
-    assert v._detect_lang(cv) == ("other", label)
-    assert v._guess_lang(facts) is None
-
-
-def test_unrecognised_latin_language_needs_enough_text():
-    assert v._detect_lang(POLISH) == ("other", "an unrecognised language")
-    assert v._detect_lang(POLISH[:90])[0] is None           # a short snippet is never called foreign
-
-
-def test_english_and_french_keep_their_verdict():
-    assert v._guess_lang(EN_CV) == "en"
-    assert v._guess_lang(FR_CV) == "fr"
-    assert v._guess_lang("Built things.") is None            # too short, as before
-
-
-def test_german_with_many_in_on_of_is_not_english():
-    de = ("Wir arbeiten in Berlin und in München, in Teams von fünf Personen, auf Basis der Ergebnisse von Tests in der "
-          "Cloud, mit Kunden in der Industrie und im Handel, für die Zukunft der Firma in Europa und in Asien.")
-    assert v._guess_lang(de) is None
-    assert v._detect_lang(de)[0] == "de"
-
-
-# --- check_facts_coverage: silent, then one INFO ------------------------------------------------------------------
-
-@pytest.mark.parametrize("key", sorted(SAMPLES))
-def test_latin_languages_give_no_name_warns(key):
-    _, label, cv, facts = SAMPLES[key]
-    assert warns(cv, facts) == []
-    assert infos(cv, facts) == [v._not_checked(label, "capitalised names and titles against the facts file")]
+def test_latin_languages_give_no_warns(key):
+    _, _, cv, facts = SAMPLES[key]
+    assert v.check_facts_coverage(cv, facts) == []
 
 
 @pytest.mark.parametrize("key", sorted(SCRIPTS))
 def test_scripts_give_no_warns(key):
-    label, cv, facts = SCRIPTS[key]
-    assert warns(cv, facts) == []
-    out = infos(cv, facts)
-    assert len(out) == 1 and out[0].startswith(f"INFO  not checked for {label}: ")
-    assert "the agent compares this by hand (see step 6 list)" in out[0]
+    _, cv, facts = SCRIPTS[key]
+    assert v.check_facts_coverage(cv, facts) == []
 
 
-def test_names_absent_from_the_facts_wording_do_not_warn_in_german_or_russian():
-    # The facts file words it differently (lower-case verbs, no capitalised heading); the CV's capitalised words are
-    # not in it verbatim. English logic would WARN on Entwickelte, Datenbanken, Kundenprojekte, Разработал.
-    de_cv = ("Berufserfahrung\nEntwickelte Datenbanken für die Kundenprojekte der Abteilung und betreute die "
-             "Anwendungen in der Cloud mit dem Team.")
-    de_facts = "erfahrung: datenbanken entwickelt für die kundenprojekte der abteilung, betreut die anwendungen in der cloud mit dem team"
-    assert warns(de_cv, de_facts) == [] and len(infos(de_cv, de_facts)) == 1
-    ru_cv = "Опыт работы\nРазработал Систему для клиентов компании и руководил командой из пяти разработчиков в Москве."
-    ru_facts = "опыт: разработал систему для клиентов компании и руководил командой из пяти разработчиков в москве"
-    assert warns(ru_cv, ru_facts) == [] and len(infos(ru_cv, ru_facts)) == 1
-
-
-def test_unrecognised_latin_language_gives_no_warns():
-    facts = "# Doświadczenie\nProgramista w firmie Polskie Systemy w Warszawie. " + POLISH
-    assert warns(POLISH, facts) == []
-    assert len(infos(POLISH, facts)) == 1
-
-
-def test_foreign_cv_still_checks_dates_numbers_and_acronyms():
+def test_foreign_cv_still_checks_years_and_numbers():
     _, _, cv, facts = SAMPLES["de"]
     out = warns(cv + "\nBetrieb: 2015 – 2016, 350 Mitarbeiter, AWS.", facts)
-    assert {x.split('"')[1] for x in out} == {"2015", "2016", "350 ", "AWS"} or \
-        {x.split('"')[1].strip() for x in out} == {"2015", "2016", "350", "AWS"}
+    assert {x.split('"')[1].strip() for x in out} == {"2015", "2016", "350"}
 
 
-def test_english_and_french_invented_name_still_warns():
-    facts_en = "# Experience\nAcme Software, Boston. Built web applications and led five developers."
-    out = warns(EN_CV + "\nSummer intern at Globex Corporation.", facts_en)
-    assert any('"Globex Corporation"' in x for x in out)
-    facts_fr = "# Expérience\nAcme Logiciels, Montréal. Développé des applications web, équipe de cinq."
-    out = warns(FR_CV + "\nStagiaire chez Initech Québec.", facts_fr)
-    assert any('"Initech Québec"' in x for x in out)
-
-
-# --- capital letters beyond Latin-1 -------------------------------------------------------------------------------
-
-def test_cap_covers_extended_latin_greek_and_cyrillic():
-    for w in ("Łukasz", "Škoda", "Żabka", "Őrség", "Țara", "Ạnh", "Éric", "Çelik", "Øresund", "Ωmega", "Иван"):
-        assert v._WORD_RE.match(w), w
-    assert not v._WORD_RE.match("łukasz")
-
-
-def test_extended_capital_name_missing_from_facts_warns_in_english():
-    out = warns("Worked with Škoda Auto on the plant.", "# Experience\nWorked on the plant with the team of five.")
-    assert any("Škoda" in x for x in out)
+def test_no_word_is_read_so_a_name_never_warns():
+    facts = "# Experience\nAcme Software, Boston. Built web applications and led five developers."
+    assert warns("Summer intern at Globex Corporation, AWS and Škoda.", facts) == []
 
 
 # --- numbers: "1.500" is 1500 or 1.5 ---------------------------------------------------------------------------------
@@ -277,56 +198,6 @@ def test_phone_next_to_a_date_is_blanked_and_the_date_kept():
     assert v._blank_phones("1500 staff") == "1500 staff"
 
 
-# --- elisions ----------------------------------------------------------------------------------------------------------
-
-@pytest.mark.parametrize("raw, want", [
-    ("Dell'Università", "Università"), ("all’Università", "Università"), ("L'Oréal", "Oréal"), ("d'Ivoire", "Ivoire"),
-    ("Nell'Azienda", "Azienda"), ("O'Brien", "Brien"), ("Acme's", "Acme"), ("Dellwood", "Dellwood"),
-])
-def test_clean_word_elisions(raw, want):
-    assert v._clean_word(raw) == want
-
-
-# --- months and ranges: DE/ES/IT/PT/NL names, neutral on a script it cannot read ----------------------------------------
-
-@pytest.mark.parametrize("line", [
-    "Entwickler  März 2019 – Mai 2021", "Entwickler  Januar 2019 – Dezember 2021", "Juli 2018 – augustus 2020",
-    "Desarrollador  Enero 2019 – Presente", "ene 2019 – dic 2021", "Sviluppatore  Gennaio 2019 – Maggio 2021",
-    "Desenvolvedor  Março 2019 – Dezembro 2021", "Ontwikkelaar  maart 2019 – december 2021", "mei 2019 – nu",
-    "Sommer 2019 – Winter 2021", "verano 2019 – invierno 2021",
-    "juillet 2019 à août 2021", "Juli 2019 bis August 2021", "enero 2019 a marzo 2021", "mei 2019 tot juni 2021",
-    "Разработчик  март 2019 – декабрь 2021", "мар 2019 – настоящее время",
-])
-def test_known_month_forms_give_no_year_only_warn(line):
-    assert v.check_year_only_dates(line) == []
-
-
-@pytest.mark.parametrize("line", ["Engineer  2019 – 2021", "Marketing 2019 – 2021", "Mayor 2019 – 2021", "2019 à 2021",
-                                  "2019 bis 2021", "enero 2019 – 2021", "Aug 2019 – 2021"])
-def test_year_only_still_warns_where_the_text_says_so(line):
-    assert v.check_year_only_dates(line)
-
-
-def test_word_before_the_year_is_a_possible_month_in_a_language_without_month_names():
-    # Polish: no month list here. Long enough to be called "unrecognised", the word before the year stays unjudged.
-    pl = POLISH + "\nProgramista  marzec 2019 – obecnie"
-    assert v._detect_lang(pl)[0] == "other"
-    assert v.check_year_only_dates(pl) == []
-    # Cyrillic month, any script: the word before the year is read as a month, whatever it is
-    assert v.check_year_only_dates("Разработчик  Ноябрь 2019 – Present") == []
-
-
-def test_german_spanish_months_cover_the_facts_dates():
-    assert warns("Entwickler  Januar 2019 – Dezember 2021\n", "Januar 2019 bis Dezember 2021") == []
-    assert v._month_years("de enero a marzo 2019, Juli bis August 2018") == {(1, 2019), (3, 2019), (7, 2018), (8, 2018)}
-    assert v._month_years("März 2020") == {(3, 2020)}
-
-
-def test_month_tables_agree_across_languages():
-    assert v._MONTHS["marz"] == v._MONTHS["marzo"] == v._MONTHS["maart"] == 3
-    assert v._MONTHS["dez"] == v._MONTHS["dezembro"] == 12 and v._MONTHS["mei"] == v._MONTHS["maio"] == 5
-
-
 # --- headings in any script ----------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("heading", ["Опыт работы", "Επαγγελματική εμπειρία", "工作经历", "कार्य अनुभव", "ประสบการณ์ทำงาน", "الخبرة المهنية", "Berufserfahrung"])
@@ -384,92 +255,7 @@ def test_fold1_is_length_preserving_and_keeps_scripts():
     assert v._fold1("Évry") == "evry"
 
 
-# --- check_summary_repeats: section titles in DE/ES/IT/PT/NL, any web address ----------------------------------------------
-
-def _cv(summary_title: str, exp_title: str, summary: str, bullet: str) -> str:
-    return (f'#section("{summary_title}")[\n{summary}\n]\n'
-            f'#section("{exp_title}")[\n#entry("Dev", "Acme", "2019 – 2021")\n- {bullet}\n]\n')
-
-
-@pytest.mark.parametrize("summary_title, exp_title", [
-    ("Über mich", "Berufserfahrung"), ("Perfil", "Experiencia"), ("Profilo", "Esperienza"),
-    ("Perfil profissional", "Experiência"), ("Profiel", "Werkervaring"), ("Samenvatting", "Projecten"),
-    ("Resumen", "Experiencia laboral"), ("Zusammenfassung", "Projekte"), ("Chi sono", "Progetti"),
-])
-def test_summary_repeats_reads_titles_of_the_other_languages(summary_title, exp_title):
-    src = _cv(summary_title, exp_title, "Réduit les coûts de 40 % et sert 12 000 clients.", "Réduit les coûts de 40 % pour 12 000 clients.")
-    assert len(v.check_summary_repeats(src)) == 1, (summary_title, exp_title)
-
-
-def test_summary_repeats_unknown_titles_stay_silent():
-    src = _cv("Резюме", "Опыт работы", "Снизил затраты на 40 % и обслужил 12 000 клиентов.", "Снизил затраты на 40 % для 12 000 клиентов.")
-    assert v.check_summary_repeats(src) == []
-
-
-@pytest.mark.parametrize("url", ["https://github.com/jo/x", "http://example.xyz/a", "www.mon-site.fr/cv", "https://portfolio.example.рф/x",
-                                 "https://exemple.quebec/a?b=1234", "linkedin.com/in/jo-1234", "jo.de", "https://foo.bar.baz/12345"])
-def test_typst_prose_masks_every_web_address(url):
-    assert "1234" not in v._typst_prose(f"see {url} for 40 %") and "12345" not in v._typst_prose(f"see {url} for 40 %")
-
-
-@pytest.mark.parametrize("text", ["Node.js", "B.Sc", "Ph.D", "Vue.js 3", "Next.js"])
-def test_typst_prose_keeps_names_that_look_like_domains(text):
-    assert v._typst_prose(text) == text
-
-
-def test_project_title_re_covers_the_other_languages():
-    for t in ("Projects", "Projets", "Projekte", "Proyectos", "Progetti", "Projetos", "Projecten"):
-        assert v._PROJECT_TITLE_RE.search(t), t
-
-
-# --- check_degree_tokens: degree names and "not finished" wording of the other languages ------------------------------------
-
-@pytest.mark.parametrize("line", [
-    "Laurea in corso, Informatica", "Licenciatura en curso, Ingeniería", "Bacharelado em andamento, Informática",
-    "Diplom Informatik laufend", "Magister nicht abgeschlossen", "Dottorato in corso", "Grado en Informática incompleto",
-    "Bachelor Informatica lopend", "Mestrado em curso",
-])
-def test_degree_tokens_read_the_other_languages(line):
-    assert v.check_degree_tokens(line) == [line]
-
-
-@pytest.mark.parametrize("line", ["Laurea in Informatica, 2018", "Licenciatura en Ingeniería, 2018", "Diplom-Informatiker, 2018",
-                                  "Diplomatic corps, in progress", "Grado de satisfacción: 4,5", "Bachelor Informatica, 2018"])
-def test_degree_tokens_stay_quiet_on_a_finished_degree(line):
-    assert v.check_degree_tokens(line) == []
-
-
-def test_degree_tokens_en_fr_unchanged():
-    assert v.check_degree_tokens("B.Eng. program, software engineering")
-    assert v.check_degree_tokens("Baccalauréat en cours, génie logiciel")
-    assert not v.check_degree_tokens("Program Manager | Master Builder, Bachelor of Arts")
-
-
-# --- check_entry_locations: status words and countries of the other languages ---------------------------------------------
-
-LOC_FACTS = """# Facts
-## Experience
-- **Cashier**, Marché Bonprix (Hamburg), Jun 2020 – Aug 2022, Vollzeit, Deutschland, España, Italia, Schweiz, Österreich, tiempo completo, medio tiempo, tempo pieno
-- **IT Support**, Collège Riverside (Laval), Sep 2022 – Apr 2025
-"""
-
-
-@pytest.mark.parametrize("segment", [
-    "Laval · Vollzeit", "Laval · Teilzeit", "Laval · tiempo completo", "Laval · medio tiempo", "Laval · tempo pieno",
-    "Laval · Deutschland", "Laval · España", "Laval · Italia", "Laval · Schweiz", "Laval · Österreich",
-])
-def test_status_words_and_countries_are_not_places(segment):
-    typ = f'#section("Experience")[\n#job("IT Support", "Collège Riverside", "Sep 2022 – Apr 2025", "{segment}")\n]\n'
-    assert v.check_entry_locations(typ, LOC_FACTS) == []
-
-
-def test_a_borrowed_place_still_warns():
-    typ = '#section("Experience")[\n#job("IT Support", "Collège Riverside", "Sep 2022 – Apr 2025", "Hamburg")\n]\n'
-    out = v.check_entry_locations(typ, LOC_FACTS)
-    assert len(out) == 1 and '"Hamburg"' in out[0]
-
-
-# --- verify_academic: statuses and translated headings never FAIL --------------------------------------------------------
+# --- verify_academic: declared entry statuses, no built-in word list ---------------------------------------------------------
 
 import verify_academic as va  # noqa: E402  (needs verify importable first: conftest puts scripts/ on the path)
 
@@ -477,59 +263,130 @@ SECTIONS: list[va.Section] = [
     {"heading": "EDUCATION", "count": 1, "undated_prefix": 0, "numbered": False},
     {"heading": "PUBLICATIONS: JOURNAL ARTICLES", "count": 2, "undated_prefix": 1, "numbered": False},
 ]
-FR_ACADEMIC = """\
+ACADEMIC = """\
 Dupont
-FORMATION
+EDUCATION
 2015-2019   Doctorat en mathématiques, Université de Montréal, dans le cadre d'une thèse sur les graphes et les
             algorithmes de coloration, sous la direction de la professeure Tremblay.
-ARTICLES DE REVUE
-à paraître  Dupont, J. Une borne pour la coloration des graphes, avec une démonstration pour les graphes planaires.
+PUBLICATIONS: JOURNAL ARTICLES
+Sous presse Dupont, J. Une borne pour la coloration des graphes, avec une démonstration pour les graphes planaires.
 2021        Dupont, J. Sur les arbres, et sur les graphes de grande taille dans les réseaux de transport.
 """
-ES_ACADEMIC = """\
-Dupont
-FORMACIÓN
-2015-2019   Doctorado en matemáticas, Universidad de Valencia, con una tesis sobre los grafos y los algoritmos de
-            coloración, bajo la dirección de la profesora Tremblay.
-ARTÍCULOS DE REVISTA
-en prensa   Dupont, J. Una cota para la coloración de los grafos, con una demostración para los grafos planos.
-2021        Dupont, J. Sobre los árboles, y sobre los grafos de gran tamaño en las redes de transporte.
-"""
 
 
-@pytest.mark.parametrize("status", ["submitted", "forthcoming", "in press", "soumis", "soumise", "à paraître", "sous presse",
-                                    "en préparation", "en prensa", "enviado", "eingereicht", "Im Druck", "inviato",
-                                    "submetido", "ingediend"])
-def test_academic_entry_start_knows_statuses_of_other_languages(status):
-    assert va.ENTRY_START_RE.match(f"{status}  Doe, J. A paper")
+def test_entry_start_recognises_only_years_by_default():
+    rx = va.entry_start_re()
+    assert rx.match("2019-2024  Entry") and rx.match("2021 Entry")
+    for word in ("In press", "submitted", "Sous presse", "Accepted somewhere"):
+        assert not rx.match(f"{word}  Doe, J. A paper")
 
 
-def test_academic_entry_start_en_unchanged():
-    assert va.ENTRY_START_RE.match("2019-2024  Entry") and not va.ENTRY_START_RE.match("Accepted somewhere")
+@pytest.mark.parametrize("status", ["Sous presse", "soumis", "In press", "eingereicht", "投稿中"])
+def test_declared_status_is_a_case_insensitive_whole_word(status):
+    rx = va.entry_start_re([status])
+    assert rx.match(f"{status}  Doe, J. A paper") and rx.match(f"{status.upper()}  Doe, J. A paper")
+    assert not rx.match("Accepted somewhere")
 
 
-def test_translated_academic_cv_never_fails_on_unknown_headings():
-    results, _, info = va.analyze_for_language(FR_ACADEMIC, SECTIONS, "Dupont", ())
-    assert all(ok for _, ok, _ in results), results              # nothing FAILs
-    assert len(info) == 1 and info[0].startswith("not checked for French: section counts, order and page breaks")
-    # the same text went through the English-only analysis fails: that was the false FAIL
-    assert any(not ok for _, ok, _ in va.analyze(FR_ACADEMIC, SECTIONS, "Dupont")[0])
-    results, _, info = va.analyze_for_language(ES_ACADEMIC, SECTIONS, "Dupont", ())
-    assert all(ok for _, ok, _ in results) and info and "Spanish" in info[0]
+def test_declared_status_is_escaped_not_a_regex():
+    rx = va.entry_start_re(["(a.c)"])
+    assert rx.match("(a.c) Entry") and not rx.match("(abc) Entry")
 
 
-def test_english_academic_cv_keeps_its_fail_when_a_heading_vanishes():
-    text = FR_ACADEMIC.replace("FORMATION", "").replace("ARTICLES DE REVUE", "")
-    text = ("The department chair asked the candidate for the full record of the work in the lab and for the list of "
-            "all of the papers that are in the file.\n" + text)
-    results, _, info = va.analyze_for_language(text, SECTIONS, "Dupont", ())
-    assert info == [] and any(not ok for _, ok, _ in results)
+def test_declared_status_entry_is_counted():
+    results, _ = va.analyze(ACADEMIC, SECTIONS, "Dupont", (), ["Sous presse"])
+    assert all(ok for _, ok, _ in results), results
 
 
-def test_translated_academic_cv_with_the_template_headings_is_checked_normally():
-    text = FR_ACADEMIC.replace("FORMATION", "EDUCATION").replace("ARTICLES DE REVUE", "PUBLICATIONS: JOURNAL ARTICLES")
-    results, _, info = va.analyze_for_language(text, SECTIONS, "Dupont", ())
-    assert info == [] and all(ok for _, ok, _ in results), results
+def test_undeclared_status_fails_plainly_never_passes_a_wrong_count():
+    results, _ = va.analyze(ACADEMIC, SECTIONS, "Dupont", ())
+    msgs = [m for _, ok, m in results if not ok]
+    assert any("entry_status is not declared" in m for m in msgs), msgs
+    assert any("declared 2, extracted 1" in m for m in msgs), msgs
+
+
+def test_declared_statuses_are_read_from_meta():
+    assert va.declared_statuses({"meta": {"entry_status": ["Soumis"]}}) == ["Soumis"]
+    assert va.declared_statuses({"meta": {}}) == [] and va.declared_statuses({}) == []
+    with pytest.raises(ValueError):
+        va.declared_statuses({"meta": {"entry_status": "Soumis"}})
+
+
+def test_missing_declared_heading_is_reported_plainly_without_a_language_guess():
+    text = ACADEMIC.replace("EDUCATION", "FORMATION").replace("PUBLICATIONS: JOURNAL ARTICLES", "ARTICLES DE REVUE")
+    results, _ = va.analyze(text, SECTIONS, "Dupont", (), ["Sous presse"])
+    msgs = [m for _, ok, m in results if not ok]
+    assert any("EDUCATION: declared 1 but this heading was not found" in m for m in msgs), msgs
+    assert not any("not checked for" in m for m in msgs)
+
+
+FR_HEADINGS = {"education": "Formation", "publications": {"journal": "Articles de revues"}}
+
+
+def test_declared_french_headings_make_the_counts_pass():
+    text = ACADEMIC.replace("EDUCATION", "FORMATION").replace("PUBLICATIONS: JOURNAL ARTICLES", "Articles de revues")
+    data = {"counts": {"education": 1, "publications": {"journal": 2}}, "headings": FR_HEADINGS}
+    secs = [s for s in va.build_sections_spec(_full_data(data)) if s["heading"] in ("Formation", "Articles de revues")]
+    assert [s["heading"] for s in secs] == ["Formation", "Articles de revues"]
+    results, _ = va.analyze(text, [{**secs[0], "count": 1}, {**secs[1], "count": 2, "undated_prefix": 1, "numbered": False}],
+                            "Dupont", (), ["Sous presse"], ["Formation", "Articles de revues"])
+    assert all(ok for _, ok, _ in results), results                 # matched case-insensitively, literally
+
+
+def _full_data(data):
+    counts = {k: 0 for k in ("education", "appointments", "honours", "funding", "supervision", "teaching", "service",
+                             "knowledge_mobilization", "references")}
+    counts["publications"] = {"journal": 0, "conference": 0, "preprint": 0}
+    counts["talks"] = {k: 0 for k in ("plenary", "invited", "conference", "seminar", "poster")}
+    counts.update({k: v for k, v in data["counts"].items() if k != "publications"})
+    counts["publications"].update(data["counts"].get("publications", {}))
+    return {**data, "counts": counts}
+
+
+def test_undeclared_french_heading_fails_with_the_hint():
+    text = ACADEMIC.replace("EDUCATION", "FORMATION")
+    results, _ = va.analyze(text, SECTIONS, "Dupont", (), ["Sous presse"])
+    msgs = [m for _, ok, m in results if not ok]
+    assert any("EDUCATION" in m and "declare it under [headings]" in m for m in msgs), msgs
+
+
+def test_unknown_headings_key_fails_naming_it():
+    res = va.check_headings_table({"headings": {"educaton": "Formation", "publications": {"jurnal": "X", "journal": "Y"}}})
+    msgs = [m for _, ok, m in res if not ok]
+    assert len(msgs) == 2 and "educaton" in msgs[0] and "publications.jurnal" in msgs[1]
+    assert va.check_headings_table({"headings": FR_HEADINGS}) == [] and va.check_headings_table({}) == []
+
+
+def test_status_matches_across_whitespace_runs():
+    rx = va.entry_start_re(["in press"])
+    assert rx.match("In  press  Doe, J.") and va.entry_start_re(["in  press"]).match("in press Doe")
+    assert not rx.match("In pressing Doe")
+
+
+def test_english_body_line_equal_to_a_heading_up_to_case_is_not_a_heading():
+    secs: list[va.Section] = [{"heading": "EDUCATION", "count": 2, "undated_prefix": 0, "numbered": False},
+                              {"heading": "TEACHING", "count": 0, "undated_prefix": 0, "numbered": False}]
+    text = ("Dupont\nEDUCATION\n2015  PhD, Université de Montréal, thesis on graph colouring and its applications.\n"
+            "Teaching\n2012  MSc, McGill University, thesis on planar graphs and their colourings in general.\n")
+    results, _ = va.analyze(text, secs, "Dupont", ())
+    assert all(ok for _, ok, _ in results), results
+    assert va._canonical_headings(text, set()) == text
+    assert va._canonical_headings("formation", {"Formation"}) == "Formation"
+
+
+def test_affiliations_heading_can_be_declared_and_is_not_a_counts_key():
+    assert va.check_headings_table({"headings": {"affiliations": "Affiliations et langues"}}) == []
+    extra, declared = va.printed_headings({"headings": {"affiliations": "Affiliations et langues"}})
+    assert extra == ("Affiliations et langues",) and declared == ["Affiliations et langues"]
+    assert va.printed_headings({})[0] == va.EXTRA_HEADINGS
+
+
+def test_headings_table_shape_errors():
+    res = va.check_headings_table({"headings": "Formation"})
+    assert [m for _, ok, m in res if not ok] == ["[headings] must be a table"]
+    res = va.check_headings_table({"headings": {"publications": "Pubs"}})
+    msgs = [m for _, ok, m in res if not ok]
+    assert len(msgs) == 1 and "publications" in msgs[0] and "expects a table of subsections" in msgs[0]
 
 
 # --- verify_letter and pick_design: case-folding and word starts ---------------------------------------------------------------

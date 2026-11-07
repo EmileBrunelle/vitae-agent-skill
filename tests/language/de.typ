@@ -1,5 +1,5 @@
 // German CV + German facts: nothing in `--facts` may WARN for names or dates (German capitalises every noun and
-// begins bullets with verbs the English list does not know); only `INFO  not checked for German` lines appear.
+// begins bullets with verbs the English list does not know); the script says nothing about the language.
 #set page(paper: "a4", margin: 2cm)
 #set text(font: "Noto Sans", size: 10pt, lang: "de")
 #let section(title, body) = [#upper(title) #v(2pt) #body #v(8pt)]

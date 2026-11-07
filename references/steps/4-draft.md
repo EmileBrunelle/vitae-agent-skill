@@ -1,14 +1,14 @@
 # Step 4 — Draft from the family's worked file
 
-4. **Draft from the family's worked file — never from scratch. One command:** `python3 <skill>/scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --career early|mid|senior [--photo] [--conservative] [--creative] [--offline] --init <cv folder>` — it prints the design report (family, fonts, palette, leading, fill target), then writes `<cv folder>/lib.typ` and `icons.typ` (byte copies), and `<cv folder>/cv.typ` = the drawn family's worked file with the drawn palette, fonts, leading and mark kit already substituted (pass `--offline` when the sandbox has no network to fetch missing fonts, so the eligible pool is restricted to families whose font roles all have a locally installed face). `pick_design.py --init` refuses to overwrite an existing `cv.typ` (`--force` to replace) and prints the next commands (`harvest_icons.py <folder>`, `verify.py --tune <folder>/cv.typ 1
+4. **Draft from the family's worked file — never from scratch. One command:** `python3 <skill>/scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --career early|mid|senior [--photo] [--conservative] [--creative] [--offline] --lang <iso639> [--region <iso3166>] --init <cv folder>` — it prints the design report (family, fonts, palette, leading, fill target), then writes `<cv folder>/lib.typ` and `icons.typ` (byte copies), and `<cv folder>/cv.typ` = the drawn family's worked file with the drawn palette, fonts, leading and mark kit already substituted (pass `--offline` when the sandbox has no network to fetch missing fonts, so the eligible pool is restricted to families whose font roles all have a locally installed face). Pass `--lang` with the CV's language (`fr`, `de`, `es`…; default `en`) and `--region` when the market has a variant (`--lang fr --region ca` for Québec): both are written into `#set text(lang: …, region: …)`, which is all the language handling the CV gets, so a wrong `--lang` means wrong hyphenation and quotes. `--lang` only sets Typst's language: translate every section label and header string yourself (the starter keeps English labels such as Profile, Skills & Tools, Strengths), using the per-language heading table in `references/regional.md` § "Section names per language" (line 50). `pick_design.py --init` refuses to overwrite an existing `cv.typ` (`--force` to replace) and prints the next commands (`harvest_icons.py <folder>`, `verify.py --tune <folder>/cv.typ 1
    <lo> <hi>`, then `verify.py <folder>/cv.typ 1 <lo> <hi>`) — run them verbatim, but
    on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
    replace the filler with the candidate's facts, then read
    `references/steps/4-tune.md`, then `--tune`, then verify. **Scripts are
    run, never read — their printed output is the instruction.** **Read order: run `pick_design.py` first. Then read `references/design/core.md` whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** Fallback only if
-   `--init` errors: `cp <skill>/templates/families/<family>/resume.typ <folder>/cv.typ`
+   `--init` errors (rerun with the same `--lang`/`--region` for the manual path): `cp <skill>/templates/families/<family>/resume.typ <folder>/cv.typ`
    (then change its `#import "../../lib.typ"` line to `#import "lib.typ"`) plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
-   apply the values of `--emit-typ` by hand. **Never retype, rewrite or summarize
+   apply the values of `--emit-typ --lang <iso639> [--region <iso3166>]` by hand. **Never retype, rewrite or summarize
    `lib.typ`** (a rewrite from memory lost `derive()` and the build never compiled
    again); customization goes in `cv.typ`. `verify.py` FAILs a lib that is not a
    copy. `section()`, `job()`, `skill()` and the other devices are defined in the
@@ -23,7 +23,7 @@
    (1 minute) before writing any Typst. Typst has no bundler, so the folder
    holds three files: `cv.typ` (the family file), `lib.typ` (the verified
    shared mechanics) and `icons.typ` (the EMPTY fallback `lib.typ` imports;
-   copying it keeps the folder compiling with no network). `--init` prints the `harvest_icons.py <that folder>` command: run it once: the contact/platform mark path data is third-party
+   copying it keeps the folder compiling with no network). `--init` (with its `--lang`/`--region`) prints the `harvest_icons.py <that folder>` command: run it once: the contact/platform mark path data is third-party
    artwork this skill does not ship, so it is fetched at build time into
    `<that folder>/icons.typ`, overwriting the empty copy — never into
    `templates/`. The script always writes the file and always exits 0 — if the
@@ -38,7 +38,7 @@
    `templates/families/swiss-grid/resume-2page.typ` is the worked **2-page**
    example (deliberate break, `runhead`, both pages measured). For the look, do **not** choose freely
    — an agent choosing freely reconverges on the template's own combination and
-   every candidate ends up with the same CV. The draw is the `--init` command above (without `--init` it only prints the report; `--emit-typ` prints the preamble values alone — it deliberately does **not** emit the devices, because those are the recipe). **`--market` is documentation only**
+   every candidate ends up with the same CV. The draw is the `--init` command above (without `--init` it only prints the report; `--emit-typ` prints the preamble values alone, `lang`/`region` included — it deliberately does **not** emit the devices, because those are the recipe). **`--market` is documentation only**
    — it is echoed in the report and changes nothing: a conservative market
    must be passed as `--conservative` (the `--field` table also flips it on by
    itself for law, finance, accounting, insurance, government…).
@@ -130,8 +130,9 @@
    Structure notes: the "target-field experience / other professional
    experience" split exists only to keep an off-track role from leading the
    page — when every job is on target, use a single experience section.
-   For French output, change the `skill()` helper to `#cat~:` (non-breaking
-   space before the colon). Employer descriptor line under each role;
+   For French output, when the family's `skill()` label ends with a colon,
+   change the helper to `#cat~:` (non-breaking space before the colon); a family
+   that uses an em dash or another separator keeps it. Employer descriptor line under each role;
    evidence-based soft-skill lines instead of bare adjective lists.
    Long careers (15+ years): condense old roles into one "Early career"
    block — one line per role (title, org, years), no bullets, linear entry

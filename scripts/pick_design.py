@@ -1023,7 +1023,13 @@ def _vitae_header(pg: Any) -> str:
     return "// vitae: pages=1 fill=%s" % pg["fill"]
 
 
-def emit_typ(p: Pick, market: str) -> str:
+def lang_arg(lang: str, region: str | None = None) -> str:
+    """The Typst `lang: "xx"[, region: "yy"]` fragment (shape-validated upstream)."""
+    return 'lang: "%s"' % lang + (', region: "%s"' % region if region else "")
+
+
+def emit_typ(p: Pick, market: str, lang: str = "en",
+             region: str | None = None) -> str:
     """A ready-to-paste PREAMBLE for the drawn recipe — not a whole CV, and
     deliberately not the devices (those are the recipe: references/design/families/<family>.md)."""
     d, fp, pg = p["recipe"], FONTS[p["family"]], p["recipe"]["page"]
@@ -1091,8 +1097,8 @@ def emit_typ(p: Pick, market: str) -> str:
           "// ---------- Gabarit (fill target %s%% is derived from the bottom "
           "margin) ----------" % pg["fill"],
           '#set page(paper: "us-letter", margin: (%s))' % pg["margin"],
-          '#set text(font: bodyf, size: %s, lang: "en", fill: dark, '
-          "hyphenate: false)" % pg["body"],
+          '#set text(font: bodyf, size: %s, %s, fill: dark, '
+          "hyphenate: false)" % (pg["body"], lang_arg(lang, region)),
           "// Primary fill-tuning knobs ↓ (±0.01-0.03em steps)",
           "#set par(justify: false, leading: %s, spacing: %s)"
           % (d["leading"], d["spacing"]),
@@ -1182,7 +1188,8 @@ def _apply_labels(src: str, default: Mapping[str, object],
     return src
 
 
-def init_folder(p: Pick, folder: str, force: bool = False) -> None:
+def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
+                region: str | None = None) -> None:
     """One executed command -> a compiling starting point in `folder`.
 
     lib.typ / icons.typ are copied byte for byte. cv.typ is the drawn family's
@@ -1257,6 +1264,14 @@ def init_folder(p: Pick, folder: str, force: bool = False) -> None:
             src = _sub1(src, lead("monof"), sub(
                 _chain(fp["mono"], p["mono"], "mono", p["have"])),
                 "#let monof", fam)
+    if lang != "en" or region:            # worked files ship lang: "en"
+        src, n_lang = re.subn(r'(#set text\([^\n]*?)lang: "en"',
+                     lambda mm: mm.group(1) + lang_arg(lang, region), src,
+                     count=1)
+        if n_lang != 1:
+            raise SystemExit("--init: %s: no `lang: \"en\"` in its `#set text(` line to rewrite "
+                             "— the family file changed shape; fall back to the manual route "
+                             "(cp + --emit-typ)" % fam)
     src = _sub1(src, r'^(#set par\(justify: false, )leading: [^,]+, spacing: '
                 r'[^)]+(\).*)$',
                 lambda mm: mm.group(1) + "leading: %s, spacing: %s" % (
@@ -1524,6 +1539,12 @@ def selftest() -> None:
             assert p["labels"][role] in LABEL_VARIANTS[role], p["labels"]
     assert len(spread) >= MIN_POOL, spread
     n_var = sum(1 for d in FAMILIES.values() if "variants" in d)
+    _p = pick("Lang Check", "software", career="mid", check_fonts=False)
+    assert '#set text(font: bodyf' in emit_typ(_p, "unspecified")
+    assert 'lang: "en"' in emit_typ(_p, "unspecified")
+    assert 'lang: "fr"' in emit_typ(_p, "unspecified", "fr")
+    assert 'lang: "fr", region: "ca"' in emit_typ(_p, "unspecified", "fr", "ca")
+    assert "region:" not in emit_typ(_p, "unspecified", "fr")
     print("selftest OK — %d families, %d with a specialities line, "
           "%d with a variant axis, MIN_POOL=%d"
           % (len(FAMILIES), n_spec, n_var, MIN_POOL))
@@ -1564,8 +1585,21 @@ if __name__ == "__main__":
                          "roles all have at least one locally installed face")
     ap.add_argument("--no-font-check", action="store_true",
                     help="skip the local `typst fonts` availability check")
+    ap.add_argument("--lang", default="en", metavar="CODE",
+                    help="language of the CV, ISO 639 code (fr, en, de, fil...) — "
+                         "emitted as Typst `lang:` (default en)")
+    ap.add_argument("--region", metavar="CC",
+                    help="optional ISO 3166-1 alpha-2 region (CA, CH...) — "
+                         "emitted as Typst `region:` only when given")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
+    if not re.fullmatch(r"[a-z]{2,3}", a.lang):
+        ap.error("--lang must be a lowercase ISO 639 language code (2-3 letters) like fr, en, de "
+                 "(got %r)" % a.lang)
+    if a.region is not None:
+        if not re.fullmatch(r"[A-Za-z]{2}", a.region):
+            ap.error("--region must be two letters like CA (got %r)" % a.region)
+        a.region = a.region.lower()
     if a.selftest:
         selftest()
     elif a.list:
@@ -1596,8 +1630,9 @@ if __name__ == "__main__":
         if a.init:
             print(report(p, a.market))
             print()
-            init_folder(p, a.init, a.force)
+            init_folder(p, a.init, a.force, a.lang, a.region)
         else:
-            print(emit_typ(p, a.market) if a.emit_typ else report(p, a.market))
+            print(emit_typ(p, a.market, a.lang, a.region) if a.emit_typ
+                  else report(p, a.market))
     else:
         sys.exit(__doc__)

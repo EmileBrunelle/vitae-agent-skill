@@ -1,118 +1,15 @@
 """cv.typ parsing, separated from the checks that use it and from rendering.
 
 Pure text in, values out: every function here reads Typst source (comments and
-non-markup stripped, `#section(...)` bodies, `#entry(...)` string arguments,
-`#set par/text/list` leading and size) and returns values. Nothing here prints,
+non-markup stripped, `#set par/text/list` leading and size) and returns values. Nothing here prints,
 opens a PDF or looks at page geometry; verify.py owns the checks, the reporting
 and the rendering, and imports these names explicitly.
 
-The only import from this package is verify_lang (for `_URL_TLDS`); never verify. No module state beyond
-compiled regular expressions.
+This module imports nothing from this package (never verify). No module state beyond compiled regular expressions.
 """
 from __future__ import annotations
 
 import re
-
-from verify_lang import _URL_TLDS
-
-
-def _section_bodies(src: str) -> list[tuple[str, str]]:
-    """(title, body text) of every `#section("Title")[ ... ]` call in a Typst source, brackets matched."""
-    out: list[tuple[str, str]] = []
-    for m in re.finditer(r'#section\(\s*"((?:[^"\\]|\\.)*)"\s*(?:,[^)]*)?\)\s*\[', src):
-        i, depth = m.end(), 1
-        while i < len(src) and depth:
-            c = src[i]
-            if c == "\\":
-                i += 1
-            elif c == "[":
-                depth += 1
-            elif c == "]":
-                depth -= 1
-            i += 1
-        out.append((m.group(1), src[m.end():i - 1 if depth == 0 else i]))
-    return out
-
-
-# An http(s):// or www. address, or a bare name under one of the _URL_TLDS endings with an optional path. Masked
-# out of prose so the digits of "linkedin.com/in/jo-1234" are not read as figures.
-_URL_RE = re.compile(r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:%s)(?!\w)(?:/\S*)?" % _URL_TLDS, re.I)
-
-
-def _typst_prose(body: str) -> str:
-    """Body text without Typst code: `#name(...)` argument lists (balanced; a trailing `[...]` content block
-    stays), string literals and URLs, so `#v(10pt)` or `linkedin.com/in/jo-1234` carry no figures."""
-    out, i, n = [], 0, len(body)
-    while i < n:
-        m = re.compile(r"#[A-Za-z_][\w.-]*\(").match(body, i)
-        if not m:
-            out.append(body[i])
-            i += 1
-            continue
-        j, depth = m.end(), 1
-        while j < n and depth:
-            c = body[j]
-            if c == '"':
-                j += 1
-                while j < n and body[j] != '"':
-                    j += 2 if body[j] == "\\" else 1
-            elif c == "(":
-                depth += 1
-            elif c == ")":
-                depth -= 1
-            j += 1
-        out.append(" ")
-        i = j
-    text = re.sub(r'"(?:[^"\\\n]|\\.)*"', " ", "".join(out))
-    return _URL_RE.sub(" ", text)
-
-
-# A call that starts at column 0 (`#entry(`, `#project(`): the unit _entries splits a section body on. Calls
-# nested in a line or an indented block are arguments, not entries.
-_ENTRY_CALL_RE = re.compile(r"^#[A-Za-z_][\w.-]*\(", re.M)
-# A string argument that is a date (a year, or present/current/now, EN and FR): never a descriptor segment.
-_DATE_ARG_RE = re.compile(r"\b(?:19|20)\d{2}\b|\b(?:present|current|now\b|présent|actuel|aujourd)", re.I)
-
-
-def _call_strings(body: str, j: int) -> tuple[list[str], int]:
-    """String literals of the call whose argument list starts at `j` (just after its `(`), and the index after its `)`."""
-    depth = 1
-    strs: list[str] = []
-    while j < len(body) and depth:
-        c = body[j]
-        if c == '"':
-            e = j + 1
-            while e < len(body) and body[e] != '"':
-                e += 2 if body[e] == "\\" else 1
-            strs.append(body[j + 1:e])
-            j = e
-        elif c == "(":
-            depth += 1
-        elif c == ")":
-            depth -= 1
-        j += 1
-    return strs, j
-
-
-def _entries(body: str, org_is_descriptor: bool = False) -> list[tuple[str, list[str], list[str]]]:
-    """(title, descriptor segments, bullets) of each `#call("title", "org", "dates", "note")` entry in a section
-    body. Descriptors are the string arguments after the title (and after the org, unless `org_is_descriptor`, as
-    in projects where the second argument is the one-line description) that are not dates, split on ` · ` / ` | ` / commas."""
-    calls = list(_ENTRY_CALL_RE.finditer(body))
-    out = []
-    for k, m in enumerate(calls):
-        strs, j = _call_strings(body, m.end())
-        tail = body[j:calls[k + 1].start() if k + 1 < len(calls) else len(body)]
-        bullets: list[str] = []
-        for line in tail.split("\n"):
-            if line.startswith("- "):
-                bullets.append(line[2:].strip())
-            elif bullets and line.startswith(("  ", "\t")) and line.strip():
-                bullets[-1] += " " + line.strip()
-        segs = [x.strip() for a in strs[1 if org_is_descriptor else 2:]
-                if not _DATE_ARG_RE.search(a) for x in re.split(r"\s[·|]\s|,\s*", a)]
-        out.append((strs[0] if strs else "", [x for x in segs if x], bullets))
-    return out
 
 
 def _strip_typst_comments(src: str) -> str:

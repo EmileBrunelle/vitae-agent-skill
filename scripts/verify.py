@@ -24,15 +24,17 @@ mode: it is what a usage error and --help print, and this docstring is not print
 Gate order for one CV (`_check_cv`; every line is printed as OK, WARN, FAIL or INFO, and the exit code is 1 if any
 was a FAIL): dependency preflight, lib.typ integrity, compile, page count, then per rendered page the fill, the
 text-clip gate and the whitespace structure; template-default markers; the checks on the extracted text (spaced
-capitals, orphaned dates, no section split across a page break, year-only dates, degree tokens, --facts coverage,
-summary and entry repeats, bullet characters); last, the gates that need `typst query` (hidden text, font fallback,
+capitals, orphaned dates, no section split across a page break, --facts coverage of years and numbers,
+bullet characters); last, the gates that need `typst query` (hidden text, font fallback,
 group proximity, date adjacency, forced line breaks and `~`, duplicate names).
 
-Design principle: Python keeps the deterministic checks. Where it cannot judge (a language it has no word lists for,
-a render without `typst query`, a PDF reader that cannot give word boxes) it says so with an INFO or a WARN and
-leaves the comparison to the agent (references/steps/6-verify.md); it never FAILs because a language is unknown.
+Design principle (scope): the scripts know no language and no country. They make only objective checks: what a PDF, a
+Typst render, a number or a declared value says on its own. No word list is kept, none is extended, and a check that
+needed one is removed. What a script cannot know comes from an explicit declaration by the user or the model (a TOML
+key, a tagged mark in cv.typ) or is left to the model (references/steps/6-verify.md). So there is no INFO or WARN that
+talks about a language: a script never guesses one, and never FAILs because of one.
 
-The helpers live in sibling modules, which verify.py imports by name: verify_lang (language data and detection),
+The helpers live in sibling modules, which verify.py imports by name: verify_lang (Latin-script helpers),
 verify_typst (cv.typ parsing: text in, values out), verify_fonts (font families asked for against drawn),
 verify_page (page geometry and pixel measurement), and verify_selftest (--selftest). The first four never
 `import verify`: verify.py runs as __main__, so importing it would execute the script a second time under the name
@@ -122,31 +124,9 @@ from verify_fonts import (
 from verify_fonts import (
     requested_families as requested_families,
 )
-from verify_lang import (  # noqa: E402 -- language data: edit verify_lang.py to add a language
-    _ACTION_VERB_SRC,
-    _ELISION_RE,
-    _ENTRY_STOP,
-    _EXPERIENCE_TITLES,
-    _HEADING_WORDS,
-    _LANG_NAMES,
-    _LINKS,
-    _LOC_GENERIC_SRC,
-    _LOC_JOIN_SRC,
-    _MONTH_ENFR,
-    _MONTH_EXTRA_RE,
-    _MONTH_WORDS,
-    _MONTHS,
-    _PROJECT_TITLES,
-    _RANGE_WORDS,
-    _SEASONS_OTHER,
-    _SUMMARY_TITLES,
-    DEGREE_RE,
-    INCOMPLETE_RE,
+from verify_lang import (  # noqa: E402 -- script helpers only; no language data (0.9.0 scope)
     _is_latin,
     _strip_latin_marks,
-)
-from verify_lang import (
-    _detect_lang as _detect_lang,
 )
 from verify_level import Finding, Level  # noqa: E402
 from verify_page import (  # noqa: E402 -- page geometry and pixel measurement: pixels and boxes in, numbers out
@@ -174,15 +154,9 @@ from verify_page import (
     furniture_ink as furniture_ink,
 )
 from verify_typst import (  # noqa: E402 -- cv.typ parsing: pure text in, values out
-    _DATE_ARG_RE,
-    _ENTRY_CALL_RE,
-    _call_strings,
     _doc_body_size,
     _doc_par_list,
-    _entries,
     _mask_non_markup,
-    _section_bodies,
-    _typst_prose,
 )
 from verify_typst import (
     _read_par as _read_par,
@@ -910,86 +884,10 @@ DEVICELESS = {
 }
 
 
-# ---------- ATS date and degree-token checks (references/ats.md) ----------
-
-# A range whose START has a year and no month: "2019 – 2021", "2017 – present".
-# The ATS parses these as 12-month or zero-length stints (ats.md § dates), so
-# the rule is month+year both ends. WARN, never FAIL: SKILL.md rule 1 lets a
-# candidate who cannot supply months keep year-only deliberately. A lone year
-# (a degree year) is not a range and never matches.
-_MONTH = r"(?:%s|%s)" % (_MONTH_ENFR, _MONTH_EXTRA_RE)      # + German, Spanish, Italian, Portuguese, Dutch
-_SEASON = (r"(?:fall|autumn|summer|winter|spring|automne|[ée]t[ée]|hiver|printemps|%s)"
-           % "|".join(re.escape(w) for w in _SEASONS_OTHER))
-_DATED = r"(?:%s|%s)\.?\s+" % (_MONTH, _SEASON)
-# Both ends of a range need a month (or season): `Aug 2019 – 2021` and
-# `2019 – Aug 2021` WARN as well as `2019 – 2021`. Present/now as the end is fine.
-YEAR_RANGE_RE = re.compile(
-    r"(?<!\d)((?:19|20)\d{2})(?:\s*[–—-]\s*|\s+(?:%s)\s+)"
-    r"(%s)?"
-    r"((?:19|20)\d{2}(?!\d)|present|now|aujourd.hui|pr[ée]sent)" % ("|".join(_RANGE_WORDS), _DATED), re.I)
-MONTH_BEFORE_RE = re.compile(r"(?<![^\W\d_])" + _DATED.replace(r"\s+", r"\s*") + r"$", re.I)
-
-
-def _month_before(prefix: str, lenient: bool) -> bool:
-    """A month or season sits just before the range start. Neutral on what it cannot read: a word with no Latin
-    letter (Cyrillic, Greek, CJK, Arabic, Devanagari, Thai...) may be a month, and so may ANY word when the text is in a
-    language this file has no month names for (`lenient`). A Latin-script word of a known language must be a month."""
-    if MONTH_BEFORE_RE.search(prefix):
-        return True
-    w = re.search(r"([^\W\d_]+)\.?\s*$", prefix)
-    return w is not None and (lenient or not any(_is_latin(c) for c in w.group(1)))
-
-
-def check_year_only_dates(txt: str) -> list[str]:
-    """Lines carrying a range where either end lacks a month (or season). The caller WARNs, never FAILs (see above).
-    A word it cannot read as a month, in a script or language it has no month names for, is given the benefit of
-    the doubt (_month_before)."""
-    out = []
-    lenient = _detect_lang(txt)[0] == "other"
-    for line in txt.split("\n"):
-        for m in YEAR_RANGE_RE.finditer(line):
-            end_ok = (m.group(2) is not None
-                      or not m.group(3)[0].isdigit())
-            if not (_month_before(line[:m.start()], lenient) and end_ok):
-                out.append(line.strip())
-                break
-    return out
-
-
-def _year_only_msg(line: str) -> str:
-    return (f'year-only date range ("{line}") — if the facts file has no month for it, '
-            'KEEP it year-only and report the gap; NEVER invent or estimate months '
-            '(SKILL.md rule 1)')
-
-
-# Date, number and name patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
-_MONTH_YEAR_RE = re.compile(
-    r"(?<![^\W\d_])(%s)\.?\s+((?:19|20)\d{2})(?!\d)" % "|".join(sorted(_MONTHS, key=len, reverse=True)))
-# "juillet – août 2019": the year closes the range and applies to the month before the dash too
-# (the month before the dash is the earlier year when it is the later one in the calendar: "déc. – janv. 2020")
-_RANGE_FOLDED = "|".join(dict.fromkeys(_strip_latin_marks(w) for w in _RANGE_WORDS))   # applied to folded text
-_RANGE_MY_RE = re.compile(
-    r"(?<![^\W\d_])(%s)\.?(?:\s*-\s*|\s+(?:to|au|through|%s)\s+)(%s)\.?\s+((?:19|20)\d{2})(?!\d)"
-    % ("|".join(sorted(_MONTHS, key=len, reverse=True)), _RANGE_FOLDED,
-       "|".join(sorted(_MONTHS, key=len, reverse=True))))
+# Date and number patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
 _YEAR_RE = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _NUM_RE = re.compile(r"[$€£]?(\d+(?:[.,]\d+)*)\s?(%|[kKmM](?![^\W\d_])|)")
-def _upper_letters() -> str:
-    """Regex class body of every capital letter (category Lu) of the Latin, Greek and Cyrillic
-    blocks (Latin Extended-A/B and Additional included): `À-Ö Ø-Þ` missed Ł, Š, Ž, Ő, Ǎ, Ț, Ạ, Greek and Cyrillic."""
-    spans = ((0xC0, 0x24F), (0x370, 0x3FF), (0x400, 0x52F), (0x1E00, 0x1FFF))
-    return "A-Z" + "".join(re.escape(chr(c)) for a, b in spans for c in range(a, b + 1)
-                           if unicodedata.category(chr(c)) == "Lu")
-
-
-_CAP = r"[%s][\w'’&-]*(?:\.[\w'’&-]+)*" % _upper_letters()     # a dot only INSIDE a word (B.Sc, Node.js)
-_WORD_RE = re.compile(r"(?<![^\W\d_])%s" % _CAP)
-_CAPSEQ_RE = re.compile(r"(?<![^\W\d_])%s(?:[ \t]+(?:(?:of|de|du|des|la|le|for|the|and|et|au|aux|à|&)[ \t]+)?%s)+" % (_CAP, _CAP))
-
-
-
-
 
 
 def _fold1(s: str) -> str:
@@ -1009,8 +907,6 @@ def _fold(s: str) -> str:
     s = re.sub(r"[–—‒−]", "-", s).replace("’", "'")
     return re.sub(r"\s+", " ", s)
 
-
-_ACTION_VERBS = frozenset(_fold(_v) for _v in _ACTION_VERB_SRC.split())
 
 # A phone number is a contact detail, not a claim: its digit groups are neither years nor numbers.
 _PHONE_RE = re.compile(
@@ -1054,27 +950,6 @@ def _blank_phones(line: str) -> str:
     return "".join(out)
 
 
-_NAME_SUFFIX_RE = re.compile(r"\b(?:inc|ltee|ltd|corp|llc|sa|sas|gmbh)\b")
-
-
-_DOTTED_SUFFIX_RE = re.compile(r"(?<![\w.])s\.a\.(?:s\.?)?(?!\w|\.\w)")   # S.A., S.A.S. (Inc., Ltd., Corp., LLC fold fine already)
-
-
-def _name_norm(s: str) -> str:
-    """Name comparison form: folded, punctuation dropped, company suffixes
-    (Inc., Ltée, Corp., LLC, SA, SAS, GmbH ...) removed, single spaces, padded."""
-    s = _DOTTED_SUFFIX_RE.sub(" ", _fold(s))
-    s = re.sub(r"[^\w&' ]", " ", s)
-    s = _NAME_SUFFIX_RE.sub(" ", s)
-    return " " + re.sub(r"\s+", " ", s).strip() + " "
-
-
-def _clean_word(w: str) -> str:
-    """Drop a possessive ('s), an elision (French J’, L’; Italian dell’, all’) and trailing punctuation."""
-    w = re.sub(r"['’]s$", "", w.rstrip(".,'’&-"))
-    return _ELISION_RE.sub("", w)
-
-
 def _num_values(text: str) -> set[float]:
     text = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", text)
     out: set[float] = set()
@@ -1103,66 +978,21 @@ def _readings(raw: str) -> list[float]:
         return []
 
 
-def _month_years(text: str) -> set[tuple[int, int]]:
-    f = _fold(text)
-    out = {(_MONTHS[m.group(1)], int(m.group(2))) for m in _MONTH_YEAR_RE.finditer(f)}
-    for m in _RANGE_MY_RE.finditer(f):
-        m1, m2, yr = _MONTHS[m.group(1)], _MONTHS[m.group(2)], int(m.group(3))
-        out.add((m1, yr - 1 if m1 > m2 else yr))
-    for m in _NUM_MY_RE.finditer(f):
-        y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
-        out.add((int(mo), int(y)))
-    return out
-
-
-_ALNUM_TOKEN_RE = re.compile(r"(?<![\w.])(?=[^\W\d_]*\d)(?=\d*[^\W\d_])[\w]{2,}(?![\w.])")
-
-
-def _guess_lang(text: str) -> str | None:
-    """'en' or 'fr' by stopword counts; None when unclear, too short, or another language (see _detect_lang)."""
-    code = _detect_lang(text)[0]
-    return code if code in ("en", "fr") else None
-
-
-def _not_checked_text(label: str, check: str) -> str:
-    """What follows `INFO  ` on the one line a language-dependent check prints instead of guessing."""
-    return f"not checked for {label}: {check} — the agent compares this by hand (see step 6 list)"
-
-
-def _not_checked(label: str, check: str) -> str:
-    """The INFO line itself (references/steps/6-verify.md lists what the agent then compares)."""
-    return "INFO  " + _not_checked_text(label, check)
-
-
 def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
-    """Rule 1, mechanically. WARN, never FAIL: a figure or name absent from the facts file is a prompt to confirm it
-    with the candidate, and the facts file may be written in prose the patterns cannot read. When the CV and the
-    facts file are in different languages, or in one this file has no word lists for, the name check is replaced
-    by an INFO line saying what was not checked (the agent compares by hand), not by guesses.
+    """Rule 1, mechanically, on digits only. WARN, never FAIL: a figure absent from the facts file is a prompt to
+    confirm it with the candidate, and the facts file may be written in prose the patterns cannot read.
 
-    WARN lines for every year, month+year, number,
-    capitalized name (multi-word, single mid-sentence word, acronym) in the CV
-    text that the facts file does not contain. Case, accents, whitespace, number
-    formats and company suffixes are normalized; phone numbers are ignored; a
-    sentence-start ACTION VERB is the only word dropped from a name's head."""
+    WARN line for every year, numeric month+year (03/2020, 2020-03) and number in the CV text that the facts file does
+    not contain. Case, number formats and thousands separators are normalized; phone numbers are ignored. It reads
+    no word of any language, so names, titles and month names are left to the agent's own comparison."""
     facts = _fold(facts_text)
-    facts_n = _name_norm(facts_text)
     facts_years = set(_YEAR_RE.findall(facts))
-    facts_years |= {str(int(m.group(3)) - 1) for m in _RANGE_MY_RE.finditer(facts)
-                    if _MONTHS[m.group(1)] > _MONTHS[m.group(2)]}      # "déc. – janv. 2020" opens in 2019
-    facts_my = _month_years(facts_text)
+    facts_my = set()
+    for m in _NUM_MY_RE.finditer(facts):
+        y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+        facts_my.add((int(mo), int(y)))
     facts_nums = _num_values(facts_text)
     found: dict[str, None] = {}
-    (cf, nf), (cc, nc) = _detect_lang(facts_text), _detect_lang(pdf_text)
-    lf, lc = (cf if cf in ("en", "fr") else None), (cc if cc in ("en", "fr") else None)
-    foreign = [n for c, n in ((cc, nc), (cf, nf)) if c not in (None, "en", "fr")]
-    cross = (lf is not None and lc is not None and lf != lc) or bool(foreign)
-    facts_w = " " + re.sub(r"[\W_]+", " ", facts) + " "    # words only: "d'IP" holds "ip"
-    info = ([f"INFO  facts file is {_LANG_NAMES[lf]}, CV is {_LANG_NAMES[lc]}: coverage limited to dates, "
-             "numbers and acronyms — names and titles are not cross-checked across languages"]
-            if cross and lf and lc else [])
-    if foreign:     # German, Spanish, Cyrillic...: no verb or heading lists, so capitalised names cannot be judged
-        info = [_not_checked(" and ".join(dict.fromkeys(foreign)), "capitalised names and titles against the facts file")]
     for raw in pdf_text.split("\n"):
         line = raw.strip()
         if not line:
@@ -1172,10 +1002,6 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
             continue
         fl = _fold1(line)                   # same length as `line`: spans carry over
         blank: list[tuple[int, int]] = []
-        for m in _MONTH_YEAR_RE.finditer(fl):
-            blank.append(m.span())
-            if (_MONTHS[m.group(1)], int(m.group(2))) not in facts_my:
-                found[line[m.start():m.end()]] = None
         for m in _NUM_MY_RE.finditer(fl):
             blank.append(m.span())
             y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
@@ -1185,7 +1011,7 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
             blank.append(m.span())
             if m.group(0) not in facts_years:
                 found[m.group(0)] = None
-        # dates feed neither the number nor the name scan
+        # dates are not numbers: blank them before the number scan
         chars = list(line)
         for i, j in blank:
             chars[i:j] = " " * (j - i)
@@ -1197,67 +1023,8 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
             vals = _num_values(m.group(0))
             if vals and not vals & facts_nums:
                 found[m.group(0).strip()] = None
-        if line.isupper():
-            continue                        # section headings
-        if cross:
-            # language-independent tokens only: acronyms and letter+digit tokens (S3, EC2)
-            for m in _WORD_RE.finditer(rest):
-                w = _clean_word(m.group(0))
-                if (w.isupper() and len(w) >= 2 and w.isalpha() and _fold(w) not in _HEADING_WORDS
-                        and _name_norm(w) not in facts_n
-                        and f" {_fold(w)} " not in facts_w):
-                    found[w] = None
-            for m in _ALNUM_TOKEN_RE.finditer(rest):
-                if f" {_fold(m.group(0))} " not in facts_w:
-                    found[m.group(0)] = None
-            continue
-
-        def at_start(pos: int, rest: str = rest) -> bool:
-            before = rest[:pos].strip()
-            return not before or before[-1] in ".:;!?•·▪–—-|"
-
-        def known(name: str) -> bool:
-            parts = re.split(r"\s+(?:and|et|&|à|au|aux)\s+", name.strip())   # "Python and SQL": each side
-            if all(_name_norm(x).strip() == "" or _name_norm(x) in facts_n for x in parts):
-                return True
-            # every word is a known word ("API NestJS" vs facts "NestJS ... API"): no new name
-            ws = [x for x in re.split(r"[ \t]+", name) if x]
-            return len(ws) > 1 and all(_name_norm(x).strip() == "" or _name_norm(x) in facts_n
-                                       or _fold(x) in _LINKS for x in ws)
-
-        covered: list[tuple[int, int]] = []
-        for m in _CAPSEQ_RE.finditer(rest):
-            covered.append(m.span())
-            words = [_clean_word(x) for x in re.split(r"[ \t]+", m.group(0))]
-            tok = " ".join(words)
-            if all(_fold(w) in _HEADING_WORDS for w in words):
-                continue
-            if known(tok):                  # the WHOLE sequence first
-                continue
-            if at_start(m.start()) and _fold(words[0]) in _ACTION_VERBS:
-                tail = words[1:]            # "Built Python services": drop the verb only
-                while tail and _fold(tail[0]) in _LINKS:
-                    tail = tail[1:]
-                tok = " ".join(tail)
-                if not tok or known(tok) or _fold(tok) in _HEADING_WORDS:
-                    continue
-            found[tok] = None
-        for m in _WORD_RE.finditer(rest):
-            if any(i <= m.start() < j for i, j in covered):
-                continue
-            w = _clean_word(m.group(0))
-            if not w or not w[0].isupper():
-                continue
-            f = _fold(w)
-            if f in _HEADING_WORDS or known(w):
-                continue
-            if w.isupper() and len(w) >= 2 and w.isalpha():
-                found[w] = None             # acronym: UQAM, AWS — anywhere in the line
-            elif (len(w) >= 3 and not w.isupper() and not at_start(m.start())
-                  and f not in _ACTION_VERBS):
-                found[w] = None             # single name mid-sentence
-    return info + [f'WARN  not in facts file: "{t}" — remove it or confirm it with the candidate (rule 1)'
-                   for t in found]
+    return [f'WARN  not in facts file: "{t}" — remove it or confirm it with the candidate (rule 1)'
+            for t in found]
 
 
 _BANNER_RE = re.compile(r"^\s*//\s*FAMILY:\s*([\w-]+)", re.M)
@@ -1308,213 +1075,12 @@ def _fill_args_ok(*vals: str | None) -> bool:
     return True
 
 
-# Adjacent, not merely on the same line: prose such as "coursework at Polytechnique Exemple, I am
-# completing a bachelor's degree" says what it is and must not trip the check.
-DEGREE_NEAR_RE = re.compile(
-    "(?:%s)[^,;]{0,30}?(?:%s)|(?:%s)[^,;]{0,30}?(?:%s)"
-    % (DEGREE_RE.pattern, INCOMPLETE_RE.pattern,
-       INCOMPLETE_RE.pattern, DEGREE_RE.pattern), re.I)
-
-
-def check_degree_tokens(txt: str) -> list[str]:
-    """Lines pairing a degree token with a non-completion marker within 30 chars. The caller WARNs: an ATS
-    (Eightfold) read "B.Eng. program" as a degree held (references/ats.md)."""
-    return [l.strip() for l in txt.split("\n") if DEGREE_NEAR_RE.search(l)]
-
-
 # A bullet marker set as a CHARACTER survives into the ATS's text (measured:
 # Banque Nationale showed it alone on a line above the bullet; Eightfold printed
 # it literally). Markers must be drawn (references/ats.md). Private-use code
 # points are what icon fonts (Font Awesome etc.) emit. Leading position only:
 # an inline separator or a prose dash is not what this catches.
 BULLET_CHAR_RE = re.compile("^[\u25c6\u25c7\u2022\u25aa\u25ab\u25ba\u25cf\u25a0\u25e6\u2023\u2219\u27a2\ue000-\uf8ff]")
-
-
-# Calibrated in 0.7.3 (CHANGELOG): 1 shared figure is a legitimate headline metric; 2+ is padding by repetition.
-SUMMARY_REPEAT_MIN = 2   # distinct repeated figures from which the WARN fires (one is a headline metric)
-_FIG_MASK = re.compile(
-    r"\b\d\.\d{1,2}\s*/\s*\d\.\d{1,2}\b"                              # GPA 3.6/4.3
-    r"|\b" + _MONTH_WORDS + r"\s+\d{4}\b"                                     # May 2025
-    r"|\b\d{1,2}[/.-]\d{4}\b|\b\d{4}[/.-]\d{1,2}(?:[/.-]\d{1,2})?\b"    # 05/2025, 2025-05-01
-    r"|\+?\d?[ .-]?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b", re.I)               # phone
-_FIG_RE = re.compile(
-    r"(?<![\w.])([$€£]?)(\d+(?:[,. \u00a0]\d{3})*(?:[.,]\d+)?)\s?"
-    r"(%|\+|[kKmM]\b|x\b|ms\b|sec\w*|min\w*|h\b|hours?\b|days?\b|GB\b|MB\b|TB\b|"
-    r"users?\b|people\b|stars?\b|clients?\b|requests?\b)?", re.I)
-
-
-def _figures(text: str) -> set[float]:
-    """Distinct qualifying figures of a text: numbers of 2+ digits, or with a unit/%/k/+/currency. Years
-    1950-2100, GPAs, dates and phone numbers do not count; "40 minutes" and "40 min" are both 40."""
-    text = _FIG_MASK.sub(" ", text)
-    out: set[float] = set()
-    for m in _FIG_RE.finditer(text):
-        cur, raw, unit = m.group(1), m.group(2), (m.group(3) or "").lower()
-        raw = re.sub(r"(?<=\d)[ \u00a0](?=\d{3}(?!\d))", "", raw)
-        raw = re.sub(r",(?=\d{3}(?!\d))", "", raw).replace(",", ".")
-        try:
-            v = float(raw)
-        except ValueError:
-            continue
-        if not unit and not cur and v == int(v) and 1950 <= v <= 2100:
-            continue
-        digits = len(re.sub(r"\D", "", raw.split(".")[0]))
-        if digits < 2 and not unit and not cur:
-            continue
-        out.add(v * (1000 if unit == "k" else 1_000_000 if unit == "m" else 1))
-    return out
-
-
-_SUMMARY_TITLE_RE = re.compile(_SUMMARY_TITLES, re.I)
-_EXPERIENCE_TITLE_RE = re.compile(_EXPERIENCE_TITLES, re.I)
-def check_summary_repeats(src: str) -> list[str]:
-    """WARN line when the summary/profile section repeats SUMMARY_REPEAT_MIN+ figures that the experience /
-    project sections already state (padding by repetition). A WARN because one repeated figure can be a deliberate
-    headline metric. No summary or no experience section: silent."""
-    secs = [(t, _typst_prose(b)) for t, b in _section_bodies(_strip_typst_comments(src))]
-    summ = [b for t, b in secs if _SUMMARY_TITLE_RE.search(t) and not _EXPERIENCE_TITLE_RE.search(t)]
-    rest = [b for t, b in secs if _EXPERIENCE_TITLE_RE.search(t)]
-    if not summ or not rest:
-        return []
-    shared = sorted(_figures(" ".join(summ)) & _figures(" ".join(rest)))
-    if len(shared) < SUMMARY_REPEAT_MIN:
-        return []
-    lst = ", ".join(f"{v:g}" for v in shared)
-    return [f"WARN  the summary repeats {len(shared)} figures already in the bullets ({lst}) — repeating facts to fill the "
-            "page is padding (SKILL.md anti-filler clause). State the positioning in the summary instead of the "
-            "metrics, or cut the summary and add a real fact"]
-
-
-# Calibrated in 0.7.5 (CHANGELOG, zero hits across all shipped templates and fixtures): a bullet restates
-# a descriptor segment when it shares >=2 content words AND covers >=50% of the segment's content words.
-ENTRY_REPEAT_MIN = 2        # content words a bullet must share with a descriptor segment ...
-ENTRY_REPEAT_RATIO = 0.5    # ... and the share of that segment's content words it covers
-_PROJECT_TITLE_RE = re.compile(_PROJECT_TITLES, re.I)
-
-
-def _entry_words(text: str) -> set[str]:
-    """Content words of a line: lowercased, markup and stop words dropped, plural -s folded."""
-    text = re.sub(r"\b[dlqnsjmtc]['\u2019]", " ", re.sub(r"[*_`]", " ", text).lower())
-    words = re.findall(r"[^\W\d_][\w+#.-]*", text)
-    return {w.rstrip(".-").removesuffix("s") if len(w) > 3 else w for w in words if w not in _ENTRY_STOP and len(w) > 1}
-
-
-def entry_repeat_hits(src: str) -> list[tuple[str, str, str, float]]:
-    """(entry, descriptor, bullet, share) for each bullet that restates a descriptor segment of its own entry."""
-    hits = []
-    for t, b in _section_bodies(_strip_typst_comments(src)):
-        if not _EXPERIENCE_TITLE_RE.search(t):
-            continue
-        for title, segs, bullets in _entries(b, bool(_PROJECT_TITLE_RE.search(t))):
-            bws = [(bl, _entry_words(_typst_prose(bl))) for bl in bullets]
-            for seg in segs:
-                dw = _entry_words(_typst_prose(seg))
-                if len(dw) < ENTRY_REPEAT_MIN:
-                    continue
-                for bl, bw in bws:
-                    n = len(dw & bw)
-                    if n >= ENTRY_REPEAT_MIN and n / len(dw) >= ENTRY_REPEAT_RATIO:
-                        hits.append((title, seg, bl, n / len(dw)))
-    return hits
-
-
-def check_entry_repeats(src: str) -> list[str]:
-    """WARN lines for a bullet that restates its own entry's descriptor / subtitle line (padding by repetition);
-    one line per bullet, naming the descriptor it restates most."""
-    best: dict[tuple[str, str], tuple[str, float]] = {}
-    for t, seg, bl, share in entry_repeat_hits(src):
-        if share > best.get((t, bl), ("", 0.0))[1]:
-            best[(t, bl)] = (seg, share)
-    return [f'WARN  entry "{t}": the bullet "{bl[:70]}" restates the descriptor "{seg}" — each fact once per entry '
-            "(SKILL.md anti-filler clause); give the bullet a new fact (scope, outcome, figure) or cut it"
-            for (t, bl), (seg, _) in best.items()]
-
-
-# Entry-location WARN: a place name in an entry's descriptor segments that is sourced on ANOTHER facts.md item but
-# not on the item describing this entry (run 24: "Laval", from the cashier job, on the DEC).
-_LOC_GENERIC = frozenset(_fold(w) for w in _LOC_GENERIC_SRC.split())
-_LOC_JOIN = frozenset(_LOC_JOIN_SRC.split())
-_LOC_SKIP = _LOC_GENERIC | _LOC_JOIN
-_HEADING_RE = re.compile(r"^(#{1,6})\s")
-_BULLET0_RE = re.compile(r"^[-*+]\s")
-
-
-def _facts_items(facts_text: str) -> list[tuple[int, int, str]]:
-    """facts.md items as (first line, end line, text): a heading with everything under it up to the next heading of the
-    same or a higher level, and a top-level bullet with its indented lines. Each item's text also carries the heading
-    lines above it (its parent titles), so a place given in a parent title counts for the items under it."""
-    lines = facts_text.splitlines()
-    heads: list[tuple[int, int]] = []     # (level, line) of the headings open at the current line
-    out: list[tuple[int, int, str]] = []
-    for i, line in enumerate(lines):
-        m = _HEADING_RE.match(line)
-        if m:
-            lvl = len(m.group(1))
-            heads = [h for h in heads if h[0] < lvl]
-            end = next((j for j in range(i + 1, len(lines))
-                        if (hm := _HEADING_RE.match(lines[j])) and len(hm.group(1)) <= lvl), len(lines))
-            parents = [lines[h[1]] for h in heads]
-            out.append((i, end, "\n".join(parents + lines[i:end])))
-            heads.append((lvl, i))
-        elif _BULLET0_RE.match(line):
-            end = next((j for j in range(i + 1, len(lines)) if _HEADING_RE.match(lines[j]) or _BULLET0_RE.match(lines[j])), len(lines))
-            out.append((i, end, "\n".join([lines[h[1]] for h in heads] + lines[i:end])))
-    return out
-
-
-def _padded_words(s: str) -> str:
-    """Folded words joined by single spaces, with one at each end, so `" a b " in text` matches whole words only."""
-    return " " + " ".join(re.findall(r"\w+", _fold(s).replace("-", " "))) + " "
-
-
-def check_entry_locations(src: str, facts_text: str) -> list[str]:
-    """WARN lines for an entry whose descriptor (location) segments name a proper noun that the facts.md item
-    describing that entry never mentions although ANOTHER part of facts.md does (a place borrowed from another entry;
-    a word absent from facts.md altogether is check_facts_coverage's). The item is the smallest heading or top-level
-    bullet found by the entry's title and org (title + org, else title, else a single org item), with its parent
-    titles; no identifiable item, silent, and a facts.md in prose or a table has no items, so silent too. Only short
-    Title Case segments count (not descriptions); generic and job-status words, provinces, countries and short
-    acronyms are never flagged; accents and case are ignored. Date-bearing segments are dropped, the rest of the
-    argument is checked. Project sections are skipped (their second argument is a description)."""
-    items = [(i, e, _padded_words(t)) for i, e, t in _facts_items(facts_text)]
-    whole = _padded_words(facts_text)
-    out: list[str] = []
-    for sec, body in _section_bodies(_strip_typst_comments(src)):
-        if _PROJECT_TITLE_RE.search(sec):
-            continue
-        for m in _ENTRY_CALL_RE.finditer(body):
-            strs, _ = _call_strings(body, m.end())
-            if len(strs) < 3:
-                continue
-            title, org = _padded_words(strs[0]), _padded_words(strs[1])
-            found = [x for x in items if title.strip() and title in x[2] and org in x[2]]
-            found = found or [x for x in items if title.strip() and title in x[2]]
-            if not found:
-                found = [x for x in items if org.strip() and org in x[2]]
-                found = found if len({(x[0], x[1]) for x in found}) == 1 else []
-            # keep the most specific items: drop one that encloses another match
-            found = [x for x in found if not any(y is not x and x[0] <= y[0] and y[1] <= x[1] and (y[0], y[1]) != (x[0], x[1]) for y in found)]
-            if not found:
-                continue
-            item = [x[2] for x in found]
-            own = title + org
-            missing: list[str] = []
-            for a in strs[2:]:
-                for seg in re.split(r"\s[·|]\s|,\s*", a):
-                    if _DATE_ARG_RE.search(seg):
-                        continue
-                    words = re.findall(r"[^\W\d_][\w'\u2019-]*", seg)
-                    if len(words) > 4 or any(not x[0].isupper() and _fold(x) not in _LOC_SKIP for x in words):
-                        continue    # a place name is short and Title Case; "Back-end API development" is a description
-                    for word in words:
-                        if not word[0].isupper() or (len(word) <= 3 and word.isupper()) or _fold(word) in _LOC_SKIP:
-                            continue
-                        pw = _padded_words(word)
-                        if word not in missing and pw in whole and pw not in own and not any(pw in w for w in item):
-                            missing.append(word)
-            out.extend(f'WARN  entry "{strs[0]}": the place "{w}" is not in the facts file item for this entry but is in another one — source this '
-                       "place on this entry in facts.md or remove it; do not borrow it from another entry (rule 1)" for w in missing)
-    return out
 
 
 def check_bullet_chars(txt: str) -> list[str]:
@@ -3825,11 +3391,6 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         else:
             print("OK    " + msg)
 
-    for line in check_year_only_dates(txt):
-        print(f'WARN  {_year_only_msg(line)}')
-    for line in check_degree_tokens(txt):
-        print(f'WARN  degree token beside a non-completion marker ("{line}") — ATS (Eightfold) read "B.Eng. program" as a degree held; say "coursework" (references/ats.md)')
-
     if facts:
         try:
             facts_text = open(facts, encoding="utf-8").read()
@@ -3839,18 +3400,6 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         else:
             for w in check_facts_coverage(txt, facts_text):
                 print(w)
-            foreign = [n for c, n in (_detect_lang(txt), _detect_lang(facts_text)) if c == "other"]
-            if foreign:     # no status or country words for this language or script: INFO, never a guess (design principle)
-                print(_not_checked(" and ".join(dict.fromkeys(foreign)), "a place on an entry against its facts-file item"))
-            else:
-                for w in check_entry_locations(typ_text, facts_text):
-                    print(w)
-
-    for w in check_summary_repeats(typ_text):
-        print(w)
-    for w in check_entry_repeats(typ_text):
-        print(w)
-
     bullets = check_bullet_chars(txt)
     if bullets:
         print(f'WARN  {len(bullets)} line(s) start with a bullet character in the extraction (e.g. "{bullets[0][:30]}") — ATS prints it or puts it alone on a line; draw list markers as vector shapes (references/ats.md)')
@@ -4016,7 +3565,7 @@ def main() -> None:
         facts_path = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
     ap = _Parser(f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md]\n"
-                 f"         --facts: WARN on every year / month+year / number / proper name in the CV absent from the facts file\n"
+                 f"         --facts: WARN on every year / numeric month+year / number in the CV absent from the facts file\n"
                  f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]\n"
                  f"       {prog} --all DIR\n"
                  f"       {prog} --doctor\n"

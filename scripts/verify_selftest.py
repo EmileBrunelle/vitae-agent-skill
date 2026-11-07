@@ -69,13 +69,9 @@ from verify import (  # noqa: E402
     _typst_query,
     _write_par,
     _xheight_band,
-    _year_only_msg,
     check_bullet_chars,
     check_date_adjacency,
-    check_degree_tokens,
     check_duplicate_names,
-    check_entry_locations,
-    check_entry_repeats,
     check_facts_coverage,
     check_forced_linebreak,
     check_group_proximity,
@@ -83,10 +79,8 @@ from verify import (  # noqa: E402
     check_lib_integrity,
     check_literal_tilde,
     check_no_split,
-    check_summary_repeats,
     check_text_clip,
     check_whitespace,
-    check_year_only_dates,
     classify_font_fallback,
     family_from_path,
     furniture_ink,
@@ -219,75 +213,11 @@ def run() -> NoReturn:
         for _bsn in _bsfs:
             if _bsn.endswith(".typ") and _bsn not in ("lib.typ", "icons.typ"):
                 assert _body_size_warn(os.path.join(_bsr, _bsn)) == "", os.path.join(_bsr, _bsn)
-    # Summary-repeats WARN: >= 2 distinct figures shared with the other sections; one headline metric is fine.
-    # `_sr` shares three figures (840, 210, 40) between Profile and Experience, which is exactly what the
-    # asserted message lists. The variants below take figures away or move them out of scope.
-    _sr = ('#section("Profile")[\nCut p95 latency from 840 ms to 210 ms and a report from 40 minutes to 6.\n]\n'
-           '#section("Experience")[\n- p95 latency 840 ms #sym.arrow 210 ms\n- nightly report 40 min to 6 min\n]\n')
-    _srw = check_summary_repeats(_sr)
-    assert len(_srw) == 1 and _srw[0].startswith("WARN") and "40, 210, 840" in _srw[0] \
-        and "padding" in _srw[0], _srw
-    assert not check_summary_repeats(_sr.replace("from 840 ms to 210 ms and a report from 40 minutes to 6", "to 210 ms"))      # one figure: silent
-    assert not check_summary_repeats(                                                            # years / GPA / dates: silent
-        '#section("Summary")[\nB.Sc. 2024-2026, GPA 3.6/4.3, since May 2025, 514-555-0100.\n]\n'
-        '#section("Education")[\nGPA 3.6/4.3, May 2025 - 2026, 2024-2026\n]\n')
-    assert not check_summary_repeats('#section("Experience")[\n- cut 840 ms to 210 ms\n]\n')   # no summary: silent
-    assert check_summary_repeats(_sr.replace("Profile", "Profil"))
-    # the summary section is found by its title: French and Spanish forms (Profil, Perfil) and other
-    # English names count too
-    for _t in ("Objective", "Summary of Qualifications", "Perfil", "Professional Summary"):
-        assert check_summary_repeats(_sr.replace("Profile", _t)), _t
-    assert check_summary_repeats(_sr.replace('("Profile")', '("Profile", airy: true)'))             # extra section args
-    assert not check_summary_repeats(                                                            # code / URLs / comments: silent
-        '#section("Profile")[\n#v(10pt)#h(12pt) linkedin.com/in/jo-1234 // 40 users 30%\n]\n'
-        '#section("Experience")[\n#v(10pt)#h(12pt) linkedin.com/in/jo-1234\n// 40 users 30%\n#link("https://x.io/a-1234")[site]\n]\n')
-    assert not check_summary_repeats(                                                            # skills/education versions: out of scope
-        '#section("Profile")[\nJava 17, Node 20, ISO 27001, SOC 2.\n]\n'
-        '#section("Skills")[\nJava 17, Node 20, ISO 27001, SOC 2\n]\n')
-    # Entry-repeats WARN: a bullet restating its own entry's descriptor; a bullet adding facts is fine.
-    _er = ('#section("Projects")[\n#job("TrailMap", "Go + SQLite REST service", "2025", "Hiking-trail conditions")\n'
-           '- Built the service in *Go* with *SQLite*; it serves 1,200 monthly users.\n]\n')
-    _erw = check_entry_repeats(_er)
-    assert len(_erw) == 1 and _erw[0].startswith("WARN") and '"TrailMap"' in _erw[0] and "Go + SQLite REST" in _erw[0], _erw
-    assert not check_entry_repeats(_er.replace("Built the service in *Go* with *SQLite*; it", "It"))          # no shared words
-    assert not check_entry_repeats(_er.replace('"Go + SQLite REST service"', '"Montréal · internship"'))       # one-word segments
-    assert not check_entry_repeats(_er.replace("Projects", "Skills"))                                          # out of scope
-    assert not check_entry_repeats('#section("Experience")[\n#job("Dev", "Acme", "May 2025 – Aug 2025", "Montréal")\n- Worked at Acme in Montréal.\n]\n')   # org/dates/city alone
-    _ex = '#section("Experience")[\n#job("Dev", "Acme", "2022", "%s")\n- %s\n]\n'
-    assert not check_entry_repeats(_ex.replace("Acme", "Bank of Montreal") % ("Toronto", "Built tooling for Bank of Montreal traders"))
-    assert not check_entry_repeats('#section("Experience")[\n#job("Dev", "Bank of Montreal", "2022", "Toronto")\n- Built tooling for Bank of Montreal traders\n]\n')   # org is not a descriptor
-    assert not check_entry_repeats(_ex % ("React, TypeScript, Node.js", "Shipped React and TypeScript dashboard"))   # commas split like · (single-word segments)
-    assert check_entry_repeats(_ex % ("Équipe de données", "Données et équipes: dashboards"))                  # French plural/accents
-    assert not check_entry_repeats(_ex % ("Équipe de données", "Réduit l\u2019équipe de support de 40 à 6 personnes"))   # elision, one shared word
-    # Entry-location WARN: a place absent from the entry's own facts item; generic words, acronyms, unattached entries silent.
-    # `_lf` is a facts file with two items; the Cashier item names Laval, the DEC item does not. `_lt` is an
-    # Education entry whose descriptor slot (%s) carries the place under test: Laval on the DEC entry is the
-    # place its own facts item never mentions (the "run 24 Laval" case, commit 6b5b696).
-    _lf = "## Education\n- DEC in Science, Collège Riverside, 2020 – 2022.\n- Cashier, Marché Bonprix (Laval), 2020\n"
-    _lt = '#section("Education")[\n#job("DEC in Science", "Collège Riverside", "2020 – 2022", "%s")\n]\n'
-    assert len(check_entry_locations(_lt % "Laval", _lf)) == 1
-    assert len(check_entry_locations(_lt % "Part-time · Laval", _lf)) == 1
-    assert not check_entry_locations(_lt % "Part-time · remote · QC", _lf)
-    assert not check_entry_locations(_lt % "Diploma of College Studies (DEC), Back-end API development", _lf)   # descriptions, not places
-    assert not check_entry_locations(_lt % "laval", _lf)                                       # lowercase: not a name
-    assert not check_entry_locations(_lt % "Laval", _lf.replace("Riverside, 2020", "Riverside (LAVAL), 2020"))   # case
-    assert not check_entry_locations(_lt.replace("DEC in Science", "Diploma").replace("Collège Riverside", "Elsewhere") % "Laval", _lf)   # unattached
-    assert not check_entry_locations(_lt % "Laval", "")
-    assert len(check_entry_locations(_lt % "Laval, 2020", _lf)) == 1                                  # a date does not hide the place
-    assert not check_entry_locations(_lt % "Quebec City · Team Lead · QC", _lf)                        # in no facts item at all: coverage's job
-    assert not check_entry_locations(_lt % "Montreal", _lf.replace("Riverside, 2020", "Riverside (Montréal), 2020"))   # accents folded
-    assert not check_entry_locations(_lt % "Laval", "### DEC in Science, Collège Riverside\n- Laval\n- 2020\n### Cashier, Marché Bonprix\n- Laval\n")   # flat bullets under their heading
-    assert not check_entry_locations(_lt.replace("Education", "Projects") % "Laval", _lf)
     # --all's headerless fallback: the page count read off the name. Wrong
     # here and every 2-page deliverable is silently gated as a 1-pager.
     assert pages_from_name("a/resume-2page.typ") == "2"
-    # Rule 1 gates: the year-only WARN must tell the model to keep it year-only,
-    # never to add months; the facts check must flag what the facts do not say.
-    _yo = _year_only_msg("Acme 2019 – 2021")
-    assert "KEEP it year-only" in _yo and "NEVER invent or estimate months" in _yo, _yo
-    assert "month+year both ends" not in _yo, _yo
-    # `_good` re-spells the facts (accents stripped, $50k for $50,000) and must stay silent: a faithful
-    # paraphrase is not an invention. Every WARN below must name something the facts do not say.
+    # Rule 1 gate: the facts check flags a year, numeric month+year or number the facts do not say, and reads no word.
+    # `_good` re-spells the facts ($50k for $50,000) and must stay silent: a faithful paraphrase is not an invention.
     _facts = ("Jane Roe\nAnalyst, Acme Corp, 2020–2022 (year only, no months known)\n"
               "- Cut reporting time by 40%, saving $50,000 across 12 teams. Python, SQL.\n"
               "Education: B.Sc. Université de Montréal, 2018\n")
@@ -295,46 +225,19 @@ def run() -> NoReturn:
              "Cut reporting time by 40%, saving $50k across 12 teams\n"
              "Built Python and SQL pipelines\nUniversite de Montreal  2018\n")
     assert check_facts_coverage(_good, _facts) == [], check_facts_coverage(_good, _facts)
-    _w = check_facts_coverage("Analyst, Acme Corp  Sep 2020 – May 2022\n", _facts)
-    assert len(_w) == 2 and all(x.startswith("WARN  not in facts file:") for x in _w), _w
-    assert '"Sep 2020"' in _w[0] and '"May 2022"' in _w[1], _w
+    _w = check_facts_coverage("Analyst, Acme Corp  2020 – 2023\nGrew revenue 75% in 1999\n", _facts)
+    assert len(_w) == 3 and all(x.startswith("WARN  not in facts file:") for x in _w), _w
+    assert '"2023"' in _w[0] and '"1999"' in _w[1] and '"75%"' in _w[2], _w
     assert "remove it or confirm it with the candidate (rule 1)" in _w[0], _w
-    _w = check_facts_coverage("Analyst, Globex Industries  2020 – 2022\nGrew revenue 75% in 1999\n", _facts)
-    assert any('"Globex Industries"' in x for x in _w) and any('"75%"' in x for x in _w) \
-        and any('"1999"' in x for x in _w), _w
-    assert len(check_facts_coverage("Globex Industries\nGlobex Industries\n", _facts)) == 1
-    assert check_facts_coverage("Sep 2020", "septembre 2020") == []
-    assert check_facts_coverage("Sep 2020", "2020-09") == []
-    # a month-range shares one year: "Jul 2019" is covered by "juillet – août 2019", "Jun 2019" is not
-    assert check_facts_coverage("Intern  Jul 2019 – Aug 2019\n", "juillet – août 2019") == []
-    _w = check_facts_coverage("Intern  Jun 2019\n", "juillet – août 2019")
-    assert len(_w) == 1 and '"Jun 2019"' in _w[0], _w
-    # review fixes: whole-sequence lookup first, verb list only, acronyms, phones, suffixes, %
-    _f2 = "Analyst, Acme Corp, 2020-2022\nUQAM\nPython 3.11, 75 percent, Beta Inc.\nMontréal\n"
-    for _t in ("Analyst — Globex Corp", "Analyst | Globex Corp", "Globex Corp"):
-        assert any('"Globex Corp"' in x for x in check_facts_coverage(_t + "\n", _f2)), _t
-    assert check_facts_coverage("Built Acme Corp pipelines\nManaged Acme Corp\nDéveloppé Acme Corp\n", _f2) == []
-    assert any('"Globex Corp"' in x for x in check_facts_coverage("Built Globex Corp pipelines\n", _f2))
-    assert any('"AWS"' in x for x in check_facts_coverage("Used AWS daily\n", _f2))
-    assert check_facts_coverage("Studied at UQAM\n", _f2) == []
-    assert any('"Globex"' in x for x in check_facts_coverage("Worked with Globex daily\n", _f2))
-    assert check_facts_coverage("Worked in Montréal\nAnalyst\n", _f2) == []
+    assert len(check_facts_coverage("1999\n1999\n", _facts)) == 1
+    assert check_facts_coverage("Globex Industries, AWS, Sep 2020\n", _facts) == []     # no word is read: names are the agent's
+    assert check_facts_coverage("03/2020", "2020-03") == [] and check_facts_coverage("2020-03", "03.2020") == []
+    _w = check_facts_coverage("04/2020", "2020-03")
+    assert len(_w) == 1 and '"04/2020"' in _w[0], _w
+    _f2 = "Analyst, 2020-2022\nPython 3.11, 75 percent\n"
     for _ph in ("(514) 555-1234", "1 800 555 1234", "+1 514 555 1234", "514-555-1234"):
         assert check_facts_coverage("Contact " + _ph + "\n", _f2) == [], _ph
-    assert check_facts_coverage("Analyst à Acme Corp, 2020-2022\nAnalyst au Acme Corp\n", _f2) == []
-    assert check_facts_coverage("Analyst, Acme Inc., 2020\nAnalyst, Acme Corp. Ltée\n", _f2) == []
     assert check_facts_coverage("Grew by 75%\nGrew 75 percent\nCroissance de 75 pour cent\n", _f2) == []
-    # facts in another language: names/titles skipped, dates/numbers/acronyms still checked
-    _fr = ("Développeur logiciel à Montréal, Acme Corp, avec les équipes pour des projets dans le nuage "
-           "et des services de la plateforme. Python 3.11, 75 %, UQAM, sept. 2020, d'IP\n")
-    _en = ("Software Developer in Montreal, Acme Corp, with the teams for projects in the cloud and "
-           "the services of the platform. Python 3.11, 75%, UQAM, Sep 2020, IP\n")
-    _x = check_facts_coverage(_en, _fr)
-    assert _x and _x[0].startswith("INFO  facts file is French, CV is English") and len(_x) == 1, _x
-    _x = check_facts_coverage(_en.replace("Sep 2020", "Jul 2019").replace("UQAM", "UML").replace("3.11", "3.12"), _fr)
-    assert not any('"Software Developer"' in w or '"Montreal"' in w for w in _x), _x
-    assert sum(w.startswith("WARN") for w in _x) == 4, _x   # + bare 2019
-    assert any('"Jul 2019"' in w for w in _x) and any('"UML"' in w for w in _x) and any('"3.12"' in w for w in _x), _x
     assert any('"3.12"' in x for x in check_facts_coverage("Python 3.12\n", _f2))
     assert check_facts_coverage("Python 3.11\n", _f2) == []
     # drawn fill target: family table wins over header; no/disagreeing header WARNs
@@ -678,34 +581,6 @@ def run() -> NoReturn:
     # and a source with no #section() call is reported, never guessed at
     assert not any(f for f, _ in check_no_split("#let x = 1\n", split)), \
         "no declared heading list means NOT CHECKED, not a free pass fail"
-
-    # ATS date / degree-token checks: each must fire on its defect and stay
-    # quiet on the legitimate shape, else the WARN is noise or a no-op.
-    for bad_d in ("Engineer  2019 – 2021", "Player 2017 – present",
-                  "2019–aujourd'hui", "Dev 2018 - 2020", "2015 — now"):
-        assert check_year_only_dates(bad_d), bad_d
-    for ok_d in ("Aug 2019 – Dec 2021", "janv. 2019 – présent",
-                 "Sept. 2019 – Dec 2021", "Summer 2019 – Fall 2021",
-                 "B.Eng., Software Engineering — 2020",
-                 "June 2026 – present", "Fall 2013"):
-        assert not check_year_only_dates(ok_d), ok_d
-    for bad_d in ("Marketing 2019 – 2021", "Mayor 2019 – 2021",
-                  "Aug 2019 – 2021", "2019 – Aug 2021", "août 2018 – 2020"):
-        assert check_year_only_dates(bad_d), bad_d
-    for t in ("Bac en cours", "Bac. en cours"):
-        assert check_degree_tokens(t), t
-    for t in ("Mastercard program", "Bac+3",
-              "Program Manager | Master Builder, Bachelor of Arts",
-              "Program director — Bachelor of Arts"):
-        assert not check_degree_tokens(t), t
-    assert check_degree_tokens(
-        "Undergraduate B.Eng. program, software engineering")
-    assert check_degree_tokens("Baccalauréat en cours, génie logiciel")
-    assert not check_degree_tokens(
-        "Undergraduate coursework, software engineering")
-    assert not check_degree_tokens("B.Eng., Software Engineering — 2020")
-    assert not check_degree_tokens(
-        "After coursework at Polytechnique Exemple, I am completing a bachelor's degree")
 
     for t in ("\u25c6 Built the API", "  \u2022", "\u25aa item", "\uf0b7 item"):
         assert check_bullet_chars(t), t
