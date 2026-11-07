@@ -2,6 +2,11 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- `SKILL.md` frontmatter is valid YAML again: the `compatibility:` value held `(pip-only: …)`, and an unquoted `: ` is a YAML mapping marker, so GitHub (and any strict YAML loader) refused the frontmatter since 0.7.x. Now `(pip-only install of …)`; `tests/unit/test_frontmatter.py` checks unquoted values for `: ` and ` #` (and parses with PyYAML when installed).
+- `SKILL.md` rule 1: the repeated-fact example is now `"BSc in Biology"` instead of the Québec-only `"DEC in Science"`; the skill reads the same for every market.
+
 ## 0.9.1 - 2026-11-07
 
 - `verify.py`: the under-filled exit names the exact command instead of "a lower fill target": the tune UNDER-FILLED message and NEXT line give `verify.py cv.typ PAGES FILL_MIN FILL_MAX` (FILL_MIN = the lowest fill the gate prints, not below `LOWERED_FILL_FLOOR`), and the gate prints one NEXT line after its fill FAILs (lowest page decides; none below the floor, where it says a fact is missing) so it no longer sends the model back to `--tune` after UNDER-FILLED. `LOWERED_FILL_FLOOR` moves above the footers. The restored-original fill is not added to the tune FAIL: `--tune` never measures the original, so it would cost an extra compile.
