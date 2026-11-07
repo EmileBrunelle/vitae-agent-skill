@@ -103,12 +103,78 @@ import sys
 import tempfile
 import unicodedata
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Literal, NoReturn, TypedDict, cast, overload
+from typing import Any, Literal, NoReturn, cast, overload
 
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_fill  # noqa: E402
+from verify_base import (
+    _FOOTER_GATE as _FOOTER_GATE,
+)
+from verify_base import (
+    _FOOTER_TUNE as _FOOTER_TUNE,
+)
+from verify_base import (
+    _FOOTER_TUNE_NOPAR as _FOOTER_TUNE_NOPAR,
+)
+from verify_base import (
+    _FOOTER_TUNE_UNDER as _FOOTER_TUNE_UNDER,
+)
+from verify_base import (
+    _FOOTER_TUNE_WIDE as _FOOTER_TUNE_WIDE,
+)
+from verify_base import (
+    _NO_READ as _NO_READ,
+)
+from verify_base import (
+    LEADING_WARN as LEADING_WARN,
+)
+from verify_base import (
+    LOWERED_FILL_FLOOR as LOWERED_FILL_FLOOR,
+)
+from verify_base import (
+    STATE as STATE,
+)
+from verify_base import (
+    Band as Band,
+)
+from verify_base import (  # noqa: E402 -- shared shapes, constants and STATE (a leaf module); re-exported for callers
+    Box as Box,
+)
+from verify_base import (
+    DetailRow as DetailRow,
+)
+from verify_base import (
+    GapFn as GapFn,
+)
+from verify_base import (
+    GroupRow as GroupRow,
+)
+from verify_base import (
+    HiddenStat as HiddenStat,
+)
+from verify_base import (
+    LineBox as LineBox,
+)
+from verify_base import (
+    Mark as Mark,
+)
+from verify_base import (
+    SecRow as SecRow,
+)
+from verify_base import (
+    Word as Word,
+)
+from verify_base import (
+    WordBox as WordBox,
+)
+from verify_base import (
+    _EntryRecord as _EntryRecord,
+)
+from verify_base import (
+    _Line as _Line,
+)
 from verify_fonts import (  # noqa: E402 -- font families asked for vs drawn: pure text and tuples
     _fam_key as _fam_key,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
 )
@@ -167,82 +233,6 @@ from verify_typst import (
 from verify_typst import (
     _write_par as _write_par,
 )
-
-# ---------- shapes passed around ----------
-# Geometry, in PDF points unless said otherwise (pdftotext -bbox).
-Box = tuple[float, float, float, float]            # x0, y0, x1, y1
-WordBox = tuple[Box, str]                          # a word and its box
-Word = tuple[float, float, float, float, str]      # x0, y0, x1, y1, text
-Band = tuple[int, int]                             # first, last pixel row of a run
-LineBox = list[float]                              # [x0, x1, y0, y1] of one text line
-GapFn = Callable[[int, LineBox, LineBox], float]   # optical gap (pt) between two lines
-# One extracted word of the hidden-text gate: page, word, box, box height (pt),
-# contrast against its own background (None: no raster), off the page.
-HiddenStat = tuple[int, str, Box, float, float | None, bool]
-
-
-class Mark(TypedDict, total=False):
-    """One value of lib.typ's invisible markers, read back by `typst query`
-    (<vitae-head> / <vitae-part> / <vitae-sec>). Every key is optional: an old
-    lib omits some, and the different mark kinds carry different subsets.
-    kind: "entry" / "skill" (heads) or "date" / "org" / "date-col" (parts)."""
-    kind: str
-    text: str
-    org: str
-    page: int
-    x: float
-    y: float
-    w: float            # measured cell width (parts)
-    h: float            # measured cell height (parts)
-    dated: bool         # entry heads: given a date?
-    anchor: bool        # entry heads: lib's date anchor present
-    inline: bool        # date parts: set inline after the role
-
-
-class _EntryRecord(TypedDict):
-    """_entry_records(): an entry head with the part marks that follow it."""
-    head: Mark
-    date: Mark | None
-    org: Mark | None
-    date_first: bool | None
-
-
-class _Line(TypedDict):
-    """_lines(): the words of one text line, clustered by y-centre."""
-    y0: float
-    y1: float
-    c: float
-    x0: float
-    words: list[Word]
-
-
-class GroupRow(TypedDict):
-    """measure_groups() / DETAIL row of an entry or skill group."""
-    kind: Literal["group"]
-    text: str
-    page: int
-    n: int                          # lines in the group, less one
-    gaps: list[float]               # gaps between consecutive lines inside it
-    internal: float                 # the largest of them
-    between: float                  # last line -> next block's first line
-    ratio: float                    # between / internal
-    ls: list[LineBox]
-    pair_in: tuple[str, str]        # the line pair behind `internal`
-    pair_btw: tuple[str, str]       # the line pair behind `between`
-
-
-class SecRow(TypedDict):
-    """measure_groups() / DETAIL row of a section title."""
-    kind: Literal["sec"]
-    text: str
-    page: int
-    before: float                   # previous block -> title (its bar)
-    after: float                    # title -> first line of its section
-    ratio: float
-
-
-DetailRow = GroupRow | SecRow
-
 
 # ---------- dependency preflight ("doctor") ----------
 
@@ -2779,12 +2769,11 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
     deps_ok, use_cli, backend = preflight()
     if not deps_ok:
         return 1
-    global _footer
-    _footer = _FOOTER_TUNE
+    STATE.footer = _FOOTER_TUNE
     original = open(typ, encoding="utf-8").read()
     cur = _read_par(original)
     if cur is None:
-        _footer = _FOOTER_TUNE_NOPAR
+        STATE.footer = _FOOTER_TUNE_NOPAR
         print("FAIL  no `#set par(... leading: Xem, spacing: Yem)` line to tune "
               "— the tuner edits that one declaration and nothing else")
         return 2
@@ -2853,7 +2842,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                   "(target %s-%s%%); restored the original %.3fem/%.3fem"
                   % (best, best + delta, best_fill, fmin, fmax, l0, s0))
             if under:
-                _footer = _FOOTER_TUNE_UNDER
+                STATE.footer = _FOOTER_TUNE_UNDER
                 print("      the page is UNDER-FILLED: a fact is missing, not whitespace. "
                       "Leading is capped at %.2fem (never widen the range). Add a real fact "
                       "from the candidate's facts (a bullet with a measurable result, a "
@@ -2866,7 +2855,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                       % (cap, shlex.quote(typ), expected, fmax, LOWERED_FILL_FLOOR, LOWERED_FILL_FLOOR))
             else:
                 if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
-                    _footer = _FOOTER_TUNE_WIDE
+                    STATE.footer = _FOOTER_TUNE_WIDE
                 print("      no leading in the searched range reaches the target at "
                       "%s page(s). Widen the range by passing the bounds "
                       "positionally after FILL_MAX, e.g.\n"
@@ -3090,36 +3079,6 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
                      f"copy it again: {cp}")]
 
 
-# The last lines printed when a run ends on a non-zero exit (see `_run`). A reader (human or
-# model) acts on what it sees LAST, so the instruction is here, not only in the header.
-# Armed (set non-None) only after preflight succeeded, per mode, so a missing
-# dependency or a usage error never gets a footer that blames cv.typ.
-_NO_READ = ("      Do not open verify.py or lib.typ: their code is not the fix, and "
-            "reading them costs your context.")
-# Lowering FILL_MIN below the drawn target is a WARN down to LOWERED_FILL_FLOOR; below it
-# it is a FAIL so a dummy target (e.g. `1 10 100`) cannot bypass the fill gate.
-# 60 = below the 65% observed in the 0.9.0 real run (thin 2-job persona, facts exhausted)
-# with margin, still above a half-empty page; still a WARN.
-LOWERED_FILL_FLOOR = 60
-_FOOTER_GATE = ("NEXT  Apply the fix each FAIL above names, then re-run the same command. "
-                "Edit cv.typ only; a lib.typ FAIL is fixed by the printed `cp` command "
-                "(recopy it, never edit it).\n" + _NO_READ)
-_FOOTER_TUNE = ("NEXT  Run the command printed above (wider range), or add real content / "
-                "change the page count in cv.typ; do not edit leading by hand.\n" + _NO_READ)
-_FOOTER_TUNE_UNDER = ("NEXT  The page is under-filled: do not re-run --tune or widen the range "
-                      "(leading is capped). Add a real fact from the candidate's facts (a bullet "
-                      "with a measurable result, a project, a certification); raising the body type size "
-                      "is the same padding, not an alternative; never pad or invent "
-                      "— if the facts are not in hand, ask the user. Only if the facts are "
-                      "exhausted: fewer pages or a lowered target, `verify.py cv.typ PAGES FILL_MIN FILL_MAX` "
-                      "(FILL_MIN = the lowest fill the gate prints, not below "
-                      f"{LOWERED_FILL_FLOOR}; under {LOWERED_FILL_FLOOR}% there is no lowered-target "
-                      "exit: a fact is missing, or fewer pages), and tell the user.\n" + _NO_READ)
-_FOOTER_TUNE_NOPAR = ("NEXT  Add the `#set par(leading: Xem, spacing: Yem)` line to cv.typ "
-                      "(copy it from the template), then re-run the same command.\n" + _NO_READ)
-_FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Add real content "
-                     "or change the page count in cv.typ.\n" + _NO_READ)
-_footer: str | None = None
 
 
 _LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} — allowed ONLY if "
@@ -3131,10 +3090,6 @@ _LOWERED_FAIL = ("FAIL  fill target lowered to {lo}-{hi}% is below the lowered-t
                  "pages, or raise FILL_MIN")
 
 
-# The shipped templates top out at 0.96em body leading; the tuner may go up to LEADING_WARN
-# (1.00em). Above 1.00em multi-line text (profile summary, wrapped bullets) reads as
-# double-spaced while every mechanical check still passes.
-LEADING_WARN = 1.00    # em; strictly above it the WARN fires (largest shipped 0.96)
 _LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line paragraphs "
                  "(shipped templates stay <= 0.96em; warns above {t:.2f}em) — the page is "
                  "padded with air, not content. Prefer adding a real fact (a bullet, a "
@@ -3195,7 +3150,6 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Never returns:
     it exits 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix.
     The order of the gates is the one documented in the module docstring."""
-    global _footer
     pdf = re.sub(r"\.typ$", "", typ) + ".pdf"
     fail = 0
     # The drawn fill target lives in the cv.typ header; the command line may
@@ -3228,7 +3182,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     deps_ok, use_cli, backend = preflight()
     if not deps_ok:
         sys.exit(1)
-    _footer = _FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
+    STATE.footer = _FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
 
     for level, msg in check_lib_integrity(typ):
         print(f"{level}  {msg}")
@@ -3453,7 +3407,6 @@ def main() -> None:
     cv.typ (--doctor, --selftest, --render, --text) come before the positional parsing, which
     would otherwise reject them for a missing `typ`. Every mode ends in sys.exit, so a later
     branch is reached only when no earlier one matched."""
-    global _footer
     argv = sys.argv[1:]
     prog = os.path.basename(sys.argv[0])
 
@@ -3470,7 +3423,7 @@ def main() -> None:
         ap.add_argument("pdf")
         ap.add_argument("--root", default=None)
         ga = ap.parse_known_args(argv[1:])[0]
-        _footer = _FOOTER_GATE
+        STATE.footer = _FOOTER_GATE
         rows: list[DetailRow] = []
         rc = run_new_gates(ga.typ, ga.pdf, extract_text(ga.pdf, pdf_backend()),
                            open(ga.typ, encoding="utf-8").read(), root=ga.root, detail=rows)
@@ -3569,8 +3522,8 @@ def _run() -> None:
     try:
         main()
     except SystemExit as e:
-        if _footer and isinstance(e.code, int) and e.code != 0:
-            print(_footer, flush=True)
+        if STATE.footer and isinstance(e.code, int) and e.code != 0:
+            print(STATE.footer, flush=True)
         raise
 
 

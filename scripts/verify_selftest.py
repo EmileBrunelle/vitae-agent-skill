@@ -1195,7 +1195,7 @@ def run() -> NoReturn:
                 _b = io.StringIO()
                 with contextlib.redirect_stdout(_b):
                     _rc = tune(_f, 1, fmin, 96, *rng)
-                return _rc, _b.getvalue(), _v._footer, _read_par(open(_f).read())
+                return _rc, _b.getvalue(), _v.STATE.footer, _read_par(open(_f).read())
         _trc, _to, _tft, _tpar = _tune_doc(15, 0.40, 1.60)
         assert _trc == 1 and "UNDER-FILLED" in _to and "never invent" in _to, _to
         assert "clamped to 1.000em" in _to and "searching [0.400, 1.000]" in _to, _to
