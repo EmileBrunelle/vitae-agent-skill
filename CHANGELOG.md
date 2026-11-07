@@ -4,6 +4,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `verify.py --tune`: the upward leading cap is now `LEADING_WARN` (1.00em) instead of `LEADING_CAP` (1.10em, constant removed), so a tuned file never trips the gate's own DOUBLE-SPACED WARN; a file already above 1.00em is not forced down.
+- Font messages say what they measure: the doctor line reads "N of M design families have an installed face for every role; a drawn face may still be substituted", and `pick_design.py` prints "SUBSTITUTED: drawn A not installed, using the installed face shown — install A for the exact design" instead of "DRAWN FACE MISSING".
+- `pick_design.py` prints "field register: none, full pool" instead of "unknown" for a field with no register weighting (not an error).
 - `verify.py`: the lowered fill-target floor `LOWERED_FILL_FLOOR` goes from 80 to 60 (a real thin 2-job persona, facts exhausted, peaked at 65% on one page and could not pass); a target at 60-79 is a WARN + `PASS (fill target lowered)`, below 60 a FAIL; still allowed only when the facts are exhausted, with the shortfall and the missing facts reported. `references/steps/6-verify.md`, selftest and `tests/run_all.sh` follow.
 - `verify.py` drops the `KNOWN_LIB_SHA256` allow-list of past `lib.typ` digests (and the `known` parameter of `check_lib_integrity`): a `lib.typ` whose content (BOM and CRLF ignored) differs from the skill's now always FAILs with a neutral message and the `cp` that restores it, instead of a WARN for a recognised older release. One release step less.
 

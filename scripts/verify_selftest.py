@@ -48,7 +48,7 @@ from verify import (  # noqa: E402
     DEVICE_QUORUM,
     ENTRY_MARKS,
     FURNITURE_SCALE,
-    LEADING_CAP,
+    LEADING_WARN,
     LOWERED_FILL_FLOOR,
     PROX_FAIL,
     SEPARATION_CEILING,
@@ -1198,12 +1198,12 @@ def run() -> NoReturn:
                 return _rc, _b.getvalue(), _v._footer, _read_par(open(_f).read())
         _trc, _to, _tft, _tpar = _tune_doc(15, 0.40, 1.60)
         assert _trc == 1 and "UNDER-FILLED" in _to and "never invent" in _to, _to
-        assert "clamped to 1.100em" in _to and "searching [0.400, 1.100]" in _to, _to
+        assert "clamped to 1.000em" in _to and "searching [0.400, 1.000]" in _to, _to
         assert "Widen the range" not in _to and _tft is not None and "under-filled" in _tft and _tpar == (0.6, 0.7), (_to, _tft)
         _trc, _to, _tft, _tpar = _tune_doc(70)
         assert _trc == 1 and "UNDER-FILLED" not in _to, _to
-        _trc, _to, _tft, _tpar = _tune_doc(38, fmin=88)
-        assert _trc == 0 and _tpar is not None and _tpar[0] <= LEADING_CAP + 1e-9, (_to, _tpar)
+        _trc, _to, _tft, _tpar = _tune_doc(40, fmin=88)
+        assert _trc == 0 and _tpar is not None and _tpar[0] <= LEADING_WARN + 1e-9, (_to, _tpar)
     # Leading WARN: fires strictly above 1.00em, silent at the shipped maximum.
     with tempfile.TemporaryDirectory() as _lw:
         _lwf = os.path.join(_lw, "cv.typ")

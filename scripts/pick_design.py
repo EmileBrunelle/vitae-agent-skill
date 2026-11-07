@@ -749,9 +749,9 @@ def _pick_font(pool: list[Font], key: str, salt: str,
     for cand in pool:
         got = _installed(cand[0], have)
         if got:
-            return (got, cand[1]), drawn, ("DRAWN FACE MISSING: install %s (%s), or use "
-                                 "this available pool member meanwhile"
-                                 % (drawn[0], drawn[1]))
+            return (got, cand[1]), drawn, ("SUBSTITUTED: drawn %s (%s) not installed, using the "
+                                 "installed face shown — install %s for the exact design"
+                                 % (drawn[0], drawn[1], drawn[0]))
     return drawn, None, "NO pool member installed — install one before drafting"
 
 
@@ -866,7 +866,7 @@ def pick(name: str, field: str | None, career: str = "early",
         lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
     return dict(key=key, family=fam, have=have, offline=offline, eligible=eligible, recipe=d,
                 mono=mono, mono_note=mono_note, variant=variant,
-                career=career, domain=dom or "unknown", audacity=audacity,
+                career=career, domain=dom or "none, full pool", audacity=audacity,
                 accent=d["accents"][ai],
                 accent2=d.get("accents2", [None] * len(d["accents"]))[ai],
                 marker=d["markers"][_idx(key, len(d["markers"]), "marker|")],

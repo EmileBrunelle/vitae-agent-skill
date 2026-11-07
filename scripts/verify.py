@@ -424,7 +424,7 @@ def check_fonts() -> None:
               else "export TYPST_FONT_PATHS=<dir> (no install; the Python API reads it here)")
         print(f"  Route 1: install into ~/.local/share/fonts/vitae (persistent, recommended); Route 2: {r2}")
     else:
-        print(f"OK    fonts ({usable} of {len(pools)} design families fully installed, {len(have)} families)")
+        print(f"OK    fonts ({usable} of {len(pools)} design families have an installed face for every role; a drawn face may still be substituted, {len(have)} families)")
 
 
 class _CountDegraded:
@@ -2762,9 +2762,9 @@ def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
 
 # UPWARD CAP. An under-filled page means a fact is missing, not whitespace to inflate. The
 # shipped templates use body leading up to 0.96em and paragraph spacing up to 1.075em; the tuner
-# never goes above LEADING_CAP or SPACING_CAP (each the shipped maximum plus 15%, CHANGELOG)
-# whatever range the caller passes. The downward (over-full) search is not capped.
-LEADING_CAP = 1.10     # em; largest shipped body leading 0.96 x 1.15
+# never goes above LEADING_WARN (the gate's own double-spacing WARN threshold, so a tuned file
+# never trips it) or SPACING_CAP (the shipped maximum plus 15%, CHANGELOG) whatever range the
+# caller passes. The downward (over-full) search is not capped.
 SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
 
 
@@ -2794,12 +2794,12 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
     lo = l0 * 0.80 if lo is None else lo
     # The default ceiling is relative, but a family with an already-tight
     # leading gets a range too narrow to ever reach the fill target, so the
-    # ceiling never sits below 1.10em.
+    # ceiling never sits below 1.10em (then clamped to the cap below).
     hi = max(l0 * 1.30, 1.10) if hi is None else hi
     hi_arg = hi
     # the cap on leading is the tighter of the two caps once the family's delta is added to
     # the spacing; never below the current leading, so a family already above it is not forced down
-    cap = max(min(LEADING_CAP, SPACING_CAP - delta), l0)
+    cap = max(min(LEADING_WARN, SPACING_CAP - delta), l0)
     clamped = hi > cap + 1e-9
     if clamped:
         hi = cap
@@ -2809,8 +2809,8 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
           % (typ, l0, delta, lo, hi, expected, fmin, fmax))
     if clamped:
         print("NOTE  upper bound clamped to %.3fem: the shipped templates never exceed "
-              "%.2fem leading (cap %.2f); an under-filled page needs a real fact, "
-              "not more air" % (cap, 0.96, LEADING_CAP))
+              "%.2fem leading (cap %.2f, the gate's double-spacing WARN threshold); an "
+              "under-filled page needs a real fact, not more air" % (cap, 0.96, LEADING_WARN))
     try:
         ok_lo, fill_lo = _probe(typ, original, lo, lo + delta, expected,
                                 use_cli, backend)
@@ -3125,8 +3125,8 @@ _LOWERED_FAIL = ("FAIL  fill target lowered to {lo}-{hi}% is below the lowered-t
                  "pages, or raise FILL_MIN")
 
 
-# The shipped templates top out at 0.96em body leading; the tuner may go to LEADING_CAP
-# (1.10em). Above 1.00em multi-line text (profile summary, wrapped bullets) reads as
+# The shipped templates top out at 0.96em body leading; the tuner may go up to LEADING_WARN
+# (1.00em). Above 1.00em multi-line text (profile summary, wrapped bullets) reads as
 # double-spaced while every mechanical check still passes.
 LEADING_WARN = 1.00    # em; strictly above it the WARN fires (largest shipped 0.96)
 _LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line paragraphs "
