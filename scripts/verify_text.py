@@ -189,17 +189,13 @@ def check_bullet_chars(txt: str) -> list[str]:
     return [l.strip() for l in txt.split("\n") if BULLET_CHAR_RE.match(l.strip())]
 
 
+# Calibrated on the 29 templates and 294 palette renders (CHANGELOG): weakest legitimate contrast 4.55:1, smallest
+# legitimate box 5.49 pt (a superscript). HIDDEN_PPI lives in verify_base.
 HIDDEN_MIN_BOX_PT = 4.0   # word-box height floor (pt). Legit: 7.98 for 8.5pt text, 5.49 for a
-
-
                           # superscript in 7.5-9pt body. Hidden-text intent is invisibility, not
                           # small print: between 4.0 and the smallest legit box only the ink counts.
 HIDDEN_FAIL_RATIO = 1.5   # WCAG contrast ratio of the strongest pixel in a word's box against the
-
-
 HIDDEN_WARN_RATIO = 3.0   # box background: below 1.5 unreadable (FAIL), below 3 barely visible (WARN)
-
-
 HIDDEN_PAD_PX = 1         # px added around each box (single-stem words like "i", "l", "二")
 
 
