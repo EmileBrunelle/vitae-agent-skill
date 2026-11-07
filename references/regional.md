@@ -5,8 +5,8 @@ Apply the conventions of the market being applied to, not the user's locale. Whe
 **Load only what you need:** this file gives the overview and the universal rules; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
 
 - `regional/north-america.md` — Canada, Québec, USA
-- `regional/quebec.md` — Québec only, read IN ADDITION to `north-america.md`: when the market is Québec (`--region ca` with a French CV, a Québec address or a Québec employer)
-- `regional/quebec-outbound.md` — read IN ADDITION to the target market's file when the candidate holds Québec credentials (DEC, AEC, DEP, Québec degree, Québec order membership) and targets another market (rest of Canada, USA, France)
+- `regional/quebec.md` — Québec only, read IN ADDITION to `north-america.md`: only when the TARGET market is Québec (a Québec employer or posting; a Québec address alone does not make it the target)
+- `regional/quebec-outbound.md` — read IN ADDITION to the target market's file when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec
 - `regional/france.md`
 - `regional/uk-ireland.md`
 - `regional/dach.md` — Germany, Austria, Switzerland

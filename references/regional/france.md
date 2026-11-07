@@ -7,4 +7,4 @@ Paper: a4. Length: 1 page strongly preferred, all seniority levels.
 - French mechanics: espace insécable before `:` (`~:` in Typst), « guillemets », typographic apostrophes, months lowercase.
 - Hobbies (« centres d'intérêt ») still read as a personality signal — a short line is normal, unlike US/UK practice.
 - Protected titles: many state-regulated professions (santé, droit, expertise comptable…). Nursing, for example, requires the Diplôme d'État — using the title is legitimate only with the registration, which also makes it a credential worth showing. Check the profession's ordre before writing any regulated title.
-- Candidate educated in Québec: also read `regional/quebec-outbound.md`.
+- Candidate who holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership): also read `regional/quebec-outbound.md`.
