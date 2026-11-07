@@ -4,9 +4,9 @@ Loaded on demand, in addition to the target market's file, when the candidate ho
 
 Also read the "Protected titles" section of [`quebec.md`](quebec.md#protected-titles) (that section only): never write or translate a job title into a reserved one (ingénieur/engineer, architecte, CPA…) without confirmed membership — the same caution applies in every target market.
 
-## Education: state facts, not equivalences
+## Education: name the degree, don't claim equivalences
 - Transfers, stopped studies, in-progress degrees, bootcamps: [`references/education-cases.md`](../education-cases.md).
-- The Québec path is 11 years of secondary + a 2-year pre-university DEC (or 3-year technical DEC) + a bachelor's of typically 3 years (90 credits) — CICIC (Government of Canada): « Education in Canada: Provinces and Territories of Canada », consulted 2026-11. No official source states that a Québec 3-year bachelor's "equals" a 4-year degree elsewhere: never write "equivalent to a 4-year degree". Write the durations so the reader can do the arithmetic, e.g. "B.Sc. Computer Science (3-year program following a 2-year pre-university DEC)".
+- The Québec path is 11 years of secondary + a 2-year pre-university DEC (or 3-year technical DEC) + a bachelor's of typically 3 years (90 credits) — CICIC (Government of Canada): « Education in Canada: Provinces and Territories of Canada », consulted 2026-11. A Québec baccalauréat is a bachelor's degree: by default write its English name (the university's own English name if it publishes one, e.g. "Bachelor of Science in Computer Science") and nothing more — don't volunteer the program length. No official source states that it "equals" a 4-year degree elsewhere, so never write "equivalent to a 4-year degree" either. Only when the posting or application form explicitly requires a 4-year degree, add the facts once so the reader can do the arithmetic: "(3-year program following a 2-year pre-university DEC)".
 - English names (CICIC): DEC = "Diploma of College Studies", AEC = "Attestation of College Studies". DEP: no official English name confirmed; gloss below.
 
 ## English Canada and USA
