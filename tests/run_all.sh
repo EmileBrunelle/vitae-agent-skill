@@ -380,9 +380,11 @@ lowered_fill() {
   python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$lo" 100 >"$log" || { echo "exit non-zero"; cat "$log"; return 1; }
   grep -q '^WARN  fill target lowered below drawn target' "$log" || { echo "no WARN"; return 1; }
   grep -q '^PASS (fill target lowered: ' "$log" || { echo "no PASS summary"; return 1; }
-  local bad_rc=0; python3 -I scripts/verify.py "$d/_drawn.typ" 1 70 100 >"$log" 2>&1 || bad_rc=$?
+  python3 -I scripts/verify.py "$d/_drawn.typ" 1 65 100 >"$log" 2>&1 || { echo "65-100 lowered target refused"; cat "$log"; return 1; }
+  grep -q '^PASS (fill target lowered: ' "$log" || { echo "65 no PASS-lowered"; cat "$log"; return 1; }
+  local bad_rc=0; python3 -I scripts/verify.py "$d/_drawn.typ" 1 50 100 >"$log" 2>&1 || bad_rc=$?
   [ "$bad_rc" -ne 0 ] || { echo "below-floor lowered target exited 0"; cat "$log"; return 1; }
-  grep -q '^FAIL  fill target lowered to 70-100% is below the lowered-target floor' "$log" || { echo "no floor FAIL"; cat "$log"; return 1; }
+  grep -q '^FAIL  fill target lowered to 50-100% is below the lowered-target floor' "$log" || { echo "no floor FAIL"; cat "$log"; return 1; }
 }
 check lowered-fill-warns lowered_fill
 

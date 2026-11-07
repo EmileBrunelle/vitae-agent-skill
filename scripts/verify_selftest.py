@@ -261,7 +261,7 @@ def run() -> NoReturn:
             assert _dt == _want_t and len(_dw) == _want_w, (_body, _dt, _dw)
             assert all(str(_exp[0]) in _w and str(_exp[1]) in _w for _w in _dw), _dw
     # a non-integer fill argument exits non-zero with a FAIL line, never a ValueError traceback (CHANGELOG, drawn fill target)
-    assert LOWERED_FILL_FLOOR == 80
+    assert LOWERED_FILL_FLOOR == 60
     _r = subprocess.run([sys.executable, "-I", os.path.abspath(_VERIFY_FILE), "x.typ", "1", "9x", "96"],
                         capture_output=True, text=True)
     assert _r.returncode != 0 and "FAIL  fill args must be integers" in _r.stdout, (_r.stdout, _r.stderr)

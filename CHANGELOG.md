@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `verify.py`: the lowered fill-target floor `LOWERED_FILL_FLOOR` goes from 80 to 60 (a real thin 2-job persona, facts exhausted, peaked at 65% on one page and could not pass); a target at 60-79 is a WARN + `PASS (fill target lowered)`, below 60 a FAIL; still allowed only when the facts are exhausted, with the shortfall and the missing facts reported. `references/steps/6-verify.md`, selftest and `tests/run_all.sh` follow.
 - `verify.py` drops the `KNOWN_LIB_SHA256` allow-list of past `lib.typ` digests (and the `known` parameter of `check_lib_integrity`): a `lib.typ` whose content (BOM and CRLF ignored) differs from the skill's now always FAILs with a neutral message and the `cp` that restores it, instead of a WARN for a recognised older release. One release step less.
 
 ## 0.9.0 - 2026-11-07

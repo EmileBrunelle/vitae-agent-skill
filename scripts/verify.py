@@ -3111,10 +3111,11 @@ _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Ad
 _footer: str | None = None
 
 
-# Lowering FILL_MIN below the drawn target is a WARN down to LOWERED_FILL_FLOOR (honest
-# thin-facts runs across runs 15-24 sit at 85-92%); below LOWERED_FILL_FLOOR it is a FAIL
-# so a dummy target (e.g. `1 10 100`) cannot bypass the fill gate.
-LOWERED_FILL_FLOOR = 80
+# Lowering FILL_MIN below the drawn target is a WARN down to LOWERED_FILL_FLOOR; below it
+# it is a FAIL so a dummy target (e.g. `1 10 100`) cannot bypass the fill gate.
+# 60 = below the 65% observed in the 0.9.0 real run (thin 2-job persona, facts exhausted)
+# with margin, still above a half-empty page; still a WARN.
+LOWERED_FILL_FLOOR = 60
 _LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} — allowed ONLY if "
                  "the facts are exhausted; tell the user the page is under-filled and which "
                  "facts would fill it; never pad or invent to reach it (rule 1)")
