@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- New `references/education-cases.md` (generic, loaded on demand at step 4: degree in progress, stopped studies, transfers and program changes, bootcamps) and `quebec.md` "Education cases (Québec)" (French wordings and sources, DEC-BAC, AEC, cégep change, ÉTS program change, diploma names); a bachelor's in engineering does not confer the title « ingénieur » (OIQ permit does).
 - Québec reserved professional titles are documented in `references/regional/quebec.md` with their legal sources (Code des professions art. 32, 36, 188, 188.1; Loi sur les ingénieurs art. 22; OIQ and Engineers Canada statements): never write or upgrade a job title into a reserved one without the candidate's confirmation; voluntary designations such as I.S.P. are not reserved titles.
 - `quebec.md` gains "Foreign diplomas on a Québec CV" (MIFI « évaluation comparative »: quote its level verbatim, never write « équivalent ») and "Diploma names and abbreviations (OQLF)".
 - New `references/regional/quebec-outbound.md`, loaded only for a candidate with Québec credentials targeting another market: education stated as durations rather than equivalences, English Canada and USA (licensure, TN, credential evaluation), France (comparabilité, « baccalauréat » false friend, Bac+N) and Québec–France double degrees. Pointers in `steps/2-region.md`, `regional.md`, `north-america.md` and `france.md`.
