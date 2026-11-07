@@ -61,8 +61,7 @@ Measured on 4 profile extractions (extractions 3-6, 2026-10-28, FR and EN CVs). 
 - **Location stays empty** even when the city is on the entry's meta line. Don't restructure the CV for it: fill the field by hand.
 - **Summary (About) is rewritten**, sometimes translated to English, with no final period: paste the Profile text in by hand.
 - **Junk skills** come from isolated words translated or lifted out of context (Playwright → "Dramaturge", planning poker → "Poker", "Rail Transport" from Rails, fragments like "Pages", "Forms"): prune by hand.
-- **French month abbreviations**: `juill.` is not recognised (the range collapsed to "aoû 2019") while `sept.`, `janv.`, `févr.`, `déc.` are. Do NOT change the abbreviation: `juill.` is the correct OQLF form.
-- **Québec DEC / DEP** survive better from a French CV (`DEC, Informatique de Gestion`); from the English CV they become inexact equivalents ("Diploma…", "DVS/DEP").
+- **French month abbreviations**: `juill.` is not recognised (the range collapsed to "aoû 2019") while `sept.`, `janv.`, `févr.`, `déc.` are. Do NOT change the abbreviation: `juill.` is the correct French abbreviation.
 - **Any manual profile edit is wiped by a re-upload**: edit last.
 
 ## Workday (myworkdayjobs)

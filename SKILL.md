@@ -44,7 +44,7 @@ Each step below is a skeleton. Before doing anything for a step, read its file i
 
 **3. Decide versions.** Choose the deliverables (1-page, 2-page, cover letter, translations) and the language of the whole package. → Read `references/steps/3-versions.md` now, before doing anything for this step.
 
-**4. Draft from the family's worked file.** Draw the design with one command (pass the CV's `--lang <iso639>`, plus `--region <iso3166>` when the market has a variant, e.g. `--lang fr --region ca` for Québec) and fill the generated `cv.typ` with the candidate's facts; deliverable is a compiling `cv.typ`. → Before drafting, read `references/steps/4-traps.md`. → Read `references/steps/4-draft.md` now, before doing anything for this step. `scripts/pick_design.py` and `scripts/gen_palette.py`: run them, never open their source. `templates/lib.typ`: copy it with `cp` (or `pick_design.py --init`), never read or rewrite it.
+**4. Draft from the family's worked file.** Draw the design with one command (pass the CV's `--lang <iso639>`, plus `--region <iso3166>` when the market has a variant, e.g. `--lang en --region gb` for the UK) and fill the generated `cv.typ` with the candidate's facts; deliverable is a compiling `cv.typ`. → Before drafting, read `references/steps/4-traps.md`. → Read `references/steps/4-draft.md` now, before doing anything for this step. `scripts/pick_design.py` and `scripts/gen_palette.py`: run them, never open their source. `templates/lib.typ`: copy it with `cp` (or `pick_design.py --init`), never read or rewrite it.
 
 **5. Write bullets.** Write the evidence-anchored, keyword-bearing bullets from the fact sheet. → Read `references/steps/5-bullets.md` now, before doing anything for this step.
 

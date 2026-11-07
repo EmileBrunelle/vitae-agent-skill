@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Québec content is isolated in `references/regional/quebec.md`, read on demand only for the Québec market (pointers in `steps/2-region.md`, `regional.md` and `north-america.md`). Moved verbatim from `north-america.md` (verbs, academic calendars, CPI, CEGEP/DEC/DEP glosses) and `ats.md` (DEC/DEP; the `juill.` month trap stays in `ats.md`, it applies to every French CV); `SKILL.md`'s flag example and `field-software-dev.md` no longer name Québec.
 - `SKILL.md` frontmatter is valid YAML again: the `compatibility:` value held `(pip-only: …)`, and an unquoted `: ` is a YAML mapping marker, so GitHub (and any strict YAML loader) refused the frontmatter since 0.7.x. Now `(pip-only install of …)`; `tests/unit/test_frontmatter.py` checks unquoted values for `: ` and ` #` (and parses with PyYAML when installed).
 - `SKILL.md` rule 1: the repeated-fact example is now `"BSc in Biology"` instead of the Québec-only `"DEC in Science"`; the skill reads the same for every market.
 

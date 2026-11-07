@@ -42,7 +42,7 @@ Use these four segments as the reviewer personas in the adversarial step, plus o
 
 ## Dev-specific title notes
 
-- Default job title on the CV: developer, not engineer (see regional.md for the legal map). Engineering-degree holders in Canada may add the registered pathway once enrolled (e.g. Québec's « CPI ») — a real asset only when targeting engineering-culture employers (aerospace, defence, industrial), noise for SaaS/startups.
+- Default job title on the CV: developer, not engineer (see regional.md for the legal map). Engineering-degree holders in Canada may add the registered pathway once enrolled — a real asset only when targeting engineering-culture employers (aerospace, defence, industrial), noise for SaaS/startups.
 - Interview-fatal verbs to soften for interns/juniors: "led architecture", "owned", "guaranteed" → "contributed to design discussions", "strengthened", unless literally true and defensible with a story.
 - Deriving an EN version from a FR file (or vice versa): the skill-row helper and dates carry language conventions — check the colon style (`~:` French non-breaking space vs plain `:`), month abbreviations, and quote styles survive the translation. Verified failure mode: EN CVs shipping with French spaced colons.
 - Local course codes are opaque outside the school — translating them into their actual content (object-oriented design, GoF patterns, unit testing/JUnit, UML) is a legitimate ATS improvement IF the syllabus backs it; ask for the course plan when available, it is a goldmine of defensible anchors. Watch the GRASP-vs-GoF confusion: candidates (and users) routinely answer a GRASP question with GoF patterns — if both are claimed, the interview-prep companion must spell out the difference.

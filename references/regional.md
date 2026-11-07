@@ -5,6 +5,7 @@ Apply the conventions of the market being applied to, not the user's locale. Whe
 **Load only what you need:** this file gives the overview and the universal rules; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
 
 - `regional/north-america.md` — Canada, Québec, USA
+- `regional/quebec.md` — Québec only, read IN ADDITION to `north-america.md`: when the market is Québec (`--region ca` with a French CV, a Québec address or a Québec employer)
 - `regional/france.md`
 - `regional/uk-ireland.md`
 - `regional/dach.md` — Germany, Austria, Switzerland
