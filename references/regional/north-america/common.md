@@ -13,6 +13,7 @@ Add-on to [`canada/market.md`](canada/market.md) and [`us/market.md`](us/market.
 ## Protected titles
 - Any regulated occupation (licence required, or titles reserved "where only members of a regulatory body can make use of specific titles and abbreviations allowed by law") exists in every province and state (IRCC, « Regulated or certified occupations – Processing of work permit applications » (2024-05-21); Québec.ca, « Ordres professionnels » (2026-09-29); consulted 2026-11). Before writing a licence-type title, check the regulator (Canada: Job Bank Foreign Credential Recognition tool or the regulatory body; Québec: the order's répertoire des membres; USA: the state licensing board). Write the licence with its jurisdiction and status.
 - Health and financial-services licences: [`quebec/health.md`](quebec/health.md), [`canada/health.md`](canada/health.md), [`us/health.md`](us/health.md); [`quebec/financial-licensing.md`](quebec/financial-licensing.md), [`canada/financial-licensing.md`](canada/financial-licensing.md), [`us/financial-licensing.md`](us/financial-licensing.md).
+- Law and teaching: [`quebec/law.md`](quebec/law.md), [`canada/law.md`](canada/law.md), [`us/law.md`](us/law.md); [`quebec/teaching.md`](quebec/teaching.md), [`canada/teaching.md`](canada/teaching.md), [`us/teaching.md`](us/teaching.md). Pilot licences: [`aviation.md`](aviation.md).
 - Foreign engineering degree (European etc.): see [`regional/europe/to-north-america.md`](../europe/to-north-america.md).
 
 ## Government jobs

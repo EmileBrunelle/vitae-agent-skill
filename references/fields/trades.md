@@ -18,6 +18,7 @@ Every fact in the trades files is what the issuing body's own page says (consult
 - A machine is not a qualification.
 - Name equipment exactly as on the candidate's certificate.
 - Driver's licence: give the class and any mention exactly as on the licence when the job drives.
+- Forklift, OSHA 10/30-hour card or workplace first aid: [`../regional/north-america/workplace-safety.md`](../regional/north-america/workplace-safety.md). US commercial driver's licence (CDL): [`../regional/north-america/driving.md`](../regional/north-america/driving.md).
 
 ## Exam is not the licence
 

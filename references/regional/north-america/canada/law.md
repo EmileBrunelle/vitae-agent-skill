@@ -1,0 +1,26 @@
+# Law: Canada outside Québec (law societies, NCA)
+
+Loaded when the candidate lists a lawyer or paralegal licence, a bar admission, an articling position or an NCA certificate for a Canadian target. Protected-title overview: [`canada/market.md`](market.md#protected-titles). Québec: [`../quebec/law.md`](../quebec/law.md). Only Ontario's law society (LSO) and the national NCA were read; other provinces' societies were not, so write nothing about them (ask the candidate for the society's wording).
+
+## Ontario: licensee, lawyer, paralegal
+- Law Society Act, s. 1: « licensee » means « a person licensed to practise law in Ontario as a barrister and solicitor » or « a person licensed to provide legal services in Ontario » (S401). The LSO's directory calls them lawyers and paralegals: « This directory lists lawyers and paralegals licensed by the Law Society » (S402).
+- s. 26.1 (2), « subject to subsections (6) and (7) »: « no person, other than a licensee whose licence is not suspended, shall hold themself out as, or represent themself to be, a person who may practise law in Ontario or a person who may provide legal services in Ontario » (S401). A licensee must specify the restrictions on his or her licence when holding out (s. 26.1 (4)) (S401). Subsections (6) and (7) let a non-licensee hold out only if the by-laws permit it, with the restrictions stated. Rule for the skill: a CV that states or implies the right to practise needs a current, unsuspended licence in the class the candidate holds (or a by-law permission the candidate can name); restrictions are stated.
+- Do not turn a paralegal into a lawyer or the reverse: the Act has two licence classes (barrister and solicitor; legal services), and the directory lists both.
+- Suspension: the LSO says suspended lawyers and paralegals « continue to be governed by the Law Society's By-laws » and applies separate guidelines (S403). A suspended licence is not a current licence under s. 26.1 (2).
+
+## Called ≠ finished the exam ≠ licensed
+- Components: « pass the barrister and solicitor licensing examinations », « be of good character », « meet the experiential training requirement », pay fees and documents, then « become licensed » (S404). Articling is one way to meet the training requirement; the term is « currently required to be at least eight months and no longer than 10 months » (S405).
+- « To be granted a licence to practise law in Ontario, candidates must successfully complete and meet all the requirements »; as candidates become eligible they select « administrative licensure or ceremonial Call to the Bar » and the fee table names the « Call to the Bar certificate (L1 Licence) » (S406). Write the licence (and "called to the bar of Ontario, [year]" if the candidate's certificate says so) only once granted.
+- Exam passed, licence not yet granted: the LSO says lawyer licensing candidates « who meet all licensure requirements receive licensing instructions approximately 10 business days after their examination result is released » (S407): a pass alone is not the licence. Suggested wording (the skill's): "Passed the Law Society of Ontario barrister and solicitor licensing examinations (2026); licensing in progress": exam yes, licence no. Same logic as [`../../../certifications/rules.md`](../../../certifications/rules.md).
+- Candidates are « articling candidates » or « licensing candidates » on the LSO's pages (S405); no source gives an official CV title for them.
+
+## Verification and number
+- The LSO's Lawyer and Paralegal Directory: « Each listing includes the practising status of the lawyer or paralegal » and any « regulatory history, restrictions on their practice »; searchable by « Law Society Number » (S402). Print the status the directory would show.
+- Whether to print the Law Society Number on a CV: no source loaded addresses it; only with the candidate's number and consent.
+
+## NCA: Certificate of Qualification is not a licence
+- The NCA « assesses the legal education and professional experience of individuals who obtained their credentials outside of Canada or in a Canadian civil law program » (S408).
+- « The Certificate of Qualification is not the same as a Canadian law degree. It proves that you have finished the work that the NCA required. » Law societies in common law provinces and territories « require the NCA Certificate of Qualification for entry to their bar admission process » (S409). It is an entry step, so never « Licensed in Canada » from it.
+- A graduate of a Québec or University of Ottawa civil law program who is « not a licensed lawyer in Canada » and wants to practise in a common law jurisdiction must complete the NCA process first (S408).
+- Suggested wording (the skill's): "NCA Certificate of Qualification (Federation of Law Societies of Canada), [year]; bar admission in progress" next to the foreign or Québec credential with its jurisdiction.
+- Québec-licensed lawyer practising outside Québec: the Barreau's « certificat de compétence uniforme » is « requis pour les avocats qui déposent une demande d'admission dans un Barreau canadien ou qui désirent exercer [...] dans une province canadienne hors Québec » (S397). It is a Barreau-issued certificate (inference), not a licence from the other society.

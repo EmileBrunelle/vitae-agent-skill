@@ -1,0 +1,21 @@
+# Teaching licences: United States
+
+Loaded when a candidate lists a US K-12 teaching certificate or credential. The two agencies read (Texas Education Agency, California Commission on Teacher Credentialing) each issue their own state's document; no federal licence was found in the sources read. Only these two states were read: for any other state read its agency's page and say nothing about states not checked (same rule as the engineering line in [`us/market.md`](market.md#protected-titles)). Canadian provinces: [`../canada/teaching.md`](../canada/teaching.md). Academic CV: [`../../../fields/academic.md`](../../../fields/academic.md). Rule 1 of SKILL.md applies.
+
+## State by state, not national
+- The word differs by state: TEA says "certificate" ("one-year or standard certificate"), the CTC says "credential" ("Preliminary", "Clear") (S430, S431). Print the issuing state's own word and the exact class; never normalise to "licence" or "US teaching licence".
+- Always name the state: "Texas Standard Certificate, Mathematics 7-12" (suggested wording: state, class, subject/grade range as printed on the candidate's certificate). Copy subject and grade range from the document; do not infer them.
+
+## Reciprocity is not automatic
+- Texas, in its own words: "Texas does not have reciprocity with any other state, meaning it does not automatically recognize or accept out-of-state teaching certificates to move into immediate issuance of a standard certificate in Texas." A "Review of Credentials" is required first, and the applicant "may be required to complete additional exams unless they qualify for a test exemption" (S430). The out-of-state certificate must be "valid and active" when the complete application is received (S430).
+- California offers a direct route to professional-level teachers from another state "without completing any additional testing or coursework", for "a comparable subject area"; the result may be a five-year, non-renewable Preliminary credential or a renewable Clear credential (S431).
+- Rule for the skill: a certificate from state A does not make the candidate certified in state B. Print only certificates actually issued by each state; a CV for a state-B job lists the state-A certificate as state A's, and, if the candidate has applied for state B, says so as a fact ("Texas certification: application under review", suggested wording), never as held. Never claim national "reciprocity" or "valid in all states".
+
+## Programme completed is not a certificate
+- Both agencies separate the two. TEA: "Without a standard teaching certificate, you are not eligible for a review of credentials" (S430). The CTC: completing an out-of-state programme or master's "is not sufficient"; the candidate "must obtain an out-of-state teaching credential in order to be able to transfer it" (S431).
+- So "Completed a teacher preparation programme (2023)" is a fact about education; "Certified teacher" needs the certificate. Same rule as an exam passed without the credential: [`../../../certifications/rules.md`](../../../certifications/rules.md). A programme is an education line; see [`../../../education-cases.md`](../../../education-cases.md).
+
+## Validity and status
+- Print the class with its validity ("Preliminary credential, valid five years"): the CTC's Preliminary lasts five years and is non-renewable; Clear is five years and renewable (S431). A lapsed or expired certificate is no longer held: print it as earned with dates ("Texas Standard Certificate, 2019–2024 (expired)"; suggested wording), as under Validity and renewal in [`../../../certifications/rules.md`](../../../certifications/rules.md). Texas "active" status is a condition of its review, not just a nicety (S430).
+- Certificate number and verification: the pages read describe applying and uploading documents, not how an employer verifies a certificate. TEA's navigation lists a "Certification Lookup" link, but the page read does not describe it (S430). No source loaded gives wording for printing a certificate number; print one only if the candidate has it on the document.
+- Classes differ within a state: TEA's one-year and standard certificates (S430), the CTC's Preliminary and Clear credentials (S431). Print the exact name the candidate holds.

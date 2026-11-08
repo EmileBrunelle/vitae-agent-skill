@@ -1,0 +1,26 @@
+# Workplace safety training: first aid (Québec), OSHA Outreach cards, forklift
+
+Read only when the CV lists a workplace first-aid certificate, an OSHA 10/30-hour card or forklift training. Each time: who issued the paper, and does a regulator call it a licence, a certificate or training. Construction-site cards (ASP Construction), SIMDUT and PEMP: [`quebec/trades-safety.md`](quebec/trades-safety.md). Medical resuscitation credentials (CPR/BLS): [`../../certifications/health.md`](../../certifications/health.md). Validity: [`../../certifications/rules.md`](../../certifications/rules.md). Each fact is what the regulator's page or text says (consulted 2026-11-07).
+
+## Québec: « secouriste en milieu de travail » (CNESST)
+
+- The certificate comes from a 16-hour course: "Cette formation d'une durée de 16 heures vous permet d'obtenir votre certificat de secouriste en milieu de travail, à condition de réussir l'évaluation" (S446).
+- Validity: "Votre certificat de secouriste est valide pour 3 ans. Après ce délai, vous devez recommencer la formation pour renouveler votre certificat" (S446). Print it with its dates.
+- Only recognised providers count: "Seuls les organismes inscrits à la Liste provinciale des organismes de formation – Secouriste en milieu de travail peuvent délivrer un certificat valide" (CNESST: process under revision, current conditions in force) (S447). A card from another body is not this certificate; the pages do not rate such cards, so name issuer and course.
+- The employer designates the workers who become first-aiders and enrols them; a designated nurse or auxiliary nurse who is a regular member of the order "peut agir comme secouriste sans avoir un certificat de secourisme en milieu de travail" (S448).
+- Forestry: a 40-hour course specific to the sector (« secouriste en forêt »); these first-aiders "doivent être identifiés différemment" (S448).
+- Suggested wording (not from a source): « Secouriste en milieu de travail (CNESST), certificat valide 2025–2028 ».
+- Federal and other provinces' first-aid: no official page loaded; not covered.
+
+## USA: OSHA Outreach Training Program (10-hour and 30-hour)
+
+- OSHA: "Students receive an OSHA 10-hour or 30-hour course completion card at the end of the training." On the Construction, General Industry and Maritime pages: "None of the courses within the Outreach Training Program is considered a certification" (S449).
+- It "does not fulfill an employer's requirement to provide training under specific OSHA standards"; it is "a voluntary program", and "some states, municipalities or others may require outreach training as a condition of employment, it is not an OSHA requirement" (S449).
+- Audience: the 10-hour class is for "awareness of common job-related safety and health hazards"; the 30-hour class "is more appropriate for supervisors or workers with some safety responsibility" (S449). Tracks: Construction, General Industry, Maritime, Disaster Site Worker (7.5- and 15-hour classes).
+- Cards come from the trainer or online provider: "OSHA does not keep records"; no replacement if the class was completed five years ago (S449). Only Maritime cards are stated not to expire; no page read gives an expiry for the other tracks, so print the course year.
+- Print (suggested wording) "OSHA 10-Hour Construction Outreach course, completion card, 2025" or the track as on the card; never "OSHA certified", "OSHA certification" or "OSHA licensed". For the Disaster Site Worker track OSHA says "This training does not fulfill requirements under OSHA's HAZWOPER standard" (S449); do not present Outreach cards as HAZWOPER training.
+
+## Forklift (powered industrial truck)
+
+- USA, 29 CFR 1910.178(l): the employer ensures each operator "is competent to operate a powered industrial truck safely, as demonstrated by the successful completion of the training and evaluation"; training is "a combination of formal instruction ..., practical training ..., and evaluation of the operator's performance in the workplace"; an evaluation is conducted "at least once every three years"; and "The employer shall certify that each operator has been trained and evaluated", with the operator's name, the training and evaluation dates and the trainer's identity (S450). The paragraph has the employer, not an agency, certify; (l)(4)(ii)(D) also requires refresher training when the operator is assigned a different type of truck. Suggested wording: "Forklift operator training and evaluation, <employer or provider>, <year>".
+- Québec, RSST (Règlement sur la santé et la sécurité du travail, chapitre S-2.1, r. 13; text current to 1 September 2025; applies to "tout établissement", art. 2): art. 256.2, "Tout cariste doit avoir au moins 16 ans pour conduire un chariot élévateur"; art. 256.3, a forklift "doit être utilisé uniquement par un cariste ayant reçu" a formation (basic notions, work environment, driving, safety rules) and "une formation pratique, effectuée sous la supervision d'un instructeur", both covering "le type de chariot élévateur qu'utilisera le cariste" (S451). The articles name no card, licence, certificate or provider list: print "Forklift operator training, <employer or provider>, <year>" (suggested). Construction sites: [`quebec/trades-safety.md`](quebec/trades-safety.md).
