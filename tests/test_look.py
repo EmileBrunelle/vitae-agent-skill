@@ -22,17 +22,17 @@ N = 0
 IDS = ["L1", "L2", "L3"]
 
 
-def ok(cond: Any, *info: Any) -> None:
+def ok(cond: object, *info: object) -> None:
     global N
     N += 1
     assert cond, info
 
 
-def run(content: Any) -> tuple[list[str], int]:
+def run(content: object) -> tuple[list[str], int]:
     return look.render(IDS, look.parse_verdicts(content, IDS), "m")
 
 
-def check(name: str, content: Any, want_bad: int, want_lines: list[str]) -> None:
+def check(name: str, content: object, want_bad: int, want_lines: list[str]) -> None:
     lines, bad = run(content)
     ok(bad == want_bad, name, lines)
     for w in want_lines:
@@ -95,17 +95,17 @@ Responder = Callable[[dict[str, Any]], tuple[int, bytes]]
 STATE: dict[str, Any] = {"resp": None, "models": None}
 
 
-def jbytes(o: Any) -> bytes:
+def jbytes(o: object) -> bytes:
     return json.dumps(o).encode()
 
 
-def chat(content: Any, finish: str = "stop", usage: Any = None) -> tuple[int, bytes]:
+def chat(content: object, finish: str = "stop", usage: object = None) -> tuple[int, bytes]:
     return 200, jbytes({"choices": [{"message": {"content": content}, "finish_reason": finish}],
                         "usage": {"prompt_tokens": 10, "completion_tokens": 5} if usage is None else usage})
 
 
 class H(http.server.BaseHTTPRequestHandler):
-    def log_message(self, *a: Any) -> None:
+    def log_message(self, *a: object) -> None:
         pass
 
     def reply(self, code: int, body: bytes, declared: Optional[int] = None) -> None:

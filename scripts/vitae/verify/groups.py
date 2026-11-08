@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Callable, Sequence
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 from PIL import Image
 
@@ -29,7 +29,7 @@ from vitae.verify.pdf import _boxes_unavailable, _pdfium_render, auto_root, word
 # marks and `typst query` is unavailable it WARNs "not checked" and the agent
 # compares by hand; it never FAILs for that.
 
-def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Any] | None:
+def _typst_values(typ: str, selector: str, root: str | None = None) -> list[object] | None:
     """JSON list of the values of every element labelled `selector`, or None."""
     root = root or auto_root(typ)
     if not shutil.which("typst"):
@@ -38,13 +38,13 @@ def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Any] 
             return None
         try:   # typst-py: same query / eval fallback and root as the CLI calls below
             comp = mod.Compiler(typ, root=root, **typst_font_kw()) if root else mod.Compiler(typ, **typst_font_kw())
-            fn: Callable[[], Any]
+            fn: Callable[[], object]
             for fn in (lambda: comp.query(selector, field="value", one=False),
                        lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json")):
                 try:
                     out = fn()
                     if isinstance(out, str) and out.strip().startswith("["):
-                        return cast("list[Any]", json.loads(out))
+                        return cast("list[object]", json.loads(out))
                 except Exception:
                     continue
         except Exception:
@@ -60,10 +60,15 @@ def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Any] 
             return None
         if r.returncode == 0 and r.stdout.strip().startswith("["):
             try:
-                return cast("list[Any]", json.loads(r.stdout))
+                return cast("list[object]", json.loads(r.stdout))
             except ValueError:
                 continue
     return None
+
+
+def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:
+    """The lib's Mark values (see _typst_values); the lib writes dict markers only."""
+    return cast("list[Mark] | None", _typst_values(typ, selector, root))
 
 
 def _gnorm(t: str) -> str:
@@ -264,6 +269,11 @@ def _page_ink_gap(pdf: str) -> GapFn:
     return gap
 
 
+class _KMark(Mark):
+    """A Mark tagged with its kind: "h" head / "s" section."""
+    _k: str
+
+
 def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[Word]],
                    gap_fn: GapFn | None = None) -> tuple[list[DetailRow], int]:
     """Whole-group proximity. A group is an entry/skill row from its FIRST line
@@ -280,9 +290,9 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     gap_fn = gap_fn or (lambda page, up, lo: lo[2] - up[3])
     rows: list[DetailRow] = []
     skipped = 0
-    # the marks tagged with their kind ("h" head / "s" section): a widened dict, so Any
-    marks: list[dict[str, Any]] = [dict(h, _k="h") for h in heads] + [dict(s, _k="s") for s in secs]
-    box: Callable[[Any], list[Any]] = lambda ln: [ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]]
+    # the marks tagged with their kind ("h" head / "s" section)
+    marks: list[_KMark] = [_KMark(**h, _k="h") for h in heads] + [_KMark(**s, _k="s") for s in secs]
+    box: Callable[[_Line], LineBox] = lambda ln: [ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]]
     for h in sorted(heads, key=lambda h: (h["page"], h["y"])):
         if h["page"] - 1 >= len(pages_words):
             skipped += 1

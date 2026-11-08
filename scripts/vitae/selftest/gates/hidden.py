@@ -6,9 +6,11 @@ import os
 import sys
 import tempfile
 from collections.abc import Callable
-from typing import Any, cast
+from types import ModuleType
+from typing import cast
 
 from vitae.core.env import pdf_backend, pdf_tool, typst_can_query, typst_fonts
+from vitae.core.level import Finding
 from vitae.verify.pdf import typst_compile
 from vitae.verify.text import check_hidden_text
 
@@ -72,7 +74,7 @@ def hidden_text() -> None:
             _cases["text wholly off the page"] = (
                 f'#place(top + left, dx: 40pt, dy: 260pt, box(width: 200pt, [{_lure}]))', "FAIL")
         _rank = {"": 0, "WARN": 1, "FAIL": 2}
-        _worst: Callable[[Any], str] = lambda res: max((lv for lv, _ in res if lv in _rank), key=_rank.__getitem__, default="")
+        _worst: Callable[[list[Finding]], str] = lambda res: max((lv for lv, _ in res if lv in _rank), key=_rank.__getitem__, default="")
         with tempfile.TemporaryDirectory() as td:
             _t, _f = os.path.join(td, "h.typ"), os.path.join(td, "h.pdf")
             for _name, (_body, _want) in _cases.items():
@@ -108,15 +110,15 @@ def hidden_text() -> None:
                 _res = check_hidden_text(_f)
                 assert any("attachment" in m for lv, m in _res if lv == "WARN"), _res
             # no pypdf: say so, never a silent OK
-            _saved: Any = sys.modules.get("pypdf", False)
-            sys.modules["pypdf"] = cast(Any, None)
+            _had, _saved = "pypdf" in sys.modules, sys.modules.get("pypdf")
+            sys.modules["pypdf"] = cast(ModuleType, None)
             try:
                 _res = check_hidden_text(_f)
             finally:
-                if _saved is False:
+                if not _had:
                     del sys.modules["pypdf"]
                 else:
-                    sys.modules["pypdf"] = _saved
+                    sys.modules["pypdf"] = cast(ModuleType, _saved)
             assert ("WARN", "hidden text: off-page check not run (pypdf missing)") in _res if pdf_backend() != "pdfium" \
                 else any("ran on pdfium word boxes only" in m for _, m in _res), _res
         print(f"selftest hidden text: {len(_cases)} layouts + 6 metadata sets + attachment + no-pypdf measured")

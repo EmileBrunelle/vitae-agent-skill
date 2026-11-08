@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import importlib.util
 from collections.abc import Iterator, Sequence
-from typing import Any
 
 from PIL import Image
 
@@ -14,6 +13,7 @@ import vitae.fill as measure_fill
 from vitae.core.base import Band, Box, WordBox
 from vitae.core.env import _importable
 from vitae.core.level import Finding, Level
+from vitae.core.pixels import gray_pixels, rgb_pixels
 from vitae.verify.fonts import _font_sources, classify_font_fallback, requested_families
 from vitae.verify.page import BOUNDARY_RATIO, FURNITURE_SCALE, boundary_ink, furniture_ink, near_boundary
 from vitae.verify.pdf import _pdfium_doc
@@ -92,8 +92,8 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
     im = Image.open(png).convert("RGB")
     lum = im.convert("L")
     w, h = im.size
-    px: Any = lum.load()
-    rgb: Any = im.load()
+    px = gray_pixels(lum)
+    rgb = rgb_pixels(im)
     s = FURNITURE_SCALE
     found: list[tuple[str, int, str]] = []   # (kind, line-row, word) — folded into one FAIL per line below
 
@@ -267,7 +267,7 @@ def pdf_char_fonts(pdf: str) -> list[tuple[str, str]] | None:
         return None
     try:
         import ctypes
-        raw: Any = importlib.import_module("pypdfium2.raw")
+        raw = importlib.import_module("pypdfium2.raw")
         out: list[tuple[str, str]] = []
         for pg in _pdfium_doc(pdf):
             tp = pg.get_textpage()

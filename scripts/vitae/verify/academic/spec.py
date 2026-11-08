@@ -1,7 +1,7 @@
 """Academic gate: the declared side — section spec, TOML tables, heading set."""
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 
 class Section(TypedDict):
@@ -12,6 +12,8 @@ class Section(TypedDict):
     nondated: NotRequired[bool]  # no year column (REFERENCES); default: the heading is in NONDATED_HEADINGS
 
 
+# a parsed TOML document (tomllib.load): values are walked with isinstance, never indexed blindly
+Toml = dict[str, object]
 # one check result: (check id, passed, message)
 Result = tuple[str, bool, str]
 # one line of the flat document stream: (page idx, raw line, stripped, is_entry_start)
@@ -61,7 +63,7 @@ EXTRA_HEADINGS = ("AFFILIATIONS AND LANGUAGES",)  # heading with no counts table
 EXTRA_KEY = "affiliations"  # its `[headings]` key
 
 
-def dget(d: Any, path: tuple[str, ...], default: Any = 0) -> Any:
+def dget(d: object, path: tuple[str, ...], default: object = 0) -> object:
     """Nested dict lookup along `path`; `default` as soon as a key is absent or a level is not a dict."""
     cur = d
     for k in path:
@@ -72,7 +74,7 @@ def dget(d: Any, path: tuple[str, ...], default: Any = 0) -> Any:
 
 
 # --------------------------------------------------------------- real usage
-def build_sections_spec(data: dict[str, Any]) -> list[Section]:
+def build_sections_spec(data: Toml) -> list[Section]:
     """Turn the TOML's [counts] / [undated_prefix] tables into the per-heading spec the checks consume.
     A section missing from [counts] raises rather than defaulting to 0, so a stale data file cannot
     silently declare an empty section."""
@@ -87,12 +89,12 @@ def build_sections_spec(data: dict[str, Any]) -> list[Section]:
         prefix = dget(prefixes, ppath, default=0) if ppath else 0
         printed = dget(headings, cpath, default=None)
         sections.append({"heading": printed if isinstance(printed, str) and printed.strip() else heading,
-                          "count": declared, "undated_prefix": prefix, "numbered": numbered,
+                          "count": cast(int, declared), "undated_prefix": cast(int, prefix), "numbered": numbered,
                           "nondated": heading in NONDATED_HEADINGS})
     return sections
 
 
-def _leaf_paths(table: Any, prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
+def _leaf_paths(table: object, prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
     if not isinstance(table, dict):
         return [prefix]
     return [p for k, v in table.items() for p in _leaf_paths(v, prefix + (k,))]
@@ -102,7 +104,7 @@ def _is_table_section(path: tuple[str, ...]) -> bool:
     return any(c[:len(path)] == path and len(c) > len(path) for _, c, _, _ in SECTION_DEFS)
 
 
-def check_headings_table(data: dict[str, Any]) -> list[Result]:
+def check_headings_table(data: Toml) -> list[Result]:
     """`[headings]` maps each [counts] section (same nesting: `education`, `publications.journal`) to the heading the
     CV prints, plus `affiliations` (the heading of the plain affiliations block, which has no count). It must be a
     table. A key that is not one of those, a table where a string belongs, a string where a table of subsections
@@ -130,22 +132,23 @@ def check_headings_table(data: dict[str, Any]) -> list[Result]:
     return out
 
 
-def printed_headings(data: dict[str, Any]) -> tuple[tuple[str, ...], list[str]]:
+def printed_headings(data: Toml) -> tuple[tuple[str, ...], list[str]]:
     """(extra headings the CV prints, every declared `[headings]` string). The affiliations heading defaults to the
     English one."""
     raw = data.get("headings", {})
-    raw = raw if isinstance(raw, dict) else {}
-    declared = [dget(raw, p, default=None) for p in _leaf_paths(raw) if p]
-    declared = [d for d in declared if isinstance(d, str) and d.strip()]
-    aff = raw.get(EXTRA_KEY)
+    tbl: Toml = raw if isinstance(raw, dict) else {}
+    found = [dget(tbl, p, default=None) for p in _leaf_paths(tbl) if p]
+    declared = [d for d in found if isinstance(d, str) and d.strip()]
+    aff = tbl.get(EXTRA_KEY)
     extra = (aff,) if isinstance(aff, str) and aff.strip() else EXTRA_HEADINGS
     return extra, declared
 
 
-def declared_statuses(data: dict[str, Any]) -> list[str]:
+def declared_statuses(data: Toml) -> list[str]:
     """`[meta] entry_status`: the words the CV's author declares for entries that start with a status instead of a
     year (e.g. ["Sous presse", "Soumis"]). Absent -> [], and the gate then recognises years only."""
-    raw = data.get("meta", {}).get("entry_status", [])
+    meta = data.get("meta", {})
+    raw = meta.get("entry_status", []) if isinstance(meta, dict) else []
     if not isinstance(raw, list) or not all(isinstance(w, str) for w in raw):
         raise ValueError("[meta] entry_status must be a list of strings")
     return raw

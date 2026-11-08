@@ -13,6 +13,7 @@ from vitae.selftest.gates.fixtures import VERIFY_FILE
 from vitae.verify.groups import (
     ENTRY_MARKS,
     _typst_query,
+    _typst_values,
     check_date_adjacency,
 )
 from vitae.verify.pdf import typst_compile, word_boxes
@@ -260,9 +261,9 @@ def date_adjacency() -> None:
                           '#metadata(repr(trim-sep([ #box(width: 4pt, height: 4pt, fill: red) ]))) <a>\n'
                           '#metadata(repr(trim-sep([ #text(fill: red)[◆] ]))) <b>\n'
                           '#metadata(repr(trim-sep([ — ]))) <c>\n')
-            _sa = _typst_query(os.path.join(_td, "s.typ"), "<a>") or [""]
-            _sb = _typst_query(os.path.join(_td, "s.typ"), "<b>") or [""]
-            _sc = _typst_query(os.path.join(_td, "s.typ"), "<c>") or [""]
+            _sa = [str(v) for v in _typst_values(os.path.join(_td, "s.typ"), "<a>") or [""]]
+            _sb = [str(v) for v in _typst_values(os.path.join(_td, "s.typ"), "<b>") or [""]]
+            _sc = [str(v) for v in _typst_values(os.path.join(_td, "s.typ"), "<c>") or [""]]
             assert "box" in _sa[0] and "ff4136" in _sa[0], _sa
             assert "◆" in _sb[0] and "styled" in _sb[0], _sb
             assert _sc[0].strip("[]") == "—", _sc

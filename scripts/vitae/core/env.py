@@ -17,7 +17,8 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
-from typing import Any, Literal, cast
+from types import ModuleType
+from typing import Literal, TextIO, cast
 
 # ---------- dependency preflight ("doctor") ----------
 
@@ -219,7 +220,7 @@ def check_fonts() -> None:
 class _CountDegraded:
     """stdout wrapper: counts the doctor lines that start with DEGRADED, so no path can print one and still end on an
     OK summary, whichever check wrote it."""
-    def __init__(self, inner: Any) -> None:
+    def __init__(self, inner: TextIO) -> None:
         self.inner, self.n, self._bol = inner, 0, True
 
     def write(self, text: str) -> int:
@@ -232,7 +233,7 @@ class _CountDegraded:
     def flush(self) -> None:
         self.inner.flush()
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> object:
         return getattr(self.inner, name)
 
 
@@ -240,7 +241,7 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
     """Print the doctor output; returns (all_ok, use_cli_typst, pdf_backend). all_ok is False only when something
     has no fallback (Pillow, typst, a PDF reader); DEGRADED lines leave it True."""
     counter = _CountDegraded(sys.stdout)
-    with contextlib.redirect_stdout(cast(Any, counter)):
+    with contextlib.redirect_stdout(cast(TextIO, counter)):
         pillow_ok = check_pillow()
         typst_ok, use_cli = check_typst()
         if use_cli or typst_py() is not None:
@@ -276,13 +277,13 @@ def _ver_tuple(v: str) -> tuple[int, int]:
 
 
 @functools.lru_cache(maxsize=None)
-def _typst_py_probe() -> tuple[Any | None, str, str, bool]:
+def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
     """(module, version, problem, full) for the `typst` Python package, by running it: a tiny
     document is compiled and an expression evaluated, so a broken wheel is reported broken
     (an attribute check passes it). module None + problem "" = not installed; module None +
     problem = installed but unusable; full = also query, eval and Fonts."""
     try:
-        mod: Any = importlib.import_module("typst")
+        mod = importlib.import_module("typst")   # ModuleType: attribute access is untyped (no stubs)
     except ImportError:
         return None, "", "", False
     except Exception as e:
@@ -316,7 +317,7 @@ def _typst_py_probe() -> tuple[Any | None, str, str, bool]:
         return None, "", f"{type(e).__name__}: {e}", False
 
 
-def typst_py() -> Any | None:
+def typst_py() -> ModuleType | None:
     """The `typst` Python module if it works and can run query/eval/fonts too (a working
     install, proven by `_typst_py_probe`), else None. A broken, old or compile-only module
     does not qualify."""

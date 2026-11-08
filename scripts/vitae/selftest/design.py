@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-from typing import Any
+from typing import TypedDict
 
 from vitae.design.emit import _chain, emit_typ
 from vitae.design.fonts import _family_usable, _installed
@@ -13,6 +13,12 @@ from vitae.design.pick import domain_register, pick
 from vitae.design.report import report
 from vitae.design.tables import CAREER, FAMILIES, FONTS, LABEL_VARIANTS, MIN_POOL, ORDER_ROLES, _idx
 
+
+class _Flags(TypedDict, total=False):
+    """The pick() flags the pool cases switch on."""
+    photo: bool
+    conservative: bool
+    creative: bool
 
 def selftest() -> None:
     # --init: starter headings are exactly the drawn labels; a drawn soft=None
@@ -113,11 +119,11 @@ def selftest() -> None:
     # worst), flags applied on top; and the creative register is NEVER in the
     # pool without the unlock
     pools = {}
-    cases: list[tuple[str, dict[str, Any]]] = [("plain", {}), ("photo", dict(photo=True)),
-                      ("conservative", dict(conservative=True)),
-                      ("photo+cons", dict(photo=True, conservative=True)),
-                      ("creative", dict(creative=True)),
-                      ("creative+cons", dict(creative=True,
+    cases: list[tuple[str, _Flags]] = [("plain", {}), ("photo", _Flags(photo=True)),
+                      ("conservative", _Flags(conservative=True)),
+                      ("photo+cons", _Flags(photo=True, conservative=True)),
+                      ("creative", _Flags(creative=True)),
+                      ("creative+cons", _Flags(creative=True,
                                              conservative=True))]
     for label, kw in cases:
         for c in CAREER:

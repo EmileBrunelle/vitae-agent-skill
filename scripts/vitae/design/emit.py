@@ -1,11 +1,9 @@
 """Design emit: the Typst preamble for a drawn recipe."""
 from __future__ import annotations
 
-from typing import Any
-
 from vitae.design.fonts import _installed
 from vitae.design.pick import Pick
-from vitae.design.tables import FONTS, Font
+from vitae.design.tables import FONTS, Font, Page
 
 
 def _chain(pool: list[Font], drawn: Font, role: str,
@@ -44,7 +42,7 @@ def _icon_colour(icons: str) -> str:
     return "ink"
 
 
-def _vitae_header(pg: Any) -> str:
+def _vitae_header(pg: Page) -> str:
     """The FIRST line of a drawn cv.typ: verify.py reads the drawn fill target
     from it, so a lowered target on the command line cannot pass unnoticed."""
     return "// vitae: pages=1 fill=%s" % pg["fill"]

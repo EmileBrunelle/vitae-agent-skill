@@ -4,7 +4,8 @@ from __future__ import annotations
 import os
 import re
 import subprocess
-from typing import Any, cast
+from collections.abc import Mapping
+from typing import cast
 
 from vitae.design.tables import FONTS, Font, _idx
 
@@ -17,7 +18,7 @@ def _fonts_available() -> set[str] | None:
     except FileNotFoundError:   # no CLI: typst-py reports the same families
         try:
             import importlib
-            typst: Any = importlib.import_module("typst")
+            typst = importlib.import_module("typst")
             fp = [d for d in os.environ.get("TYPST_FONT_PATHS", "").split(os.pathsep) if d]
             return set(typst.Fonts(include_system_fonts=True, **({"font_paths": fp} if fp else {})).families())
         except Exception:
@@ -66,5 +67,5 @@ def _pick_font(pool: list[Font], key: str, salt: str,
 def _family_usable(fam: str, have: set[str]) -> bool:
     """Every font role of `fam` has at least one member installed in `have`."""
     fp = FONTS[fam]
-    return all(any(_installed(n, have) for n, _ in cast(Any, fp)[role])
+    return all(any(_installed(n, have) for n, _ in cast(Mapping[str, list[Font]], fp)[role])
                for role in ("display", "body", "mono") if role in fp)

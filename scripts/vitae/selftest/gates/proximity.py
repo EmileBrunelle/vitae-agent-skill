@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 from collections.abc import Callable
-from typing import Any, cast
+from typing import cast
 
 from vitae.core.base import DetailRow, Mark, Word
 from vitae.core.env import pdf_tool, typst_can_query
@@ -30,7 +30,7 @@ def group_proximity() -> None:
         return [ln(100, 10, "Role One") + ln(113, 9, "Acme Corp") + ln(125, 10, "first bullet")
                 + ln(138, 10, "second bullet") + ln(next_top, 10, "Role Two") + ln(next_top + 13, 9, "Beta Inc")
                 + ln(next_top + 25, 10, "only bullet") + ln(next_top + 38, 10, "last bullet")]
-    _flat: Callable[[Any], list[Any]] = lambda ws: [w for part in ws for w in part]
+    _flat: Callable[[list[list[Word]]], list[Word]] = lambda ws: [w for part in ws for w in part]
     _hd: list[Mark] = [{"kind": "entry", "text": "Role One", "org": "Acme Corp", "page": 1, "x": 50.0, "y": 105.0},
            {"kind": "entry", "text": "Role Two", "org": "Beta Inc", "page": 1, "x": 50.0, "y": 0.0}]
     for top, want_fail in ((149, True), (160, False)):

@@ -12,11 +12,12 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import cast
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from vitae.core.base import Band, Box
+from vitae.core.pixels import gray_pixels
 
 # BOUNDARY_RATIO is a LOCATOR, not a grade. It answers "is this white run tall
 # enough to be a section boundary rather than a line gap", which is all that
@@ -81,7 +82,7 @@ def furniture_ink(png: str, boxes: Sequence[Box] | None) -> list[Band]:
         return []
     im = Image.open(png).convert("L")
     w, h = im.size
-    px: Any = im.load()
+    px = gray_pixels(im)
     sc = FURNITURE_SCALE
     cov: list[list[tuple[int, int]]] = [[] for _ in range(h)]
     for x0, y0, x1, y1 in boxes:
@@ -291,7 +292,7 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
         # the outer rings, the paper lies inside it; a dark page keeps its colour under a white card
         # further in than the rings; a sidebar or a header band leaves every ring mixed.
         inset = min(inset, w // 4, h // 4)
-        ring: Counter[Any] = Counter()
+        ring: Counter[tuple[int, ...] | float] = Counter()
         for strip in ((0, inset, w, inset + 1), (0, h - inset - 1, w, h - inset), (inset, 0, inset + 1, h), (w - inset - 1, 0, w - inset, h)):
             for n, c in im.crop(strip).getcolors(maxcolors=w * h) or []:
                 ring[c] += n

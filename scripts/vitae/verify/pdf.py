@@ -14,12 +14,13 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Sequence
-from typing import Any, Literal, cast, overload
+from typing import Literal, cast, overload
 
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
 from vitae.core.env import PdfBackend, _importable, pdf_backend, typst_font_kw, typst_py
+from vitae.core.pdfium import PdfiumDoc, PdfiumPage
 from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
 from vitae.verify.typst import _strip_typst_comments
 
@@ -61,7 +62,7 @@ def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
         r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)] + _root_cli(typ), capture_output=True, text=True)
         return r.returncode == 0, (r.stdout + r.stderr)
     try:
-        typst: Any = importlib.import_module("typst")
+        typst = importlib.import_module("typst")
         typst.compile(typ, output=pdf, **_root_kw(typ), **typst_font_kw())
         return True, ""
     except Exception as e:
@@ -76,7 +77,7 @@ def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
         subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pattern), "--format", "png", "--ppi", "90"] + _root_cli(typ),
                         capture_output=True, text=True)
     else:
-        typst: Any = importlib.import_module("typst")
+        typst = importlib.import_module("typst")
         try:
             typst.compile(typ, output=pattern, format="png", ppi=90, **_root_kw(typ), **typst_font_kw())
         except TypeError:
@@ -84,8 +85,8 @@ def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
     return sorted(glob.glob(os.path.join(tmp_dir, "p*.png")))
 
 
-def _pdfium_doc(pdf: str) -> Any:
-    return importlib.import_module("pypdfium2").PdfDocument(pdf)
+def _pdfium_doc(pdf: str) -> PdfiumDoc:
+    return cast(PdfiumDoc, importlib.import_module("pypdfium2").PdfDocument(pdf))
 
 
 def count_pages(pdf: str, backend: PdfBackend) -> str | None:
@@ -98,7 +99,7 @@ def count_pages(pdf: str, backend: PdfBackend) -> str | None:
             if line.startswith("Pages:"):
                 return line.split()[1]
         return None
-    pypdf: Any = importlib.import_module("pypdf")
+    pypdf = importlib.import_module("pypdf")
     return str(len(pypdf.PdfReader(pdf).pages))
 
 
@@ -153,7 +154,7 @@ def typst_compile(src: str, pdf: str | None = None) -> tuple[bool, str]:
 LINE_GAP = 1.0
 
 
-def _pdfium_page_text(pg: Any) -> str:
+def _pdfium_page_text(pg: PdfiumPage) -> str:
     """pypdfium2's page text with its lines cut like pdftotext's. pdfium joins cells that
     share a baseline (a contact row, a left-flushed role and its right-flushed date) into one
     line; a new line starts where the gap to the previous character exceeds LINE_GAP (1.0) x the box height. That
@@ -201,7 +202,7 @@ def extract_text(pdf: str, backend: PdfBackend) -> str:
         # pdftotext's shape: pages end with \f (a blank line before it), lines with \n
         return "".join(t.replace("\r\n", "\n").rstrip("\n") + "\n\n\f"
                        for t in (_pdfium_page_text(pg) for pg in _pdfium_doc(pdf)))
-    pypdf: Any = importlib.import_module("pypdf")
+    pypdf = importlib.import_module("pypdf")
     reader = pypdf.PdfReader(pdf)
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
@@ -374,7 +375,7 @@ def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]
     of its band, a FAIL poppler does not give. Returns (pages, None), or (None, why) when pypdfium2 fails."""
     try:
         doc = _pdfium_doc(pdf)
-        pdfium_raw: Any = importlib.import_module("pypdfium2.raw")
+        pdfium_raw = importlib.import_module("pypdfium2.raw")
         pages: list[tuple[float, float, list[WordBox]]] = []
         for pg in doc:
             pw, ph = pg.get_size()

@@ -22,16 +22,18 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any, Callable, NoReturn
+from typing import Callable, NoReturn
 
 from PIL import Image
+
+from vitae.core.pixels import gray_pixels
 
 
 def measure(path: str) -> str:
     """Return 'ink from X% to Y%' (or 'blank page') for one page image."""
     im = Image.open(path).convert("L")
     w, h = im.size
-    px: Any = im.load()
+    px = gray_pixels(im)
     lo: int | None = None
     hi = 0
     for y in range(h):

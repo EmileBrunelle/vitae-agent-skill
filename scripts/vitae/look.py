@@ -53,7 +53,7 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Callable, NamedTuple, NoReturn, Optional, Sequence
+from typing import IO, Callable, NamedTuple, NoReturn, Optional, Sequence, cast
 
 DEFAULT_CHECKLIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "references", "look-checklist.md")
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
@@ -151,7 +151,7 @@ def parse_items(text: str) -> list[Item]:
     return items
 
 
-def content_text(content: Any) -> str:
+def content_text(content: object) -> str:
     """Message content as text: a string, or an array of parts (text parts joined)."""
     if content is None:
         return ""
@@ -168,7 +168,7 @@ def content_text(content: Any) -> str:
     raise TypeError("content is neither a string nor an array")
 
 
-def clean_content(content: Any) -> str:
+def clean_content(content: object) -> str:
     text = CLOSED_THINK_RE.sub("", content_text(content))
     if STRAY_CLOSE_RE.search(text):  # unopened think block: keep what follows
         text = STRAY_CLOSE_RE.split(text)[-1]
@@ -199,7 +199,7 @@ def _answer(line: str) -> Optional[tuple[str, str, str]]:
     return None
 
 
-def parse_verdicts(content: Any, ids: Sequence[str]) -> dict[str, tuple[str, str]]:
+def parse_verdicts(content: object, ids: Sequence[str]) -> dict[str, tuple[str, str]]:
     """-> {id: (PASS|FAIL, zone)}. Repeated answers: all-agreeing -> the last; PASS and FAIL mixed -> FAIL."""
     seen: dict[str, list[tuple[str, str]]] = {}
     for line in clean_content(content).splitlines():
@@ -283,16 +283,16 @@ def is_remote(base_url: str, resolver: Callable[[str], Sequence[str]] = _resolve
     return _check_remote(base_url, False, resolver) is not None
 
 
-def _open(req: urllib.request.Request, url: str, timeout: float) -> Any:
+def _open(req: urllib.request.Request, url: str, timeout: float) -> IO[bytes]:
     """Open req. A local base URL (the case that needs no --allow-remote) bypasses proxy environment
     variables, so images meant for loopback/private hosts never travel through a proxy; a remote URL
     (--allow-remote) keeps the default, proxy-honouring behaviour."""
     if _check_remote(url, False, _resolve) is None:
-        return urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout)
-    return urllib.request.urlopen(req, timeout=timeout)
+        return cast(IO[bytes], urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout))
+    return cast(IO[bytes], urllib.request.urlopen(req, timeout=timeout))
 
 
-def http_json(url: str, body: Optional[bytes], timeout: float, model: str = "") -> Any:
+def http_json(url: str, body: Optional[bytes], timeout: float, model: str = "") -> object:
     headers = {"Content-Type": "application/json"} if body is not None else {}
     req = urllib.request.Request(url, data=body, headers=headers)
     try:
@@ -355,24 +355,27 @@ def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens:
         top_k: Optional[int] = None) -> tuple[str, int, int]:
     """One chat call -> (answer text, prompt_tokens, completion_tokens). Dies (exit 2) on any anomaly
     except truncation, which raises Truncated."""
-    content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+    content: list[dict[str, object]] = [{"type": "text", "text": prompt}]
     for p in pngs:
         with open(p, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
         content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}})
-    payload: dict[str, Any] = {"model": model, "messages": [{"role": "user", "content": content}],
+    payload: dict[str, object] = {"model": model, "messages": [{"role": "user", "content": content}],
                                "max_tokens": max_tokens, "temperature": temperature}
     if top_p is not None:
         payload["top_p"] = top_p
     if top_k is not None:
         payload["top_k"] = top_k
     resp = http_json(base_url.rstrip("/") + "/chat/completions", json.dumps(payload).encode(), timeout, model)
+    choices = resp.get("choices") if isinstance(resp, dict) else None
+    choice = choices[0] if isinstance(choices, list) and choices else None
+    message = choice.get("message") if isinstance(choice, dict) else None
+    if not isinstance(resp, dict) or not isinstance(choice, dict) or not isinstance(message, dict):
+        die(f"unexpected response shape: {str(resp)[:300]}")
     try:
-        choice = resp["choices"][0]
-        raw = choice["message"].get("content")
         finish = choice.get("finish_reason")
-        text = content_text(raw)
-    except (KeyError, IndexError, TypeError, AttributeError):
+        text = content_text(message.get("content"))
+    except TypeError:
         die(f"unexpected response shape: {str(resp)[:300]}")
     u = resp.get("usage")
     if u is not None and not isinstance(u, dict):

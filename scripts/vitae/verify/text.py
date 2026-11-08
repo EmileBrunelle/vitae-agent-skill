@@ -10,14 +10,15 @@ import shutil
 import subprocess
 import tempfile
 import unicodedata
-from collections.abc import Callable
-from typing import Any, cast
+from collections.abc import Callable, Sequence
+from typing import cast
 
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
+from vitae.core.pdfium import PdfiumDoc
 from vitae.verify.lang import _is_latin, _strip_latin_marks
 from vitae.verify.page import _lum
 from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png
@@ -275,7 +276,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
     Backends are tried in the order the other gates use (pdfium, poppler's pdfinfo, pypdf). A
     read that fails leaves `info` empty: unreadable metadata is no finding, never a FAIL."""
     info = {}
-    doc: Any = None
+    doc: PdfiumDoc | None = None
     if pdf_backend() == "pdfium":
         try:
             doc = _pdfium_doc(pdf)
@@ -293,8 +294,8 @@ def check_pdf_metadata(pdf: str) -> list[str]:
             import warnings
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                pypdf: Any = importlib.import_module("pypdf")
-                md: Any = pypdf.PdfReader(pdf).metadata or {}
+                pypdf = importlib.import_module("pypdf")
+                md = pypdf.PdfReader(pdf).metadata or {}
             info = {k: str(md.get("/" + k) or "") for k in ("Keywords", "Title", "Author", "Subject")}
         except Exception:
             pass
@@ -344,7 +345,7 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            pypdf: Any = importlib.import_module("pypdf")
+            pypdf = importlib.import_module("pypdf")
             reader = pypdf.PdfReader(pdf)
             off: list[tuple[int, str]] = []
             tiny: list[tuple[int, str, float, int]] = []
@@ -353,7 +354,7 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
                 x0, y0, x1, y1 = float(box.left), float(box.bottom), float(box.right), float(box.top)
                 runs: list[tuple[str, float, float, float]] = []   # (text, x, y, real size)
 
-                def visit(text: str, cm: Any, tm: Any, fd: Any, fs: Any,
+                def visit(text: str, cm: Sequence[float] | None, tm: Sequence[float] | None, fd: object, fs: float | None,
                           runs: list[tuple[str, float, float, float]] = runs) -> None:
                     if not text.strip() or not cm or not tm:
                         return

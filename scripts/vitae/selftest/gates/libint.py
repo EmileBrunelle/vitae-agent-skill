@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 import tempfile
 from collections.abc import Callable
-from typing import Any
 
+from vitae.core.level import Finding
 from vitae.verify.cv import (
     check_lib_integrity,
 )
@@ -24,7 +24,7 @@ def lib_integrity() -> None:
         _li_w: Callable[[str, str], int] = lambda p, t: open(p, "w", encoding="utf-8").write(t)
         _li_w(os.path.join(_li_sk, "templates", "lib.typ"), "#let derive() = 1\n")
         _li_w(os.path.join(_li_cv, "cv.typ"), '#import "lib.typ": *\n')
-        _li_chk: Callable[[], list[Any]] = lambda: check_lib_integrity(os.path.join(_li_cv, "cv.typ"), _li_sk)
+        _li_chk: Callable[[], list[Finding]] = lambda: check_lib_integrity(os.path.join(_li_cv, "cv.typ"), _li_sk)
         _li_w(os.path.join(_li_cv, "lib.typ"), "#let derive() = 1\n")
         assert _li_chk() == [], _li_chk()
         _li_w(os.path.join(_li_cv, "lib.typ"), "#let old = 1\n")

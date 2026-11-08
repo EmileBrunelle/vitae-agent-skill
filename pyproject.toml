@@ -4,7 +4,7 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B"]
+select = ["E", "F", "I", "B", "ANN401"]  # ANN401: no explicit Any; a third-party boundary that needs one carries `# noqa: ANN401` and a reason
 ignore = [
     "E501",  # long lines: no reformatting of the codebase (code lines reach ~250 chars)
     "E702",  # several statements on one line with ';' is this repo's style

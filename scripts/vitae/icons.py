@@ -39,7 +39,7 @@ import re
 import sys
 import unicodedata
 import urllib.request
-from typing import Any, NoReturn
+from typing import NoReturn
 
 API = "https://api.iconify.design"
 
@@ -70,7 +70,8 @@ ICONS: dict[str, str] = {
 DEFAULT_KIT = ("mail", "web", "phone", "pin", "li", "gh")
 
 
-def fetch(url: str) -> Any:
+def fetch(url: str) -> object:
+    """The decoded JSON reply; the caller checks its shape."""
     req = urllib.request.Request(url, headers={"User-Agent": "vitae-harvest/2.0"})
     with urllib.request.urlopen(req, timeout=30) as r:
         raw = r.read(MAX_BYTES + 1)
@@ -108,10 +109,11 @@ def typst_str(s: str) -> str:
     return '"' + "".join(out) + '"'
 
 
-def fetch_set(prefix: str, names: list[str]) -> tuple[Any, Any]:
+def fetch_set(prefix: str, names: list[str]) -> tuple[dict[str, object], dict[str, object]]:
     """(icons dict, collection meta) for one set; ({}, {}) on any failure."""
     try:
-        coll = fetch(f"{API}/collections?prefix={prefix}").get(prefix, {})
+        colls = fetch(f"{API}/collections?prefix={prefix}")
+        coll = colls.get(prefix, {}) if isinstance(colls, dict) else None
         data = fetch(f"{API}/{prefix}.json?icons={','.join(names)}")
         if not isinstance(data, dict) or not isinstance(coll, dict):
             raise ValueError("unexpected reply shape")
@@ -124,10 +126,9 @@ def fetch_set(prefix: str, names: list[str]) -> tuple[Any, Any]:
     return data, coll
 
 
-def usable(var: str, name: str, icon: Any) -> str | None:
+def usable(var: str, name: str, icon: object) -> str | None:
     """Body of a fill-based icon, or None with a reason on stderr."""
-    body = icon.get("body") if isinstance(icon, dict) else None
-    if not isinstance(body, str) or not body.strip():
+    if not isinstance(icon, dict) or not isinstance(body := icon.get("body"), str) or not body.strip():
         print(f"ICONS: {var} ('{name}') has no usable body; omitted",
               file=sys.stderr)
         return None
@@ -188,7 +189,7 @@ def main() -> None:
     ok_vars: set[str] = set()
     for prefix, wanted in by_prefix.items():
         data, coll = fetch_set(prefix, [n for _, n in wanted])
-        icons = data.get("icons", {}) if isinstance(data, dict) else {}
+        icons = data.get("icons", {})
         if not isinstance(icons, dict):
             icons = {}
         dw, dh = data.get("width", 16), data.get("height", 16)
@@ -200,9 +201,9 @@ def main() -> None:
                      f"({clean(lic.get('url', '?'))}), set version "
                      f"{clean(coll.get('version', '?'))}")
         for var, name in wanted:
-            icon: Any = icons.get(name)
+            icon = icons.get(name)
             body = usable(var, name, icon) if icon else None
-            if body is None:
+            if body is None or not isinstance(icon, dict):   # usable() only accepts a dict
                 lines += [f'#let {var}-body = ""', f'#let {var}-vb = ""']
                 continue
             w, h = str(icon.get("width", dw)), str(icon.get("height", dh))
