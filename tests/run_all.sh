@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run every check the repo has: self-tests, the 29 templates against their fill
 # targets, the spacing fixtures and their gates. Keeps going after a failure.
-# Usage: tests/run_all.sh [--quick] [outdir]
+# Usage: tests/run_all.sh [--quick] [outdir]   (VITAE_JOBS=N: parallel checks, default nproc; 1 = sequential)
 # Needs typst, poppler-utils (pdftotext) or pypdfium2, python3 + Pillow + pypdf.
 # Works on a scratch copy: verify.py writes PDFs next to the .typ, and the
 # repo must stay clean. PDFs/PNGs of the templates are left in <outdir>/pdf (without <outdir>, the temp dir is removed on success).
@@ -28,20 +28,67 @@ mkdir -p "$S/tests"; cp -r "$root/tests/fixtures" "$root/tests/font_fallback" "$
 [ -f "$root/SKILL.md" ] && cp "$root/SKILL.md" "$S"/ || true
 cd "$S"
 
-# check <name> <cmd...>: log to $out/log/<name>.log, one PASS/FAIL line.
-check() {
-  local name="$1"; shift
+# Checks run concurrently (a pool of $VITAE_JOBS, default nproc; 1 = sequential), each into its own
+# result file; flush prints the results in the ORIGINAL order, so the log is deterministic.
+JOBS="${VITAE_JOBS:-$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}"
+case "$JOBS" in ''|*[!0-9]*|0) JOBS=1 ;; esac
+res="$out/.res"; rm -rf "$res"; mkdir -p "$res"
+slot=0; next=0; last_pid=""
+
+flush() { # print every finished result that is next in line; count the failures
+  while [ -e "$res/$next.done" ]; do
+    cat "$res/$next.out"
+    [ ! -e "$res/$next.fail" ] || fails=$((fails + 1))
+    next=$((next + 1))
+  done
+}
+throttle() { # block while the pool is full
+  local r; flush
+  while r=($(jobs -rp)); [ "${#r[@]}" -ge "$JOBS" ]; do wait -n 2>/dev/null || sleep 0.1; flush; done  # no wait -n (bash < 4.3): poll
+}
+say() { # an in-order line that is not a check (SKIP notices)
+  printf '%s\n' "$*" >"$res/$slot.out"; : >"$res/$slot.done"; slot=$((slot + 1)); flush
+}
+fail_now() { # a check that failed before it could run
+  total=$((total + 1)); printf '%s\n' "$1" >"$res/$slot.out"; : >"$res/$slot.fail"; : >"$res/$slot.done"
+  slot=$((slot + 1)); flush
+}
+_run_check() { # background body of check: <slot> <name> <cmd...>
+  local i="$1" name="$2"; shift 2
   local log="$out/log/${name//\//_}.log" rc=0
-  total=$((total + 1))
   "$@" >"$log" 2>&1 || rc=$?
   # verify.py's verdict is its last line; a run is only a PASS if it says so.
   if [ "$rc" -eq 0 ] && ! grep -q '^FAIL' "$log"; then
-    echo "PASS $name"
+    echo "PASS $name" >"$res/$i.out"
   else
-    echo "FAIL $name (exit $rc; see $log)"; tail -3 "$log" | sed 's/^/     /'
-    fails=$((fails + 1))
+    { echo "FAIL $name (exit $rc; see $log)"; tail -3 "$log" | sed 's/^/     /'; } >"$res/$i.out"
+    : >"$res/$i.fail"
   fi
+  : >"$res/$i.done"
 }
+# check <name> <cmd...>: log to $out/log/<name>.log, one PASS/FAIL line. Returns at once; the pid is in $last_pid.
+check() {
+  local i="$slot"
+  total=$((total + 1)); slot=$((slot + 1))
+  throttle
+  _run_check "$i" "$@" &
+  last_pid=$!
+}
+barrier() { # wait for every job, print the rest; a job that died without a result is a FAIL, never a silent PASS
+  wait || true; flush
+  while [ "$next" -lt "$slot" ]; do
+    printf 'FAIL check #%s (no result recorded: its job died)\n' "$next"; fails=$((fails + 1)); next=$((next + 1)); flush
+  done
+}
+trap 'kill $(jobs -rp) 2>/dev/null; exit 130' INT TERM   # background jobs ignore SIGINT: stop them with the script
+
+# The fixtures render (needs nothing else, and the gates need it) starts first; its check reports it in order later.
+fx="$out/fixtures"
+if [ "$quick" -eq 0 ]; then
+  mkdir -p "$fx"; rm -f "$out/fx.rc" "$out/fx.rc.tmp" "$out/fx.raw"   # a reused <outdir> must not hand back the last run's verdict
+  ( rc=0; tests/fixtures/render.sh "$fx" >"$out/fx.raw" 2>&1 || rc=$?; echo "$rc" >"$out/fx.rc.tmp"; mv "$out/fx.rc.tmp" "$out/fx.rc" ) &
+fi
+fx_wait() { while [ ! -e "$out/fx.rc" ]; do sleep 0.2; done; cat "$out/fx.raw"; return "$(cat "$out/fx.rc")"; }
 
 # The repo must hold no symlinks (claude.ai rejects zips with them; Windows checkouts break them).
 check no-symlinks bash -c '! find "$1" -type l -not -path "*/.git/*" | grep .' _ "$root"
@@ -251,7 +298,7 @@ verify.preflight()" 2>&1)" || rc=$?
   }
   check doctor-degraded-no-ok doctor_degraded_no_ok
 else
-  echo "SKIP doctor-pip-full (needs typst-py and pypdfium2 in $PY)"
+  say "SKIP doctor-pip-full (needs typst-py and pypdfium2 in $PY)"
 fi
 
 # pdfinfo + pdftotext but no pdftoppm: the poppler line is DEGRADED.
@@ -265,7 +312,7 @@ if command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pd
   }
   check doctor-no-pdftoppm doctor_no_pdftoppm
 else
-  echo "SKIP doctor-no-pdftoppm (needs typst, pdfinfo, pdftotext on the host)"
+  say "SKIP doctor-no-pdftoppm (needs typst, pdfinfo, pdftotext on the host)"
 fi
 
 # no poppler on PATH, pypdfium2 importable: every poppler check runs on pdfium (OK line, no
@@ -282,7 +329,7 @@ if command -v typst >/dev/null && "$PY" -c "import pypdfium2" 2>/dev/null; then
   }
   check doctor-pdfium doctor_pdfium
 else
-  echo "SKIP doctor-pdfium (needs typst and pypdfium2 on the host)"
+  say "SKIP doctor-pdfium (needs typst and pypdfium2 on the host)"
 fi
 
 # typst CLI whose font list has only DejaVu: fonts line DEGRADED; with a font
@@ -313,7 +360,7 @@ for fp in p.FONTS.values():
 }
 check doctor-full-fonts doctor_full_fonts
 else
-  echo "SKIP doctor-* cases (Pillow not installed)"
+  say "SKIP doctor-* cases (Pillow not installed)"
 fi
 
 # Type check (config: mypy.ini). Optional locally: SKIP, not FAIL, without mypy.
@@ -321,21 +368,21 @@ if python3 -c "import mypy" 2>/dev/null; then
   cp "$root/mypy.ini" "$S"/
   check mypy python3 -m mypy
 else
-  echo "SKIP mypy (not installed: pip install mypy)"
+  say "SKIP mypy (not installed: pip install mypy)"
 fi
 
 # Lint (config: pyproject.toml). Runs on the repo itself (no PDFs involved). Optional locally.
 if command -v ruff >/dev/null 2>&1; then
   check ruff bash -c 'cd "$1" && ruff check --no-cache scripts tests' _ "$root"
 else
-  echo "SKIP ruff (not installed: pip install ruff)"
+  say "SKIP ruff (not installed: pip install ruff)"
 fi
 
 # Unit tests of verify.py's pure parsers (tests/unit). Runs on the repo itself. Optional locally.
 if python3 -c "import pytest" 2>/dev/null; then
   check pytest bash -c 'cd "$1" && PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider tests/unit' _ "$root"
 else
-  echo "SKIP pytest (not installed: pip install pytest)"
+  say "SKIP pytest (not installed: pip install pytest)"
 fi
 
 # Template targets come from pick_design.FAMILIES[f]['page']['fill'] ("A-B").
@@ -345,12 +392,17 @@ for f in sorted(p.FAMILIES):
     print(f, p.FAMILIES[f]['page']['fill'].replace('-', ' '))")"
 
 n=0
-tpl() { # tpl <family> <file> <pages> <min> <max>
-  local f="$1" t="$2" src
-  src="templates/families/$f/$t.typ"
-  check "template/$f/$t" python3 -I scripts/verify.py "$src" "$3" "$4" "$5"
+tpl_pids=()
+tpl_run() { # tpl_run <family> <file> <pages> <min> <max>: verify, then keep the PDF and a thumbnail
+  local f="$1" t="$2" rc=0
+  python3 -I scripts/verify.py "templates/families/$f/$t.typ" "$3" "$4" "$5" || rc=$?
   cp -f "templates/families/$f/$t.pdf" "$out/pdf/$f-$t.pdf" 2>/dev/null || true
   pdftoppm -r 60 -png -singlefile "templates/families/$f/$t.pdf" "$out/pdf/$f-$t" 2>/dev/null || true
+  return "$rc"
+}
+tpl() { # tpl <family> <file> <pages> <min> <max>
+  check "template/$1/$2" tpl_run "$@"
+  tpl_pids+=("$last_pid")
 }
 while read -r f a b; do
   [ -n "$f" ] || continue
@@ -438,6 +490,8 @@ text_render() {
   r="$(python3 -I scripts/verify.py --render "$pdf" --out "$S/render" --ppi 72)" || return 1
   [ "$(basename "$r" | head -1)" = "$(basename "$pdf" .pdf)-p1.png" ] && [ -s "$(echo "$r" | head -1)" ] || { echo "bad --render output: $r"; return 1; }
 }
+# text-render* read the PDFs the template runs keep in $out/pdf: wait for those jobs only.
+[ "${#tpl_pids[@]}" -eq 0 ] || wait "${tpl_pids[@]}" || true
 check text-render text_render
 # corrupt or non-PDF input: one FAIL line and exit 1, never silence, a traceback or "no rasterizer"; a re-render drops its stale pages.
 text_render_bad() {
@@ -620,27 +674,29 @@ font_fallback() {
 if python3 -c "import pypdfium2" 2>/dev/null; then
   check font-fallback font_fallback
 else
-  echo "SKIP font-fallback (needs pypdfium2)"
+  say "SKIP font-fallback (needs pypdfium2)"
 fi
 
 if [ "$quick" -eq 0 ]; then
-  fx="$out/fixtures"; mkdir -p "$fx"
-  check fixtures-render tests/fixtures/render.sh "$fx"
+  check fixtures-render fx_wait
   # poppler vs pypdfium2 line by line (SKIPs unless both are installed)
+  while [ ! -e "$out/fx.rc" ]; do sleep 0.2; done   # the PDFs below are looked up at spawn time
   if command -v pdftotext >/dev/null && python3 -c "import pypdfium2" 2>/dev/null; then
     check backends/lines python3 -I tests/compare_backends.py "$fx"/*.pdf
   else
-    echo "SKIP backends/lines (needs pdftotext and pypdfium2)"
+    say "SKIP backends/lines (needs pdftotext and pypdfium2)"
   fi
   for f in tests/fixtures/*.typ; do
     nm="$(basename "$f" .typ)"
     if [ -f "$fx/$nm.pdf" ]; then
       check "gates/$nm" python3 -I scripts/verify.py --gates "$f" "$fx/$nm.pdf" --root .
     else
-      total=$((total + 1)); fails=$((fails + 1)); echo "FAIL gates/$nm (no PDF rendered)"
+      fail_now "FAIL gates/$nm (no PDF rendered)"
     fi
   done
 fi
+
+barrier
 
 echo "---"
 if [ "$auto" -eq 1 ] && [ "$fails" -eq 0 ]; then
@@ -648,6 +704,7 @@ if [ "$auto" -eq 1 ] && [ "$fails" -eq 0 ]; then
   cd /; rm -rf "${out:?}"
   echo "$((total - fails))/$total passed, $fails failed, $(( $(date +%s) - start )) s; temp output removed (pass an outdir to keep it)"
 else
+  rm -rf "$res"
   echo "$((total - fails))/$total passed, $fails failed, $(( $(date +%s) - start )) s; output: $out"
 fi
 [ "$fails" -eq 0 ]

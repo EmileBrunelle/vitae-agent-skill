@@ -15,6 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         # 3.11 = declared minimum (tomllib); 3.x = latest stable.
+        # 3.11 runs only the Python-version-sensitive checks (mypy, ruff, tests/unit); Typst, fonts, poppler and
+        # the template compiles are identical across Python versions, so they run on 3.x only.
         python-version: ["3.11", "3.x"]
     timeout-minutes: 20
     env:
@@ -42,6 +44,7 @@ jobs:
         run: pip install Pillow pypdf mypy==2.4.1 ruff pytest pypdfium2 "typst==$TYPST_PY_VERSION"
 
       - name: Typst ${{ env.TYPST_VERSION }}
+        if: matrix.python-version == '3.x'
         run: |
           curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
             | tar -xJ --strip-components=1 -C "$RUNNER_TEMP" typst-x86_64-unknown-linux-musl/typst
@@ -49,14 +52,17 @@ jobs:
           typst --version
 
       - name: poppler
+        if: matrix.python-version == '3.x'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends poppler-utils
 
       # Fonts: .github/actions/fonts (shared with the pure-python job).
       - uses: ./.github/actions/fonts
+        if: matrix.python-version == '3.x'
 
       - name: Check every font the templates name is visible to Typst
+        if: matrix.python-version == '3.x'
         run: |
           typst fonts > "$RUNNER_TEMP/fonts.txt"
           missing=0
@@ -75,15 +81,17 @@ jobs:
         run: python -m pytest -q tests/unit
 
       - name: Run all checks
+        if: matrix.python-version == '3.x'
         run: tests/run_all.sh "$RUNNER_TEMP/out"
 
       # Same inputs through poppler vs pypdfium2 and typst CLI vs typst-py: gate VERDICTS must match
       # (the bench needs the CLI and poppler, so it lives in this job, not in pure-python).
       - name: Backend verdict equivalence
+        if: matrix.python-version == '3.x'
         run: python tests/backend_equiv.py "$RUNNER_TEMP/equiv"
 
       - name: Upload template PDFs and PNGs
-        if: always()
+        if: always() && matrix.python-version == '3.x'
         uses: actions/upload-artifact@v7
         with:
           name: templates-py${{ matrix.python-version }}
