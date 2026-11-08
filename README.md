@@ -106,7 +106,7 @@ references/design/families/      # one recipe file per design family (14), read 
 references/icons.md              # icon provenance and how to source a new mark
 references/ats.md                # parsing rules + verification commands
 references/workday.md            # Workday autofill: measured behaviour + parse-only build
-references/regional.md           # regional router: universal rules + matrix
+references/regional.md           # regional router: file list + universal rules
 references/regional/*.md         # per-market depth, loaded only for the target market
 references/reviews.md            # adversarial review protocol
 references/field-software-dev.md # field pack: software development
@@ -167,7 +167,7 @@ What is not guaranteed: the agent you run it in may have its own network, file a
 
 ## Contributing
 
-Issues and PRs welcome — field packs (nursing, finance, trades…) and regional matrix rows are the highest-value contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for the language rule, the checks to run and the version-bump rule.
+Issues and PRs welcome — field packs (nursing, finance, trades…) and regional market files are the highest-value contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for the language rule, the checks to run and the version-bump rule.
 
 ## License
 

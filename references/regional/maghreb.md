@@ -4,6 +4,15 @@ One file, three *non-interchangeable* markets (same warning as the southeast-asi
 
 Paper: a4 (all three).
 
+## At a glance
+
+
+| | Paper | Photo | CV language | Personal data | Formality / verb style | Length |
+|---|---|---|---|---|---|---|
+| Morocco | a4 | Still quasi-expected | FR private sector; AR public; EN rising | Birth date/nationality declining — omit by default | French mechanics; « titre de CV » expected | 1 p. junior, 2 p. senior |
+| Algeria | a4 | Quasi-expected | FR private; AR public | Maximalist custom (birth, marital, service national) — warn user | French mechanics, detailed CVs | 2-3 p. normal |
+| Tunisia | a4 | Common in local models | FR private; EN valued in finance/multinationals | Modern guides say omit | French mechanics; « notions/courant/bilingue » for languages | 1 p. |
+
 ## Shared baseline (all three countries)
 
 - **CV language: French is the private-sector norm** (banking, audit, multinationals); Arabic mainly for the public sector; English rising fast in tech/finance/multinationals and often required bilingually in international finance hubs. The posting's language dictates the CV's.

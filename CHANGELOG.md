@@ -4,6 +4,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `references/regional.md` is a slim router (file list with coverage keywords, universal rules, section names); the quick matrix moved into each market file as an opening `## At a glance` (Paper, Photo, CV language, Personal data, Formality, Length).
+- New market files `australia-nz.md`, `spain.md`, `india.md`, `brazil-latam.md`; `dach.md`, `uk-ireland.md`, `france.md` rewritten from official sources, with corrections (photo optionality in Germany comes from Bundesagentur/AMS guidance, not the AGG; « Ingenieur » is protected by Land law in Germany and is a Qualifikationsbezeichnung in Austria; Zeugnisse are employer certificates, not references; France's 2006 CV-anonyme obligation was never implemented, optional since 2015). Weakly sourced norms are labelled LOW confidence.
+- New `references/regional/europe-to-north-america.md` (European credentials → USA, Canada, Québec): H-1B degree routes (8 CFR 214.2(h)), IRCC ECA is an immigration document, « engineer »/« ingénieur » licensure, human-rights anchors for dropping personal data.
+- `quebec-outbound.md` France: decision rule for the ENIC-NARIC attestation de comparabilité (not by default; public-sector concours go through a commission d'équivalence; regulated professions are excluded from the attestation); Québec path is 11 years of primary and secondary (6 + 5), not "11 years of secondary"; some engineering bachelor's are 4 years.
+- `docs/sources.md` S46–S127.
+
 - New `references/education-cases.md` (generic, loaded on demand at step 4: degree in progress, stopped studies, transfers and program changes, bootcamps) and `quebec.md` "Education cases (Québec)" (French wordings and sources, DEC-BAC, AEC, cégep change, ÉTS program change, diploma names); a bachelor's in engineering does not confer the title « ingénieur » (OIQ permit does).
 - Québec reserved professional titles are documented in `references/regional/quebec.md` with their legal sources (Code des professions art. 32, 36, 188, 188.1; Loi sur les ingénieurs art. 22; OIQ and Engineers Canada statements): never write or upgrade a job title into a reserved one without the candidate's confirmation; voluntary designations such as I.S.P. are not reserved titles.
 - `quebec.md` gains "Foreign diplomas on a Québec CV" (MIFI « évaluation comparative »: quote its level verbatim, never write « équivalent ») and "Diploma names and abbreviations (OQLF)".

@@ -2,40 +2,25 @@
 
 Apply the conventions of the market being applied to, not the user's locale. When the region is ambiguous, ask. Send the version in the language *and spelling variant* of the job posting.
 
-**Load only what you need:** this file gives the overview and the universal rules; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
+**Load only what you need:** this file gives the file list and the universal rules; each market file opens with an "At a glance" (except the Québec add-on files `quebec.md` and `quebec-outbound.md`) (paper, photo, CV language, personal data, verb style, length) and carries the depth; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
 
-- [`regional/north-america.md`](regional/north-america.md) — Canada, Québec, USA
+- [`regional/north-america.md`](regional/north-america.md) — Canada, Québec, USA (us-letter; EN, FR-QC; no photo/age; length 1-2 p.)
 - [`regional/quebec.md`](regional/quebec.md) — Québec only, read IN ADDITION to `north-america.md`: only when the TARGET market is Québec (a Québec employer or posting; a Québec address alone does not make it the target)
 - [`regional/quebec-outbound.md`](regional/quebec-outbound.md) — read IN ADDITION to the target market's file when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec
-- [`regional/france.md`](regional/france.md)
-- [`regional/uk-ireland.md`](regional/uk-ireland.md)
-- [`regional/dach.md`](regional/dach.md) — Germany, Austria, Switzerland
+- [`regional/europe-to-north-america.md`](regional/europe-to-north-america.md) — read IN ADDITION to `north-america.md` when the TARGET market is USA, Canada or Québec and the candidate's credentials or CV habits are European (the target market wins over the address)
+- [`regional/france.md`](regional/france.md) — France (a4; FR; photo declining; 1 p.)
+- [`regional/uk-ireland.md`](regional/uk-ireland.md) — UK, Ireland (British spelling; no photo)
+- [`regional/dach.md`](regional/dach.md) — Germany, Austria, Switzerland (Lebenslauf, photo and Zeugnisse customs)
+- [`regional/australia-nz.md`](regional/australia-nz.md) — Australia, New Zealand (one file, two *non-interchangeable* markets — a4; no photo; work rights, APS, engineer registration)
+- [`regional/spain.md`](regional/spain.md) — Spain only, never Latin America (a4; no consent clause, títulos oficiales vs propios, convocatorias)
+- [`regional/india.md`](regional/india.md) — India (a4; resume vs biodata, CA/architect titles, CTC, campus and PSU hiring)
+- [`regional/brazil-latam.md`](regional/brazil-latam.md) — Brazil, Mexico, Argentina, Chile, Colombia (one file, *non-interchangeable* markets — read the country section; Gupy ATS, CREA/CRC titles)
 - [`regional/southeast-asia.md`](regional/southeast-asia.md) — Indonesia, Malaysia, Singapore, Philippines, Vietnam, Thailand (one file, six *non-interchangeable* markets — read the country section, never the file average)
 - [`regional/maghreb.md`](regional/maghreb.md) — Morocco, Algeria, Tunisia (one file, three *non-interchangeable* markets — same warning)
 
-**If the target market has no file, do not infer from training data** — markets outside this set (Middle East, East Asia, Latin America…) do not form a bloc: conventions vary more inside that group than between Europe and North America (Japan's rirekisho is a rigid form with photo and age; China expects photos for domestic employers but not multinationals; Brazil/Mexico track US norms). Verify with a current local source or ask, label the assumption in the deliverable — and consider contributing the file. The same warning applies *inside* a multi-market file: Singapore and Thailand share one and disagree on nearly every axis of the matrix below.
+**If the target market has no file, do not infer from training data** — markets outside this set (Middle East, East Asia…) do not form a bloc: conventions vary more inside that group than between Europe and North America (Japan's rirekisho is a rigid form with photo and age; China expects photos for domestic employers but not multinationals). Verify with a current local source or ask, label the assumption in the deliverable — and consider contributing the file. The same warning applies *inside* a multi-market file: Singapore and Thailand share one and disagree on nearly every axis (photo, personal data, formality).
 
-## Quick matrix (orientation only — details in the market files)
-
-The market files carry only their deltas from this table.
-
-| Market | Paper | Photo on CV | CV language | Personal data | Formality / verb style | Length norm |
-|---|---|---|---|---|---|---|
-| Canada / Québec / USA | us-letter | Never | EN, or FR for Québec | None (no age, no marital status) | Verb-first bullets; EN past tense / FR-QC infinitive | 1 p. junior, 2 p. max |
-| France | a4 | Declining, often advised against | FR | Omit by default; hobbies are a plus | Formal; noun phrases / past participle | 1 p. strongly preferred |
-| UK / Ireland | a4 | Never | EN, British spelling | None | Verb-first bullets, past tense | 1 p. early-career, 2 p. beyond |
-| Germany / Austria / CH | a4 | Still expected by ~2/3 outside tech | DE (EN for intl. roles) | Birth date still common | Very formal, tabular Lebenslauf, noun phrases | 1-2 p. + attachments (Zeugnisse) |
-| Indonesia | a4 | Expected (« pas foto », print-sized); optional in private tech | ID; EN for multinationals/startups | Traditional biodata now discouraged (UU PDP); hobbies normal | Formal; separate « surat lamaran » expected | 1-2 p. + scanned attachments |
-| Malaysia | a4 | Contested — check the posting | EN by default; BM for government/GLC | Drop DOB / marital / IC; CGPA expected | Moderately formal; summary + skills block first | 1 p. fresh grad, 2-3 p. experienced |
-| Singapore | a4 | Discouraged (TAFEP; WFA 2025) | EN, British spelling | None (no NRIC — PDPC advisory) | Anglo-Saxon baseline, verb-first bullets | 1 p., 2 p. senior |
-| Philippines | us-letter ("short bond"); a4 accepted digitally | Expected (2×2 in ID photo) | EN, American spelling | Rich by custom and contracting; Character References still normal | Formal; local sections (Seminars and Trainings, Eligibility) | 1 p. fresh grad, 2 p. at 5+ yrs |
-| Vietnam | a4 | Optional on the modern CV | VI; EN for FDI; VI+EN bilingual is real | Off the CV — those fields belong to the notarised sơ yếu lý lịch | Formal; state sector also wants the stamped form | 1-2 p. |
-| Thailand | a4 (LOW confidence — verify) | Expected, formal studio headshot | TH; EN for multinationals | Customary (incl. military status) though PDPA tells employers not to ask | Formal; expected-salary field is standard | 1-2 p. |
-| Morocco | a4 | Still quasi-expected | FR private sector; AR public; EN rising | Birth date/nationality declining — omit by default | French mechanics; « titre de CV » expected | 1 p. junior, 2 p. senior |
-| Algeria | a4 | Quasi-expected | FR private; AR public | Maximalist custom (birth, marital, service national) — warn user | French mechanics, detailed CVs | 2-3 p. normal |
-| Tunisia | a4 | Common in local models | FR private; EN valued in finance/multinationals | Modern guides say omit | French mechanics; « notions/courant/bilingue » for languages | 1 p. |
-
-Cautions the matrix compresses: **paper is us-letter in exactly two places** (North America, and Philippines print); **a national ID number never belongs on a CV in any market listed**; a **Thai** document's Buddhist-Era year (B.E. = CE + 543) must be converted before it reaches a foreign reader; and where a photo is expected, the DACH mechanics apply (formal, front-facing, plain background) — Indonesia and the Philippines additionally fix a print size.
+Cautions the market files compress: **us-letter is firm only in North America and Philippines print; Mexico, Chile and Colombia are LOW confidence** (see [`regional/brazil-latam.md`](regional/brazil-latam.md)); **a national ID number never belongs on a CV in any market listed**; a **Thai** document's Buddhist-Era year (B.E. = CE + 543) must be converted before it reaches a foreign reader; and where a photo is expected, the DACH mechanics apply (formal, front-facing, plain background) — Indonesia and the Philippines additionally fix a print size.
 
 ## Universal rules (every market)
 

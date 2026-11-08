@@ -4,6 +4,17 @@ Six markets in one file because they are *not* a bloc. Verified country by count
 
 Shared across all six: paper **a4** (exception: the Philippines, below; and Thailand's a4 is inferred, not verified), and reverse-chronological order everywhere. Every regulated-title claim here is the known case, never the exhaustive list — the universal rule in [`regional.md`](../regional.md) still applies.
 
+## At a glance
+
+| Market | Paper | Photo on CV | CV language | Personal data | Formality / verb style | Length |
+|---|---|---|---|---|---|---|
+| Indonesia | a4 | Expected (« pas foto », print-sized); optional in private tech | ID; EN for multinationals/startups | Traditional biodata now discouraged (UU PDP); hobbies normal | Formal; separate « surat lamaran » expected | 1-2 p. + scanned attachments |
+| Malaysia | a4 | Contested — check the posting | EN by default; BM for government/GLC | Drop DOB / marital / IC; CGPA expected | Moderately formal; summary + skills block first | 1 p. fresh grad, 2-3 p. experienced |
+| Singapore | a4 | Discouraged (TAFEP; WFA 2025) | EN, British spelling | None (no NRIC — PDPC advisory) | Anglo-Saxon baseline, verb-first bullets | 1 p., 2 p. senior |
+| Philippines | us-letter ("short bond"); a4 accepted digitally | Expected (2×2 in ID photo) | EN, American spelling | Rich by custom and contracting; Character References still normal | Formal; local sections (Seminars and Trainings, Eligibility) | 1 p. fresh grad, 2 p. at 5+ yrs |
+| Vietnam | a4 | Optional on the modern CV | VI; EN for FDI; VI+EN bilingual is real | Off the CV — those fields belong to the notarised sơ yếu lý lịch | Formal; state sector also wants the stamped form | 1-2 p. |
+| Thailand | a4 (LOW confidence — verify) | Expected, formal studio headshot | TH; EN for multinationals | Customary (incl. military status) though PDPA tells employers not to ask | Formal; expected-salary field is standard | 1-2 p. |
+
 ## Cross-cutting patterns (then read the country section)
 
 - **Photo splits three ways, not two**: expected/customary (ID printed & public sector, PH, TH), contested/check the posting (MY, VN modern CV), discouraged and heading for statute (SG). Where a photo is expected the mechanics are the same as the DACH file (formal, front-facing, plain background) — the difference is that ID and PH also specify a *print size*.
