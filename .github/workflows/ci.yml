@@ -45,8 +45,13 @@ jobs:
 
       - name: Typst ${{ env.TYPST_VERSION }}
         if: matrix.python-version == '3.x'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # gh goes through the API asset endpoint; the plain releases/download URL
+        # returned 504 for hours on 2026-11-08 while the API kept serving.
         run: |
-          curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
+          gh release download "v${TYPST_VERSION}" -R typst/typst \
+            -p typst-x86_64-unknown-linux-musl.tar.xz -O - \
             | tar -xJ --strip-components=1 -C "$RUNNER_TEMP" typst-x86_64-unknown-linux-musl/typst
           sudo install -m 0755 "$RUNNER_TEMP/typst" /usr/local/bin/typst
           typst --version
