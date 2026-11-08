@@ -36,7 +36,7 @@ Universal rule: the CV never implies a diploma the candidate does not hold. Writ
 - The academic award goes in Education under the institution's exact title; the paid employment goes in Experience as a job (employer, role, dates), labelled as the contract says (apprentice / alternant / dual student / co-op). Cross-reference, don't merge, and don't count the period as two separate achievements. LOW confidence (convention). Europass: "make a separate entry for each course completed", "highlight work placements during training" (Cedefop, « Instructions for using the Europass curriculum vitae », consulted 2026-11).
 
 ## Completed but not yet conferred
-- Date it with the completion date, labelled as the transcript or letter supports: "expected <month year>" or "completed <month year>, awarded <month year>". LOW confidence (no source).
+- Date it with the completion date, labelled as the transcript or letter supports: "expected `<month year>`" or "completed `<month year>`, awarded `<month year>`". LOW confidence (no source).
 
 ## Credits
 - Always with unit and system: "60 ECTS", "30 crédits (Québec)", "US credit hours", "CATS". Never convert silently; for credits only, a conversion may go in parentheses, marked approx. Fact: "1 full academic year = 60 credits" in ECTS (Europass, « Europass Mobility Instructions », 2021-07). The labelling rule is convention.

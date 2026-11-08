@@ -38,7 +38,7 @@ Use these four segments as the reviewer personas in the adversarial step, plus o
 ## AI-assisted development (2026 reality)
 
 - "How do you use AI tools?" is a near-systematic interview question — the companion guide should prep it. Winning angle for a junior: judgment and verification (review, tests, git hygiene), never tool loyalty; the interviewer is testing "can you debug code you didn't write".
-- If the companion recommends tools, web-verify free tiers at writing time and label them "as of <date>, revalidate" — free tiers of AI coding tools get cut with little notice.
+- If the companion recommends tools, web-verify free tiers at writing time and label them "as of `<date>`, revalidate" — free tiers of AI coding tools get cut with little notice.
 
 ## Dev-specific title notes
 
