@@ -2,7 +2,7 @@
 
 Loaded on demand at step 4 when the candidate's education includes a degree in progress, studies stopped without the diploma, a transfer or program change, credit recognition, an exchange or study abroad, a double or joint degree, work-integrated study (apprenticeship, alternance, duales Studium, co-op), a degree completed but not yet conferred, a return to studies with work alongside, an MBA or professional master's, credits or grades from another system, or non-degree intensive training (bootcamp). Never read otherwise. When the target market is Québec, Québec wordings and credentials (DEC-BAC, AEC) are in [`regional/north-america/quebec/education.md`](regional/north-america/quebec/education.md#education-cases-québec), section Education cases.
 
-Universal rule: the CV never implies a diploma the candidate does not hold. Write what was earned, where, and when; let durations and credit counts carry the weight. A diploma name is the institution's exact name (from the transcript or the program page), never a paraphrase or an upgrade.
+Universal rule: the CV never implies a diploma the candidate does not hold. Write what was earned, where, and when; let durations and, where the reader's system reads them correctly, credit counts carry the weight. A diploma name is the institution's exact name (from the transcript or the program page), never a paraphrase or an upgrade.
 
 ## Degree in progress
 - Give the expected date in place of the end date, month + year. English: "expected grad date (e.g. June 20xx)" (Penn Career Services, « Write a Resume/CV », consulted 2026-11).
@@ -39,7 +39,8 @@ Universal rule: the CV never implies a diploma the candidate does not hold. Writ
 - Date it with the completion date, labelled as the transcript or letter supports: "expected `<month year>`" or "completed `<month year>`, awarded `<month year>`". LOW confidence (no source).
 
 ## Credits
-- Always with unit and system: "60 ECTS", "30 crédits (Québec)", "US credit hours", "CATS". Never convert silently; for credits only, a conversion may go in parentheses, marked approx. Fact: "1 full academic year = 60 credits" in ECTS (Europass, « Europass Mobility Instructions », 2021-07). The labelling rule is convention.
+- When a credit count is printed, always with unit and system: "60 ECTS", "30 crédits (Québec)", "US credit hours", "CATS". Never convert silently; for credits only, a conversion may go in parentheses, marked approx. Fact: "1 full academic year = 60 credits" in ECTS (Europass, « Europass Mobility Instructions », 2021-07). The labelling rule is convention.
+- Degree-level credit totals (e.g. "90 crédits" for a whole bachelor's) that the reader's system would misread as a shorter degree: omit, and state the program's length and prerequisites in words the reader can check. The unit-and-system labelling rule above still applies when a count is printed. Market wording: [`regional/north-america/quebec/outbound-canada.md`](regional/north-america/quebec/outbound-canada.md#degree-length-ask-the-path-first). Convention, LOW.
 
 ## Grades
 - Write every grade or GPA against its scale ("3,8/4,0", "15/20"); never convert, not even in parentheses (Münster: « Abschlussnote: 3.8 von 4.0 oder 3.8/4.0 »). Québec scales: [`regional/north-america/quebec/education.md`](regional/north-america/quebec/education.md#gpa-moyenne-cumulative).

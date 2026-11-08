@@ -534,3 +534,24 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S472 — Exemplar Global — « FAQs » (consulted 2026-11-07) — https://exemplarglobal.org/faqs/
 - S473 — ASCM — « FAQs » (Wayback capture 2026-04-14) — https://www.ascm.org/learning-development/certifications-credentials/faqs/
 - S474 — ASCM — « Certification Maintenance » (Wayback capture 2026-10-24) — https://www.ascm.org/learning-development/certifications-credentials/certification-maintenance/
+
+## Added 2026-11-08 (batch 3: Québec degrees outside Québec)
+
+- S475 — UQAM — « Bases d'admissibilité 1er cycle » (consulted 2026-11-08) — https://etudier.uqam.ca/bases-admissibilite
+- S476 — Université de Sherbrooke — « Règlement des études, 1. Introduction » (consulted 2026-11-08) — https://www.usherbrooke.ca/registraire/droits-et-responsabilites/reglement-des-etudes/1-introduction
+- S477 — York University (Faculty of LA&PS, Urban Studies) — « Degree options & requirements » (consulted 2026-11-08) — https://www.yorku.ca/laps/sosc/urst/degree-options-requirements/
+- S478 — University of Ottawa — « Regulations » (degree table) (consulted 2026-11-08) — https://www.uottawa.ca/about-us/policies-regulations/regulations
+- S479 — Nipissing University — « Common degree structure » (consulted 2026-11-08) — https://www.nipissingu.ca/future-students/common-degree-structure
+- S480 — Concordia University — « Program length » (consulted 2026-11-08) — https://www.concordia.ca/academics/degrees/program-length.html
+- S481 — CICIC (Gov. of Canada) — « Postsecondary education in Quebec » (consulted 2026-11-08) — https://www.cicic.ca/1174/postsecondary_education_in_quebec.canada
+- S482 — Carleton University, School of Social Work — « MSW FAQs » (consulted 2026-11-08) — https://carleton.ca/socialwork/msw-faqs/
+- S483 — University of Toronto, MScAC (Master of Science in Applied Computing) — « Apply » (consulted 2026-11-08) — https://mscac.utoronto.ca/apply/
+- S484 — York University, Faculty of Graduate Studies — « Entry requirements » (Master's) (consulted 2026-11-08) — https://futurestudents.yorku.ca/graduate/apply-now/entry-requirements
+- S485 — Gouvernement du Québec — « Education system » (consulted 2026-11-08) — https://www.quebec.ca/en/education/study-quebec/education-system
+- S486 — Gouvernement du Québec — « Étudier au cégep » (updated 2025-04-03; consulted 2026-11-08) — https://www.quebec.ca/education/cegep/etudier/a-propos
+- S487 — UQAM — « Baccalauréat en informatique et génie logiciel (7316) » (consulted 2026-11-08) — https://etudier.uqam.ca/programme?code=7316
+- S488 — Université Laval — « Entente DEC-BAC: Baccalauréat en informatique / 420.B0 Techniques de l'informatique, Cégep Édouard-Montpetit » (consulted 2026-11-08) — https://www.ulaval.ca/etudes/reconnaissance-des-acquis/ententes-dec-bac-et-passerelles/dec-bacb-ift420b0909000
+- S489 — Concordia University — « Admission requirements: Canada » (undergraduate) (consulted 2026-11-08) — https://www.concordia.ca/admissions/undergraduate/requirements/canada.html
+- S490 — Concordia University — « Understanding your degree credit requirements » (consulted 2026-11-08) — https://www.concordia.ca/students/registration/advising/degree-credit-requirements.html
+- S491 — University of Toronto SGS — « FAQ » (consulted 2026-11-08) — https://sgs.utoronto.ca/?p=5988
+- S492 — WES — « Using Your WES Credential Evaluation to Advance Your Job Search » (consulted 2026-11-08) — https://www.wes.org/credential-evaluation-for-employment/
