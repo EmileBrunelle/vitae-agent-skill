@@ -11,7 +11,7 @@ Points not confirmed by an official or authoritative source are labelled LOW con
 - Length: Tahatu: « keep your CV to 2 pages if you can » (S543).
 
 ## Personal data and law
-- New Zealand: the Human Rights Act 1993 s 21 lists 13 prohibited grounds (including sex, age, family status, disability, political opinion, employment status, sexual orientation) and applies to adverts, application forms, interviews and offers (LOW confidence on the list; Employment New Zealand, « Discrimination when hiring », n.d.). Omit them by default.
+- New Zealand: Employment New Zealand lists age, race or colour, ethnicity or national origins, sex (including pregnancy or childbirth), sexual orientation, disability, religious or ethical belief, marital or family status, employment status, political opinion, being affected by family violence and union involvement as prohibited grounds (Human Rights Act 1993 and Employment Relations Act 2000); the Human Rights Act applies to most aspects of employment, including job advertisements, application forms, interviews and job offers (S560). Omit them by default.
 
 ## Work rights
 - A one-line work-rights statement (citizen / permanent resident / visa type and expiry, or « full work rights ») is common practice but no official source requires it (LOW confidence). Include it when the candidate is on a temporary visa or the ad asks; never add a passport or visa number.
