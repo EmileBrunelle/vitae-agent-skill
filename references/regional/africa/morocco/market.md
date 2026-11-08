@@ -2,7 +2,7 @@
 
 Loaded on demand when the target market is Morocco. Read together with [`maghreb-common.md`](../maghreb-common.md). The three markets are *non-interchangeable*.
 
-Credentials: [`education.md`](education.md). Protected titles: [`regulated.md`](regulated.md), [`health.md`](health.md) (« Docteur » alone is reserved to physicians unless the discipline is named), [`academic.md`](academic.md).
+Credentials: [`education.md`](education.md). Protected titles: [`regulated.md`](regulated.md), [`health.md`](health.md) (« Docteur » alone: art. 7 of the 1960 dahir, if still in force), [`academic.md`](academic.md).
 
 ## At a glance
 

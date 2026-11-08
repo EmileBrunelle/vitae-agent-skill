@@ -3,9 +3,9 @@
 Files that do not comply yet are listed in LEGACY. The list only shrinks: a listed file that
 now complies fails the test (remove it), and a file outside it that violates fails too.
 """
+import glob
 import os
 import re
-import subprocess
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SCOPE = ("references/regional/", "references/certifications/", "references/fields/")
@@ -14,9 +14,9 @@ GENRES = (
     "Law", "Field pack", "Certifications", "Foreign workers", "Gulf nationalisation", "Gulf credentials",
 )
 H1 = re.compile(r"^# (?:%s): \S" % "|".join(GENRES))
-URL = re.compile(r"https?://")
+URL = re.compile(r"https?://|\bwww\.")
 QUOTED = re.compile(r"«[^»]*»")
-DATE_VERB = re.compile(r"\b(?:accessed|retrieved|consulté|read)\s+(?:on\s+|le\s+)?(?:\d{4}\b|\d{1,2}\s)", re.I)
+DATE_VERB = re.compile(r"\b(?:accessed|retrieved)\b|\bconsulté\s+(?:le\s+)?(?:\d{4}\b|\d{1,2}\s)|\bread\s+20\d\d-", re.I)
 CONFIDENCE = re.compile(
     r"\b(?:HIGH|MEDIUM)\b|\bunverified\b|\bnot sourced\b|\bLOW confidence\b|\bLOW\b(?!, unsourced)", re.I
 )
@@ -117,9 +117,13 @@ LEGACY = {
 
 
 def in_scope_files():
-    out = subprocess.run(["git", "ls-files", "*.md"], cwd=ROOT, capture_output=True, text=True, check=True)
+    paths = sorted(
+        os.path.relpath(p, ROOT)
+        for scope in SCOPE
+        for p in glob.glob(os.path.join(ROOT, scope, "**", "*.md"), recursive=True)
+    )
     result = []
-    for path in out.stdout.split("\n"):
+    for path in paths:
         name = os.path.basename(path)
         if not path.startswith(SCOPE) or name.endswith("-common.md") or name == "overview.md":
             continue

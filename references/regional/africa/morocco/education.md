@@ -2,7 +2,7 @@
 
 Loaded on demand when the CV lists a Moroccan diploma or the education section needs official diploma titles. Read together with [`maghreb-common.md`](../maghreb-common.md). Official titles and lengths as the texts state them; print the title exactly as on the diploma.
 
-Market file: [`market.md`](market.md). Protected titles and academic ranks: [`regulated.md`](regulated.md), [`health.md`](health.md), [`academic.md`](academic.md). Lengths, ministry labels and evaluator wording for candidates going abroad: [`maghreb-outbound/common.md`](../maghreb-outbound/common.md) (Morocco S270 not repeated here). GPA and mention display on a Québec résumé: [`north-america/quebec/education.md`](../../north-america/quebec/education.md).
+Market file: [`market.md`](market.md); protected titles and ranks: [`../maghreb-common.md`](../maghreb-common.md). Lengths, ministry labels and evaluator wording for candidates going abroad: [`maghreb-outbound/common.md`](../maghreb-outbound/common.md) (Morocco S270 not repeated here). GPA and mention display on a Québec résumé: [`north-america/quebec/education.md`](../../north-america/quebec/education.md).
 
 Texts: décret n° 2-04-89 of 7 June 2004 (cycles and national diplomas), amended by décret 2-06-489 (BO 5544, 19 July 2007); arrêté 2136-08 of 15 April 2009; licence cahier des normes (BO 5270, 2 December 2004). All read in the ministry's compilation « Textes législatifs et réglementaires relatifs à l'enseignement supérieur » (December 2010) as hosted by FMPM-UCA, not the ministry site; later amendments not checked (S610).
 - LMD in force progressively from the 2003-2004 rentrée (décret art. 14). Licence: six semestres after the baccalauréat (art. 5); the first four end in a « DEUG » (fundamental tracks) or « DEUP » (professional tracks), the last two in a « licence d'études fondamentales (LEF) » or « licence professionnelle (LP) ». Master: four semestres after the LEF or LP, titled « Master » or « Master spécialisé » (art. 6). Doctorat: three years after the master, extendable by one or two (art. 8).
@@ -12,4 +12,4 @@ Texts: décret n° 2-04-89 of 7 June 2004 (cycles and national diplomas), amende
 
 ## Gaps
 
-No official text obtained for: bac mentions and thresholds (only press and private sites); DTS/BTS; the Moroccan DEUG/DEUP dates.
+No official text obtained for: CV wording of titles (convention, no official source); bac mentions and thresholds (only press and private sites); DTS/BTS; the Moroccan DEUG/DEUP dates.
