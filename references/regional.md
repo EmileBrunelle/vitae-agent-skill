@@ -97,10 +97,15 @@ Oceania, Latin America, Africa
 - [`regional/latin-america/chile.md`](regional/latin-america/chile.md) — Chile (*non-interchangeable* market)
 - [`regional/latin-america/colombia.md`](regional/latin-america/colombia.md) — Colombia (*non-interchangeable* market)
 - [`regional/africa/maghreb-common.md`](regional/africa/maghreb-common.md) — read IN ADDITION to the country file for a Morocco, Algeria or Tunisia target (three *non-interchangeable* markets: read the country file, never the average)
-- [`regional/africa/morocco.md`](regional/africa/morocco.md) — Morocco; read with `maghreb-common.md`
-- [`regional/africa/algeria.md`](regional/africa/algeria.md) — Algeria; read with `maghreb-common.md`
-- [`regional/africa/tunisia.md`](regional/africa/tunisia.md) — Tunisia; read with `maghreb-common.md`
-- [`regional/africa/maghreb-education.md`](regional/africa/maghreb-education.md) — official diploma titles, lengths and mention scales of the three home systems; read when a Maghreb credential is written on the CV
+- `regional/africa/morocco/` — Morocco, read with `maghreb-common.md`:
+  - [`regional/africa/morocco/market.md`](regional/africa/morocco/market.md) — CV conventions and public-sector application
+  - [`regional/africa/morocco/education.md`](regional/africa/morocco/education.md) — official diploma titles, lengths and mention scales
+- `regional/africa/algeria/` — Algeria, read with `maghreb-common.md`:
+  - [`regional/africa/algeria/market.md`](regional/africa/algeria/market.md) — CV conventions, public-sector application, service national
+  - [`regional/africa/algeria/education.md`](regional/africa/algeria/education.md) — official diploma titles, lengths, English-taught programmes
+- `regional/africa/tunisia/` — Tunisia, read with `maghreb-common.md`:
+  - [`regional/africa/tunisia/market.md`](regional/africa/tunisia/market.md) — CV conventions and public-sector application
+  - [`regional/africa/tunisia/education.md`](regional/africa/tunisia/education.md) — official diploma titles, lengths and mention scales
 - [`regional/africa/maghreb-outbound/common.md`](regional/africa/maghreb-outbound/common.md) — read IN ADDITION to the target market's file when the candidate holds Moroccan, Algerian or Tunisian credentials (alone or mixed with other countries') and targets Québec/Canada or Europe, plus ONE of:
   - [`regional/africa/maghreb-outbound/to-quebec-canada.md`](regional/africa/maghreb-outbound/to-quebec-canada.md) — target Québec or English Canada (MIFI, IRCC ECA, OIQ)
   - [`regional/africa/maghreb-outbound/to-europe.md`](regional/africa/maghreb-outbound/to-europe.md) — target France; Belgium, Spain and Germany not covered

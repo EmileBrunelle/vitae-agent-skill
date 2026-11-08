@@ -1,6 +1,6 @@
 # Market: Algeria
 
-Part of the Maghreb set: read together with [`maghreb-common.md`](maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`maghreb-education.md`](maghreb-education.md).
+Part of the Maghreb set: read together with [`maghreb-common.md`](../maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`education.md`](education.md).
 
 Paper: a4 (convention, LOW, unsourced).
 
@@ -9,7 +9,7 @@ Paper: a4 (convention, LOW, unsourced).
 | Photo | No source found (LOW, unsourced). Tell the user the local custom if they know it; the candidate decides |
 | Personal data | No source found for any local custom (LOW, unsourced: recruiters may expect birth data, marital status and service national). Omit by default, warn the user that local files may expect them, candidate decides |
 | Length | No source found (LOW, unsourced) |
-| CV language | Private sector: see [`maghreb-common.md`](maghreb-common.md). Public sector: below |
+| CV language | Private sector: see [`maghreb-common.md`](../maghreb-common.md). Public sector: below |
 | Country-specific field | Service national: a legal condition of recruitment (below). No text read requires a CV line for it |
 
 ## Public sector

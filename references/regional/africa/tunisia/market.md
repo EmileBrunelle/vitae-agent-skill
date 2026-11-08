@@ -1,6 +1,6 @@
 # Market: Tunisia
 
-Part of the Maghreb set: read together with [`maghreb-common.md`](maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`maghreb-education.md`](maghreb-education.md).
+Part of the Maghreb set: read together with [`maghreb-common.md`](../maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`education.md`](education.md).
 
 Paper: a4 (convention, LOW, unsourced).
 
@@ -11,7 +11,7 @@ CV-practice cells are job-site guidance, not law: Tanitjobs, « CV selon l'emplo
 | Photo | Tanitjobs, for PME: « Photo : souvent attendue, sans être obligatoire. Si tu en mets une, elle doit être sobre et récente » (S599). Tell the user the custom; the candidate decides |
 | Personal data | Tanitjobs calls the Canadian advice (drop date of birth, age, marital status) « l'inverse de plusieurs habitudes tunisiennes » (S599). No Tunisian guide read advises dropping them. Omit by default, say so, candidate decides |
 | Length | 1 page for a young graduate or no experience; « 1 à 2 pages » for a confirmed profile (« deux pages sont acceptables si chaque ligne apporte quelque chose », S600). PME: « Le CV d'une page, en français … reste le format le plus courant » (S599) |
-| CV language | Private sector: see [`maghreb-common.md`](maghreb-common.md). Public sector: below |
+| CV language | Private sector: see [`maghreb-common.md`](../maghreb-common.md). Public sector: below |
 | Language levels | No source read (the « notions / courant / bilingue » convention is not found) |
 | Country-specific field | None found |
 

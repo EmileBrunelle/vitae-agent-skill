@@ -1,6 +1,6 @@
 # Market: Morocco
 
-Part of the Maghreb set: read together with [`maghreb-common.md`](maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`maghreb-education.md`](maghreb-education.md).
+Part of the Maghreb set: read together with [`maghreb-common.md`](../maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`education.md`](education.md).
 
 Paper: a4 (convention, LOW, unsourced).
 
@@ -14,7 +14,7 @@ All CV-practice cells below are job-site guidance, not law: Jobsquare.ma, « Com
 | Header | Jobsquare lists a « titre du poste visé ». Africarrières recommends an « Objectif professionnel » of 2 to 3 lines, a different element |
 | Dates | mois/année (both guides) |
 | Country-specific field | Africarrières: « Mentionnez obligatoirement votre note du baccalauréat si elle est supérieure à 14/20 » (a « spécificité marocaine »). LOW: single source, no second one found, and the page declares itself « rédigé avec l'aide de l'IA » |
-| CV language | Private sector: see [`maghreb-common.md`](maghreb-common.md). Public sector: below |
+| CV language | Private sector: see [`maghreb-common.md`](../maghreb-common.md). Public sector: below |
 | Language levels | Africarrières: « Notions / Bon niveau / Courant / Bilingue / Langue maternelle ». Jobsquare: CECRL (A1 à C2) or certified assessments (DELF, DALF…) |
 
 ## Public sector
