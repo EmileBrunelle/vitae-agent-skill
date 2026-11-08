@@ -85,8 +85,10 @@ from typing import NoReturn
 
 from vitae.core.base import _FOOTER_GATE, HIDDEN_PPI, DetailRow
 from vitae.core.env import pdf_backend, preflight
-from vitae.verify.cv import _check_cv, check_all, run_new_gates
+from vitae.verify.cv import _check_cv, check_all
+from vitae.verify.gates import LAYOUT_GATES, make_context
 from vitae.verify.pdf import extract_text, pdf_unreadable, render_crops, render_pages
+from vitae.verify.registry import run_gates
 from vitae.verify.source import _fill_args_ok
 from vitae.verify.tune import tune
 
@@ -136,8 +138,10 @@ def main() -> tuple[int, str | None]:
         ap.add_argument("--root", default=None)
         ga = ap.parse_known_args(argv[1:])[0]
         rows: list[DetailRow] = []
-        rc = run_new_gates(ga.typ, ga.pdf, extract_text(ga.pdf, pdf_backend()),
-                           open(ga.typ, encoding="utf-8").read(), root=ga.root, detail=rows)
+        backend = pdf_backend()
+        src = open(ga.typ, encoding="utf-8").read()
+        rc = run_gates(LAYOUT_GATES, make_context(ga.typ, ga.pdf, extract_text(ga.pdf, backend), src, backend,
+                                                  root=ga.root, detail=rows))
         print("DETAIL " + json.dumps(rows))
         return rc, _FOOTER_GATE
     if argv and argv[0] in ("--render", "--text"):

@@ -14,17 +14,11 @@ import sys
 import tempfile
 
 import vitae.fill as measure_fill
-from vitae.core.base import _FOOTER_GATE, LEADING_WARN, LOWERED_FILL_FLOOR, DetailRow, HiddenStat
+from vitae.core.base import _FOOTER_GATE, LEADING_WARN, LOWERED_FILL_FLOOR
 from vitae.core.env import preflight, typst_can_query
 from vitae.core.level import Finding, Level
-from vitae.verify.groups import (
-    ENTRY_MARKS,
-    _typst_query,
-    check_date_adjacency,
-    check_duplicate_names,
-    check_group_proximity,
-)
-from vitae.verify.layout import check_font_fallback, check_text_clip, check_whitespace
+from vitae.verify.gates import GATES, make_context
+from vitae.verify.layout import check_text_clip, check_whitespace
 from vitae.verify.pdf import (
     _boxes_unavailable,
     compile_pdf,
@@ -35,67 +29,9 @@ from vitae.verify.pdf import (
     render_pngs,
     word_boxes,
 )
-from vitae.verify.source import _drawn_fill, _fill_args_ok, check_forced_linebreak, check_literal_tilde, check_no_split
-from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
+from vitae.verify.registry import run_gates
+from vitae.verify.source import _drawn_fill, _fill_args_ok
 from vitae.verify.typst import _doc_body_size, _doc_par_list, _strip_typst_comments
-
-
-def run_hidden_gate(pdf: str) -> int:
-    """Print the hidden-text gate's lines; return 1 if any FAIL."""
-    det: list[HiddenStat] = []
-    fail = 0
-    msgs = check_hidden_text(pdf, detail=det)
-    for lvl, msg in msgs:
-        print(f"{lvl:<5} {msg}")
-        fail |= lvl == Level.FAIL
-    if det and not msgs:
-        print(f"OK    hidden text: {len(det)} words, each visibly inked (weakest contrast "
-              f"{min(d[4] for d in det if d[4] is not None):.1f}:1, smallest box {min(d[3] for d in det):.1f}pt)")
-    return fail
-
-
-def run_new_gates(typ: str, pdf: str, txt: str, src: str, root: str | None = None,
-                  detail: list[DetailRow] | None = None) -> int:
-    """Print the gates that need `typst query` and word positions (hidden text, font fallback,
-    group proximity, date adjacency, forced breaks and `~`, duplicate names); return 1 if any
-    FAIL. Shared by a normal run and `--gates`, so the two cannot drift apart."""
-    fail = run_hidden_gate(pdf)
-    for lvl, msg in check_font_fallback(typ, pdf, root=root):
-        print(f"{lvl:<5} {msg}")
-        fail |= lvl == Level.FAIL
-    for lvl, msg in check_group_proximity(typ, pdf, root=root, detail=detail):
-        print(f"{lvl:<5} {msg}")
-        fail |= lvl == Level.FAIL
-    marks = _typst_query(typ, ENTRY_MARKS, root)
-    heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
-    if heads is not None and not any(h.get("kind") == "entry" for h in heads):
-        print("WARN  date adjacency not measured: no lib entry()/srow() heads")
-    dwarn: list[str] = []
-    dst: dict[str, int] = {}
-    for msg in check_date_adjacency(typ, pdf, marks=marks or [], warns=dwarn, stats=dst):
-        print("FAIL  date adjacency: " + msg)
-        fail = 1
-    if marks is not None:
-        _n = dst.get("measured", 0)
-        print(f"INFO  date adjacency: {_n} lib entr{'y' if _n == 1 else 'ies'} measured, "
-              f"{dst.get('undated', 0)} undated, {dst.get('unmeasured', 0)} not measured "
-              "(a dated entry not built with lib entry() is not counted)")
-    if dwarn:
-        print(f"WARN  date adjacency not measured: {len(dwarn)} entr{'y' if len(dwarn) == 1 else 'ies'} "
-              f"({'; '.join(dwarn[:3])})")
-    if marks is None:
-        print("WARN  date adjacency not measured: typst query unavailable")
-    for msg in check_forced_linebreak(src) + check_literal_tilde(src):
-        print("FAIL  " + msg)
-        fail = 1
-    secs = _typst_query(typ, "<vitae-sec>", root)
-    if not secs:   # no <vitae-sec> marks (a CV that never wrapped `section` in wd-section(), or no query): read the #section("...") calls instead
-        secs = [{"text": t} for t in re.findall(r'#section\(\s*"((?:[^"\\]|\\.)*)"', src)]
-    for msg in check_duplicate_names(secs, heads):
-        print("FAIL  duplicate name: " + msg)
-        fail = 1
-    return fail
-
 
 # ---------- main gate ----------
 
@@ -502,79 +438,13 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     if "[#cat:]" in typ_text:
         print("WARN  template skills block (\"Category: items\") — clone marker #2; use the chosen family's skills shape")
 
-    if backend == "pypdf":     # the fallback extractor: say so once, `bad()` below then downgrades to WARN
+    if backend == "pypdf":     # the fallback extractor: say so once, the extraction gates then downgrade to WARN
         print("WARN  pypdf extraction is indicative only (spurious spaces inside words, e.g. \"FORMA TION\") — poppler's pdftotext is the reference extractor (references/ats.md)")
 
     txt = extract_text(pdf, backend)
-
-    def bad(msg: str) -> None:
-        """FAIL on the reference extractor, WARN on the pypdf fallback: pypdf's
-        extraction is indicative only (this script says so above), so a hard
-        FAIL on it would be a verdict the evidence does not support."""
-        nonlocal fail
-        if backend != "pypdf":
-            print("FAIL  " + msg)
-            fail = 1
-        else:
-            print("WARN  " + msg + " — pypdf extraction is indicative; confirm with pdftotext before believing it")
-
-    if not txt.strip():
-        bad("extraction empty")
-    # Letterspaced capitals break keyword matching in an ATS. First pattern: 4+ STANDALONE
-    # capitals (the \b anchors keep "B.Sc. C S M Sc", dotted abbreviations, out). Second
-    # pattern: tracking's real pdftotext shape, chunked rather than fully spaced
-    # ("S O F T WA RE"). Known limit: a space injected INSIDE a word ("FORMA TION") is not
-    # detectable here: it is a pypdf extraction artefact, not a layout bug, and only the
-    # pypdf path (WARN-only above) produces it.
-    spaced: str | re.Match[str] | None = re.search(r"\b(?:[A-Z] ){3,}[A-Z]\b", txt)
-    if not spaced:
-        for line in txt.split("\n"):
-            tok = line.split()
-            if (len(tok) >= 4 and all(re.fullmatch(r"[A-Z]{1,2}", t) for t in tok)
-                    and sum(len(t) == 1 for t in tok) >= 2):
-                spaced = line
-                break
-    if spaced:
-        bad("spaced-out text in extraction (letterspacing/tracking?)")
-    # Per PAGE: a date alone at the foot of a page is read by an ATS as belonging to no entry;
-    # it lands at the end of its own page, not only at the end of the document.
-    for pageno, page in enumerate(txt.split("\f"), 1):
-        non_blank = [l for l in page.split("\n") if l.strip()]
-        last = non_blank[-1] if non_blank else ""
-        if len(last) <= 25 and re.search(r"[0-9]{4}\s*$", last):
-            bad(f'orphaned date at end of page {pageno} of the extraction ("{last}") — bullet-less grid entry; see the trap in references/ats.md')
-    for is_fail, msg in check_no_split(typ_text, txt.split("\f")):
-        if is_fail:
-            bad(msg)
-        else:
-            print("OK    " + msg)
-
-    if facts:
-        try:
-            facts_text = open(facts, encoding="utf-8").read()
-        except OSError as e:
-            print(f"FAIL  --facts: cannot read {facts} ({e.strerror})")
-            fail = 1
-        else:
-            for w in check_facts_coverage(txt, facts_text):
-                print(w)
-    bullets = check_bullet_chars(txt)
-    if bullets:
-        print(f'WARN  {len(bullets)} line(s) start with a bullet character in the extraction (e.g. "{bullets[0][:30]}") — ATS prints it or puts it alone on a line; draw list markers as vector shapes (references/ats.md)')
-
-    if use_cli or typst_can_query():
-        fail |= run_new_gates(typ, pdf, txt, typ_text)
-    else:
-        # No `typst query`: say which gates are skipped, then run the ones that need only the
-        # PDF or the source text, so the degraded run still covers as much as it can.
-        print("WARN  grouping / date-adjacency / duplicate-name gates NOT checked (need the typst CLI or typst-py with query)")
-        fail |= run_hidden_gate(pdf)
-        for lvl, msg in check_font_fallback(typ, pdf):
-            print(f"{lvl:<5} {msg}")
-            fail |= lvl == Level.FAIL
-        for msg in check_forced_linebreak(typ_text) + check_literal_tilde(typ_text):
-            print("FAIL  " + msg)
-            fail = 1
+    ctx = make_context(typ, pdf, txt, typ_text, backend, facts=facts, can_query=use_cli or typst_can_query())
+    # No `typst query`: the layout gates that need it are skipped with a notice, the rest still run.
+    fail |= run_gates(GATES, ctx)
 
     # The extraction is printed last, whatever the verdict: the reading-order check is the
     # agent's, by hand (references/steps/6-verify.md), and needs the text next to the PASS/FAIL.
