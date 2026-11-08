@@ -1,6 +1,8 @@
-# Morocco: diplomas in the home system
+# Education: Morocco
 
-Part of the Maghreb set ([`maghreb-common.md`](../maghreb-common.md)); market file: [`market.md`](market.md). Official titles and lengths as the texts state them; print the title exactly as on the diploma. Lengths, ministry labels and evaluator wording for candidates going abroad: [`maghreb-outbound/common.md`](../maghreb-outbound/common.md) (Morocco S270 not repeated here). GPA and mention display on a Québec résumé: [`north-america/quebec/education.md`](../../north-america/quebec/education.md).
+Loaded on demand when the CV lists a Moroccan diploma or the education section needs official diploma titles. Read together with [`maghreb-common.md`](../maghreb-common.md). Official titles and lengths as the texts state them; print the title exactly as on the diploma.
+
+Market file: [`market.md`](market.md). Protected titles and academic ranks: [`regulated.md`](regulated.md), [`health.md`](health.md), [`academic.md`](academic.md). Lengths, ministry labels and evaluator wording for candidates going abroad: [`maghreb-outbound/common.md`](../maghreb-outbound/common.md) (Morocco S270 not repeated here). GPA and mention display on a Québec résumé: [`north-america/quebec/education.md`](../../north-america/quebec/education.md).
 
 Texts: décret n° 2-04-89 of 7 June 2004 (cycles and national diplomas), amended by décret 2-06-489 (BO 5544, 19 July 2007); arrêté 2136-08 of 15 April 2009; licence cahier des normes (BO 5270, 2 December 2004). All read in the ministry's compilation « Textes législatifs et réglementaires relatifs à l'enseignement supérieur » (December 2010) as hosted by FMPM-UCA, not the ministry site; later amendments not checked (S610).
 - LMD in force progressively from the 2003-2004 rentrée (décret art. 14). Licence: six semestres after the baccalauréat (art. 5); the first four end in a « DEUG » (fundamental tracks) or « DEUP » (professional tracks), the last two in a « licence d'études fondamentales (LEF) » or « licence professionnelle (LP) ». Master: four semestres after the LEF or LP, titled « Master » or « Master spécialisé » (art. 6). Doctorat: three years after the master, extendable by one or two (art. 8).
@@ -8,6 +10,6 @@ Texts: décret n° 2-04-89 of 7 June 2004 (cycles and national diplomas), amende
 - Pre-LMD (décret arts. 15-17): transition for the old « licence ès lettres / ès sciences / en droit / en sciences économiques » until 31 July 2008; DESA (« diplôme d'études supérieures approfondies ») and DESS (« diplôme d'études supérieures spécialisées ») students stayed under décret 2.96.796 of 19 February 1997.
 - Current licence cahier (arrêté 1890-25 of 25 July 2025, which abrogates 1883-23; BO 7488, 5 March 2026, translation edition, pages read from the images, S611): 180 credits (RG18); the « diplôme des études universitaires générales » is delivered on request after 120 credits, the first four semestres (RG19); mentions (RG20): « Très bien » from 16/20, « Bien » 14 to under 16, « Assez bien » 12 to under 14, « Passable » 10 to under 12. The master has the same four mentions (RG21, arrêté 1891-25, four semestres, 120 credits, S611). The 2004-era norm RG13 (S610) gave the same licence scale and the DUT lists only the first three; the DEUG/DEUP structure above is from the 2004 décret, whether the DEUP still exists under the new cahier was not read.
 
-## Not sourced
+## Gaps
 
 No official text obtained for: bac mentions and thresholds (only press and private sites); DTS/BTS; the Moroccan DEUG/DEUP dates.

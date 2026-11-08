@@ -1,0 +1,12 @@
+# Regulated professions: Algeria
+
+Loaded on demand when the CV lists an architect, avocat or engineer title for an Algeria target or credential. Read together with [`market.md`](market.md). Health titles: [`health.md`](health.md); expert-comptable: [`../maghreb-common.md`](../maghreb-common.md).
+
+## Protected titles
+
+- Engineer credentials heading to Québec (OIQ permit, title rules): [`../maghreb-outbound/to-quebec-canada.md`](../maghreb-outbound/to-quebec-canada.md); not repeated here.
+- Rule: write a reserved title only if the candidate confirms the registration the law requires. No text read prescribes a CV wording for the registration line.
+- Penal clause, stated once for all Algerian files: Code pénal art. 243, « Quiconque, sans remplir les conditions exigées pour le porter, fait usage ou se réclame d'un titre attaché à une profession légalement réglementée, d'un diplôme officiel ou d'une qualité dont les conditions d'attribution sont fixées par l'autorité publique est puni d'un emprisonnement de trois (3) mois à deux (2) ans et d'une amende de cinq cents (500) à cinq mille (5.000) DA ou de l'une de ces deux peines seulement » (S633; UNODC SHERLOC consolidated text, « 2012 » version, not the JORADP; later amendments, including loi 20-06, not checked).
+- Architects: décret législatif 94-07 of 18 May 1994, JORADP n° 32, 25 May 1994 (S631; original JO scan read from the images; amendments after 2004 not checked). Art. 15: « Nul ne peut se prévaloir de la qualité d'architecte agréé ni exercer cette profession s'il n'est inscrit au tableau national des architectes. L'inscription au tableau national des architectes vaut agrément. » Art. 17: registration on request needs, for an Algerian national, a « diplôme d'architecte reconnu par l'Etat » and a training period. Art. 25: « Il est institué un ordre national, regroupant l'ensemble des architectes inscrits au tableau national. » No specific usurpation article in the pages read.
+- Avocats: loi 13-07 of 29 October 2013, JORADP n° 55, 30 October 2013 (S632; amendments not checked). Art. 32: « Nul ne peut se prévaloir de la qualité d'avocat s'il n'est inscrit au tableau des avocats, sous peine des sanctions prévues par le code pénal pour l'usurpation de fonction. » Art. 2: the profession is « libérale et indépendante ». Art. 103: the bars form the « Union nationale des ordres des avocats ».
+- Engineers, géomètres: no source found for an ordre or a protected title; absence is not proven, so do not tell the candidate that none exists.

@@ -100,12 +100,21 @@ Oceania, Latin America, Africa
 - `regional/africa/morocco/` — Morocco, read with `maghreb-common.md`:
   - [`regional/africa/morocco/market.md`](regional/africa/morocco/market.md) — CV conventions and public-sector application
   - [`regional/africa/morocco/education.md`](regional/africa/morocco/education.md) — official diploma titles, lengths and mention scales
+  - [`regional/africa/morocco/regulated.md`](regional/africa/morocco/regulated.md) — protected titles: architect, avocat, engineer (registration, penalties)
+  - [`regional/africa/morocco/health.md`](regional/africa/morocco/health.md) — physician, dentist, pharmacist, nurse and résident titles
+  - [`regional/africa/morocco/academic.md`](regional/africa/morocco/academic.md) — university and school-teaching ranks, exact official names
 - `regional/africa/algeria/` — Algeria, read with `maghreb-common.md`:
   - [`regional/africa/algeria/market.md`](regional/africa/algeria/market.md) — CV conventions, public-sector application, service national
   - [`regional/africa/algeria/education.md`](regional/africa/algeria/education.md) — official diploma titles, lengths, English-taught programmes
+  - [`regional/africa/algeria/regulated.md`](regional/africa/algeria/regulated.md) — protected titles: architect, avocat, engineer (registration, penalties)
+  - [`regional/africa/algeria/health.md`](regional/africa/algeria/health.md) — physician, dentist, pharmacist and résident titles
+  - [`regional/africa/algeria/academic.md`](regional/africa/algeria/academic.md) — university and school-teaching ranks, exact official names
 - `regional/africa/tunisia/` — Tunisia, read with `maghreb-common.md`:
   - [`regional/africa/tunisia/market.md`](regional/africa/tunisia/market.md) — CV conventions and public-sector application
   - [`regional/africa/tunisia/education.md`](regional/africa/tunisia/education.md) — official diploma titles, lengths and mention scales
+  - [`regional/africa/tunisia/regulated.md`](regional/africa/tunisia/regulated.md) — protected titles: architect, avocat, engineer (registration, penalties)
+  - [`regional/africa/tunisia/health.md`](regional/africa/tunisia/health.md) — physician and dentist titles
+  - [`regional/africa/tunisia/academic.md`](regional/africa/tunisia/academic.md) — university and school-teaching ranks, exact official names
 - [`regional/africa/maghreb-outbound/common.md`](regional/africa/maghreb-outbound/common.md) — read IN ADDITION to the target market's file when the candidate holds Moroccan, Algerian or Tunisian credentials (alone or mixed with other countries') and targets Québec/Canada or Europe, plus ONE of:
   - [`regional/africa/maghreb-outbound/to-quebec-canada.md`](regional/africa/maghreb-outbound/to-quebec-canada.md) — target Québec or English Canada (MIFI, IRCC ECA, OIQ)
   - [`regional/africa/maghreb-outbound/to-europe.md`](regional/africa/maghreb-outbound/to-europe.md) — target France; Belgium, Spain and Germany not covered

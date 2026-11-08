@@ -1,11 +1,13 @@
-# Algeria: diplomas in the home system
+# Education: Algeria
 
-Part of the Maghreb set ([`maghreb-common.md`](../maghreb-common.md)); market file: [`market.md`](market.md). Official titles and lengths as the texts state them; print the title exactly as on the diploma. Lengths, ministry labels and evaluator wording for candidates going abroad: [`maghreb-outbound/common.md`](../maghreb-outbound/common.md) (Algeria S271-S272 not repeated here). GPA and mention display on a Québec résumé: [`north-america/quebec/education.md`](../../north-america/quebec/education.md).
+Loaded on demand when the CV lists an Algerian diploma or the education section needs official diploma titles. Read together with [`maghreb-common.md`](../maghreb-common.md). Official titles and lengths as the texts state them; print the title exactly as on the diploma.
+
+Market file: [`market.md`](market.md). Protected titles and academic ranks: [`regulated.md`](regulated.md), [`health.md`](health.md), [`academic.md`](academic.md). Lengths, ministry labels and evaluator wording for candidates going abroad: [`maghreb-outbound/common.md`](../maghreb-outbound/common.md) (Algeria S271-S272 not repeated here). GPA and mention display on a Québec résumé: [`north-america/quebec/education.md`](../../north-america/quebec/education.md).
 
 - Licence « nouveau régime »: three years, six semestres (décret exécutif 04-371 of 21 November 2004, art. 2, JORADP n° 75, 24 November 2004, S620). Repealed by décret exécutif 08-265 of 19 August 2008 (art. 20), which sets the licence, master and doctorat regime: master 120 credits, 30 per semester (art. 12), 180 credits when prepared in an école outside the university (art. 13); the doctorat « sanctionne la formation de troisième cycle » (art. 19) (JORADP n° 48, 24 August 2008, S621; amendments not checked).
 - Ingénieur d'État, magister and the old titles (licence classique, DES, DEUA, Technicien Supérieur): lengths from the ministry's table in S271 (see the outbound file). The legal text re-establishing the ingénieur d'État in 2021-2022 was not found.
 - Language of instruction: the minister stated the goal of extending « l'utilisation de la langue anglaise » (the quoted sentence, as printed, omits the language word in « dispensées en langue par des enseignants qualifiés »; it does not establish that 80 % of specialities are taught in English) (radio forum of 10 February 2025, MESRS, S622). On 9 July 2026 the MESRS announced the first English-taught cohorts graduating at Université d'Alger 3 (information-communication, political science, economics-management, sports), « the vanguard of the nationwide expansion » (S623). No decision text found; scope (which programmes, mandatory or progressive) and diploma language not verified. Print the diploma title as issued.
 
-## Not sourced
+## Gaps
 
 No official text obtained for: bac mentions and thresholds (only press and private sites); BTS and technicien supérieur in vocational training; Algerian licence/master mention scales.

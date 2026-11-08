@@ -1,16 +1,17 @@
 # Market: Algeria
 
-Part of the Maghreb set: read together with [`maghreb-common.md`](../maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`education.md`](education.md).
+Loaded on demand when the target market is Algeria. Read together with [`maghreb-common.md`](../maghreb-common.md). The three markets are *non-interchangeable*.
 
-Paper: a4 (convention, LOW, unsourced).
+Credentials: [`education.md`](education.md). Protected titles: [`regulated.md`](regulated.md), [`health.md`](health.md), [`academic.md`](academic.md).
 
-| Topic | Rule or custom |
-|---|---|
-| Photo | No source found (LOW, unsourced). Tell the user the local custom if they know it; the candidate decides |
-| Personal data | No source found for any local custom (LOW, unsourced: recruiters may expect birth data, marital status and service national). Omit by default, warn the user that local files may expect them, candidate decides |
-| Length | No source found (LOW, unsourced) |
-| CV language | Private sector: see [`maghreb-common.md`](../maghreb-common.md). Public sector: below |
-| Country-specific field | Service national: a legal condition of recruitment (below). No text read requires a CV line for it |
+## At a glance
+
+- **Paper:** a4 (convention, LOW, unsourced)
+- **Photo:** No source found (LOW, unsourced). Tell the user the local custom if they know it; the candidate decides
+- **CV language:** Private sector: see [`maghreb-common.md`](../maghreb-common.md). Public sector: below
+- **Personal data:** No source found for any local custom (LOW, unsourced: recruiters may expect birth data, marital status and service national). Omit by default, warn the user that local files may expect them, candidate decides
+- **Length:** No source found (LOW, unsourced)
+- **Country-specific field:** Service national: a legal condition of recruitment (below). No text read requires a CV line for it
 
 ## Public sector
 
