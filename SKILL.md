@@ -7,7 +7,7 @@ metadata:
   author: EmileBrunelle
   version: "0.9.1"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
-allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(sha256sum:*) Bash(cp:*) Bash(pdftoppm:*)
+allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(cp:*) Bash(pdftoppm:*)
 ---
 
 # vitae — résumés that survive both the ATS and the 30-second human scan
@@ -36,7 +36,7 @@ Files in `scripts/` are run, never opened; `templates/lib.typ` is copied with `c
 
 Each step below is a skeleton. Before doing anything for a step, read its file in full — the step body lives there, not here. Load step N's file only when you reach step N — do not read ahead.
 
-**0. Check the environment.** Confirm the toolchain (typst, Python, poppler, fonts) before touching any file. → Read [`references/steps/0-env.md`](references/steps/0-env.md) now, before doing anything for this step. `scripts/verify.py --doctor`: run it, never open its source. Ask the user before installing anything. If `.vitae-manifest` exists, check it first (see 0-env.md).
+**0. Check the environment.** Confirm the toolchain (typst, Python, poppler, fonts) before touching any file. → Read [`references/steps/0-env.md`](references/steps/0-env.md) now, before doing anything for this step. `scripts/verify.py --doctor`: run it, never open its source. Ask the user before installing anything. Re-run the gate on any existing deliverables before relying on them (see 0-env.md).
 
 **1. Gather facts.** Collect the source documents and user answers into a provenance-tagged fact sheet. → Read [`references/steps/1-facts.md`](references/steps/1-facts.md) now, before doing anything for this step.
 

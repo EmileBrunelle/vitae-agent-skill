@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `.vitae-manifest` dropped (and `Bash(sha256sum:*)` from `allowed-tools`): a PASS from a previous session is never reused, the gate is re-run on existing deliverables at session start (`steps/0-env.md`, `steps/7-review.md`, `known-traps.md`, both READMEs).
 - `references/regional/india/` moved to `references/regional/asia/india/` (links, router and test allowlist updated; `regional.md` Asia block split into "Outbound credentials" and "Target markets"; no content change).
 - Maghreb regulated professions, health titles and academic ranks, per country (`africa/{morocco,algeria,tunisia}/{regulated,health,academic}.md`; Tunisia has no sourced nurse or pharmacist texts, noted as gaps): registration and title-usurpation clauses (Code pénal 381/243, loi 016-89, 30-93, 66-23, 94-07, 13-07, 74-46, 131-13, 18-11, 91-21), « Docteur » alone reserved to physicians in Morocco unless the discipline is named, exact official rank names (Moroccan ranks in Arabic only, French equivalents not verified; Tunisia a 2008 snapshot); the six Maghreb market/education pages follow the reference file format and leave the test allowlist; `docs/sources.md` S625-S655.
 - Reference file format written down in CONTRIBUTING.md and enforced by `tests/unit/test_reference_format.py` (H1 genre prefix, load sentence, no URLs, `consulted` only, no HIGH/MEDIUM labels); files not yet aligned sit in a shrink-only allowlist.
