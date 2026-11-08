@@ -567,3 +567,4 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S502 — University of Waterloo — « Transfer credits for CEGEP students » (consulted 2026-11-08) — https://uwaterloo.ca/future-students/transfer-students/cegep-transfer-credits
 - S503 — Government of Alberta, IQAS — « Assessment for work or study – How to apply » (consulted 2026-11-08) — https://www.alberta.ca/iqas-employment-apply
 - S504 — Government of Ontario — « Ontario Qualifications Framework » (published 2022-03-22, updated 2026-07-16; consulted 2026-11-08) — https://www.ontario.ca/page/ontario-qualifications-framework
+- S505 — Université de Montréal, Secrétariat général — « Règlement des études de premier cycle », art. 1.7 (consulted 2026-11-08) — https://secretariatgeneral.umontreal.ca/documents-officiels/reglements-et-politiques/reglement-des-etudes-de-premier-cycle/
