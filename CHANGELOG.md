@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- New `regional/north-america/francophone-canada.md` (French CVs outside Québec: which `quebec/` rules carry over, NB and Ontario engineer titles, local credentials, bilingual-position levels; NS, PEI and Manitoba have no provincial source); wired in `regional.md` and `steps/2-region.md`; `docs/sources.md` S193–S202, S204, S205.
 - `references/regional/` reorganized into region subfolders; `quebec.md`, `quebec-outbound.md`, `india-to-europe.md` split per section; `india-outbound.md` renamed `india/to-anglosphere.md`.
 - `education-cases.md`: MBA accreditation guidance (AACSB/EQUIS are institutional, AMBA programme-level; France RNCP and CEFDG→Hcéres; Germany ELIAS and FIBAA); `docs/sources.md` S167–S173.
 - New `regional/india-to-europe.md` (Indian credentials → Germany ZAB/Blue Card, Ireland CSEP/QQI, Netherlands Nuffic/IND, France attestation/carte talent); Ireland moved out of `india-outbound.md`; `docs/sources.md` S174–S184.

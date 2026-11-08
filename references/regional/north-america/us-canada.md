@@ -2,7 +2,7 @@
 
 ## At a glance
 - Paper: us-letter. Photo: never.
-- CV language: English, or French for Québec.
+- CV language: English, or French for Québec and francophone employers elsewhere in Canada.
 - Personal data: none (no age, no marital status). USA: the EEOC says employers "should not ask for a photograph", and age (40 or older) and national origin are protected (EEOC, « Prohibited Employment Policies/Practices », consulted 2026-11); leaving out photo, date of birth and nationality is therefore the convention (LOW confidence for the convention part).
 - Work authorization: no official candidate-side guidance exists (LOW confidence: convention). State it only if the posting asks or the candidate wants it; never invent a status.
 - Formality / verb style: verb-first bullets; English past tense (current role in present); French-Québec infinitive (see [`north-america/quebec/market.md`](quebec/market.md)).
@@ -24,4 +24,4 @@
 - The résumé is pasted unformatted ("no bullets, underlines or bold") into the GC Jobs profile, and the screening questions decide: give details and examples, "Use the exact keywords and skills from the screening question in your answer. Do not use synonyms.", and with "and" demonstrate every element (Public Service Commission of Canada, « Applying for Government of Canada jobs: How to apply » (2026-09-28), consulted 2026-11). Formatting is stripped on paste.
 
 ## Québec
-- TARGET market is Québec (Québec employer or posting; a Québec address alone does not make it the target): also read [`references/regional/north-america/quebec/market.md`](quebec/market.md) — French verb style, academic calendars, CPI, OQLF month forms, protected titles, foreign diplomas. Candidate who holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: also read [`references/regional/north-america/quebec/outbound-common.md`](quebec/outbound-common.md).
+- TARGET market is Québec (Québec employer or posting; a Québec address alone does not make it the target): also read [`references/regional/north-america/quebec/market.md`](quebec/market.md) — French verb style, academic calendars, CPI, OQLF month forms, protected titles, foreign diplomas. Candidate who holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: also read [`references/regional/north-america/quebec/outbound-common.md`](quebec/outbound-common.md). French CV or francophone employer in NB, NS, PEI, Ontario or Manitoba (never for a Québec target): [`north-america/francophone-canada.md`](francophone-canada.md).
