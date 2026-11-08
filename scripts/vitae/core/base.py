@@ -1,9 +1,7 @@
-"""Shared shapes, constants and mutable state of the verify_* modules (a leaf: it imports no sibling).
+"""Shared shapes and constants of the verify modules (a leaf: it imports no sibling).
 
-Moved out of verify.py so the modules split from it can share them without `import verify` (verify.py runs as
-__main__; importing it from a sibling would execute the script a second time under the name `verify`).
-`STATE.footer` replaces the old module global `verify._footer`: a global does not cross modules, an attribute
-of a shared object does.
+Shared by the modules under vitae/verify/ and vitae/core/. It holds no mutable state: the message footer a failed
+run prints last is returned by the mode that computes it (see `_run` in vitae/verify/cli.py).
 """
 from __future__ import annotations
 
@@ -84,14 +82,6 @@ class SecRow(TypedDict):
 
 
 DetailRow = GroupRow | SecRow
-
-
-# Mutable state shared across the verify_* modules (one run = one process).
-class _State:
-    footer: str | None = None   # the NEXT line `_run` prints last on a non-zero exit; armed per mode
-
-
-STATE = _State()
 
 
 # The last lines printed when a run ends on a non-zero exit (see `_run`). A reader (human or

@@ -31,8 +31,10 @@ import sys
 import tempfile
 from typing import NoReturn
 
-import vitae.verify.cli as verify  # noqa: E402 — reuse compile_pdf/count_pages/extract_text only
+from vitae.core.env import preflight
 from vitae.core.level import Level  # noqa: E402
+from vitae.verify.pdf import compile_pdf, count_pages, ensure_icons, extract_text
+from vitae.verify.text import check_hidden_text
 
 
 def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tuple[bool | None, str]]]:
@@ -41,27 +43,27 @@ def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tu
     is_fail is True for a FAIL, False for an informational OK line, and None
     for a WARN that is printed but never fails the gate (hidden-text warnings).
     """
-    ok, use_cli, backend = verify.preflight()
+    ok, use_cli, backend = preflight()
     if not ok:
         return False, [(True, "missing dependency — see --doctor output above")]
 
-    verify.ensure_icons(typ)
+    ensure_icons(typ)
     msgs: list[tuple[bool | None, str]] = []
     fail = False
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "letter.pdf")
-        compiled, err = verify.compile_pdf(typ, pdf, use_cli)
+        compiled, err = compile_pdf(typ, pdf, use_cli)
         if not compiled:
             return False, [(True, f"compile failed: {err}")]
 
-        pages = verify.count_pages(pdf, backend)
+        pages = count_pages(pdf, backend)
         if pages != "1":
             fail = True
             msgs.append((True, f"letter is {pages} page(s), must be exactly 1"))
         else:
             msgs.append((False, "1 page"))
 
-        txt = verify.extract_text(pdf, backend)
+        txt = extract_text(pdf, backend)
         for label, needle in (("employer", employer), ("job title", job_title)):
             if needle.casefold() not in txt.casefold():     # casefold, not lower: "Straße" meets "STRASSE"
                 fail = True
@@ -71,7 +73,7 @@ def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tu
 
         # shared with verify.py and verify_academic.py: a letter can hide text too
         # is_fail None = WARN (printed, never fails)
-        for lvl, msg in verify.check_hidden_text(pdf):
+        for lvl, msg in check_hidden_text(pdf):
             msgs.append((True if lvl == Level.FAIL else None, msg))
             fail = fail or lvl == Level.FAIL
 

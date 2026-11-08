@@ -1,6 +1,6 @@
 """Checks on the text extracted from the PDF: facts coverage, bullet characters, hidden text, metadata.
 
-Moved out of verify.py unchanged, re-exported there under the same names. A leaf under verify_pdf: no `import verify`.
+A leaf under verify_pdf: no `import verify`.
 """
 from __future__ import annotations
 
@@ -412,7 +412,7 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
     text laid exactly over visible text."""
     pages = _bbox_pages(pdf)
     if pages is None:
-        return [(Level.WARN, f"hidden-text gate skipped: {_boxes_unavailable()}")]
+        return [(Level.WARN, f"hidden-text gate skipped: {_boxes_unavailable(pdf)}")]
     msgs: list[Finding] = []
     with tempfile.TemporaryDirectory() as tmp:
         pngs = _render_pages_png(pdf, tmp)

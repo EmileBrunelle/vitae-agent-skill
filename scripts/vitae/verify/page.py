@@ -16,13 +16,7 @@ from typing import Any, cast
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-# Box and Band repeat verify.py's definitions of the same names, written out structurally, because they cannot be
-# imported: verify.py runs as __main__, so `import verify` here would execute that script a second time under the
-# name `verify`. Keep the two in sync by hand (a word box is four floats, a band two ints); if they drift, the
-# boxes and bands exchanged with verify.py stop meaning the same thing.
-Box = tuple[float, float, float, float]            # x0, y0, x1, y1
-Band = tuple[int, int]                             # first, last pixel row of a run
-
+from vitae.core.base import Band, Box
 
 # BOUNDARY_RATIO is a LOCATOR, not a grade. It answers "is this white run tall
 # enough to be a section boundary rather than a line gap", which is all that

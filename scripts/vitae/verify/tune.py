@@ -1,7 +1,5 @@
 """--tune: bisect `#set par(leading:, spacing:)` to the largest rhythm that holds the page count
-(no `import verify`: it reads verify_pdf / verify_env / verify_base only; it writes STATE.footer).
-
-Moved out of verify.py unchanged, re-exported there under the same names.
+(it reads pdf / env / base only; `tune` returns the exit code with the footer the CLI prints last).
 """
 from __future__ import annotations
 
@@ -18,7 +16,6 @@ from vitae.core.base import (
     _FOOTER_TUNE_WIDE,
     LEADING_WARN,
     LOWERED_FILL_FLOOR,
-    STATE,
 )
 from vitae.core.env import PdfBackend, preflight
 from vitae.verify.pdf import compile_pdf, count_pages, render_pngs
@@ -74,22 +71,23 @@ SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
 # Default search bounds [0.80 * l0, max(1.30 * l0, 1.10)] and bisection step 0.005em (~7-8 probes):
 # 0.005em changes a 1-page CV's bottom ink row by <0.5% of page height, finer than the 2%-wide fill band.
 def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
-         hi: float | None = None, step: float = 0.005) -> int:
+         hi: float | None = None, step: float = 0.005) -> tuple[int, str | None]:
     """--tune: bisect `#set par(leading:, spacing:)` in `typ` to the largest rhythm that holds
-    `expected` pages, and keep it only if the fill lands in fmin-fmax. Returns the exit code
-    (0 won, 1 no value in range, 2 no par line). Any failure restores the original file: a
+    `expected` pages, and keep it only if the fill lands in fmin-fmax. Returns (exit code, footer): the
+    code is 0 won, 1 no value in range, 2 no par line; the footer is the NEXT line the CLI prints last
+    on a failure (None when preflight failed). Any failure restores the original file: a
     value that misses the target is worse than the rhythm the family was designed with."""
     deps_ok, use_cli, backend = preflight()
     if not deps_ok:
-        return 1
-    STATE.footer = _FOOTER_TUNE
+        return 1, None
+    footer = _FOOTER_TUNE
     original = open(typ, encoding="utf-8").read()
     cur = _read_par(original)
     if cur is None:
-        STATE.footer = _FOOTER_TUNE_NOPAR
+        footer = _FOOTER_TUNE_NOPAR
         print("FAIL  no `#set par(... leading: Xem, spacing: Yem)` line to tune "
               "— the tuner edits that one declaration and nothing else")
-        return 2
+        return 2, footer
     l0, s0 = cur
     delta = s0 - l0                       # the family's own rhythm, preserved
     lo_arg = lo   # kept to tell, on failure, whether the caller already passed a wide range
@@ -124,7 +122,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                   "too high: try an explicit lower range, e.g. `--tune %s %s %s %s 0.45 1.0` "
                   "(FILL_MIN FILL_MAX LEAD_LO LEAD_HI)"
                   % (lo, expected, expected, typ, expected, fmin, fmax))
-            return 1
+            return 1, footer
         best, best_fill = lo, fill_lo
         # The top of the feasible interval is not always the ANSWER: the last value before the
         # page breaks can overshoot fmax (the fill target has a ceiling too: ink must not reach
@@ -155,7 +153,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                   "(target %s-%s%%); restored the original %.3fem/%.3fem"
                   % (best, best + delta, best_fill, fmin, fmax, l0, s0))
             if under:
-                STATE.footer = _FOOTER_TUNE_UNDER
+                footer = _FOOTER_TUNE_UNDER
                 print("      the page is UNDER-FILLED: a fact is missing, not whitespace. "
                       "Leading is capped at %.2fem (never widen the range). Add a real fact "
                       "from the candidate's facts (a bullet with a measurable result, a "
@@ -168,7 +166,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                       % (cap, shlex.quote(typ), expected, fmax, LOWERED_FILL_FLOOR, LOWERED_FILL_FLOOR))
             else:
                 if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
-                    STATE.footer = _FOOTER_TUNE_WIDE
+                    footer = _FOOTER_TUNE_WIDE
                 print("      no leading in the searched range reaches the target at "
                       "%s page(s). Widen the range by passing the bounds "
                       "positionally after FILL_MAX, e.g.\n"
@@ -178,14 +176,14 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                       "SKILL.md rule 5)."
                       % (expected, typ, expected, fmin, fmax,
                          max(0.40, l0 * 0.65), max(1.40, l0 * 1.60)))
-            return 1
+            return 1, footer
         open(typ, "w", encoding="utf-8").write(
             _write_par(original, best, best + delta))
         print("OK    wrote leading %.3fem / spacing %.3fem -> fill %s%% "
               "(target %s-%s%%)" % (best, best + delta, best_fill, fmin, fmax))
         print("      now run the gate itself: verify.py %s %s %s %s"
               % (typ, expected, fmin, fmax))
-        return 0
+        return 0, footer
     except BaseException:
         # BaseException, not Exception: Ctrl-C mid-probe must not leave a half-tuned file behind
         open(typ, "w", encoding="utf-8").write(original)   # never leave a probe

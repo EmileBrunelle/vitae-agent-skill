@@ -1,7 +1,6 @@
 """Typst compile, page count and PNG render, native CLI or typst-py (a leaf under verify_env: no `import verify`).
 
 Compile, page count, text and word-box extraction, and raster/crop rendering.
-Moved out of verify.py unchanged, re-exported there under the same names.
 """
 from __future__ import annotations
 
@@ -268,7 +267,7 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
     `pdftotext -bbox` (PDF points), or None when pdftotext is missing/fails.
     With the pdfium backend the words are built from pypdfium2's character boxes."""
     if pdf_backend() == "pdfium":
-        return _pdfium_bbox_pages(pdf)
+        return _pdfium_bbox_pages(pdf)[0]
     try:
         r = subprocess.run(["pdftotext", "-bbox", pdf, "-"],
                             capture_output=True, text=True)
@@ -358,23 +357,21 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
     return [words[k] for bl in order for n in sorted(bl, key=lambda n: (piece_row[n], geo[n][0])) for k in pieces[n]]
 
 
-_pdfium_error: str | None = None     # why the last `_pdfium_bbox_pages` returned None
-
-
-def _boxes_unavailable() -> str:
-    """Why `word_boxes` returned None, for the WARN that says a gate was skipped."""
+def _boxes_unavailable(pdf: str) -> str:
+    """Why `word_boxes` returned None on `pdf`, for the WARN that says a gate was skipped.
+    Only reached on that failure path, so the pdfium read is repeated to get its error."""
     if pdf_backend() == "pdfium":
-        return f"pypdfium2 could not read the PDF ({_pdfium_error or 'unknown error'})"
+        return f"pypdfium2 could not read the PDF ({_pdfium_bbox_pages(pdf)[1] or 'unknown error'})"
     return "pdftotext not found (install poppler-utils)"
 
 
-def _pdfium_bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
+def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]]] | None, str | None]:
     """`_bbox_pages` on pypdfium2: words are runs of non-space characters, each box the union of its loose character
     boxes (top-down, like pdftotext). LOOSE boxes, because pdfium's tight ones are ink extents and vary with the
     letters (a word without descenders is shorter), while the loose ones follow the font's ascent and descent like
     poppler's word boxes. Measured on the shipped templates against `pdftotext -bbox`: x within 0.8 pt, y within ~1
     pt for most fonts; tight boxes padded by 2.5 pt per side were off by up to 10 pt and cut one hard-edge line out
-    of its band, a FAIL poppler does not give."""
+    of its band, a FAIL poppler does not give. Returns (pages, None), or (None, why) when pypdfium2 fails."""
     try:
         doc = _pdfium_doc(pdf)
         pdfium_raw: Any = importlib.import_module("pypdfium2.raw")
@@ -415,11 +412,9 @@ def _pdfium_bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | N
                     box[:] = [l, b, r, t]
             flush()
             pages.append((float(pw), float(ph), _reading_order(items)))
-        return pages
+        return pages, None
     except Exception as e:
-        global _pdfium_error
-        _pdfium_error = f"{type(e).__name__}: {e}"[:120]
-        return None
+        return None, f"{type(e).__name__}: {e}"[:120]
 
 
 def _pdfium_render(pdf: str, ppi: int, gray: bool = False, pages: Sequence[int] | None = None) -> list[Image.Image]:

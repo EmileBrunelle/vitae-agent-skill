@@ -288,9 +288,10 @@ runpy.run_path('scripts/verify.py', run_name='__main__')" 2>&1)" || rc=$?
     local d="$out/doctor-sim-degfonts" txt rc=0; doctor_env "$d" python3
     txt="$(PATH="$d/bin" "$PY" -c "
 import sys; sys.path.insert(0, 'scripts')
-import verify, pick_design
+import pick_design
+from vitae.core.env import preflight
 pick_design._fonts_available = lambda: {'DejaVu Sans'}
-verify.preflight()" 2>&1)" || rc=$?
+preflight()" 2>&1)" || rc=$?
     echo "$txt"
     echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
     echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) after a DEGRADED line"; return 1; }
@@ -456,13 +457,13 @@ check lowered-fill-warns lowered_fill
 facts_years_and_dates() {
   python3 -I - <<'PY' || return 1
 import sys; sys.path.insert(0, "scripts")
-import verify
+from vitae.verify.text import check_facts_coverage
 f = "Stage, Acme, 2020-03 to 2021\n"
 for ok in ("Intern  03/2020\n", "Intern  2021\n", "Intern  Mars 2020\n"):
-    w = verify.check_facts_coverage(ok, f)
+    w = check_facts_coverage(ok, f)
     assert w == [], f"{ok!r}: false positive {w}"
 for bad, token in (("Intern  04/2020\n", "04/2020"), ("Intern  2019\n", "2019"), ("Intern  Dec 2022\n", "2022")):
-    w = verify.check_facts_coverage(bad, f)
+    w = check_facts_coverage(bad, f)
     assert len(w) == 1 and f'"{token}"' in w[0], f"{bad!r} not flagged: {w}"
 PY
 }

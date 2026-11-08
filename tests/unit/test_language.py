@@ -4,7 +4,8 @@ The scripts know no language: a gate reads digits, geometry and fonts, never a w
 real running text (CV-like, as pdftotext returns it) and its facts file.
 """
 import pytest
-import verify as v
+from vitae.verify.source import _norm_heading, check_no_split
+from vitae.verify.text import _blank_phones, _fold, _fold1, _readings, check_facts_coverage
 
 # (code, label, CV text, facts text). Names and numbers appear in BOTH, so a clean run means "nothing invented".
 SAMPLES = {
@@ -96,7 +97,7 @@ FR_CV = ("Expérience\nDéveloppé des applications web pour les clients de la s
 
 
 def warns(cv: str, facts: str) -> list[str]:
-    return [x for x in v.check_facts_coverage(cv, facts) if x.startswith("WARN")]
+    return [x for x in check_facts_coverage(cv, facts) if x.startswith("WARN")]
 
 
 # --- check_facts_coverage: digits only, in any language ------------------------------------------------------------
@@ -104,13 +105,13 @@ def warns(cv: str, facts: str) -> list[str]:
 @pytest.mark.parametrize("key", sorted(SAMPLES))
 def test_latin_languages_give_no_warns(key):
     _, _, cv, facts = SAMPLES[key]
-    assert v.check_facts_coverage(cv, facts) == []
+    assert check_facts_coverage(cv, facts) == []
 
 
 @pytest.mark.parametrize("key", sorted(SCRIPTS))
 def test_scripts_give_no_warns(key):
     _, cv, facts = SCRIPTS[key]
-    assert v.check_facts_coverage(cv, facts) == []
+    assert check_facts_coverage(cv, facts) == []
 
 
 def test_foreign_cv_still_checks_years_and_numbers():
@@ -132,7 +133,7 @@ def test_no_word_is_read_so_a_name_never_warns():
     ("12", {12.0}), ("1,5000", {1.5}),
 ])
 def test_number_readings(raw, want):
-    assert set(v._readings(raw)) == want
+    assert set(_readings(raw)) == want
 
 
 def test_german_thousands_match_a_facts_file_written_with_plain_digits():
@@ -153,30 +154,30 @@ def test_phone_numbers_are_ignored(phone):
 
 @pytest.mark.parametrize("claim", ["300 staff", "840 ms", "1 500 000 users", "2019 - 2021 staff of 120", "0.5 s to 120 000 rows"])
 def test_real_results_are_not_swallowed_as_phones(claim):
-    assert v._blank_phones(claim) == claim
+    assert _blank_phones(claim) == claim
 
 
 @pytest.mark.parametrize("dates", [
     "01.03.2019 – 05.06.2021", "01.03.2019 - 05.06.2021", "01.03.2019-05.06.2021", "01-03-2019 – 05-06-2021",
     "01/03/2019 – 05/06/2021", "1.3.2019 – 5.6.2021", "10.03.2019 – 30.06.2021"])
 def test_numeric_dates_are_not_blanked_as_phones(dates):
-    assert v._blank_phones(dates) == dates
+    assert _blank_phones(dates) == dates
     out = warns(f"Developer, {dates}", "Developer at Acme, 2015 to 2016.")
     assert any("2019" in x for x in out) and any("2021" in x for x in out)
 
 
 def test_phones_are_still_blanked():
-    assert v._blank_phones("06 12 34 56 78").strip() == ""
-    assert v._blank_phones("01.23.45.67.89").strip() == ""
-    assert v._blank_phones("+49 170 1234567").strip() == ""
-    assert v._blank_phones("0170 1234567").strip() == ""
+    assert _blank_phones("06 12 34 56 78").strip() == ""
+    assert _blank_phones("01.23.45.67.89").strip() == ""
+    assert _blank_phones("+49 170 1234567").strip() == ""
+    assert _blank_phones("0170 1234567").strip() == ""
 
 
 @pytest.mark.parametrize("line", [
     "(05.06.2021)", "(01.03.2019 – 05.06.2021)", "Developer (05.06.2021)", "05.06.2021 12.07.2022 13.08.2023",
     "01.03.2019 1500 staff", "01.03.2019 2024 award"])
 def test_dates_survive_parentheses_and_neighbouring_numbers(line):
-    assert v._blank_phones(line) == line
+    assert _blank_phones(line) == line
 
 
 def test_dates_in_parentheses_and_beside_numbers_still_warn_on_invented_years():
@@ -189,70 +190,70 @@ def test_dates_in_parentheses_and_beside_numbers_still_warn_on_invented_years():
 
 @pytest.mark.parametrize("phone", ["04-12-3456-7890", "05-06-2021-1234 5678", "03-12-2012-3456"])
 def test_date_shaped_phones_are_blanked(phone):
-    assert v._blank_phones(phone).strip() == ""
-    assert v._blank_phones(f"Tel {phone}").strip() == "Tel"
+    assert _blank_phones(phone).strip() == ""
+    assert _blank_phones(f"Tel {phone}").strip() == "Tel"
 
 
 def test_phone_next_to_a_date_is_blanked_and_the_date_kept():
-    assert v._blank_phones("01.03.2019 - 06 12 34 56 78") == "01.03.2019 -" + " " * 15
-    assert v._blank_phones("1500 staff") == "1500 staff"
+    assert _blank_phones("01.03.2019 - 06 12 34 56 78") == "01.03.2019 -" + " " * 15
+    assert _blank_phones("1500 staff") == "1500 staff"
 
 
 # --- headings in any script ----------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("heading", ["Опыт работы", "Επαγγελματική εμπειρία", "工作经历", "कार्य अनुभव", "ประสบการณ์ทำงาน", "الخبرة المهنية", "Berufserfahrung"])
 def test_norm_heading_keeps_letters_of_every_script(heading):
-    assert v._norm_heading(heading) != ""
+    assert _norm_heading(heading) != ""
 
 
 def test_norm_heading_latin_comparison_is_symmetric():
-    assert v._norm_heading("EXPÉRIENCE") == v._norm_heading("Expérience") == "experience"
-    assert v._norm_heading("Ausbildung & Studium") == "ausbildung studium"
+    assert _norm_heading("EXPÉRIENCE") == _norm_heading("Expérience") == "experience"
+    assert _norm_heading("Ausbildung & Studium") == "ausbildung studium"
 
 
 def test_norm_heading_case_folds_cyrillic():
-    assert v._norm_heading("Опыт работы") == v._norm_heading("ОПЫТ РАБОТЫ")
+    assert _norm_heading("Опыт работы") == _norm_heading("ОПЫТ РАБОТЫ")
 
 
 def test_greek_uppercase_extraction_drops_the_accents_and_still_matches():
     src = '#section("Επαγγελματική εμπειρία")[x]'
-    assert v._norm_heading("Επαγγελματική εμπειρία") != v._norm_heading("ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΕΜΠΕΙΡΙΑ")   # exact key: accents
-    assert v.check_no_split(src, ["a", "ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΕΜΠΕΙΡΙΑ\nx"])[0][0] is False                # loose key: accepted
+    assert _norm_heading("Επαγγελματική εμπειρία") != _norm_heading("ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΕΜΠΕΙΡΙΑ")   # exact key: accents
+    assert check_no_split(src, ["a", "ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΕΜΠΕΙΡΙΑ\nx"])[0][0] is False                # loose key: accepted
 
 
 def test_no_split_works_on_non_latin_headings():
     src = '#section("Опыт работы")[x]\n#section("Образование")[y]'
-    ok = v.check_no_split(src, ["a", "ОБРАЗОВАНИЕ\nx"])
+    ok = check_no_split(src, ["a", "ОБРАЗОВАНИЕ\nx"])
     assert ok == [(False, 'no-split: page 2 opens on "ОБРАЗОВАНИЕ"')]
-    bad = v.check_no_split(src, ["a", "и тогда\nx"])
+    bad = check_no_split(src, ["a", "и тогда\nx"])
     assert bad[0][0] is True
 
 
 def test_no_split_accepts_right_to_left_and_reordered_marks():
     src = '#section("الخبرة المهنية")[x]'
-    assert v.check_no_split(src, ["a", "المهنية الخبرة\nx"])[0][0] is False        # words returned in the other order
+    assert check_no_split(src, ["a", "المهنية الخبرة\nx"])[0][0] is False        # words returned in the other order
     src = '#section("कार्य अनुभव")[x]'
-    assert v.check_no_split(src, ["a", "कार्य अनुभव\nx"])[0][0] is False
+    assert check_no_split(src, ["a", "कार्य अनुभव\nx"])[0][0] is False
 
 
 def test_no_split_still_disabled_when_no_section_call():
-    assert v.check_no_split("#let x = 1", ["a", "b"])[0][0] is False
+    assert check_no_split("#let x = 1", ["a", "b"])[0][0] is False
 
 
 # --- _fold keeps what is not a Latin accent ---------------------------------------------------------------------------
 
 def test_fold_strips_latin_accents_only():
-    assert v._fold("Expérience Çà") == "experience ca"
-    assert v._fold("कार्य अनुभव") == "कार्य अनुभव"                  # Devanagari vowels survive
-    assert v._fold("การศึกษา") == "การศึกษา"                          # Thai tone and vowel marks survive
-    assert "й" not in v._fold("й") or len(v._fold("й")) == 2          # Cyrillic й keeps its breve (decomposed)
+    assert _fold("Expérience Çà") == "experience ca"
+    assert _fold("कार्य अनुभव") == "कार्य अनुभव"                  # Devanagari vowels survive
+    assert _fold("การศึกษา") == "การศึกษา"                          # Thai tone and vowel marks survive
+    assert "й" not in _fold("й") or len(_fold("й")) == 2          # Cyrillic й keeps its breve (decomposed)
 
 
 def test_fold1_is_length_preserving_and_keeps_scripts():
     for t in ("Évry İstanbul", "कार्य अनुभव", "การศึกษา", "Йога", "ÉCOLE Ωmega"):
-        assert len(v._fold1(t)) == len(t), t
-    assert v._fold1("कार्य अनुभव") == "कार्य अनुभव"
-    assert v._fold1("Évry") == "evry"
+        assert len(_fold1(t)) == len(t), t
+    assert _fold1("कार्य अनुभव") == "कार्य अनुभव"
+    assert _fold1("Évry") == "evry"
 
 
 # --- verify_academic: declared entry statuses, no built-in word list ---------------------------------------------------------
@@ -396,12 +397,12 @@ import verify_letter as vl  # noqa: E402
 
 
 def _letter(monkeypatch, text, employer, title):
-    monkeypatch.setattr(v, "preflight", lambda: (True, True, "x"))
-    monkeypatch.setattr(v, "ensure_icons", lambda typ: None)
-    monkeypatch.setattr(v, "compile_pdf", lambda typ, pdf, cli: (True, ""))
-    monkeypatch.setattr(v, "count_pages", lambda pdf, backend: "1")
-    monkeypatch.setattr(v, "extract_text", lambda pdf, backend: text)
-    monkeypatch.setattr(v, "check_hidden_text", lambda pdf: [])
+    monkeypatch.setattr(vl, "preflight", lambda: (True, True, "x"))
+    monkeypatch.setattr(vl, "ensure_icons", lambda typ: None)
+    monkeypatch.setattr(vl, "compile_pdf", lambda typ, pdf, cli: (True, ""))
+    monkeypatch.setattr(vl, "count_pages", lambda pdf, backend: "1")
+    monkeypatch.setattr(vl, "extract_text", lambda pdf, backend: text)
+    monkeypatch.setattr(vl, "check_hidden_text", lambda pdf: [])
     return vl.check_letter("letter.typ", employer, title)
 
 

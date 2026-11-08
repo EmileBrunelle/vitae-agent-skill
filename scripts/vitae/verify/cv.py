@@ -1,6 +1,6 @@
 """The per-CV gate: header parsing, file classification, check_all, lib integrity, the new-gate runner and _check_cv.
 
-Moved out of verify.py unchanged, re-exported there under the same names. No `import verify`.
+No `import verify`.
 """
 from __future__ import annotations
 
@@ -12,10 +12,9 @@ import shlex
 import subprocess
 import sys
 import tempfile
-from typing import NoReturn
 
 import vitae.fill as measure_fill
-from vitae.core.base import _FOOTER_GATE, LEADING_WARN, LOWERED_FILL_FLOOR, STATE, DetailRow, HiddenStat
+from vitae.core.base import _FOOTER_GATE, LEADING_WARN, LOWERED_FILL_FLOOR, DetailRow, HiddenStat
 from vitae.core.env import preflight, typst_can_query
 from vitae.core.level import Finding, Level
 from vitae.verify.groups import (
@@ -364,17 +363,19 @@ def _body_size_warn(typ: str) -> str:
 
 
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
-              facts: str | None = None) -> NoReturn:
-    """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Never returns:
-    it exits 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix.
+              facts: str | None = None) -> tuple[int, str | None]:
+    """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Returns (exit code,
+    footer): 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix; the
+    footer is the NEXT line the CLI prints last on a failure, None until preflight passed.
     The order of the gates is the one documented in the module docstring."""
     pdf = re.sub(r"\.typ$", "", typ) + ".pdf"
     fail = 0
+    footer: str | None = None
     # The drawn fill target lives in the cv.typ header; the command line may
     # not quietly lower it (a lowered target is a WARN carried to the PASS line).
     # The leading and body-size WARNs print up front and again after PASS, where they are read.
     if not _fill_args_ok(fmin, fmax):
-        sys.exit(1)
+        return 1, footer
     drawn, drawn_warns = _drawn_fill(typ)
     for w in drawn_warns:
         print(w)
@@ -399,8 +400,8 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
 
     deps_ok, use_cli, backend = preflight()
     if not deps_ok:
-        sys.exit(1)
-    STATE.footer = _FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
+        return 1, footer
+    footer = _FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
 
     for level, msg in check_lib_integrity(typ):
         print(f"{level}  {msg}")
@@ -411,7 +412,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     if not ok:
         print("FAIL  compile")
         print(err)
-        sys.exit(1)
+        return 1, footer
     if "did not converge" in err:
         print("FAIL  compile: Typst warns the layout did not converge, so the PDF depends on "
               "which iteration it stopped at — either the CV's lib.typ is an older copy (recopy "
@@ -473,7 +474,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                 print(f"INFO  fill: {path}: {result} (target = (100 - bottom-margin%) - 0..2%)")
             boxes = pages_boxes[i] if pages_boxes and i < len(pages_boxes) else None
             if pages_text is None and i == 0:
-                print(f"WARN  text-clip gate skipped: {_boxes_unavailable()}")
+                print(f"WARN  text-clip gate skipped: {_boxes_unavailable(pdf)}")
             for msg in check_text_clip(path, pages_text[i] if pages_text and i < len(pages_text) else None):
                 print("FAIL  " + msg)
                 fail = 1
@@ -595,4 +596,4 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         if size_warn:
             print(size_warn)
 
-    sys.exit(fail)
+    return int(fail), footer

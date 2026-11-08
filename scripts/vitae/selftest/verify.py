@@ -19,12 +19,8 @@ AssertionError. verify.py imports this module lazily inside its `--selftest` bra
 so a normal run never loads it (the self-test is a large share of what
 verify.py once was, and none of it runs during a real verification).
 
-How it reaches verify: run as a script, verify.py is `__main__`, so the
-`from verify import ...` below would import a SECOND copy of verify.py (module state
-duplicated, the script executed twice). verify.py therefore registers the running
-module first, with `sys.modules.setdefault("verify", sys.modules[__name__])`, and the
-import resolves to it. Hence `_VERIFY_FILE` replaces `__file__` in the moved code: the
-self-test spawns verify.py as a subprocess and feeds it to is_letter / is_academic.
+`_VERIFY_FILE` is the façade scripts/verify.py: the self-test spawns it as a subprocess and feeds it to
+is_letter / is_academic.
 
 What it does not cover: verify_letter.py, verify_academic.py and pick_design.py each
 have their own `--selftest`; the end-to-end fixtures, the per-template gates and the
@@ -43,63 +39,36 @@ from collections.abc import Callable, Iterator
 from typing import Any, Literal, NoReturn, cast, overload
 
 import vitae.fill as measure_fill
-import vitae.verify.cli as _v
+from vitae.core.base import LEADING_WARN, LOWERED_FILL_FLOOR, Box, DetailRow, Mark, Word, WordBox
+from vitae.core.env import pdf_backend, pdf_tool, preflight, typst_can_query, typst_fonts
 from vitae.core.level import Level
-from vitae.verify.cli import (  # noqa: E402
-    DEVICE_QUORUM,
-    ENTRY_MARKS,
-    FURNITURE_SCALE,
-    LEADING_WARN,
-    LOWERED_FILL_FLOOR,
-    PROX_FAIL,
-    SEPARATION_CEILING,
-    Box,
-    DetailRow,
-    Mark,
-    Word,
-    WordBox,
+from vitae.verify.cv import (
     _body_size_warn,
-    _drawn_fill,
-    _fam_key,
-    _family_requested,
-    _first_word,
     _leading_warn,
-    _read_par,
-    _strip_typst_comments,
-    _typst_query,
-    _write_par,
-    _xheight_band,
-    check_bullet_chars,
-    check_date_adjacency,
-    check_duplicate_names,
-    check_facts_coverage,
-    check_forced_linebreak,
-    check_group_proximity,
-    check_hidden_text,
     check_lib_integrity,
-    check_literal_tilde,
-    check_no_split,
-    check_text_clip,
-    check_whitespace,
-    classify_font_fallback,
-    family_from_path,
-    furniture_ink,
     is_academic,
     is_gated,
     is_letter,
-    measure_groups,
     pages_from_name,
-    pdf_backend,
-    pdf_tool,
-    preflight,
-    requested_families,
-    tune,
-    typst_can_query,
-    typst_compile,
-    typst_fonts,
-    word_boxes,
 )
-from vitae.verify.typst import _doc_leading
+from vitae.verify.fonts import _fam_key, _family_requested, classify_font_fallback, requested_families
+from vitae.verify.groups import (
+    ENTRY_MARKS,
+    PROX_FAIL,
+    _first_word,
+    _typst_query,
+    check_date_adjacency,
+    check_duplicate_names,
+    check_group_proximity,
+    measure_groups,
+)
+from vitae.verify.layout import DEVICE_QUORUM, SEPARATION_CEILING, check_text_clip, check_whitespace
+from vitae.verify.page import FURNITURE_SCALE, _xheight_band, furniture_ink
+from vitae.verify.pdf import family_from_path, typst_compile, word_boxes
+from vitae.verify.source import _drawn_fill, check_forced_linebreak, check_literal_tilde, check_no_split
+from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
+from vitae.verify.tune import tune
+from vitae.verify.typst import _doc_leading, _read_par, _strip_typst_comments, _write_par
 
 # the façade scripts/verify.py: what a user runs (and what the subprocess calls below spawn)
 _VERIFY_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py")
@@ -1195,8 +1164,8 @@ def run() -> NoReturn:
                     '#set par(leading: 0.6em, spacing: 0.7em)\n' + _body)
                 _b = io.StringIO()
                 with contextlib.redirect_stdout(_b):
-                    _rc = tune(_f, 1, fmin, 96, *rng)
-                return _rc, _b.getvalue(), _v.STATE.footer, _read_par(open(_f).read())
+                    _rc, _footer = tune(_f, 1, fmin, 96, *rng)
+                return _rc, _b.getvalue(), _footer, _read_par(open(_f).read())
         _trc, _to, _tft, _tpar = _tune_doc(15, 0.40, 1.60)
         assert _trc == 1 and "UNDER-FILLED" in _to and "never invent" in _to, _to
         assert "clamped to 1.000em" in _to and "searching [0.400, 1.000]" in _to, _to

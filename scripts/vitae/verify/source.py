@@ -1,6 +1,6 @@
 """Checks on the cv.typ source: section split, forced line breaks, literal `~`, header fill declaration.
 
-Moved out of verify.py unchanged, re-exported there under the same names. A leaf under verify_pdf: no `import verify`.
+A leaf under verify_pdf: no `import verify`.
 """
 from __future__ import annotations
 

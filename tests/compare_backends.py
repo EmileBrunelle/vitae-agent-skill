@@ -19,7 +19,8 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
-import verify  # noqa: E402
+from vitae.core.env import PdfBackend  # noqa: E402
+from vitae.verify.pdf import extract_text  # noqa: E402
 
 MAX_DELTA = 6      # lines apart
 # Ratchet: fixtures whose line sequence is identical today. Losing that is a FAIL.
@@ -28,8 +29,8 @@ IDENTICAL = {"avant-poster", "color-band", "editorial-serif", "engraved-card", "
 MIN_MATCH = 0.85   # share of poppler's lines that pdfium has verbatim (measured 0.89 to 1.00)
 
 
-def lines(pdf: str, backend: verify.PdfBackend) -> list[str]:
-    return [" ".join(ln.split()) for ln in verify.extract_text(pdf, backend).split("\n") if ln.strip()]
+def lines(pdf: str, backend: PdfBackend) -> list[str]:
+    return [" ".join(ln.split()) for ln in extract_text(pdf, backend).split("\n") if ln.strip()]
 
 
 def bigrams_ok(a: list[str], b: list[str]) -> bool:

@@ -1,6 +1,6 @@
 """Grouping, date-adjacency, duplicate-name gates and the `typst query` mark reader they share.
 
-Moved out of verify.py unchanged, re-exported there under the same names. No `import verify`.
+No `import verify`.
 """
 from __future__ import annotations
 
@@ -406,7 +406,7 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     if heads is None or pages is None:
         if pdf_backend() == "pdfium":
             return [(Level.WARN, "group proximity NOT checked (typst query unavailable or word positions "
-                             "unreadable: " + _boxes_unavailable() + ")")]
+                             "unreadable: " + _boxes_unavailable(pdf) + ")")]
         return [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
     if not heads:
         return [(Level.WARN, "group proximity not measured: no lib entry()/srow() heads")]
@@ -577,7 +577,7 @@ def check_date_adjacency(typ: str, pdf: str, marks: list[Mark] | None = None, ro
     words = word_boxes(pdf, with_text=True) if words is None else words
     if words is None:
         warn("pdftotext unavailable (word positions needed)" if pdf_backend() != "pdfium"
-             else f"word positions needed, {_boxes_unavailable()}")
+             else f"word positions needed, {_boxes_unavailable(pdf)}")
         return out
     for ix, r in enumerate(recs):
         h, d, o = r["head"], r["date"], r["org"]

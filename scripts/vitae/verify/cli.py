@@ -34,13 +34,8 @@ needed one is removed. What a script cannot know comes from an explicit declarat
 key, a tagged mark in cv.typ) or is left to the model (references/steps/6-verify.md). So there is no INFO or WARN that
 talks about a language: a script never guesses one, and never FAILs because of one.
 
-The helpers live in sibling modules, which verify.py imports by name: verify_lang (Latin-script helpers),
-verify_typst (cv.typ parsing: text in, values out), verify_fonts (font families asked for against drawn),
-verify_page (page geometry and pixel measurement), and verify_selftest (--selftest). The first four never
-`import verify`: verify.py runs as __main__, so importing it would execute the script a second time under the name
-`verify`. verify_selftest does need verify's own functions, so --selftest imports it lazily, after registering the
-running module as `verify` in sys.modules (its `import verify` then gets this module, not a copy); a normal run
-never loads it.
+The helpers live in sibling modules under vitae/verify/ and vitae/core/, imported by name where they are used; the
+--selftest code (vitae/selftest/verify.py) is loaded lazily, so a normal run never loads it.
 
 --all checks EVERY deliverable in a directory instead of the one file just edited. This exists because of a real
 regression: a padding tweak was verified on the 2-page CV while it silently pushed the 1-page CV onto two pages
@@ -84,428 +79,16 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil  # noqa: F401 -- tests patch v.shutil.which (the stdlib module object, shared by every verify_* module)
-import subprocess  # noqa: F401 -- tests patch v.subprocess.run (the stdlib module object, shared by every verify_* module)
 import sys
 import tempfile
 from typing import NoReturn
 
-from vitae.core.base import (
-    _FOOTER_GATE as _FOOTER_GATE,
-)
-from vitae.core.base import (
-    _FOOTER_TUNE as _FOOTER_TUNE,
-)
-from vitae.core.base import (
-    _FOOTER_TUNE_NOPAR as _FOOTER_TUNE_NOPAR,
-)
-from vitae.core.base import (
-    _FOOTER_TUNE_UNDER as _FOOTER_TUNE_UNDER,
-)
-from vitae.core.base import (
-    _FOOTER_TUNE_WIDE as _FOOTER_TUNE_WIDE,
-)
-from vitae.core.base import (
-    _NO_READ as _NO_READ,
-)
-from vitae.core.base import (
-    HIDDEN_PPI as HIDDEN_PPI,
-)
-from vitae.core.base import (
-    LEADING_WARN as LEADING_WARN,
-)
-from vitae.core.base import (
-    LOWERED_FILL_FLOOR as LOWERED_FILL_FLOOR,
-)
-from vitae.core.base import (
-    STATE as STATE,
-)
-from vitae.core.base import (
-    Band as Band,
-)
-from vitae.core.base import (  # noqa: E402 -- shared shapes, constants and STATE (a leaf module); re-exported for callers
-    Box as Box,
-)
-from vitae.core.base import (
-    DetailRow as DetailRow,
-)
-from vitae.core.base import (
-    GapFn as GapFn,
-)
-from vitae.core.base import (
-    GroupRow as GroupRow,
-)
-from vitae.core.base import (
-    HiddenStat as HiddenStat,
-)
-from vitae.core.base import (
-    LineBox as LineBox,
-)
-from vitae.core.base import (
-    Mark as Mark,
-)
-from vitae.core.base import (
-    SecRow as SecRow,
-)
-from vitae.core.base import (
-    Word as Word,
-)
-from vitae.core.base import (
-    WordBox as WordBox,
-)
-from vitae.core.base import (
-    _EntryRecord as _EntryRecord,
-)
-from vitae.core.base import (
-    _Line as _Line,
-)
-from vitae.core.env import (
-    _NEW_TYPST as _NEW_TYPST,
-)
-from vitae.core.env import (
-    _OLD_TYPST as _OLD_TYPST,
-)
-from vitae.core.env import (
-    TYPST_MIN as TYPST_MIN,
-)
-from vitae.core.env import (
-    PdfBackend as PdfBackend,
-)
-from vitae.core.env import (
-    _CountDegraded as _CountDegraded,
-)
-from vitae.core.env import (
-    _importable as _importable,
-)
-from vitae.core.env import (
-    _typst_py_probe as _typst_py_probe,
-)
-from vitae.core.env import (
-    _ver_tuple as _ver_tuple,
-)
-from vitae.core.env import (
-    check_fonts as check_fonts,
-)
-from vitae.core.env import (
-    check_pdf_tools as check_pdf_tools,
-)
-from vitae.core.env import (  # noqa: E402 -- dependency preflight and typst probes; re-exported for callers
-    check_pillow as check_pillow,
-)
-from vitae.core.env import (
-    check_typst as check_typst,
-)
-from vitae.core.env import (
-    pdf_backend as pdf_backend,
-)
-from vitae.core.env import (
-    pdf_tool as pdf_tool,
-)
-from vitae.core.env import (
-    preflight as preflight,
-)
-from vitae.core.env import (
-    typst_can_query as typst_can_query,
-)
-from vitae.core.env import (
-    typst_font_kw as typst_font_kw,
-)
-from vitae.core.env import (
-    typst_fonts as typst_fonts,
-)
-from vitae.core.env import (
-    typst_py as typst_py,
-)
-from vitae.verify.cv import _BODY_SIZE_WARN as _BODY_SIZE_WARN
-from vitae.verify.cv import _LEADING_RATIO_WARN as _LEADING_RATIO_WARN
-from vitae.verify.cv import _LEADING_WARN as _LEADING_WARN
-from vitae.verify.cv import _LOWERED_FAIL as _LOWERED_FAIL
-from vitae.verify.cv import _LOWERED_WARN as _LOWERED_WARN
-from vitae.verify.cv import ACADEMIC_MARKER as ACADEMIC_MARKER
-from vitae.verify.cv import BODY_SIZE_WARN as BODY_SIZE_WARN
-from vitae.verify.cv import HEADER_RE as HEADER_RE
-from vitae.verify.cv import LEADING_RATIO_WARN as LEADING_RATIO_WARN
-from vitae.verify.cv import LETTER_MARKER as LETTER_MARKER
-from vitae.verify.cv import NON_CV_RE as NON_CV_RE
-from vitae.verify.cv import _body_size_warn as _body_size_warn
-from vitae.verify.cv import _check_cv as _check_cv
-from vitae.verify.cv import _leading_warn as _leading_warn
-from vitae.verify.cv import check_all as check_all
-from vitae.verify.cv import check_lib_integrity as check_lib_integrity
-from vitae.verify.cv import digest_of as digest_of
-from vitae.verify.cv import is_academic as is_academic
-from vitae.verify.cv import is_gated as is_gated
-from vitae.verify.cv import is_letter as is_letter
-from vitae.verify.cv import pages_from_name as pages_from_name
-from vitae.verify.cv import run_hidden_gate as run_hidden_gate
-from vitae.verify.cv import run_new_gates as run_new_gates
-from vitae.verify.fonts import (  # noqa: E402 -- font families asked for vs drawn: pure text and tuples
-    _fam_key as _fam_key,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
-)
-from vitae.verify.fonts import (
-    _family_requested as _family_requested,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
-)
-from vitae.verify.fonts import (
-    classify_font_fallback as classify_font_fallback,
-)
-from vitae.verify.fonts import (
-    requested_families as requested_families,
-)
-from vitae.verify.groups import ENTRY_MARKS as ENTRY_MARKS
-from vitae.verify.groups import PROX_FAIL as PROX_FAIL
-from vitae.verify.groups import PROX_WARN as PROX_WARN
-from vitae.verify.groups import _entry_records as _entry_records
-from vitae.verify.groups import _find_run as _find_run
-from vitae.verify.groups import _first_word as _first_word
-from vitae.verify.groups import _gnorm as _gnorm
-from vitae.verify.groups import _line_index as _line_index
-from vitae.verify.groups import _lines as _lines
-from vitae.verify.groups import _page_ink_gap as _page_ink_gap
-from vitae.verify.groups import _typst_query as _typst_query
-from vitae.verify.groups import _yc as _yc
-from vitae.verify.groups import check_date_adjacency as check_date_adjacency
-from vitae.verify.groups import check_duplicate_names as check_duplicate_names
-from vitae.verify.groups import check_group_proximity as check_group_proximity
-from vitae.verify.groups import measure_groups as measure_groups
-from vitae.verify.layout import BOUNDARY_CEILING as BOUNDARY_CEILING
-from vitae.verify.layout import CANYON as CANYON
-from vitae.verify.layout import DEVICE_QUORUM as DEVICE_QUORUM
-from vitae.verify.layout import DEVICELESS as DEVICELESS
-from vitae.verify.layout import SEPARATION_CEILING as SEPARATION_CEILING
-from vitae.verify.layout import check_font_fallback as check_font_fallback
-from vitae.verify.layout import check_text_clip as check_text_clip
-from vitae.verify.layout import check_whitespace as check_whitespace
-from vitae.verify.layout import pdf_char_fonts as pdf_char_fonts
-from vitae.verify.page import (
-    FURNITURE_SCALE as FURNITURE_SCALE,  # noqa: F401 -- re-exported: verify_selftest.py reads it from verify
-)
-from vitae.verify.page import (
-    _xheight_band as _xheight_band,
-)
-from vitae.verify.page import (
-    furniture_ink as furniture_ink,
-)
-from vitae.verify.pdf import (
-    LINE_GAP as LINE_GAP,
-)
-from vitae.verify.pdf import (
-    _bbox_pages as _bbox_pages,
-)
-from vitae.verify.pdf import (
-    _boxes_unavailable as _boxes_unavailable,
-)
-from vitae.verify.pdf import (
-    _page_rasters as _page_rasters,
-)
-from vitae.verify.pdf import (
-    _pdfium_bbox_pages as _pdfium_bbox_pages,
-)
-from vitae.verify.pdf import (
-    _pdfium_doc as _pdfium_doc,
-)
-from vitae.verify.pdf import (
-    _pdfium_page_text as _pdfium_page_text,
-)
-from vitae.verify.pdf import (
-    _pdfium_render as _pdfium_render,
-)
-from vitae.verify.pdf import (
-    _reading_order as _reading_order,
-)
-from vitae.verify.pdf import (
-    _render_pages_png as _render_pages_png,
-)
-from vitae.verify.pdf import (
-    _root_cli as _root_cli,
-)
-from vitae.verify.pdf import (
-    _root_kw as _root_kw,
-)
-from vitae.verify.pdf import (  # noqa: E402 -- compile / page count / render; re-exported for callers
-    auto_root as auto_root,
-)
-from vitae.verify.pdf import (
-    compile_pdf as compile_pdf,
-)
-from vitae.verify.pdf import (
-    count_pages as count_pages,
-)
-from vitae.verify.pdf import (
-    ensure_icons as ensure_icons,
-)
-from vitae.verify.pdf import (
-    extract_text as extract_text,
-)
-from vitae.verify.pdf import (
-    family_from_path as family_from_path,
-)
-from vitae.verify.pdf import (
-    pdf_unreadable as pdf_unreadable,
-)
-from vitae.verify.pdf import (
-    render_crops as render_crops,
-)
-from vitae.verify.pdf import (
-    render_pages as render_pages,
-)
-from vitae.verify.pdf import (
-    render_pngs as render_pngs,
-)
-from vitae.verify.pdf import (
-    typst_compile as typst_compile,
-)
-from vitae.verify.pdf import (
-    word_boxes as word_boxes,
-)
-from vitae.verify.source import (
-    _BANNER_RE as _BANNER_RE,
-)
-from vitae.verify.source import (
-    _HEADER1_RE as _HEADER1_RE,
-)
-from vitae.verify.source import (
-    FORCED_BREAK_RE as FORCED_BREAK_RE,
-)
-from vitae.verify.source import (
-    LIST_ITEM_RE as LIST_ITEM_RE,
-)
-from vitae.verify.source import (
-    PAGINATION_RE as PAGINATION_RE,
-)
-from vitae.verify.source import (
-    SECTION_CALL_RE as SECTION_CALL_RE,
-)
-from vitae.verify.source import (
-    TILDE_RE as TILDE_RE,
-)
-from vitae.verify.source import (
-    _drawn_fill as _drawn_fill,
-)
-from vitae.verify.source import (
-    _fill_args_ok as _fill_args_ok,
-)
-from vitae.verify.source import (
-    _heading_words as _heading_words,
-)
-from vitae.verify.source import (
-    _norm_heading as _norm_heading,
-)
-from vitae.verify.source import (
-    check_forced_linebreak as check_forced_linebreak,
-)
-from vitae.verify.source import (
-    check_literal_tilde as check_literal_tilde,
-)
-from vitae.verify.source import (
-    check_no_split as check_no_split,
-)
-from vitae.verify.text import (
-    _DATE_CORE as _DATE_CORE,
-)
-from vitae.verify.text import (
-    _NUM_DATE_END_RE as _NUM_DATE_END_RE,
-)
-from vitae.verify.text import (
-    _NUM_DATE_SCAN_RE as _NUM_DATE_SCAN_RE,
-)
-from vitae.verify.text import (
-    _NUM_MY_RE as _NUM_MY_RE,
-)
-from vitae.verify.text import (
-    _NUM_RE as _NUM_RE,
-)
-from vitae.verify.text import (
-    _PHONE_GEN_RE as _PHONE_GEN_RE,
-)
-from vitae.verify.text import (
-    _PHONE_RE as _PHONE_RE,
-)
-from vitae.verify.text import (
-    _YEAR_RE as _YEAR_RE,
-)
-from vitae.verify.text import (
-    BULLET_CHAR_RE as BULLET_CHAR_RE,
-)
-from vitae.verify.text import (
-    HIDDEN_FAIL_RATIO as HIDDEN_FAIL_RATIO,
-)
-from vitae.verify.text import (
-    HIDDEN_MIN_BOX_PT as HIDDEN_MIN_BOX_PT,
-)
-from vitae.verify.text import (
-    HIDDEN_PAD_PX as HIDDEN_PAD_PX,
-)
-from vitae.verify.text import (
-    HIDDEN_TAIL as HIDDEN_TAIL,
-)
-from vitae.verify.text import (
-    HIDDEN_WARN_RATIO as HIDDEN_WARN_RATIO,
-)
-from vitae.verify.text import (
-    KEYWORD_MAX_TERMS as KEYWORD_MAX_TERMS,
-)
-from vitae.verify.text import (
-    META_MAX_CHARS as META_MAX_CHARS,
-)
-from vitae.verify.text import (
-    TINY_TEXT_PT as TINY_TEXT_PT,
-)
-from vitae.verify.text import (
-    _blank_phones as _blank_phones,
-)
-from vitae.verify.text import (
-    _fold as _fold,
-)
-from vitae.verify.text import (
-    _fold1 as _fold1,
-)
-from vitae.verify.text import (
-    _num_values as _num_values,
-)
-from vitae.verify.text import (
-    _readings as _readings,
-)
-from vitae.verify.text import (
-    _stuffed as _stuffed,
-)
-from vitae.verify.text import (
-    _text_runs as _text_runs,
-)
-from vitae.verify.text import (
-    check_bullet_chars as check_bullet_chars,
-)
-from vitae.verify.text import (
-    check_facts_coverage as check_facts_coverage,
-)
-from vitae.verify.text import (
-    check_hidden_text as check_hidden_text,
-)
-from vitae.verify.text import (
-    check_pdf_metadata as check_pdf_metadata,
-)
-from vitae.verify.text import (
-    hidden_word_stats as hidden_word_stats,
-)
-from vitae.verify.tune import (
-    SPACING_CAP as SPACING_CAP,
-)
-from vitae.verify.tune import (  # noqa: E402 -- --tune bisection; re-exported for callers
-    _probe as _probe,
-)
-from vitae.verify.tune import (
-    tune as tune,
-)
-from vitae.verify.typst import _doc_body_size as _doc_body_size
-from vitae.verify.typst import _doc_par_list as _doc_par_list
-from vitae.verify.typst import (
-    _read_par as _read_par,
-)
-from vitae.verify.typst import (
-    _strip_typst_comments as _strip_typst_comments,
-)
-from vitae.verify.typst import (
-    _write_par as _write_par,
-)
+from vitae.core.base import _FOOTER_GATE, HIDDEN_PPI, DetailRow
+from vitae.core.env import pdf_backend, preflight
+from vitae.verify.cv import _check_cv, check_all, run_new_gates
+from vitae.verify.pdf import extract_text, pdf_unreadable, render_crops, render_pages
+from vitae.verify.source import _fill_args_ok
+from vitae.verify.tune import tune
 
 
 class _Parser(argparse.ArgumentParser):
@@ -527,14 +110,15 @@ class _Parser(argparse.ArgumentParser):
         sys.exit(self._code)
 
 
-def main() -> None:
+def main() -> tuple[int, str | None]:
     """Mode dispatch, and the owner of every usage text (what a usage error and --help print).
 
     The first argument picks the mode, checked in this order: --all, --gates, --render/--text,
     --doctor, --selftest, --tune; anything else is the one-file gate. Modes that need no
     cv.typ (--doctor, --selftest, --render, --text) come before the positional parsing, which
-    would otherwise reject them for a missing `typ`. Every mode ends in sys.exit, so a later
-    branch is reached only when no earlier one matched."""
+    would otherwise reject them for a missing `typ`. Every mode ends in sys.exit, except the
+    gate modes, which return (exit code, footer): the footer is the NEXT line `_run` prints last
+    on a non-zero exit, None until the mode's preflight passed."""
     argv = sys.argv[1:]
     prog = os.path.basename(sys.argv[0])
 
@@ -551,12 +135,11 @@ def main() -> None:
         ap.add_argument("pdf")
         ap.add_argument("--root", default=None)
         ga = ap.parse_known_args(argv[1:])[0]
-        STATE.footer = _FOOTER_GATE
         rows: list[DetailRow] = []
         rc = run_new_gates(ga.typ, ga.pdf, extract_text(ga.pdf, pdf_backend()),
                            open(ga.typ, encoding="utf-8").read(), root=ga.root, detail=rows)
         print("DETAIL " + json.dumps(rows))
-        sys.exit(rc)
+        return rc, _FOOTER_GATE
     if argv and argv[0] in ("--render", "--text"):
         # agent-facing look/read helpers, so no instruction has to name pdftoppm or pdftotext
         ap = _Parser("usage: verify.py --render cv.pdf [--out DIR] [--ppi N] [--crops]   one PNG per page, <stem>-p<N>.png\n"
@@ -597,12 +180,7 @@ def main() -> None:
         sys.exit(0 if ok else 1)
 
     if argv and argv[0] == "--selftest":
-        # Lazy, so a normal run never loads the self-test. It lives in verify_selftest.py and
-        # needs this module's functions. Run as a script this module is __main__, so register it
-        # as `verify` first: the self-test's `import verify` then gets THIS module, not a second
-        # copy that would re-run the script.
-        sys.modules.setdefault("verify", sys.modules[__name__])
-        import vitae.selftest.verify as verify_selftest  # noqa: PLC0415 -- lazy: imports verify
+        import vitae.selftest.verify as verify_selftest  # noqa: PLC0415 -- lazy: a normal run never loads the self-test
         verify_selftest.run()
 
     if argv and argv[0] == "--tune":
@@ -619,8 +197,8 @@ def main() -> None:
             sys.exit(1)
         # LO alone is ignored: the bounds come as a pair or not at all
         bounds = ((float(ta.lo), float(ta.hi)) if ta.hi is not None else (None, None))
-        sys.exit(tune(ta.typ, int(ta.pages), int(ta.fill_min), int(ta.fill_max),
-                      lo=bounds[0], hi=bounds[1]))
+        return tune(ta.typ, int(ta.pages), int(ta.fill_min), int(ta.fill_max),
+                    lo=bounds[0], hi=bounds[1])
 
     # Default mode: the one-file gate. --facts is the only option here, so it is cut out by hand.
     facts_path: str | None = None
@@ -641,18 +219,16 @@ def main() -> None:
     ap.add_argument("fill_min", nargs="?")
     ap.add_argument("fill_max", nargs="?")
     ca = ap.parse_known_args(["--"] + argv)[0]
-    _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path)
+    return _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path)
 
 
 def _run() -> None:
-    """Entry point: run main(), and on a non-zero exit print the armed `_footer` last, so the
+    """Entry point: run main(), and on a non-zero exit print the mode's footer last, so the
     next step is the final thing a reader sees. Exit codes are passed through unchanged."""
-    try:
-        main()
-    except SystemExit as e:
-        if STATE.footer and isinstance(e.code, int) and e.code != 0:
-            print(STATE.footer, flush=True)
-        raise
+    rc, footer = main()
+    if footer and rc != 0:
+        print(footer, flush=True)
+    sys.exit(rc)
 
 
 if __name__ == "__main__":

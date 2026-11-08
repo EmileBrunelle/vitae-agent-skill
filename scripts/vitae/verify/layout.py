@@ -1,6 +1,6 @@
 """Layout gates: whitespace (section boundaries, canyons), clipped text, and the silent font fallback.
 
-Moved out of verify.py unchanged, re-exported there under the same names. No `import verify`.
+No `import verify`.
 """
 from __future__ import annotations
 

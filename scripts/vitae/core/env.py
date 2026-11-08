@@ -1,8 +1,6 @@
 """Dependency preflight ("doctor") and the typst-py / typst CLI probes (a leaf under verify_base: no `import verify`).
 
-Moved out of verify.py unchanged. verify.py re-exports every name, and keeps `import subprocess` / `import shutil`
-so tests that patch `v.subprocess.run` / `v.shutil.which` still reach this module (they patch the shared module
-object, not a copy).
+Tests that patch `subprocess.run` / `shutil.which` for it target this module's own `shutil` / `subprocess`.
 """
 from __future__ import annotations
 

@@ -3,8 +3,12 @@
 Each test records what the function does TODAY. Former defects (unclosed `#section` bracket) are now fixed and tested plainly.
 """
 import pytest
-import verify as v
+import vitae.core.env as verify_env
 import vitae.verify.typst as verify_typst
+from vitae.core.env import check_typst
+from vitae.verify.source import _norm_heading
+from vitae.verify.text import _fold, _num_values
+from vitae.verify.typst import _doc_body_size
 
 # --- _fold -----------------------------------------------------------------------------------------------------
 
@@ -15,7 +19,7 @@ import vitae.verify.typst as verify_typst
     ("a–b‒c−d", "a-b-c-d"),
 ])
 def test_fold(s, expected):
-    assert v._fold(s) == expected
+    assert _fold(s) == expected
 
 
 # --- _num_values -----------------------------------------------------------------------------------------------
@@ -32,7 +36,7 @@ def test_fold(s, expected):
     ("1,2,3", set()),                       # malformed: "1.2.3" is not a float and is skipped, not raised
 ])
 def test_num_values(text, expected):
-    assert v._num_values(text) == expected
+    assert _num_values(text) == expected
 
 
 # --- _norm_heading ---------------------------------------------------------------------------------------------
@@ -45,13 +49,13 @@ def test_num_values(text, expected):
     ("!!!", ""),
 ])
 def test_norm_heading(s, expected):
-    assert v._norm_heading(s) == expected
+    assert _norm_heading(s) == expected
 
 
 def test_norm_heading_drops_accents_on_latin_letters():
     # "Expérience" and "EXPÉRIENCE" meet on "experience"; both sides of a real comparison go through it.
-    assert v._norm_heading("EXPÉRIENCE") == "experience"
-    assert v._norm_heading("Expérience") == v._norm_heading("EXPERIENCE")
+    assert _norm_heading("EXPÉRIENCE") == "experience"
+    assert _norm_heading("Expérience") == _norm_heading("EXPERIENCE")
 
 
 # --- _spacing_arg ----------------------------------------------------------------------------------------------
@@ -80,17 +84,17 @@ def test_spacing_arg(args, found, groups):
     ("", None),
 ])
 def test_doc_body_size(text, expected):
-    assert v._doc_body_size(text) == expected
+    assert _doc_body_size(text) == expected
 
 
 def test_typst_newer_than_calibration_note(monkeypatch, capsys):
-    monkeypatch.setattr(v.shutil, "which", lambda n: "/x/typst" if n == "typst" else None)
+    monkeypatch.setattr(verify_env.shutil, "which", lambda n: "/x/typst" if n == "typst" else None)
     class R:
         stdout = "typst 0.16.0 (abc)"
-    monkeypatch.setattr(v.subprocess, "run", lambda *a, **k: R())
-    assert v.check_typst() == (True, True)
+    monkeypatch.setattr(verify_env.subprocess, "run", lambda *a, **k: R())
+    assert check_typst() == (True, True)
     out = capsys.readouterr().out
     assert out.startswith("OK    typst 0.16.0") and "newer versions may measure differently" in out
     R.stdout = "typst 0.15.1 (abc)"
-    assert v.check_typst() == (True, True)
+    assert check_typst() == (True, True)
     assert "newer versions" not in capsys.readouterr().out
