@@ -288,9 +288,9 @@ runpy.run_path('scripts/verify.py', run_name='__main__')" 2>&1)" || rc=$?
     local d="$out/doctor-sim-degfonts" txt rc=0; doctor_env "$d" python3
     txt="$(PATH="$d/bin" "$PY" -c "
 import sys; sys.path.insert(0, 'scripts')
-import pick_design
+import vitae.design.fonts as design_fonts
 from vitae.core.env import preflight
-pick_design._fonts_available = lambda: {'DejaVu Sans'}
+design_fonts._fonts_available = lambda: {'DejaVu Sans'}
 preflight()" 2>&1)" || rc=$?
     echo "$txt"
     echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
@@ -348,8 +348,8 @@ check doctor-minimal-fonts doctor_minimal_fonts
 doctor_full_fonts() {
   local d="$out/doctor-sim4"; doctor_env "$d" python3
   local fams; mapfile -t fams < <(python3 -I -c "
-import sys; sys.path.insert(0, 'scripts'); import pick_design as p
-for fp in p.FONTS.values():
+import sys; sys.path.insert(0, 'scripts'); from vitae.design.tables import FONTS
+for fp in FONTS.values():
     for role in ('display', 'body', 'mono'):
         for f in fp.get(role, []): print(f[0])" | sort -u)
   shim_typst "$d" "${fams[@]}"
@@ -386,11 +386,11 @@ else
   say "SKIP pytest (not installed: pip install pytest)"
 fi
 
-# Template targets come from pick_design.FAMILIES[f]['page']['fill'] ("A-B").
+# Template targets come from vitae.design.tables.FAMILIES[f]['page']['fill'] ("A-B").
 targets="$(python3 -I -c "
-import sys; sys.path.insert(0, 'scripts'); import pick_design as p
-for f in sorted(p.FAMILIES):
-    print(f, p.FAMILIES[f]['page']['fill'].replace('-', ' '))")"
+import sys; sys.path.insert(0, 'scripts'); from vitae.design.tables import FAMILIES
+for f in sorted(FAMILIES):
+    print(f, FAMILIES[f]['page']['fill'].replace('-', ' '))")"
 
 n=0
 tpl_pids=()

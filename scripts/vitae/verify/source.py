@@ -126,8 +126,8 @@ def _drawn_fill(typ: str) -> tuple[tuple[int, int] | None, list[str]]:
     family = family_from_path(typ)
     table: tuple[int, int] | None = None
     if family:
-        import vitae.design.pick as pd
-        fam = pd.FAMILIES.get(family)
+        from vitae.design.tables import FAMILIES
+        fam = FAMILIES.get(family)
         if fam:
             lo, hi = fam["page"]["fill"].split("-")
             table = (int(lo), int(hi))

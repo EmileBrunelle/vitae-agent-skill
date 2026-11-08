@@ -258,9 +258,11 @@ def test_fold1_is_length_preserving_and_keeps_scripts():
 
 # --- verify_academic: declared entry statuses, no built-in word list ---------------------------------------------------------
 
-import verify_academic as va  # noqa: E402  (needs verify importable first: conftest puts scripts/ on the path)
+import vitae.verify.academic.checks as va_checks  # noqa: E402  (conftest puts scripts/ on the path)
+import vitae.verify.academic.parse as va_parse  # noqa: E402
+import vitae.verify.academic.spec as va_spec  # noqa: E402
 
-SECTIONS: list[va.Section] = [
+SECTIONS: list[va_spec.Section] = [
     {"heading": "EDUCATION", "count": 1, "undated_prefix": 0, "numbered": False},
     {"heading": "PUBLICATIONS: JOURNAL ARTICLES", "count": 2, "undated_prefix": 1, "numbered": False},
 ]
@@ -276,7 +278,7 @@ Sous presse Dupont, J. Une borne pour la coloration des graphes, avec une démon
 
 
 def test_entry_start_recognises_only_years_by_default():
-    rx = va.entry_start_re()
+    rx = va_parse.entry_start_re()
     assert rx.match("2019-2024  Entry") and rx.match("2021 Entry")
     for word in ("In press", "submitted", "Sous presse", "Accepted somewhere"):
         assert not rx.match(f"{word}  Doe, J. A paper")
@@ -284,38 +286,38 @@ def test_entry_start_recognises_only_years_by_default():
 
 @pytest.mark.parametrize("status", ["Sous presse", "soumis", "In press", "eingereicht", "投稿中"])
 def test_declared_status_is_a_case_insensitive_whole_word(status):
-    rx = va.entry_start_re([status])
+    rx = va_parse.entry_start_re([status])
     assert rx.match(f"{status}  Doe, J. A paper") and rx.match(f"{status.upper()}  Doe, J. A paper")
     assert not rx.match("Accepted somewhere")
 
 
 def test_declared_status_is_escaped_not_a_regex():
-    rx = va.entry_start_re(["(a.c)"])
+    rx = va_parse.entry_start_re(["(a.c)"])
     assert rx.match("(a.c) Entry") and not rx.match("(abc) Entry")
 
 
 def test_declared_status_entry_is_counted():
-    results, _ = va.analyze(ACADEMIC, SECTIONS, "Dupont", (), ["Sous presse"])
+    results, _ = va_checks.analyze(ACADEMIC, SECTIONS, "Dupont", (), ["Sous presse"])
     assert all(ok for _, ok, _ in results), results
 
 
 def test_undeclared_status_fails_plainly_never_passes_a_wrong_count():
-    results, _ = va.analyze(ACADEMIC, SECTIONS, "Dupont", ())
+    results, _ = va_checks.analyze(ACADEMIC, SECTIONS, "Dupont", ())
     msgs = [m for _, ok, m in results if not ok]
     assert any("entry_status is not declared" in m for m in msgs), msgs
     assert any("declared 2, extracted 1" in m for m in msgs), msgs
 
 
 def test_declared_statuses_are_read_from_meta():
-    assert va.declared_statuses({"meta": {"entry_status": ["Soumis"]}}) == ["Soumis"]
-    assert va.declared_statuses({"meta": {}}) == [] and va.declared_statuses({}) == []
+    assert va_spec.declared_statuses({"meta": {"entry_status": ["Soumis"]}}) == ["Soumis"]
+    assert va_spec.declared_statuses({"meta": {}}) == [] and va_spec.declared_statuses({}) == []
     with pytest.raises(ValueError):
-        va.declared_statuses({"meta": {"entry_status": "Soumis"}})
+        va_spec.declared_statuses({"meta": {"entry_status": "Soumis"}})
 
 
 def test_missing_declared_heading_is_reported_plainly_without_a_language_guess():
     text = ACADEMIC.replace("EDUCATION", "FORMATION").replace("PUBLICATIONS: JOURNAL ARTICLES", "ARTICLES DE REVUE")
-    results, _ = va.analyze(text, SECTIONS, "Dupont", (), ["Sous presse"])
+    results, _ = va_checks.analyze(text, SECTIONS, "Dupont", (), ["Sous presse"])
     msgs = [m for _, ok, m in results if not ok]
     assert any("EDUCATION: declared 1 but this heading was not found" in m for m in msgs), msgs
     assert not any("not checked for" in m for m in msgs)
@@ -327,9 +329,9 @@ FR_HEADINGS = {"education": "Formation", "publications": {"journal": "Articles d
 def test_declared_french_headings_make_the_counts_pass():
     text = ACADEMIC.replace("EDUCATION", "FORMATION").replace("PUBLICATIONS: JOURNAL ARTICLES", "Articles de revues")
     data = {"counts": {"education": 1, "publications": {"journal": 2}}, "headings": FR_HEADINGS}
-    secs = [s for s in va.build_sections_spec(_full_data(data)) if s["heading"] in ("Formation", "Articles de revues")]
+    secs = [s for s in va_spec.build_sections_spec(_full_data(data)) if s["heading"] in ("Formation", "Articles de revues")]
     assert [s["heading"] for s in secs] == ["Formation", "Articles de revues"]
-    results, _ = va.analyze(text, [{**secs[0], "count": 1}, {**secs[1], "count": 2, "undated_prefix": 1, "numbered": False}],
+    results, _ = va_checks.analyze(text, [{**secs[0], "count": 1}, {**secs[1], "count": 2, "undated_prefix": 1, "numbered": False}],
                             "Dupont", (), ["Sous presse"], ["Formation", "Articles de revues"])
     assert all(ok for _, ok, _ in results), results                 # matched case-insensitively, literally
 
@@ -346,54 +348,55 @@ def _full_data(data):
 
 def test_undeclared_french_heading_fails_with_the_hint():
     text = ACADEMIC.replace("EDUCATION", "FORMATION")
-    results, _ = va.analyze(text, SECTIONS, "Dupont", (), ["Sous presse"])
+    results, _ = va_checks.analyze(text, SECTIONS, "Dupont", (), ["Sous presse"])
     msgs = [m for _, ok, m in results if not ok]
     assert any("EDUCATION" in m and "declare it under [headings]" in m for m in msgs), msgs
 
 
 def test_unknown_headings_key_fails_naming_it():
-    res = va.check_headings_table({"headings": {"educaton": "Formation", "publications": {"jurnal": "X", "journal": "Y"}}})
+    res = va_spec.check_headings_table({"headings": {"educaton": "Formation", "publications": {"jurnal": "X", "journal": "Y"}}})
     msgs = [m for _, ok, m in res if not ok]
     assert len(msgs) == 2 and "educaton" in msgs[0] and "publications.jurnal" in msgs[1]
-    assert va.check_headings_table({"headings": FR_HEADINGS}) == [] and va.check_headings_table({}) == []
+    assert va_spec.check_headings_table({"headings": FR_HEADINGS}) == [] and va_spec.check_headings_table({}) == []
 
 
 def test_status_matches_across_whitespace_runs():
-    rx = va.entry_start_re(["in press"])
-    assert rx.match("In  press  Doe, J.") and va.entry_start_re(["in  press"]).match("in press Doe")
+    rx = va_parse.entry_start_re(["in press"])
+    assert rx.match("In  press  Doe, J.") and va_parse.entry_start_re(["in  press"]).match("in press Doe")
     assert not rx.match("In pressing Doe")
 
 
 def test_english_body_line_equal_to_a_heading_up_to_case_is_not_a_heading():
-    secs: list[va.Section] = [{"heading": "EDUCATION", "count": 2, "undated_prefix": 0, "numbered": False},
+    secs: list[va_spec.Section] = [{"heading": "EDUCATION", "count": 2, "undated_prefix": 0, "numbered": False},
                               {"heading": "TEACHING", "count": 0, "undated_prefix": 0, "numbered": False}]
     text = ("Dupont\nEDUCATION\n2015  PhD, Université de Montréal, thesis on graph colouring and its applications.\n"
             "Teaching\n2012  MSc, McGill University, thesis on planar graphs and their colourings in general.\n")
-    results, _ = va.analyze(text, secs, "Dupont", ())
+    results, _ = va_checks.analyze(text, secs, "Dupont", ())
     assert all(ok for _, ok, _ in results), results
-    assert va._canonical_headings(text, set()) == text
-    assert va._canonical_headings("formation", {"Formation"}) == "Formation"
+    assert va_parse._canonical_headings(text, set()) == text
+    assert va_parse._canonical_headings("formation", {"Formation"}) == "Formation"
 
 
 def test_affiliations_heading_can_be_declared_and_is_not_a_counts_key():
-    assert va.check_headings_table({"headings": {"affiliations": "Affiliations et langues"}}) == []
-    extra, declared = va.printed_headings({"headings": {"affiliations": "Affiliations et langues"}})
+    assert va_spec.check_headings_table({"headings": {"affiliations": "Affiliations et langues"}}) == []
+    extra, declared = va_spec.printed_headings({"headings": {"affiliations": "Affiliations et langues"}})
     assert extra == ("Affiliations et langues",) and declared == ["Affiliations et langues"]
-    assert va.printed_headings({})[0] == va.EXTRA_HEADINGS
+    assert va_spec.printed_headings({})[0] == va_spec.EXTRA_HEADINGS
 
 
 def test_headings_table_shape_errors():
-    res = va.check_headings_table({"headings": "Formation"})
+    res = va_spec.check_headings_table({"headings": "Formation"})
     assert [m for _, ok, m in res if not ok] == ["[headings] must be a table"]
-    res = va.check_headings_table({"headings": {"publications": "Pubs"}})
+    res = va_spec.check_headings_table({"headings": {"publications": "Pubs"}})
     msgs = [m for _, ok, m in res if not ok]
     assert len(msgs) == 1 and "publications" in msgs[0] and "expects a table of subsections" in msgs[0]
 
 
 # --- verify_letter and pick_design: case-folding and word starts ---------------------------------------------------------------
 
-import pick_design as pd  # noqa: E402
 import verify_letter as vl  # noqa: E402
+import vitae.design.pick as pd  # noqa: E402
+import vitae.design.tables as pd_tables  # noqa: E402
 
 
 def _letter(monkeypatch, text, employer, title):
@@ -431,4 +434,4 @@ def test_domain_register_matches_words_not_fragments(field, want):
 @pytest.mark.parametrize("field, want", [("ML engineer", True), ("HTML templates", False), ("cybersecurity", True),
                                          ("Département de la santé", False), ("data scientist", True), ("fashion designer", False)])
 def test_gutter_rail_domain_is_a_word_start(field, want):
-    assert any(pd._field_has(field, t) for t in pd.GUTTER_RAIL_DOMAIN) is want
+    assert any(pd._field_has(field, t) for t in pd_tables.GUTTER_RAIL_DOMAIN) is want

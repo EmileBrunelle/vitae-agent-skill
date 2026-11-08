@@ -213,9 +213,9 @@ def run() -> NoReturn:
     # The family banner is the authority, not the editable header (CHANGELOG, drawn fill target). A header
     # beyond the first 3 lines counts as absent; with no family known the header is read on line 1 only.
     with tempfile.TemporaryDirectory(prefix="vitae-drawn-") as _td:
-        import vitae.design.pick as _pd
-        _fam = next(iter(_pd.FAMILIES))
-        _exp = tuple(int(_x) for _x in _pd.FAMILIES[_fam]["page"]["fill"].split("-"))
+        from vitae.design.tables import FAMILIES as _FAMILIES
+        _fam = next(iter(_FAMILIES))
+        _exp = tuple(int(_x) for _x in _FAMILIES[_fam]["page"]["fill"].split("-"))
         _ft = os.path.join(_td, "cv.typ")
         for _body, _want_t, _want_w in (
                 (f"// vitae: pages=1 fill={_exp[0]}-{_exp[1]}\n// FAMILY: {_fam}\n", _exp, 0),

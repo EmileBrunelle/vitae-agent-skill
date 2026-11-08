@@ -197,16 +197,17 @@ def check_fonts() -> None:
     its pool has at least one installed member (`_installed`). pick_design
     draws from at least MIN_POOL families, so fewer usable ones means it will
     substitute."""
-    import vitae.design.pick as pd
-    have = pd._fonts_available()
+    import vitae.design.fonts as design_fonts
+    from vitae.design.tables import FONTS, MIN_POOL
+    have = design_fonts._fonts_available()
     if have is None:
         print("WARN  fonts not checked (`typst fonts` failed or timed out)")
         return
-    pools = pd.FONTS
-    usable = sum(1 for f in pools if pd._family_usable(f, have))
-    if usable < pd.MIN_POOL:
+    pools = FONTS
+    usable = sum(1 for f in pools if design_fonts._family_usable(f, have))
+    if usable < MIN_POOL:
         print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
-              f"(pick_design draws from at least {pd.MIN_POOL}), so it will substitute.")
+              f"(pick_design draws from at least {MIN_POOL}), so it will substitute.")
         print("  Fetch only the fonts the draw asks for (references/fonts.md, \"Downloading from Google Fonts\"):")
         r2 = ("typst --font-path <dir> (no install)" if shutil.which("typst")
               else "export TYPST_FONT_PATHS=<dir> (no install; the Python API reads it here)")

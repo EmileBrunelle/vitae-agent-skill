@@ -134,12 +134,12 @@ def main() -> int:
         shutil.copytree(os.path.join(ROOT, "tests/fixtures"), os.path.join(w, "tests/fixtures"))
         work[env] = w
     sys.path.insert(0, os.path.join(ROOT, "scripts"))
-    import pick_design as pd
+    from vitae.design.tables import FAMILIES
 
     # (case, verify args) for full runs; must-fail marks cases that have to FAIL everywhere.
     full: list[tuple[str, list[str], bool]] = []
-    for f in sorted(pd.FAMILIES):
-        a, b = pd.FAMILIES[f]["page"]["fill"].split("-")
+    for f in sorted(FAMILIES):
+        a, b = FAMILIES[f]["page"]["fill"].split("-")
         for t in ("resume", "resume-pair-b"):
             full.append((f"templates/{f}/{t}", [f"templates/families/{f}/{t}.typ", "1", a, b], False))
     full.append(("templates/swiss-grid/resume-2page", ["templates/families/swiss-grid/resume-2page.typ", "2", "94", "96"], False))
