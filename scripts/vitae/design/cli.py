@@ -76,24 +76,8 @@ script only decides WHICH one; that file says how to build it.
 Only name+field enter the hash: the same person keeps their look when the CV
 is retargeted, unless a flag changes which families are eligible.
 
-POSIX fallback (no python3) — same result for the family choice:
-    key="Firstname Lastname+software"
-    h=$(printf '%s' "$key" | sha256sum | cut -c1-8)
-    # n = number of ELIGIBLE families: apply the flags and the career/field
-    # register weighting by hand from core.md's "Family roster" list (id — register). The eligible
-    # list EXCLUDES the three creative-register families unless creative is
-    # unlocked (a creative --field, or --creative). Widen one register tier at a
-    # time (career order), adding families ALPHABETICALLY and STOPPING as soon
-    # as 5 are eligible, then sort what is left alphabetically.
-    echo $(( 0x$h % n ))        # 0-based index into that alphabetical list
-Same key, same sha256, same modulo, so the family matches this script exactly
-— as long as the eligible list matches. The modulo changes when the roster or
-the pool sizes change, and it did change when the roster went from 9 to 13 to 14
-and MIN_POOL from 4 to 5; that is accepted (a family reshuffle is not a
-regression). The secondary parameters do NOT reproduce: take the family's
-documented defaults — its FIRST accent (with the hue B at the same index), its
-first list marker, its own `labels`, its `page`/`order`/`spec`, and the first
-pool member of each font role that `typst fonts` actually lists.
+The draw is deterministic: same name+field, same family, until the roster or
+the pool sizes change (a family reshuffle then is accepted, not a regression).
 """
 from __future__ import annotations
 

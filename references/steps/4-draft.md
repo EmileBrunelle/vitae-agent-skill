@@ -5,7 +5,7 @@
    on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
    replace the filler with the candidate's facts, then read
    [`references/steps/4-draft/tune.md`](4-draft/tune.md), then `--tune`, then verify. **Scripts are
-   run, never read — their printed output is the instruction.** **Read order: run `pick_design.py` first. Then read [`references/design/core.md`](../design/core.md) whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** If `--init` fails or python3 is missing: [`4-draft/fallback.md`](4-draft/fallback.md).
+   run, never read — their printed output is the instruction.** **Read order: run `pick_design.py` first. Then read [`references/design/core.md`](../design/core.md) whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** If `--init` fails: [`4-draft/fallback.md`](4-draft/fallback.md).
    **Never retype, rewrite or summarize
    `lib.typ`** (a rewrite from memory lost `derive()` and the build never compiled
    again); customization goes in `cv.typ`. `verify.py` FAILs a lib that is not a
@@ -78,7 +78,7 @@
    `FONTS` once it passed the gate). The draw is deterministic per candidate,
    so the 1-page, 2-page and translated versions share one look. The user may
    override with an explicit family or their own combination — an explicit
-   choice always wins; silence does not. No python3: [`4-draft/fallback.md`](4-draft/fallback.md).
+   choice always wins; silence does not.
    **Derive `--career` from the fact sheet** — years of experience, whether
    this is a first job, the seniority of the titles — and the market from
    step 2's regional file and the employer type. **Never from age, birth year,

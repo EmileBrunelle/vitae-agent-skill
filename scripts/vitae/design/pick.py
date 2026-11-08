@@ -130,7 +130,7 @@ def pick(name: str, field: str | None, career: str = "early",
     # (measured before the fix: conservative drew from 4 families,
     # conservative+photo from 5). Tier order = the career's register
     # preference, then alphabetical inside a tier, so the result stays
-    # reproducible by hand (see the POSIX fallback above).
+    # deterministic (same key, same family).
     pool = [f for f in sorted(hard) if FAMILIES[f]["register"] in prefer]
     # the final catch-all tier does NOT name `creative` either — a creative
     # family only ever enters through `prefer` above.

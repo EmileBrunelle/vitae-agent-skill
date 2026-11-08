@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- POSIX `sha256sum` fallback for the family draw removed (`steps/4-draft/fallback.md`, `pick_design.py` docstring, `4-draft.md` pointers): python3 is already required (SKILL.md `compatibility`, `verify.sh`). The Python draw is unchanged; the manual copy path for a failing `--init` stays. `Bash(sha256sum:*)` stays allowed (step 7 manifest).
 - `steps/4-draft.md` lightened (1,938 → ~1,640 words): the manual copy path (if `--init` fails) and the POSIX sha256 fallback (no python3) moved verbatim to `steps/4-draft/fallback.md`; French `#cat~:`, long-career condensing, career changers and the 3rd-page note moved to `steps/4-draft/structure.md`; each is one conditional pointer in `4-draft.md`.
 - `driving.md`: Québec class 1 vs Ontario AZ keeps the "never equivalent to AZ" rule and now says why (CCMTA NSC 6: classes used by all jurisdictions except Ontario; CVSA guide descriptions of Ontario A/Z and Québec 1/F, both non-legal sources); air-brake handling differs by province (Alberta, Ontario); `docs/sources.md` S590-S591.
 - Three more LOW verdicts upgraded: India (AICTE circular of 23.10.2020 on faculty recruitment, read from the scanned page; « Chartered Engineer (India) » attributed to IEI's Royal Charter, Declaration 16, with IEI's own Article 372 statement), Thailand (Engineer Act ss. 71-72 penalties, maximums as enacted); `docs/sources.md` S586-S589.

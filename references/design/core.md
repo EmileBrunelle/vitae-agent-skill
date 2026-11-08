@@ -73,7 +73,7 @@ Pick the family with `scripts/pick_design.py` (deterministic per candidate — t
 
 Each family carries a **register** — `modern`, `neutral`, `classic` or `creative` — and the script weights the pool with it: early-career candidates default to the modern families, mid-career to modern and neutral, and senior to neutral and classic; a conservative market drops the loud families whatever the stage (`--conservative`; `--market` is documentation only, it changes nothing). The default leans modern deliberately. Register is derived from the fact sheet (years of experience, first job, seniority of the titles) and the target market, **never** from age or any demographic datum. Whatever the profile and the flags, the script widens the pool until **at least five families** are eligible (`MIN_POOL`), so two candidates of the same profile collide at worst one time in five. Widening is additive and stops the moment five are eligible, so adding a constraint can never *widen* the pool.
 
-**Family roster** (`id — register`; the register column the POSIX fallback in `scripts/pick_design.py` and step 4 refer to):
+**Family roster** (`id — register`; the register column `scripts/pick_design.py` weights by):
 
 - avant-poster — creative
 - bold-display — modern
