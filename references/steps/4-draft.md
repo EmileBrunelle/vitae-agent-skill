@@ -12,7 +12,9 @@
    copy. `section()`, `job()`, `skill()` and the other devices are defined in the
    family file, NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with
    `unknown variable: section`. (`templates/resume.typ` is only the generic
-   starter, for when no family is drawn.) **Fill `cv.typ` one section at a time:
+   starter, for when no family is drawn.)
+   If the CV is French, the career spans 15+ years, the candidate changes careers, or honest content overflows 2 pages (3rd page: academic, DACH): [`4-draft/structure.md`](4-draft/structure.md).
+   **Fill `cv.typ` one section at a time:
    one edit, then compile — never write the whole file in one go, and never plan
    the whole CV in your head first. The starter already shows every call form with
    all arguments (`job(role, org, dates, note)` — `note` is required — then `- ` bullets;
@@ -76,7 +78,7 @@
    `FONTS` once it passed the gate). The draw is deterministic per candidate,
    so the 1-page, 2-page and translated versions share one look. The user may
    override with an explicit family or their own combination — an explicit
-   choice always wins; silence does not.
+   choice always wins; silence does not. No python3: [`4-draft/fallback.md`](4-draft/fallback.md).
    **Derive `--career` from the fact sheet** — years of experience, whether
    this is a first job, the seniority of the titles — and the market from
    step 2's regional file and the employer type. **Never from age, birth year,
@@ -112,4 +114,3 @@
    page — when every job is on target, use a single experience section.
    Employer descriptor line under each role;
    evidence-based soft-skill lines instead of bare adjective lists.
-   If the CV is French, the career spans 15+ years, the candidate changes careers, or a 3rd page is allowed: [`4-draft/structure.md`](4-draft/structure.md).

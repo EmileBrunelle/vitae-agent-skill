@@ -7,6 +7,8 @@ Fallback only if
    (then change its `#import "../../lib.typ"` line to `#import "lib.typ"`) plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
    apply the values of `--emit-typ --lang <iso639> [--region <iso3166>]` by hand.
 
+The family, flags and `<family>`/`<skill>` come from the `pick_design.py` report or the manual draw in [`4-draft.md`](../4-draft.md).
+
 Without python3, use this POSIX
    fallback (`sha256sum` + modulo over the eligible families in alphabetical
    order, then the family's default accent and marker) — same family, default

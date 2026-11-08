@@ -1,6 +1,6 @@
 # Step 4 — Conditional structure notes
 
-Read only when the CV is French, the career spans 15+ years, the candidate changes careers, or a 3rd page is allowed.
+Read only when the CV is French, the career spans 15+ years, the candidate changes careers, or honest content overflows 2 pages (3rd page: academic, DACH).
 
 For French output, when the family's `skill()` label ends with a colon,
    change the helper to `#cat~:` (non-breaking space before the colon); a family
