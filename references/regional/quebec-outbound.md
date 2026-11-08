@@ -11,7 +11,7 @@ Also read the "Protected titles" section of [`quebec.md`](quebec.md#protected-ti
 
 ## English Canada and USA
 - An OIQ licence is not valid elsewhere: each province needs its own licence, though the Canadian Free Trade Agreement makes transfer largely automatic (Engineers Canada, « Mobility across Canada », consulted 2026-11). A Canadian licence is not a US PE licence (state boards license; NCEES, « Licensure », consulted 2026-11).
-- USA, bare word "engineer": see "Protected titles" in `north-america.md`.
+- USA, bare word "engineer": see "Protected titles" in [`north-america.md`](north-america.md).
 - Engineers targeting the USA: list the Canadian licence as held (« ing. (Ordre des ingénieurs du Québec) » / "P.Eng. (PEO)") and, if the candidate confirms it, the program's CEAB accreditation on the degree line — some states key on them (Texas deems a verified Canadian P.Eng./ing. licence "substantially equivalent to an accredited engineering program": 22 Tex. Admin. Code §133.31(c), amended 2025, consulted 2026-11). Never write "PE" / "Professional Engineer" without a US state licence.
 - US credential evaluation (WES, ECE) depends on evaluator and program; ECE: "Not all international degrees are automatically considered equivalent to a U.S. bachelor's degree" (ECE, « How to Get Your Bachelor’s Degree Recognized in the U.S. », consulted 2026-11). Never promise the outcome.
 - Work authorization: Canadian citizens can work in the USA under TN status for listed professions (Engineer: bachelor's or provincial licence; 8 CFR 214.6, « Citizens of Canada or Mexico seeking temporary entry under USMCA… », consulted 2026-11). No authoritative source requires stating it on the résumé — ask the candidate; don't add it by default.

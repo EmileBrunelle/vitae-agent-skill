@@ -5,7 +5,7 @@ Load this file when the candidate targets software roles. It layers dev-market d
 ## Positioning
 
 - Map internship months + shipped-code time honestly: recruiters read "3 internships" as junior no matter how it is phrased. Target postings that say "junior", "1-3 years", or "intermediate (min. 1 year)"; postings demanding 3-5+ years reject stage-heavy profiles at triage.
-- Header title: "Software Developer" / « Développeur logiciel » (+ full stack / backend / frontend qualifier). Never "Engineer" as a job title unless the candidate holds the license where required (see regional.md) — the degree in the header carries the engineering signal legally.
+- Header title: "Software Developer" (+ full stack / backend / frontend qualifier). Never "Engineer" as a job title unless the candidate holds the license where required (see regional.md) — the degree in the header carries the engineering signal legally.
 - If the current role is not a dev role, split sections: the target-field experience block leads, the off-track job goes under "Other professional experience" with 1-2 transferable bullets. Every month out of code is an interview question — prepare the candidate for "why, and why come back?".
 
 ## The portfolio lever

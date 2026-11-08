@@ -19,4 +19,4 @@ Provenance travels in the generated file's header. The mark is inlined as an SVG
 }
 ```
 
-**Sourcing a new icon later**: add `var: "prefix:icon-name"` to `ICONS` in `scripts/harvest_icons.py` and read `var-body` / `var-vb` from `marks()`. Prefer a FILL-based set (Tabler `*-filled`, Phosphor `*-fill`, Bootstrap `*-fill`) — the script refuses a stroke icon, which `pmark` would fill into a blob. Never paste path data into the repo, and never an icon font: private-use codepoints leak into the extraction (`references/ats.md`).
+**Sourcing a new icon later**: add `var: "prefix:icon-name"` to `ICONS` in `scripts/harvest_icons.py` and read `var-body` / `var-vb` from `marks()`. Prefer a FILL-based set (Tabler `*-filled`, Phosphor `*-fill`, Bootstrap `*-fill`) — the script refuses a stroke icon, which `pmark` would fill into a blob. Never paste path data into the repo, and never an icon font: private-use codepoints leak into the extraction ([`references/ats.md`](ats.md)).

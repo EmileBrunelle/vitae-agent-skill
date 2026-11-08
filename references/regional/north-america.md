@@ -4,7 +4,7 @@
 - Paper: us-letter. Photo: never.
 - CV language: English, or French for Québec.
 - Personal data: none (no age, no marital status).
-- Formality / verb style: verb-first bullets; English past tense (current role in present); French-Québec infinitive (see `quebec.md`).
+- Formality / verb style: verb-first bullets; English past tense (current role in present); French-Québec infinitive (see [`quebec.md`](quebec.md)).
 - Length: 1 page junior, 2 pages max overall (US established firms expect 1 page well past 10 years).
 
 ## Length and verbs

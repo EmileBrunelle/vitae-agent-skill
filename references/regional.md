@@ -2,12 +2,12 @@
 
 Apply the conventions of the market being applied to, not the user's locale. When the region is ambiguous, ask. Send the version in the language *and spelling variant* of the job posting.
 
-**Load only what you need:** this file gives the file list and the universal rules; each market file opens with an "At a glance" (except the Québec add-on files `quebec.md` and `quebec-outbound.md`) (paper, photo, CV language, personal data, verb style, length) and carries the depth; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
+**Load only what you need:** this file gives the file list and the universal rules; each market file opens with an "At a glance" (except the Québec add-on files [`quebec.md`](regional/quebec.md) and [`quebec-outbound.md`](regional/quebec-outbound.md)) (paper, photo, CV language, personal data, verb style, length) and carries the depth; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
 
 - [`regional/north-america.md`](regional/north-america.md) — Canada, Québec, USA (us-letter; EN, FR-QC; no photo/age; length 1-2 p.)
-- [`regional/quebec.md`](regional/quebec.md) — Québec only, read IN ADDITION to `north-america.md`: only when the TARGET market is Québec (a Québec employer or posting; a Québec address alone does not make it the target)
+- [`regional/quebec.md`](regional/quebec.md) — Québec only, read IN ADDITION to [`north-america.md`](regional/north-america.md): only when the TARGET market is Québec (a Québec employer or posting; a Québec address alone does not make it the target)
 - [`regional/quebec-outbound.md`](regional/quebec-outbound.md) — read IN ADDITION to the target market's file when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec
-- [`regional/europe-to-north-america.md`](regional/europe-to-north-america.md) — read IN ADDITION to `north-america.md` when the TARGET market is USA, Canada or Québec and the candidate's credentials or CV habits are European (the target market wins over the address)
+- [`regional/europe-to-north-america.md`](regional/europe-to-north-america.md) — read IN ADDITION to [`north-america.md`](regional/north-america.md) when the TARGET market is USA, Canada or Québec and the candidate's credentials or CV habits are European (the target market wins over the address)
 - [`regional/france.md`](regional/france.md) — France (a4; FR; photo declining; 1 p.)
 - [`regional/uk-ireland.md`](regional/uk-ireland.md) — UK, Ireland (British spelling; no photo)
 - [`regional/dach.md`](regional/dach.md) — Germany, Austria, Switzerland (Lebenslauf, photo and Zeugnisse customs)

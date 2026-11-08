@@ -1,6 +1,6 @@
 # Market: Québec (Canada)
 
-Loaded on demand, in addition to [`north-america.md`](north-america.md), only when the TARGET market is Québec (a Québec employer or posting). A Québec address alone does not make Québec the target: the target market wins. The Canada-wide and USA rules stay in `north-america.md`. For a candidate with Québec credentials targeting another market, read [`quebec-outbound.md`](quebec-outbound.md) instead, plus only this file's "Protected titles" section.
+Loaded on demand, in addition to [`north-america.md`](north-america.md), only when the TARGET market is Québec (a Québec employer or posting). A Québec address alone does not make Québec the target: the target market wins. The Canada-wide and USA rules stay in [`north-america.md`](north-america.md). For a candidate with Québec credentials targeting another market, read [`quebec-outbound.md`](quebec-outbound.md) instead, plus only this file's "Protected titles" section.
 
 ## Length and verbs
 - Québec French: infinitive action verbs (« Concevoir… », « Livrer… ») — a convention taught by university career services, not a provincial norm; noun-phrase style is equally accepted — don't present it to the user as "the Québec convention". Months lowercase (janv., août); « Juin 2026 – présent », never « Depuis juin 2026 » (not ATS-parseable).
@@ -51,3 +51,9 @@ Generic principles: [`references/education-cases.md`](../education-cases.md); th
 ### AEC and bootcamps
 - An AEC is a college credential « décernée pour un programme d'études offert à la formation continue » (Gouvernement du Québec, « Attestation d’études collégiales (AEC) », consulted 2026-11): an AEC is written as an AEC, never as a DEC; name it with the cégep.
 - The OQLF advises against « bootcamp » only in the sport sense (OQLF, Grand dictionnaire terminologique, fiche « camp d'entraînement », consulted 2026-11); no French term for coding bootcamps is confirmed yet, so keep the provider's program name.
+
+### GPA (moyenne cumulative)
+- Always print the scale with the number, French decimal comma: « 3,82/4,3 ». Maxima differ: UdeM, UQAM, Sherbrooke and Concordia use 4,3 (A+ 4,3); Laval uses 4,33; McGill 4.0 (LOW confidence, source not loaded). [S128–S132]
+- Do not convert between scales on the CV (4,33 to 4,3, 4,3 to 4,0, or to a US 4.0): print the institution's own number and maximum; the reader converts with its own method.
+- Distinctions (liste d'honneur, Dean's list, bourses d'excellence) go before the number.
+- HEC Montréal's career service, for the master CV, lists the GPA only if ≥ 3,5/4,3 [S133] (one school's guidance). Mainly for new graduates (≤ 2–3 years) or when the posting asks (LOW confidence, convention).

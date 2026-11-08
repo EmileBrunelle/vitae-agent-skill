@@ -4,6 +4,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `quebec.md`: GPA rule — print the scale (4,3 / 4,33 / 4.0), no conversion between scales on the CV, distinctions first, HEC's ≥ 3,5/4,3 threshold (for its master CV); `docs/sources.md` S128–S133.
+- `field-software-dev.md`: header title example no longer hard-codes the masculine French form.
+- `references/academic-mode.md` now holds the academic mode (data file, correctness properties, what does not apply, gate specifics) and `field-academic.md` only the genre knowledge; the sections moved from one to the other with the duplicated rules (fill target, palette, entry_status) merged. `SKILL.md` now points the academic workflow at `academic-mode.md` and names the qualification dossier.
 - `references/regional.md` is a slim router (file list with coverage keywords, universal rules, section names); the quick matrix moved into each market file as an opening `## At a glance` (Paper, Photo, CV language, Personal data, Formality, Length).
 - New market files `australia-nz.md`, `spain.md`, `india.md`, `brazil-latam.md`; `dach.md`, `uk-ireland.md`, `france.md` rewritten from official sources, with corrections (photo optionality in Germany comes from Bundesagentur/AMS guidance, not the AGG; « Ingenieur » is protected by Land law in Germany and is a Qualifikationsbezeichnung in Austria; Zeugnisse are employer certificates, not references; France's 2006 CV-anonyme obligation was never implemented, optional since 2015). Weakly sourced norms are labelled LOW confidence.
 - New `references/regional/europe-to-north-america.md` (European credentials → USA, Canada, Québec): H-1B degree routes (8 CFR 214.2(h)), IRCC ECA is an immigration document, « engineer »/« ingénieur » licensure, human-rights anchors for dropping personal data.
