@@ -9,7 +9,7 @@
 // Design is an explicit ANTI-GOAL for this genre: one neutral gabarit, no
 // family draw, no palette generation, no photo, no icons, no profile/summary
 // hook, no keyword-skills list, no level bars. See academic-mode.md "What does not apply here" for
-// the full ban list (and field-academic.md "Never on an academic CV"). Data is TOML, not FAITS.md prose, because the ~200-plus
+// the full ban list (and fields/academic.md "Never on an academic CV"). Data is TOML, not FAITS.md prose, because the ~200-plus
 // enumerated entries need a format Typst AND Python read without a new
 // dependency (`toml()` here, `tomllib` stdlib on the gate side) — the TOML,
 // not this file, is the declared source of truth for section counts and

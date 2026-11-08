@@ -503,7 +503,7 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
 
     # NOTE: deliberately no verify.ensure_icons(typ) here -- lib-academic.typ
     # never imports icons.typ (icons/photo are an explicit anti-goal for this
-    # genre, field-academic.md "Never on an academic CV"), so that plumbing would just write an
+    # genre, fields/academic.md "Never on an academic CV"), so that plumbing would just write an
     # unused file under templates/academic/.
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "cv.pdf")

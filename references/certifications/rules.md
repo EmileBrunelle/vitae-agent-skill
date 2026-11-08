@@ -1,6 +1,6 @@
 # Certifications: general rules
 
-Loaded at step 4 whenever the candidate lists a professional certification or designation. Per-body facts: [`tech.md`](tech.md) (security, cloud, networking, Kubernetes), [`finance-accounting.md`](finance-accounting.md) (CPA, CFA, ACCA), [`project-hr.md`](project-hr.md) (PMP, CRHA). A body not covered there: apply these rules and read the body's own usage or trademark page; never generalise one body's rule to another (the per-body rules below differ on purpose).
+Loaded at step 4 whenever the candidate lists a professional certification or designation. Per-body facts: [`tech.md`](tech.md) (security, cloud, networking, Kubernetes), [`finance-accounting.md`](finance-accounting.md) (CPA, CFA, ACCA), [`project-hr.md`](project-hr.md) (PMP, CRHA), [`health.md`](health.md) (CPR/resuscitation, CNA, CCRN, NREMT, PTCB), [`languages.md`](languages.md) (language tests and diplomas: DELF/DALF, TCF, TEF, IELTS, TOEFL, TOEIC, Cambridge). A body not covered there: apply these rules and read the body's own usage or trademark page; never generalise one body's rule to another (the per-body rules below differ on purpose). Trade credentials (CCQ, Red Seal, ASP, SIMDUT, RBQ, SAAQ, state licences): [`../fields/trades.md`](../fields/trades.md). Licences and registrations that depend on a jurisdiction (nursing, pharmacy, medicine, securities, insurance) are routed through [`../regional.md`](../regional.md), not from here.
 
 Rule 1 of SKILL.md applies: print only what the candidate's certificate, badge or the body's record shows.
 
@@ -16,6 +16,10 @@ Rule 1 of SKILL.md applies: print only what the candidate's certificate, badge o
 - Plural: ISC2 ("three (3) CISSPs") and PMI ("PMPs") call it a misuse; the CFA Institute also bars use as a job title (S296, S298, S294). Never write "Senior CFA Analyst".
 - ISC2 bars the mark from a business name, domain name and e-mail address (S296).
 - Reserved titles (CPA, CRHA, P.Eng.) are legal titles of a professional order, not marks: see [`../regional/north-america/us-canada.md`](../regional/north-america/us-canada.md#protected-titles) and [`../regional/north-america/quebec/market.md`](../regional/north-america/quebec/market.md). A voluntary certification is not a reserved title, but the same test holds: right to use it, true status.
+
+## Registrations to sell securities, insurance or advice
+- An exam passed and a registration held are different facts (S382, S387): print the registration only while held; otherwise print the exam. Held now: the registration in the regulator's wording (Québec: the AMF discipline). Exam passed, registration lapsed or never held: "Passed Series 7 and Series 66 (2021); not currently registered". No source loaded prescribes this wording; it states only exam yes, registration no. Never "FINRA licensed" or « représentant » from an exam.
+- Lapsed registration: earned with dates ("Registered representative 2018–2022"), as under Validity and renewal. Registration numbers: Verification and names applies; no source loaded addresses them. Per-jurisdiction facts (AMF, CIRO, FINRA, state insurance): the financial-licensing files listed in [`../regional.md`](../regional.md).
 
 ## Validity and renewal
 - Print the credential with its validity: "Valid 2024–2027" or "Earned 2022; expired 2025". Lengths differ by body and sometimes by credential within a body; ask for the dates on the certificate or badge.

@@ -355,3 +355,92 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S312 — ACCA — « Membership Regulations 2014 » (PDF, amended 1 January 2019; the current version could not be loaded; consulted 2026-11-07) — https://www.accaglobal.com/content/dam/ACCA_Global/Members/Doc/rule/globalpractisingregulations/Membership-Regs.pdf
 - S313 — ACCA — « Students' frequently asked questions » (undated, consulted 2026-11-07) — https://www.accaglobal.com/gb/en/help/general.html
 - S314 — Ordre des CRHA — « Signalez l'usurpation du titre » (undated, consulted 2026-11-07) — https://ordrecrha.org/protection-du-public/usurpation-titre-crha-cria
+
+
+## Added 2026-11-07 (trades: Québec, Canada, US)
+
+- S315 — CCQ — « Certificat de compétence » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/qualification-acces-industrie/certificat-competence
+- S316 — CCQ — « Compagnon » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/qualification-acces-industrie/certificat-competence/compagnon
+- S317 — CCQ — « Apprenti » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/qualification-acces-industrie/certificat-competence/apprenti
+- S318 — CCQ — « Reconnaissance de la formation et de l'expérience de travail » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/qualification-acces-industrie/reconnaissance-formation-experience
+- S319 — CCQ — « Renouvellement sur demande » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/qualification-acces-industrie/certificat-competence/renouvellement
+- S320 — CCQ — « Métiers, occupations et perspectives d'emploi » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/qualification-acces-industrie/metiers-emplois
+- S321 — CCQ — « Formation initiale (liste des métiers et programmes) » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/formation-perfectionnement/formation-initiale
+- S322 — CCQ — « Sceau rouge » (consulted 2026-11-07) — https://www.ccq.org/fr-CA/qualification-acces-industrie/exterieur-quebec/sceau-rouge
+- S323 — Red Seal (Canadian Council of Directors of Apprenticeship) — « Red Seal Program » (consulted 2026-11-07) — https://red-seal.ca/eng/about/program.shtml
+- S324 — Sceau rouge — « Programme du Sceau rouge » (consulted 2026-11-07) — https://red-seal.ca/fra/about/program.shtml
+- S325 — ASP Construction — « Cours 30 h; Remplacer sa carte » (consulted 2026-11-07; two pages) — https://www.asp-construction.org/cours-30-h ; https://www.asp-construction.org/remplacer-sa-carte
+- S326 — CNESST (Répertoire toxicologique) — « FAQ SIMDUT » (consulted 2026-11-07) — https://reptox.cnesst.gouv.qc.ca/section-faq/faq/Pages/simdut.aspx
+- S327 — RBQ — « Toutes les étapes à suivre pour obtenir une licence » (consulted 2026-11-07) — https://www.rbq.gouv.qc.ca/licence/obtenir-sa-licence/toutes-les-etapes-a-suivre-pour-obtenir-une-licence/
+- S328 — RBQ — « Vérifier la licence d'un entrepreneur » (consulted 2026-11-07) — https://www.rbq.gouv.qc.ca/vous-etes/citoyen/verifier-la-licence-dun-entrepreneur/
+- S329 — SAAQ — « Classes de permis de conduire » (PDF, consulted 2026-11-07) — https://saaq.gouv.qc.ca/blob/saaq/documents/publications/classes-permis-conduire.pdf
+- S330 — Skilled Trades Ontario — « Certification » (consulted 2026-11-07) — https://www.skilledtradesontario.ca/certification/
+- S331 — Ontario.ca — « Compulsory trades and enforcement » (consulted 2026-11-07) — https://www.ontario.ca/page/compulsory-trades-and-enforcement
+- S332 — apprenticeship.gov (US Department of Labor) — « FAQs » (consulted 2026-11-07) — https://www.apprenticeship.gov/help/all
+- S333 — US Bureau of Labor Statistics — « Occupational Outlook Handbook: Electricians » (read through a 2026 Wayback capture, direct fetch returned 403; consulted 2026-11-07) — https://www.bls.gov/ooh/construction-and-extraction/electricians.htm
+- S334 — Job Bank (Government of Canada) — « How do I apply for a job? » (consulted 2026-11-07) — https://www.jobbank.gc.ca/findajob/resources/apply-for-jobs
+
+## Added 2026-11-07 (health professions: Québec, Canada, US licences; certifying bodies)
+
+- S335 — OIIQ — « Vérifier le droit d'exercice » (consulted 2026-11-07) — https://www.oiiq.org/verifier-le-droit-d-exercice
+- S336 — OIIQ — « Types de permis » (consulted 2026-11-07) — https://www.oiiq.org/verifier-le-droit-d-exercice/types-de-permis
+- S337 — OIIQ — « Parcours étudiant » (consulted 2026-11-07) — https://www.oiiq.org/acceder-profession/parcours-etudiant
+- S338 — OIIQ — « Étape 3 : CEPI - AECEPI » (consulted 2026-11-07) — https://www.oiiq.org/acceder-profession/parcours-etudiant/cepi
+- S339 — OIIQ — « Étape 5 : permis d'exercice » (consulted 2026-11-07) — https://www.oiiq.org/acceder-profession/parcours-etudiant/permis-d-exercice
+- S340 — Ordre des pharmaciens du Québec — « Signaler l'exercice illégal ou l'usurpation de titre » (consulted 2026-11-07) — https://www.opq.org/protection-du-public/signaler-lexercice-illegal-ou-lusurpation-de-titre/
+- S341 — Collège des médecins du Québec — « Accéder au répertoire des médecins » (consulted 2026-11-07) — https://www.cmq.org/fr/proteger-le-public/acceder-repertoire-medecins
+- S342 — College of Nurses of Ontario — « Unregistered Practitioners » (consulted 2026-11-07) — https://www.cno.org/protect-the-public/unregistered-practitioners
+- S343 — College of Nurses of Ontario — « Confirm a Nurse’s Status » (consulted 2026-11-07) — https://www.cno.org/protect-the-public/confirm-a-nurses-status/confirm-a-nurses-status
+- S344 — Heart & Stroke Foundation of Canada — « Learn CPR » (consulted 2026-11-07) — https://www.heartandstroke.ca/how-you-can-help/learn-cpr
+- S345 — Canadian Nurses Association — « Certification Exam-based Nursing Practice Specialties » (consulted 2026-11-07) — https://www.cna-aiic.ca/en/certification/certification-nursing-practice-specialties
+- S346 — Canadian Nurses Association — « Renewing Your Certification » (consulted 2026-11-07) — https://www.cna-aiic.ca/en/certification/renewing-your-certification
+- S347 — Canadian Nurses Association — « Denial, Suspension or Revocation of Your Credential » (consulted 2026-11-07) — https://www.cna-aiic.ca/en/certification/certification-policies/denial-suspension-or-revocation-of-your-credential
+- S348 — NCSBN (NCLEX) — « NCLEX FAQs » (consulted 2026-11-07) — https://www.nclex.com/faqs.page
+- S349 — NCSBN (Nurse Licensure Compact) — « FAQs » (consulted 2026-11-07) — https://www.nursecompact.com/FAQs.page
+- S350 — American Heart Association — « Basic Life Support (BLS), Advanced Cardiovascular Life Support (ACLS) and Pediatric Advanced Life Support (PALS) course pages » (live site blocked by Cloudflare; read through Wayback captures of 2026-01-01 (BLS), 2025-12-25 (ACLS) and 2025-12-18 (PALS)) — https://cpr.heart.org/en/cpr-courses-and-kits/healthcare-professional/basic-life-support-bls-training ; https://cpr.heart.org/en/cpr-courses-and-kits/healthcare-professional/acls ; https://cpr.heart.org/en/courses/pals-course-options
+- S351 — American Heart Association — « Course Card Information » (Wayback capture 2026-01-02) — https://cpr.heart.org/en/resources/course-card-information
+- S352 — AACN — « CCRN (Adult): get certified; CCRN (Adult): renewal » (consulted 2026-11-07; two pages) — https://www.aacn.org/certification/get-certified/ccrn-adult ; https://www.aacn.org/certification/certification-renewal/ccrn-adult
+- S353 — AACN — « Verify Certification » (consulted 2026-11-07) — https://www.aacn.org/certification/verify-certification
+- S354 — NREMT — « Certification vs. Licensure » (consulted 2026-11-07) — https://www.nremt.org/Document/certification_licensure
+- S355 — Pharmacy Technician Certification Board — « Become a Certified Pharmacy Technician (CPhT) » (consulted 2026-11-07) — https://www.ptcb.org/credentials/certified-pharmacy-technician
+
+## Added 2026-11-07 (language tests and diplomas)
+
+- S356 — France Éducation international — « DELF tout public » (consulted 2026-11-07) — https://www.france-education-international.fr/diplome/delf-tout-public
+- S357 — France Éducation international — « DALF » (consulted 2026-11-07) — https://www.france-education-international.fr/diplome/dalf
+- S358 — France Éducation international — « Informations pratiques pour les candidats au DELF-DALF » (consulted 2026-11-07) — https://www.france-education-international.fr/article/informations-pratiques-pour-les-candidats-au-delf-dalf
+- S359 — France Éducation international — « TCF tout public » (consulted 2026-11-07) — https://www.france-education-international.fr/test/tcf-tout-public
+- S360 — France Éducation international — « Comprendre mes résultats au TCF » (consulted 2026-11-07) — https://www.france-education-international.fr/article/comprendre-mes-resultats-au-tcf
+- S361 — CCI Paris Île-de-France (Le français des affaires) — « Test d'évaluation de français » (consulted 2026-11-07) — https://www.lefrancaisdesaffaires.fr/candidat/test-evaluation-francais/
+- S362 — CCI Paris Île-de-France (Le français des affaires) — « Correspondance Score TEF - Niveau CECR » (PDF, consulted 2026-11-07) — https://www.lefrancaisdesaffaires.fr/wp-content/uploads/2024/09/correspondance-tef-cecr.pdf
+- S363 — CCI Paris Île-de-France (Le français des affaires) — « TEF Canada, présentation » (consulted 2026-11-07) — https://www.lefrancaisdesaffaires.fr/candidat/test-evaluation-francais/tef-canada/presentation/
+- S364 — IRCC (Canada.ca) — « Express Entry: Language test results » (page modified 2026-10-16; consulted 2026-11-07) — https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/documents/language-requirements/language-testing.html
+- S365 — IELTS — « Test types: Academic and General Training » (consulted 2026-11-07) — https://ielts.org/take-a-test/test-types
+- S366 — IELTS — « IELTS scoring in detail » (consulted 2026-11-07) — https://ielts.org/take-a-test/your-results/ielts-scoring-in-detail
+- S367 — IELTS — « Verifying IELTS results (organisations) » (consulted 2026-11-07) — https://ielts.org/organisations/ielts-for-organisations/verifying-ielts-results
+- S368 — ETS — « TOEFL iBT: understand your scores » (consulted 2026-11-07) — https://www.ets.org/toefl/test-takers/ibt/scores/understand-scores.html
+- S369 — ETS — « TOEFL iBT Score Scale 1 to 6: CEFR & IELTS Comparison » (consulted 2026-11-07) — https://www.ets.org/toefl/institutions/ibt/score-scale-update.html
+- S370 — ETS — « TOEFL iBT: sending scores » (consulted 2026-11-07) — https://www.ets.org/toefl/test-takers/ibt/scores/send-scores.html
+- S371 — ETS — « TOEIC Listening & Reading Examinee Handbook (paper delivered) » (PDF, consulted 2026-11-07) — https://www.ets.org/content/dam/ets-org/pdfs/toeic/toeic-listening-reading-test-examinee-handbook.pdf
+- S372 — ETS — « Mapping the TOEIC tests on the CEFR » (PDF, consulted 2026-11-07) — https://www.ets.org/content/dam/ets-org/pdfs/toeic/toeic-mapping-cefr-reference.pdf
+- S373 — ETS — « TOEIC test takers » (consulted 2026-11-07) — https://www.ets.org/toeic/test-takers.html
+- S374 — Cambridge English — « Results » (consulted 2026-11-07) — https://www.cambridgeenglish.org/exams-and-tests/qualifications/results/index.aspx
+- S375 — Cambridge English — « Accept and verify our exams » (consulted 2026-11-07) — https://www.cambridgeenglish.org/educators-organisations/accept-verify-exams/index.aspx
+
+## Added 2026-11-07 (financial-services registrations and licences: Québec, Canada, US)
+
+- S376 — AMF — « Représentants – Certification » (Wayback capture 2025-08-25) — https://lautorite.qc.ca/professionnels/representants/certification
+- S377 — AMF — « Demande de certificat de représentant » (Wayback capture 2025-09-13) — https://lautorite.qc.ca/devenir-professionnel/demande-de-certificat-de-representant
+- S378 — AMF — « Exercer à titre de représentant » (Wayback capture 2025-09-15) — https://lautorite.qc.ca/professionnels/representants/exercer-a-titre-de-representant
+- S379 — AMF — « Examens (assurance de personnes) » (Wayback capture 2025-09-05) — https://lautorite.qc.ca/devenir-professionnel/assurance-de-personnes-et-assurance-collective-de-personnes/examens
+- S380 — AMF — « Registre des entreprises et des individus autorisés à exercer » (Wayback capture 2026-04-10) — https://lautorite.qc.ca/grand-public/registres/registre-des-entreprises-et-des-individus-autorises-a-exercer
+- S381 — Chambre de la sécurité financière — « Accueil; Fusion (création de la Chambre de l'assurance) » (consulted 2026-11-07; two pages) — https://www.chambresf.com/fr ; https://www.chambresf.com/fr/creation-chambre-lassurance
+- S382 — CIRO — « Becoming a registered individual » (Wayback capture 2026-05-04) — https://www.ciro.ca/registered-individuals/becoming-registered-individual
+- S383 — Canadian Securities Institute — « Canadian Securities Course » (consulted 2026-11-07) — https://www.csi.ca/en/learning/courses/csc
+- S384 — Canadian Securities Administrators — « Registration » (Wayback capture 2026-01-14) — https://www.securities-administrators.ca/registration/
+- S385 — FINRA — « Qualification Exams » (consulted 2026-11-07) — https://www.finra.org/registration-exams-ce/qualification-exams
+- S386 — FINRA — « Securities Industry Essentials Exam (SIE) » (consulted 2026-11-07) — https://www.finra.org/registration-exams-ce/qualification-exams/securities-industry-essentials-exam-sie
+- S387 — FINRA — « Registration requirements FAQ » (consulted 2026-11-07) — https://www.finra.org/registration-exams-ce/qualification-exams/registration-requirements-faq
+- S388 — NASAA — « Series 63/65/66 exam FAQ » (consulted 2026-11-07) — https://www.nasaa.org/exams/exam-faqs/
+- S389 — NAIC — « Producer Licensing » (last updated 2025-02-10; Wayback capture, live fetch failed) — https://content.naic.org/insurance-topics/producer-licensing
+- S390 — NIPR — « Verify existing insurance licenses » (consulted 2026-11-07) — https://nipr.com/licensing/verify-existing-licenses

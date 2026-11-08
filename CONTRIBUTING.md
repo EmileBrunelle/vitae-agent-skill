@@ -8,7 +8,7 @@ Issues, PR descriptions and review comments can be written in English or French.
 
 ## What helps most
 
-- **Field packs** — like [`references/field-software-dev.md`](references/field-software-dev.md), for other fields (nursing, finance, trades, ...).
+- **Field packs** — like [`references/fields/software-dev.md`](references/fields/software-dev.md), for other fields (nursing, finance, trades, ...).
 - **Regional market files** — every country is verified individually, from a source. Never generalise one candidate's experience to a country.
 
 ## Culture: measured, not eyeballed

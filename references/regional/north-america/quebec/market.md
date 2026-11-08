@@ -15,6 +15,7 @@ Add-on to [`north-america/us-canada.md`](../us-canada.md), which still applies; 
 - The official list of the 46 regulated professions (it does not say which are reserved-title only): Gouvernement du Québec, « Liste des professions et répertoire des membres », consulted 2026-11 — link to it, don't copy it.
 - A bachelor's in engineering does not confer the title « ingénieur » / "engineer": the OIQ permit does (Loi sur les ingénieurs, art. 22, above). A graduate who is not a member writes neither, but may write « CPI » if registered.
 - A registered candidate may write « candidat à la profession d'ingénieur (CPI) »; same logic for other orders. Source: OIQ, « CPI : avant de s’appeler ingénieur.e », consulted 2026-11
+- Health and financial-services titles and registrations (OIIQ, OPQ, CMQ, AMF): [`health.md`](health.md), [`financial-licensing.md`](financial-licensing.md).
 - Voluntary designations are not reserved titles: CIPS's I.S.P. is legislated in six provinces but not in Québec (CIPS, « CIPS Provincial Societies », consulted 2026-11) — list it under certifications if held.
 
 ## ATS notes

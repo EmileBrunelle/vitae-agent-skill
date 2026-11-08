@@ -2,7 +2,7 @@
 
 Load this file when the document is an academic CV: a faculty job search, a tenure/promotion file, a qualification dossier, or an academic appointment — never for an industry résumé, even from a candidate with a PhD.
 
-The workflow, the data file, the correctness properties and the gate (`scripts/verify_academic.py`) are in [`academic-mode.md`](academic-mode.md); this file is the genre knowledge.
+The workflow, the data file, the correctness properties and the gate (`scripts/verify_academic.py`) are in [`academic-mode.md`](../academic-mode.md); this file is the genre knowledge.
 
 This file does not layer on top of the industry conventions elsewhere in this skill — it **replaces** them for this genre. The reasons live in the "Why this genre is different" note below; the rules follow.
 
@@ -60,7 +60,7 @@ Order below is the research-track default, most common in North America. Mandato
 - References often appear on the CV itself or on a separate page — the reverse of the European norm.
 - Research statement / teaching statement / diversity statement are **separate documents**, out of scope for the CV.
 
-**Not covered:** UK, DACH, and the rest of the world. Do not invent — the same rule [`regional.md`](regional.md) already states applies here: if the market has no file, verify with a current source or ask, and label the assumption in the deliverable.
+**Not covered:** UK, DACH, and the rest of the world. Do not invent — the same rule [`regional.md`](../regional.md) already states applies here: if the market has no file, verify with a current source or ask, and label the assumption in the deliverable.
 
 ## Funding agency formats: firm recommendation — do not target them
 
@@ -76,7 +76,7 @@ Do not target any of these formats — CCV, CV-FRQ, tri-agency narrative CV, NIH
 2. **They are actively changing right now**, in two jurisdictions at once, rollout by rollout. Anything hard-coded here would be stale within one cycle.
 3. The shift toward **narrative / descriptive** formats runs opposite to a countable, enumerated list — these are two different genres, not two templates of the same one.
 
-What this field pack does instead, which has real, lasting value: **structure the candidate's data so it pours into these forms.** Every entry in the candidate's data source (see [`academic-mode.md`](academic-mode.md), "Data source") should carry the fields agencies ask for — role, amount, currency, period, peer-review status, author order, DOI. Feed the form; do not imitate it.
+What this field pack does instead, which has real, lasting value: **structure the candidate's data so it pours into these forms.** Every entry in the candidate's data source (see [`academic-mode.md`](../academic-mode.md), "Data source") should carry the fields agencies ask for — role, amount, currency, period, peer-review status, author order, DOI. Feed the form; do not imitate it.
 
 ## Discipline differences
 

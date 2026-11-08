@@ -1,13 +1,13 @@
 # Academic mode
 
-**Academic mode** applies when the document is an academic CV (SKILL.md states the switch); load [`references/field-academic.md`](field-academic.md) for the genre knowledge (sections, regional conventions, funding agencies, disciplines). It **replaces rule 5 and step 4 of SKILL.md, it does not relax them** — it has its own measured invariants, checked by `scripts/verify_academic.py`. The replacement invariant in one line: **the atom is the entry, not the section** — "no entry straddles a page break" stands in for "no section is ever split." One neutral gabarit, from `templates/academic/`; no family draw and no palette generation. Everything else in SKILL.md (rules 0-4, steps 0-3 and 5-8) still applies.
+**Academic mode** applies when the document is an academic CV (SKILL.md states the switch); load [`references/fields/academic.md`](fields/academic.md) for the genre knowledge (sections, regional conventions, funding agencies, disciplines). It **replaces rule 5 and step 4 of SKILL.md, it does not relax them** — it has its own measured invariants, checked by `scripts/verify_academic.py`. The replacement invariant in one line: **the atom is the entry, not the section** — "no entry straddles a page break" stands in for "no section is ever split." One neutral gabarit, from `templates/academic/`; no family draw and no palette generation. Everything else in SKILL.md (rules 0-4, steps 0-3 and 5-8) still applies.
 
 ## Data source: structured file alongside FAITS.md
 
 `FAITS.md` keeps its usual role: identity, appointments, education, and anything needing a provenance tag discussed with the candidate — same discipline as the skill's rule 1 (no fact without a source). It carries more weight here than in industry mode: an invented publication is not embellishment, it is research misconduct. Every publication entry additionally needs a public, verifiable identifier (DOI, arXiv ID, or publisher URL) — this is exactly the "what's the portfolio equivalent in this field?" question the skill already asks for any field.
 
 The 200+ enumerated entries (publications, talks, grants, supervision, service) do not belong in `FAITS.md` line by line — they belong in a structured data file, readable by both the template engine and any future verification tooling without adding a dependency (TOML is a reasonable choice: readable natively by Typst's `toml()` and by Python's stdlib `tomllib`). Each entry should carry:
-- `date` (mandatory — the first of the two invariants in [`field-academic.md`](field-academic.md)),
+- `date` (mandatory — the first of the two invariants in [`fields/academic.md`](fields/academic.md)),
 - `src` — the same provenance convention as `FAITS.md`,
 - the fields the funding agencies ask for (role, amount, currency, period, peer-review status, author order, DOI/identifier).
 
