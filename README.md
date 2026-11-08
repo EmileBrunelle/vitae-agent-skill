@@ -107,7 +107,7 @@ references/icons.md              # icon provenance and how to source a new mark
 references/ats.md                # parsing rules + verification commands
 references/workday.md            # Workday autofill: measured behaviour + parse-only build
 references/regional.md           # regional router: file list + universal rules
-references/regional/*.md         # per-market depth, loaded only for the target market
+references/regional/<region>/…    # per-market depth in region subfolders (north-america/ [+ quebec/], europe/, india/ [+ to-europe/], asia/ [+ southeast-asia/], oceania/, latin-america/, africa/), loaded only for the target market
 references/reviews.md            # adversarial review protocol
 references/field-software-dev.md # field pack: software development
 references/field-academic.md     # academic-CV genre knowledge: sections, regional, funding agencies, disciplines (replaces industry rules, not layered)

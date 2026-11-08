@@ -1,6 +1,6 @@
 # Market: Philippines
 
-One of six *non-interchangeable* Southeast Asian markets: never carry a finding from this country to a neighbour. Cross-country comparison and shared patterns: [`overview.md`](overview.md). Regulated-title claims here are the known case, never the exhaustive list — the universal rule in [`regional.md`](../../regional.md) still applies.
+One of six *non-interchangeable* Southeast Asian markets: never carry a finding from this country to a neighbour. Cross-country comparison and shared patterns: [`overview.md`](overview.md). Regulated-title claims here are the known case, never the exhaustive list — the universal rule in [`references/regional.md`](../../../regional.md) still applies.
 
 ## At a glance
 

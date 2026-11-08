@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `references/regional/` reorganized into region subfolders; `quebec.md`, `quebec-outbound.md`, `india-to-europe.md` split per section; `india-outbound.md` renamed `india/to-anglosphere.md`.
 - `education-cases.md`: MBA accreditation guidance (AACSB/EQUIS are institutional, AMBA programme-level; France RNCP and CEFDG→Hcéres; Germany ELIAS and FIBAA); `docs/sources.md` S167–S173.
 - New `regional/india-to-europe.md` (Indian credentials → Germany ZAB/Blue Card, Ireland CSEP/QQI, Netherlands Nuffic/IND, France attestation/carte talent); Ireland moved out of `india-outbound.md`; `docs/sources.md` S174–S184.
 - `regional/southeast-asia.md` split into `regional/southeast-asia/` (overview + 6 country files); pointers updated in `regional.md` and `steps/2-region.md`.

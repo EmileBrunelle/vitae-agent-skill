@@ -1,6 +1,6 @@
 # Market: Thailand
 
-One of six *non-interchangeable* Southeast Asian markets: never carry a finding from this country to a neighbour. Cross-country comparison and shared patterns: [`overview.md`](overview.md). Regulated-title claims here are the known case, never the exhaustive list — the universal rule in [`regional.md`](../../regional.md) still applies.
+One of six *non-interchangeable* Southeast Asian markets: never carry a finding from this country to a neighbour. Cross-country comparison and shared patterns: [`overview.md`](overview.md). Regulated-title claims here are the known case, never the exhaustive list — the universal rule in [`references/regional.md`](../../../regional.md) still applies.
 
 ## At a glance
 
@@ -10,7 +10,7 @@ One of six *non-interchangeable* Southeast Asian markets: never carry a finding 
 
 ## Thailand
 
-- Photo: a **formal studio headshot is standard and expected**, top-right; dark suit or formal attire, neutral background. Omitting it is noticed. Same mechanics as [`dach.md`](../dach.md), stronger expectation. HIGH.
+- Photo: a **formal studio headshot is standard and expected**, top-right; dark suit or formal attire, neutral background. Omitting it is noticed. Same mechanics as [`europe/dach.md`](../../europe/dach.md), stronger expectation. HIGH.
 - Personal data: DOB, nationality, religion, marital status and — for male applicants — **military service status** (Thailand conscripts; completion or exemption is commonly stated) are customary on the CV. **But** current PDPA-compliance guidance tells employers not to *request* marital status, religion (sensitive data needing explicit consent) or family plans, to issue a privacy notice, and to delete unsuccessful applicants' data within six months. **Custom (candidate volunteers) and compliance (employer must not ask) genuinely diverge here** — flag it to the user rather than resolving it silently; the candidate decides. HIGH on both halves.
 - **Buddhist Era dates (พ.ศ. / B.E. = CE + 543)** appear on Thai-language transcripts, certificates and official forms. Any BE date on a document fed into a foreign-facing CV must be converted to CE (or annotated both ways) — otherwise a graduation year lands 543 years off and an ATS or reader misdates the whole education block. This is the single most important non-obvious convention in this file. HIGH.
 - Language: Thai for domestic and government employers, English for multinationals and foreign-owned firms. HIGH.

@@ -1,0 +1,17 @@
+# Québec credentials, other markets
+
+Loaded on demand, in addition to the target market's file, when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec.
+
+Also read the "Protected titles" section of [`north-america/quebec/market.md`](market.md#protected-titles) (that section only): never write or translate a job title into a reserved one (ingénieur/engineer, architecte, CPA…) without confirmed membership — the same caution applies in every target market.
+
+## Education: name the degree, don't claim equivalences
+- Transfers, stopped studies, in-progress degrees, bootcamps: [`references/education-cases.md`](../../../education-cases.md).
+- The Québec path is 11 years of primary and secondary school (6 + 5) + a 2-year pre-university DEC (or 3-year technical DEC) + a bachelor's of typically 3 years (90 credits; engineering bachelor's are typically 120 credits (Université Laval, « Baccalauréat en génie électrique », and ÉTS, « Baccalauréat ÉTS » brochure, state 4 years; Concordia, « Mechanical Engineering (BEng) », states a minimum of four years, depending on prior studies; consulted 2026-11)) — CICIC (Government of Canada): « Education in Canada: Provinces and Territories of Canada », consulted 2026-11. A Québec baccalauréat is a bachelor's degree: by default write its English name (the university's own English name if it publishes one, e.g. "Bachelor of Science in Computer Science") and nothing more — don't volunteer the program length. No official source states that it "equals" a 4-year degree elsewhere, so never write "equivalent to a 4-year degree" either. Only when the posting or application form explicitly requires a 4-year degree, add the facts once so the reader can do the arithmetic: "(3-year program following a 2-year pre-university DEC)" — for engineering, the program's actual 4 years.
+- English names (CICIC): DEC = "Diploma of College Studies", AEC = "Attestation of College Studies". DEP: no official English name confirmed; gloss below.
+
+## Gloss for readers outside Québec
+- **CEGEP**, not « Cégep » or « CÉGEP »: in English it's written all-caps, unaccented — native anglophone-cégep usage, not a translation. Never gloss it as "technical college" (not the institution's name, and in North American English it reads as a trade school, collapsing the distinction with the DEP/DVS below) or as "community college" (in the US an alternate/remedial path; in Québec the cégep is the mandatory bridge between high school and university — the analogy undersells the candidate). Same for « BAC+2 »: means nothing to this readership.
+- DEC → "Diploma of College Studies (DEC)" — the sanctioned English term; "College Diploma (DEC)" is approximate. The useful distinguishing fact is length: "three-year Career/Technical programs" vs. "two-year Pre-university programs". Recommended descriptor: "CEGEP — Québec public higher education, three-year technical program".
+- DEP → "Vocational Diploma (DEP/DVS — Diploma of Vocational Studies)".
+- This applies to every credential name, not only the examples listed here — never expand an unfamiliar acronym from memory; verify with the institution or the candidate (rule 1).
+- ATS: from the English CV, a Québec DEC / DEP becomes an inexact equivalent ("Diploma…", "DVS/DEP"); a French CV keeps `DEC, Informatique de Gestion` intact.

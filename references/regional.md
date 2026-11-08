@@ -2,34 +2,50 @@
 
 Apply the conventions of the market being applied to, not the user's locale. When the region is ambiguous, ask. Send the version in the language *and spelling variant* of the job posting.
 
-**Load only what you need:** this file gives the file list and the universal rules; each market file opens with an "At a glance" (except the add-on files [`quebec.md`](regional/quebec.md), [`quebec-outbound.md`](regional/quebec-outbound.md), [`europe-to-north-america.md`](regional/europe-to-north-america.md), [`india-outbound.md`](regional/india-outbound.md), [`india-to-europe.md`](regional/india-to-europe.md) and [`asia-outbound.md`](regional/asia-outbound.md); the profile columns are paper, photo, CV language, personal data, verb style, length) and carries the depth; the per-market depth lives in `regional/<market>.md` — read ONLY the file for the target market:
+**Load only what you need:** this file gives the file list and the universal rules; the per-market depth lives in `regional/<region>/…` — read ONLY the file(s) for the target market, listed below with their load condition. Each market file opens with an "At a glance" (profile columns: paper, photo, CV language, personal data, verb style, length); the add-on files (Québec, `to-…` and `outbound…` files) do not, and always come on top of the target market's file.
 
-- [`regional/north-america.md`](regional/north-america.md) — Canada, Québec, USA (us-letter; EN, FR-QC; no photo/age; length 1-2 p.)
-- [`regional/quebec.md`](regional/quebec.md) — Québec only, read IN ADDITION to [`north-america.md`](regional/north-america.md): only when the TARGET market is Québec (a Québec employer or posting; a Québec address alone does not make it the target)
-- [`regional/quebec-outbound.md`](regional/quebec-outbound.md) — read IN ADDITION to the target market's file when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec
-- [`regional/europe-to-north-america.md`](regional/europe-to-north-america.md) — read IN ADDITION to [`north-america.md`](regional/north-america.md) when the TARGET market is USA, Canada or Québec and the candidate's credentials or CV habits are European (the target market wins over the address)
-- [`regional/india-outbound.md`](regional/india-outbound.md) — read IN ADDITION to the target market's file when the candidate holds Indian credentials or Indian CV habits (3-year bachelor's, ICAI, NBA, ECA, ACS) and targets USA, Canada, UK, Australia or NZ
-- [`regional/india-to-europe.md`](regional/india-to-europe.md) — read IN ADDITION to the target market's file when the candidate holds Indian credentials and targets Germany, Ireland, the Netherlands or France (degree evaluation: anabin/ZAB, NARIC Ireland, Nuffic, ENIC-NARIC France; Blue Card and carte talent diploma conditions)
-- [`regional/asia-outbound.md`](regional/asia-outbound.md) — read IN ADDITION to the target market's file when the candidate holds Pakistani, Bangladeshi, Nepali, Philippine or Chinese credentials (2-year bachelor's, K-12 reform, CHSI/CSSD) and targets a market outside their home country (India: [`india-outbound.md`](regional/india-outbound.md))
-- [`regional/france.md`](regional/france.md) — France (a4; FR; photo declining; 1 p.)
-- [`regional/uk-ireland.md`](regional/uk-ireland.md) — UK, Ireland (British spelling; no photo)
-- [`regional/dach.md`](regional/dach.md) — Germany, Austria, Switzerland (Lebenslauf, photo and Zeugnisse customs)
-- [`regional/australia-nz.md`](regional/australia-nz.md) — Australia, New Zealand (one file, two *non-interchangeable* markets — a4; no photo; work rights, APS, engineer registration)
-- [`regional/spain.md`](regional/spain.md) — Spain only, never Latin America (a4; no consent clause, títulos oficiales vs propios, convocatorias)
-- [`regional/india.md`](regional/india.md) — India (a4; resume vs biodata, CA/architect titles, CTC, campus and PSU hiring)
-- [`regional/brazil-latam.md`](regional/brazil-latam.md) — Brazil, Mexico, Argentina, Chile, Colombia (one file, *non-interchangeable* markets — read the country section; Gupy ATS, CREA/CRC titles)
-- [`regional/southeast-asia/`](regional/southeast-asia/overview.md) — six *non-interchangeable* markets, one file each: read ONLY the target country's file, never the file average ([`overview.md`](regional/southeast-asia/overview.md) only for the cross-country comparison):
-  - [`regional/southeast-asia/indonesia.md`](regional/southeast-asia/indonesia.md) — Indonesia
-  - [`regional/southeast-asia/malaysia.md`](regional/southeast-asia/malaysia.md) — Malaysia
-  - [`regional/southeast-asia/singapore.md`](regional/southeast-asia/singapore.md) — Singapore
-  - [`regional/southeast-asia/philippines.md`](regional/southeast-asia/philippines.md) — Philippines
-  - [`regional/southeast-asia/vietnam.md`](regional/southeast-asia/vietnam.md) — Vietnam
-  - [`regional/southeast-asia/thailand.md`](regional/southeast-asia/thailand.md) — Thailand
-- [`regional/maghreb.md`](regional/maghreb.md) — Morocco, Algeria, Tunisia (one file, three *non-interchangeable* markets — same warning)
+North America
+- [`regional/north-america/us-canada.md`](regional/north-america/us-canada.md) — Canada, Québec, USA (us-letter; EN, FR-QC; no photo/age; length 1-2 p.)
+- [`regional/north-america/quebec/market.md`](regional/north-america/quebec/market.md) — read IN ADDITION to `us-canada.md` only when the TARGET market is Québec (a Québec employer or posting; a Québec address alone does not make it the target): length and verbs, protected titles, ATS, OQLF diploma names
+- [`regional/north-america/quebec/education.md`](regional/north-america/quebec/education.md) — Québec target AND the education section needs it: foreign diplomas (MIFI evaluation), degree in progress, stopped studies, transfers, DEC-BAC, AEC and bootcamps, GPA
+- [`regional/north-america/quebec/outbound-common.md`](regional/north-america/quebec/outbound-common.md) — when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: read it IN ADDITION to the target market's file, plus ONE of the next two files
+  - [`regional/north-america/quebec/outbound-north-america.md`](regional/north-america/quebec/outbound-north-america.md) — target English Canada or USA
+  - [`regional/north-america/quebec/outbound-france.md`](regional/north-america/quebec/outbound-france.md) — target France (includes Québec–France double degrees)
+- [`regional/europe/to-north-america.md`](regional/europe/to-north-america.md) — read IN ADDITION to `us-canada.md` when the TARGET market is USA, Canada or Québec and the candidate's credentials or CV habits are European (the target market wins over the address)
+
+Europe
+- [`regional/europe/france.md`](regional/europe/france.md) — France (a4; FR; photo declining; 1 p.)
+- [`regional/europe/uk-ireland.md`](regional/europe/uk-ireland.md) — UK, Ireland (British spelling; no photo)
+- [`regional/europe/dach.md`](regional/europe/dach.md) — Germany, Austria, Switzerland (Lebenslauf, photo and Zeugnisse customs)
+- [`regional/europe/spain.md`](regional/europe/spain.md) — Spain only, never Latin America (a4; no consent clause, títulos oficiales vs propios, convocatorias)
+
+India
+- [`regional/india/market.md`](regional/india/market.md) — India (a4; resume vs biodata, CA/architect titles, CTC, campus and PSU hiring)
+- [`regional/india/to-anglosphere.md`](regional/india/to-anglosphere.md) — read IN ADDITION to the target market's file when the candidate holds Indian credentials or Indian CV habits (3-year bachelor's, ICAI, NBA, ECA, ACS) and targets USA, Canada, UK, Australia or NZ (not Ireland or continental Europe: see below)
+- [`regional/india/to-europe/common.md`](regional/india/to-europe/common.md) — Indian credentials targeting Germany, Ireland, the Netherlands or France: read it IN ADDITION to the target market's file, plus the target's file only (degree evaluation; Blue Card and carte talent diploma conditions):
+  - [`regional/india/to-europe/germany.md`](regional/india/to-europe/germany.md) — Germany (anabin/ZAB)
+  - [`regional/india/to-europe/ireland.md`](regional/india/to-europe/ireland.md) — Ireland (NARIC Ireland)
+  - [`regional/india/to-europe/netherlands.md`](regional/india/to-europe/netherlands.md) — the Netherlands (Nuffic)
+  - [`regional/india/to-europe/france.md`](regional/india/to-europe/france.md) — France (ENIC-NARIC France)
+
+Asia
+- [`regional/asia/outbound.md`](regional/asia/outbound.md) — read IN ADDITION to the target market's file when the candidate holds Pakistani, Bangladeshi, Nepali, Philippine or Chinese credentials (2-year bachelor's, K-12 reform, CHSI/CSSD) and targets a market outside their home country (India: [`regional/india/to-anglosphere.md`](regional/india/to-anglosphere.md))
+- [`regional/asia/southeast-asia/`](regional/asia/southeast-asia/overview.md) — six *non-interchangeable* markets, one file each: read ONLY the target country's file, never the file average ([`overview.md`](regional/asia/southeast-asia/overview.md) only for the cross-country comparison):
+  - [`regional/asia/southeast-asia/indonesia.md`](regional/asia/southeast-asia/indonesia.md) — Indonesia
+  - [`regional/asia/southeast-asia/malaysia.md`](regional/asia/southeast-asia/malaysia.md) — Malaysia
+  - [`regional/asia/southeast-asia/singapore.md`](regional/asia/southeast-asia/singapore.md) — Singapore
+  - [`regional/asia/southeast-asia/philippines.md`](regional/asia/southeast-asia/philippines.md) — Philippines
+  - [`regional/asia/southeast-asia/vietnam.md`](regional/asia/southeast-asia/vietnam.md) — Vietnam
+  - [`regional/asia/southeast-asia/thailand.md`](regional/asia/southeast-asia/thailand.md) — Thailand
+
+Oceania, Latin America, Africa
+- [`regional/oceania/australia-nz.md`](regional/oceania/australia-nz.md) — Australia, New Zealand (one file, two *non-interchangeable* markets — a4; no photo; work rights, APS, engineer registration)
+- [`regional/latin-america/brazil-latam.md`](regional/latin-america/brazil-latam.md) — Brazil, Mexico, Argentina, Chile, Colombia (one file, *non-interchangeable* markets — read the country section; Gupy ATS, CREA/CRC titles)
+- [`regional/africa/maghreb.md`](regional/africa/maghreb.md) — Morocco, Algeria, Tunisia (one file, three *non-interchangeable* markets — same warning)
 
 **If the target market has no file, do not infer from training data** — markets outside this set (Middle East, East Asia…) do not form a bloc: conventions vary more inside that group than between Europe and North America (Japan's rirekisho is a rigid form with photo and age; China expects photos for domestic employers but not multinationals). Verify with a current local source or ask, label the assumption in the deliverable — and consider contributing the file. The same warning applies *inside* a multi-market file: Singapore and Thailand are neighbouring markets and disagree on nearly every axis (photo, personal data, formality).
 
-Cautions the market files compress: **us-letter is firm only in North America and Philippines print; Mexico, Chile and Colombia are LOW confidence** (see [`regional/brazil-latam.md`](regional/brazil-latam.md)); **a national ID number never belongs on a CV in any market listed**; a **Thai** document's Buddhist-Era year (B.E. = CE + 543) must be converted before it reaches a foreign reader; and where a photo is expected, the DACH mechanics apply (formal, front-facing, plain background) — Indonesia and the Philippines additionally fix a print size.
+Cautions the market files compress: **us-letter is firm only in North America and Philippines print; Mexico, Chile and Colombia are LOW confidence** (see [`regional/latin-america/brazil-latam.md`](regional/latin-america/brazil-latam.md)); **a national ID number never belongs on a CV in any market listed**; a **Thai** document's Buddhist-Era year (B.E. = CE + 543) must be converted before it reaches a foreign reader; and where a photo is expected, the DACH mechanics apply (formal, front-facing, plain background) — Indonesia and the Philippines additionally fix a print size.
 
 ## Universal rules (every market)
 

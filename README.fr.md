@@ -106,7 +106,7 @@ references/icons.md              # provenance des icônes et ajout d'une marque
 references/ats.md                # règles d'analyse + commandes de vérification
 references/workday.md            # Workday : comportement mesuré + version d'analyse seule
 references/regional.md           # routeur régional : règles universelles + matrice
-references/regional/*.md         # profondeur par marché, chargé seulement pour le marché cible
+references/regional/<région>/…   # profondeur par marché en sous-dossiers de région (north-america/ [+ quebec/], europe/, india/ [+ to-europe/], asia/ [+ southeast-asia/], oceania/, latin-america/, africa/), chargé seulement pour le marché cible
 references/reviews.md            # protocole de revue adversariale
 references/field-software-dev.md # pack de domaine : développement logiciel
 references/field-academic.md     # connaissance du genre CV académique : sections, régional, organismes de financement, disciplines (remplace les règles industrielles, sans s'y superposer)

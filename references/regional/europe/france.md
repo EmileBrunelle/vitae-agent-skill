@@ -27,4 +27,4 @@ Personal-data law, protected titles and degree naming for France. Points without
 
 ## Application package
 - Typography: espace insécable before `:` (`~:` in Typst), « guillemets », typographic apostrophes, months lowercase (LOW confidence).
-- Candidate with Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership): also read [`regional/quebec-outbound.md`](quebec-outbound.md).
+- Candidate with Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership): also read [`regional/north-america/quebec/outbound-common.md`](../north-america/quebec/outbound-common.md).
