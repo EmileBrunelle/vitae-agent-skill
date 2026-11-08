@@ -1,6 +1,6 @@
 # Market: Québec (Canada)
 
-Loaded on demand, in addition to [`north-america.md`](north-america.md), only when the TARGET market is Québec (a Québec employer or posting). A Québec address alone does not make Québec the target: the target market wins. The Canada-wide and USA rules stay in [`north-america.md`](north-america.md). For a candidate with Québec credentials targeting another market, read [`quebec-outbound.md`](quebec-outbound.md) instead, plus only this file's "Protected titles" section.
+Add-on to [`north-america.md`](north-america.md), which still applies; Québec-specific rules only.
 
 ## Length and verbs
 - Québec French: infinitive action verbs (« Concevoir… », « Livrer… ») — a convention taught by university career services, not a provincial norm; noun-phrase style is equally accepted — don't present it to the user as "the Québec convention". Months lowercase (janv., août); « Juin 2026 – présent », never « Depuis juin 2026 » (not ATS-parseable).
