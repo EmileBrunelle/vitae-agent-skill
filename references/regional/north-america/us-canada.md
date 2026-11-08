@@ -15,13 +15,8 @@
 - Any regulated occupation (licence required, or titles reserved "where only members of a regulatory body can make use of specific titles and abbreviations allowed by law") exists in every province and state (IRCC, « Regulated or certified occupations – Processing of work permit applications » (2024-05-21); Québec.ca, « Ordres professionnels » (2026-09-29); consulted 2026-11). Before writing a licence-type title, check the regulator (Canada: Job Bank Foreign Credential Recognition tool or the regulatory body; Québec: the order's répertoire des membres; USA: the state licensing board). Write the licence with its jurisdiction and status.
 - Foreign engineering degree (European etc.): see [`regional/europe/to-north-america.md`](../europe/to-north-america.md).
 
-## US federal jobs (USAJOBS)
-- Since 27 September 2025 USAJOBS restricts résumés to 2 pages for Title 5 competitive and excepted service announcements: "If the only resume received by an applicant is longer than two pages, the applicant is ineligible for further consideration." (OPM, « Agency Guidance on the Two-Page Limit on Resume Length » (2025-09-12), Merit Hiring Plan, consulted 2026-11).
-- Per job: job title and employer (series and grade for federal positions), start and end dates month/year (e.g. 05/2019 – 08/2022), hours per week. Education: school, completion date, degree type, cumulative GPA. Licences and certifications: type and date.
-- Positions needing a CV (medical, research) may take it as an "other document". The Merit Hiring Plan "prohibits the current longform Federal resume structure" (OPM, same guidance).
-
-## Government of Canada jobs (GC Jobs)
-- The résumé is pasted unformatted ("no bullets, underlines or bold") into the GC Jobs profile, and the screening questions decide: give details and examples, "Use the exact keywords and skills from the screening question in your answer. Do not use synonyms.", and with "and" demonstrate every element (Public Service Commission of Canada, « Applying for Government of Canada jobs: How to apply » (2026-09-28), consulted 2026-11). Formatting is stripped on paste.
+## Government jobs
+- US federal (USAJOBS) or Government of Canada (GC Jobs) posting: also read [`north-america/us-canada-government.md`](us-canada-government.md) — 2-page USAJOBS limit, required per-job fields, GC Jobs pasted-text and screening-question rules.
 
 ## Québec
 - TARGET market is Québec (Québec employer or posting; a Québec address alone does not make it the target): also read [`references/regional/north-america/quebec/market.md`](quebec/market.md) — French verb style, academic calendars, CPI, OQLF month forms, protected titles, foreign diplomas. Candidate who holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: also read [`references/regional/north-america/quebec/outbound-common.md`](quebec/outbound-common.md). French CV or francophone employer in NB, NS, PEI, Ontario or Manitoba (never for a Québec target): [`north-america/francophone-canada.md`](francophone-canada.md).

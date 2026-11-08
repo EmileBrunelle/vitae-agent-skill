@@ -6,6 +6,7 @@ Add-on to [`market.md`](market.md) and [`../us-canada.md`](../us-canada.md): Qu�
 - The MIFI issues an « Évaluation comparative des études effectuées hors du Québec »: an expert opinion that names the Québec academic level the foreign studies compare to — explicitly "not an equivalency" (141 $, target 6 months; since 4 Sept 2025 it no longer compares the field of training, only the level). Sources: Gouvernement du Québec, « Obtenir un avis d’expert pour comprendre un diplôme étranger », consulted 2026-11, Gouvernement du Québec, « Preparing your comparative evaluation application », consulted 2026-11
 - On the CV: keep the original diploma name and institution, then quote the level exactly as written on the candidate's evaluation. Illustration only, not MIFI's official wording: « Ingeniería en Sistemas, Universidad Central del Ecuador (études comparables à un baccalauréat au Québec — évaluation comparative du MIFI) ». Never write « équivalent ». Without an evaluation, give the program's real duration and suggest the candidate request one.
 - Regulated professions: the order decides, through its own procedure; the MIFI evaluation does not replace it, and no reserved title may be used before the permit (see Protected titles).
+- Moroccan, Algerian or Tunisian credentials (alone or mixed): also read [`africa/maghreb-outbound/common.md`](../../africa/maghreb-outbound/common.md) and `to-quebec-canada.md`.
 
 
 ## Education cases (Québec)
@@ -33,7 +34,7 @@ Generic principles: [`references/education-cases.md`](../../../education-cases.m
 - The OQLF advises against « bootcamp » only in the sport sense (OQLF, Grand dictionnaire terminologique, fiche « camp d'entraînement », consulted 2026-11); no French term for coding bootcamps is confirmed yet, so keep the provider's program name.
 
 ### GPA (moyenne cumulative)
-- Always print the scale with the number, French decimal comma: « 3,82/4,3 ». Maxima differ: UdeM, UQAM, Sherbrooke and Concordia use 4,3 (A+ 4,3); Laval uses 4,33; McGill 4.0 (LOW confidence, source not loaded). [S128–S132]
+- Always print the scale with the number; the decimal separator follows the CV's language: « 3,82/4,3 » in a French CV, `3.82/4.3` in an English one. Maxima differ: UdeM, UQAM, Sherbrooke and Concordia use 4,3 (A+ 4,3); Laval uses 4,33; McGill uses 4.0 (A = 4.0, no A+; CGPA is McGill's term) and truncates rather than rounds — print the transcript figure, 3.59 not 3.60 (S214). [S128–S132]
 - Do not convert between scales on the CV (4,33 to 4,3, 4,3 to 4,0, or to a US 4.0): print the institution's own number and maximum; the reader converts with its own method.
 - Distinctions (liste d'honneur, Dean's list, bourses d'excellence) go before the number.
 - HEC Montréal's career service, for the master CV, lists the GPA only if ≥ 3,5/4,3 [S133] (one school's guidance). Mainly for new graduates (≤ 2–3 years) or when the posting asks (LOW confidence, convention).
