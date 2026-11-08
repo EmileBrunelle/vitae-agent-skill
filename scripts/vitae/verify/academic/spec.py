@@ -1,7 +1,7 @@
 """Academic gate: the declared side — section spec, TOML tables, heading set."""
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict, cast
+from typing import NotRequired, TypedDict
 
 
 class Section(TypedDict):
@@ -88,8 +88,12 @@ def build_sections_spec(data: Toml) -> list[Section]:
             raise ValueError(f'TOML missing counts.{".".join(cpath)}')
         prefix = dget(prefixes, ppath, default=0) if ppath else 0
         printed = dget(headings, cpath, default=None)
+        for what, v in (("counts", declared), ("undated_prefix", prefix)):
+            if not isinstance(v, int) or isinstance(v, bool):
+                raise ValueError(f'TOML {what}.{".".join(cpath if what == "counts" else ppath or cpath)} must be an integer')
+        assert isinstance(declared, int) and isinstance(prefix, int)
         sections.append({"heading": printed if isinstance(printed, str) and printed.strip() else heading,
-                          "count": cast(int, declared), "undated_prefix": cast(int, prefix), "numbered": numbered,
+                          "count": declared, "undated_prefix": prefix, "numbered": numbered,
                           "nondated": heading in NONDATED_HEADINGS})
     return sections
 

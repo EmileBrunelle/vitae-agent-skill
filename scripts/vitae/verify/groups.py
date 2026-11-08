@@ -67,8 +67,9 @@ def _typst_values(typ: str, selector: str, root: str | None = None) -> list[obje
 
 
 def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:
-    """The lib's Mark values (see _typst_values); the lib writes dict markers only."""
-    return cast("list[Mark] | None", _typst_values(typ, selector, root))
+    """The lib's Mark values (see _typst_values); anything that is not a JSON object is dropped."""
+    vals = _typst_values(typ, selector, root)
+    return None if vals is None else cast("list[Mark]", [v for v in vals if isinstance(v, dict)])
 
 
 def _gnorm(t: str) -> str:
