@@ -1,6 +1,6 @@
 # Market: Maghreb — Morocco, Algeria, Tunisia
 
-One file, three *non-interchangeable* markets (same warning as the southeast-asia file): read the country section, never the file average. Verified against local sources 2026-08 (Jobsquare, Rekrute, Stagiaires.ma; Emploitic, Africarrières; Tanitjobs, Keejob). Where a point could not be confirmed by a local primary source it is labelled LOW confidence.
+One file, three *non-interchangeable* markets (same warning as the Southeast Asia files): read the country section, never the file average. Verified against local sources 2026-08 (Jobsquare, Rekrute, Stagiaires.ma; Emploitic, Africarrières; Tanitjobs, Keejob). Where a point could not be confirmed by a local primary source it is labelled LOW confidence.
 
 Paper: a4 (all three).
 

@@ -4,6 +4,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `education-cases.md`: MBA accreditation guidance (AACSB/EQUIS are institutional, AMBA programme-level; France RNCP and CEFDG→Hcéres; Germany ELIAS and FIBAA); `docs/sources.md` S167–S173.
+- New `regional/india-to-europe.md` (Indian credentials → Germany ZAB/Blue Card, Ireland CSEP/QQI, Netherlands Nuffic/IND, France attestation/carte talent); Ireland moved out of `india-outbound.md`; `docs/sources.md` S174–S184.
+- `regional/southeast-asia.md` split into `regional/southeast-asia/` (overview + 6 country files); pointers updated in `regional.md` and `steps/2-region.md`.
+- New `regional/asia-outbound.md` (Pakistan/Bangladesh/Nepal, Philippines K-12, China CHSI/CSSD); `docs/sources.md` S185–S192.
+
 - New `regional/india-outbound.md` add-on (Indian credentials, targets USA/Canada/UK/Ireland/AU-NZ), wired in `regional.md`, `regional/india.md`, `steps/2-region.md`; `docs/sources.md` S159, S160, S162, S164.
 - `north-america.md`: USA engineering rule generalised beyond Texas (NCEES, Florida, New York), new sections for USAJOBS (2-page limit) and GC Jobs (pasted text, screening questions), regulated-occupation check, EEOC personal-data line; `quebec-outbound.md` US boards (Texas, Florida, California); `docs/sources.md` S143–S152.
 - `education-cases.md` made market-neutral: Québec-shaped example rewritten as an English-style unfinished-program line with credit units; new cases (exchange/study abroad, double/joint degree, work-integrated study, completed-not-conferred, return to studies with work alongside, credits, grades); `SKILL.md` triggers extended; `docs/sources.md` S134–S142; MBA and professional master's section, S155–S158.

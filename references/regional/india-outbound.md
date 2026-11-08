@@ -1,6 +1,6 @@
 # Indian credentials, other markets
 
-Loaded on demand, in addition to the target market's file, when the candidate holds Indian credentials or Indian CV habits and targets the USA, Canada, UK, Ireland, Australia or New Zealand. The target market's file still applies; this add-on covers only what is specific to Indian credentials and habits. Conventions in India itself: [`india.md`](india.md).
+Loaded on demand, in addition to the target market's file, when the candidate holds Indian credentials or Indian CV habits and targets the USA, Canada, the UK, Australia or New Zealand. The target market's file still applies; this add-on covers only what is specific to Indian credentials and habits. Conventions in India itself: [`india.md`](india.md). Ireland, Germany, the Netherlands and France: [`india-to-europe.md`](india-to-europe.md).
 
 ## Drop Indian-format blocks
 - Always drop the Declaration and Personal Details blocks; drop Class X/XII marks once the candidate has work experience; CTC and notice period stay off the CV. Details: [`india.md`](india.md) and the target market file.

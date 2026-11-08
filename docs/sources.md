@@ -190,3 +190,29 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S164 — CPA Australia — « CPA Australia and ICAI renew Mutual Recognition Agreement » (undated) — https://www.cpaaustralia.com.au/about-cpa-australia/media/media-releases/cpa-australia-and-icai-renew-mutual-recognition-agreement
 - S165 — New York State Senate — N.Y. Education Law § 7202 (practice of engineering; title "professional engineer") — https://www.nysenate.gov/legislation/laws/EDN/7202
 - S166 — USCIS — Policy Manual, Volume 2, Part P, Chapter 6 « Requirements for Specific Occupations » — https://www.uscis.gov/policy-manual/volume-2-part-p-chapter-6
+- S167 — AACSB — « Accreditation FAQs » (undated, consulted 2026-11-07) — https://www.aacsb.edu/educators/accreditation/faqs
+- S168 — EFMD Global — « EQUIS Accreditation » (undated, consulted 2026-11-07) — https://www.efmdglobal.org/accreditations/business-schools/equis/
+- S169 — AMBA — « AMBA Accreditation » (undated, consulted 2026-11-07) — https://www.associationofmbas.com/business-schools/accreditation
+- S170 — France compétences — « Certification professionnelle » (undated, consulted 2026-11-07) — https://www.francecompetences.fr/reguler-le-marche/certification-professionnelle/
+- S171 — CEFDG — « Accueil » (page timestamp 2026-09-14, consulted 2026-11-07) — https://www.cefdg.fr/
+- S172 — Stiftung Akkreditierungsrat — « ELIAS-Database » (undated, consulted 2026-11-07) — https://akkreditierungsrat.de/elias-and-ac-data-analysis/what-is-elias/elias-datenbank/?lang=en
+- S173 — FIBAA — home page (undated, consulted 2026-11-07) — https://www.fibaa.org/en/
+- S174 — ZAB (KMK) — « Statement of Comparability » (undated, consulted 2026-11-07) — https://zab.kmk.org/en/statement-comparability
+- S175 — ZAB (KMK) — « Statement of Comparability for an EU Blue Card » (undated, consulted 2026-11-07) — https://zab.kmk.org/en/eu-blue-card
+- S176 — Auswärtiges Amt — « D-Visas: EU Blue Card » (undated; thresholds as of 1 Jan 2026, consulted 2026-11-07) — https://uk.diplo.de/uk-en/02/2449360-2449360
+- S177 — Department of Enterprise, Tourism and Employment (Ireland) — « Critical Skills Employment Permit Checklist » (undated, consulted 2026-11-07) — https://enterprise.gov.ie/en/publications/publication-files/critical-skills-employment-permits-checklist.pdf
+- S178 — QQI — « Recognition of foreign qualifications » (undated, consulted 2026-11-07) — https://www.qqi.ie/node/1640
+- S179 — IND — « Residence permit for orientation year » (undated, consulted 2026-11-07) — https://ind.nl/en/residence-permits/work/residence-permit-for-orientation-year
+- S180 — IND — form 7517-2026/3 « Application ... holder of the EU Blue Card (sponsor) » (2026, consulted 2026-11-07) — https://ind.nl/en/forms/7517.pdf
+- S181 — Nuffic — « Applying for a credential evaluation » (undated, consulted 2026-11-07) — https://www.nuffic.nl/en/study-and-work-in-the-netherlands/applying-for-a-credential-evaluation
+- S182 — IND — « Highly skilled migrant » (undated, consulted 2026-11-07) — https://ind.nl/en/residence-permits/work/highly-skilled-migrant
+- S183 — Service-Public (DILA) — « To have a diploma obtained abroad recognized in France » (verified 2025-04-17, consulted 2026-11-07) — https://www.service-public.gouv.fr/particuliers/vosdroits/F463?lang=en
+- S184 — Service-Public (DILA) — « Carte talent : carte de séjour pluriannuelle d'un étranger en France » (verified 2026-06-01, consulted 2026-11-07) — https://www.service-public.gouv.fr/particuliers/vosdroits/F16922
+- S185 — Nuffic — « Higher education », Education systems: Pakistan (undated, consulted 2026-11-07) — https://www.nuffic.nl/en/node/139
+- S186 — Nuffic — « Higher education », Bangladesh (undated, consulted 2026-11-07) — https://nuffic.nl/en/education-systems/bangladesh/higher-education
+- S187 — Nuffic — « Higher education », Nepal (undated, consulted 2026-11-07) — https://nuffic.nl/en/education-systems/nepal/higher-education
+- S188 — Nuffic — « Primary and secondary education », Philippines (undated, consulted 2026-11-07) — https://nuffic.nl/en/education-systems/philippines/primary-and-secondary-education
+- S189 — Nuffic — « Higher education », Philippines (undated, consulted 2026-11-07) — https://nuffic.nl/en/education-systems/philippines/higher-education
+- S190 — China Daily (govt.chinadaily.com.cn, credits chsi.com.cn) — « Brief introduction to online verification report » (2017-07-19, consulted 2026-11-07) — https://govt.chinadaily.com.cn/s/201707/19/WS5b782106498e855160e8b71c/brief-introduction-to-online-verification-report.html
+- S191 — WES US Help Center — « The CDGDC degree verification report ... English translation » (undated, consulted 2026-11-07) — https://us-help.wes.org/support/solutions/articles/14000135409-the-cdgdc-degree-verification-report-of-my-degree-certificate-is-in-chinese-how-do-i-apply-for-the-e
+- S192 — WES US Help Center — « Sino-foreign program (中外合作项目) documents » (undated, consulted 2026-11-07) — https://us-help.wes.org/support/solutions/articles/14000135418-which-documents-should-i-provide-if-i-attended-or-completed-a-sino-foreign-program-%E4%B8%AD%E5%A4%96%E5%90%88%E4%BD%9C%E9%A1%B9%E7%9B%AE-

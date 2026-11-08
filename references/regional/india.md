@@ -2,7 +2,7 @@
 
 India only (private sector, public sector/PSU, campus and lateral hiring). Thinly sourced: official bodies publish little CV guidance, so most custom rules below are labelled LOW confidence; ask the user which segment they target.
 
-Candidate with Indian credentials targeting another market: also read [`india-outbound.md`](india-outbound.md).
+Candidate with Indian credentials targeting another market: also read [`india-outbound.md`](india-outbound.md) (North America, UK, Australia, NZ) or [`india-to-europe.md`](india-to-europe.md) (Germany, Ireland, Netherlands, France).
 
 ## At a glance
 - Paper: a4.
