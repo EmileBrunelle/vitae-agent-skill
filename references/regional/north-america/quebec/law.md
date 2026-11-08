@@ -1,6 +1,6 @@
 # Law: Québec (avocat, notaire)
 
-Add-on to [`market.md`](market.md) (protected titles, arts. 32, 188, 188.1: not repeated) and [`../canada/market.md`](../canada/market.md). Loaded when the candidate writes « avocat », « Me », « notaire » or « stagiaire en droit » for a Québec target or credential. Elsewhere: [`../canada/law.md`](../canada/law.md), [`../us/law.md`](../us/law.md).
+Loaded on demand when the candidate writes « avocat », « Me », « notaire » or « stagiaire en droit » for a Québec target or credential. Read together with [`market.md`](market.md) (protected titles, arts. 32, 188, 188.1: not repeated) and [`../canada/market.md`](../canada/market.md). Elsewhere: [`../canada/law.md`](../canada/law.md), [`../us/law.md`](../us/law.md).
 
 ## « avocat »: reserved title, defined by the Tableau
 - Code des professions, art. 32 lists « avocat » and « notaire » among the titles no one may use « s'il n'est titulaire d'un permis valide et approprié et s'il n'est inscrit au tableau de l'ordre habilité à délivrer ce permis, sauf si la loi le permet » (S392).

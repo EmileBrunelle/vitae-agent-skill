@@ -1,6 +1,6 @@
 # Field pack: trades, Québec site-safety training (ASP Construction, SIMDUT)
 
-Read IN ADDITION to [`trades.md`](trades.md) (with [`fields/trades.md`](../../../fields/trades.md)) only when the Québec trades CV lists an ASP Construction card, a 30-hour site-safety course or SIMDUT (WHMIS) training. Print safety training as the rules in [`rules.md`](../../../certifications/rules.md) say for validity. Each fact is what the issuing body's own page says (consulted 2026-11-07).
+Loaded on demand when the Québec trades CV lists an ASP Construction card, a 30-hour site-safety course or SIMDUT (WHMIS) training. Read together with [`trades.md`](trades.md) (with [`fields/trades.md`](../../../fields/trades.md)). Print safety training as the rules in [`rules.md`](../../../certifications/rules.md) say for validity. Each fact is what the issuing body's own page says (consulted 2026-11-07).
 
 ## ASP Construction card
 

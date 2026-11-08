@@ -1,6 +1,6 @@
-# Financial-services licences: Québec (AMF, Chambres)
+# Regulated professions: Québec financial-services licences (AMF, Chambres)
 
-Read IN ADDITION to [`../../../certifications/rules.md`](../../../certifications/rules.md) (exam passed is not registered) when the CV lists a Québec financial-services certificate or registration: AMF representative certificate, Chambre de la sécurité financière or Chambre de l'assurance. Designations (CPA, CFA, ACCA): [`../../../certifications/finance-accounting.md`](../../../certifications/finance-accounting.md); reserved professional titles: [`market.md`](market.md). Not read: AMF securities discipline.
+Loaded on demand when the CV lists a Québec financial-services certificate or registration: AMF representative certificate, Chambre de la sécurité financière or Chambre de l'assurance. Read together with [`../../../certifications/rules.md`](../../../certifications/rules.md) (exam passed is not registered). Designations (CPA, CFA, ACCA): [`../../../certifications/finance-accounting.md`](../../../certifications/finance-accounting.md); reserved professional titles: [`market.md`](market.md). Not read: AMF securities discipline.
 
 ## Québec (AMF)
 - « Seule une personne physique titulaire d’un certificat délivré par l’AMF peut agir comme représentant et se présenter comme tel » (AMF, « Certification », snapshot 2025-08-25, S376).

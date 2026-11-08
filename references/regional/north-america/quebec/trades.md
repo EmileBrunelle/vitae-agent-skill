@@ -1,6 +1,6 @@
 # Field pack: trades, Québec
 
-Load this file with [`fields/trades.md`](../../../fields/trades.md) when the trades CV targets the Québec construction industry (CCQ, RBQ, SAAQ). ASP Construction cards and SIMDUT: [`trades-safety.md`](trades-safety.md), read only when the CV lists them. Red Seal: one line below, detail in [`canada/trades.md`](../canada/trades.md).
+Loaded on demand when the trades CV targets the Québec construction industry (CCQ, RBQ, SAAQ). Read together with [`fields/trades.md`](../../../fields/trades.md). ASP Construction cards and SIMDUT: [`trades-safety.md`](trades-safety.md), read only when the CV lists them. Red Seal: one line below, detail in [`canada/trades.md`](../canada/trades.md).
 
 ## CCQ certificates (Québec construction)
 

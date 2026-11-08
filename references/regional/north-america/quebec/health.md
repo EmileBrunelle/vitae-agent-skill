@@ -1,6 +1,6 @@
 # Health professions: Québec orders (licences and titles)
 
-Read IN ADDITION to [`../../../certifications/health.md`](../../../certifications/health.md) (decision rule: exam passed, licence held, certification) when the CV is for a regulated health profession in Québec: nurse, nurse-in-training (CEPI), pharmacist, physician. Reserved-title regime and fines: [`market.md`](market.md). Each fact is what the body's own page says (consulted 2026-11-07) and holds for that body only. Not read: CMQ and other orders' title forms.
+Loaded on demand when the CV is for a regulated health profession in Québec: nurse, nurse-in-training (CEPI), pharmacist, physician. Read together with [`../../../certifications/health.md`](../../../certifications/health.md) (decision rule: exam passed, licence held, certification). Reserved-title regime and fines: [`market.md`](market.md). Each fact is what the body's own page says (consulted 2026-11-07) and holds for that body only. Not read: CMQ and other orders' title forms.
 
 ## Québec
 - Nurses: « toute personne qui utilise le titre d’infirmière ou d’infirmier et qui exerce des activités professionnelles réservées aux infirmières et infirmiers doit être membre en règle de l’OIIQ » (OIIQ, « Vérifier le droit d’exercice », S335). Public search by name or « numéro de permis » (S335).

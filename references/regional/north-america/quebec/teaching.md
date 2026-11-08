@@ -1,6 +1,6 @@
-# Québec: teaching credentials (ministère de l'Éducation)
+# Regulated professions: Québec teaching credentials (ministère de l'Éducation)
 
-Loaded when a candidate lists a Québec teaching authorisation. Add-on to [`market.md`](market.md) and [`../canada/market.md`](../canada/market.md). Academic CV: [`../../../fields/academic.md`](../../../fields/academic.md), not here. Rule 1 of SKILL.md applies.
+Loaded on demand when a candidate lists a Québec teaching authorisation. Read together with [`market.md`](market.md) and [`../canada/market.md`](../canada/market.md). Academic CV: [`../../../fields/academic.md`](../../../fields/academic.md), not here. Rule 1 of SKILL.md applies.
 
 ## The forms the ministry issues
 - Generic term: « autorisation d'enseigner » (Règlement sur les autorisations d'enseigner), required « pour exercer le métier d'enseignant au Québec »; « une autorisation permanente et des autorisations temporaires » (S417).
