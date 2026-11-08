@@ -1,6 +1,6 @@
 # Financial-services licences: Canada outside Québec (CIRO, CSA)
 
-Read IN ADDITION to [`../../certifications/rules.md`](../../certifications/rules.md) (exam passed is not registered) when the CV lists a CIRO or provincial securities registration, or the Canadian Securities Course. Québec: [`quebec/financial-licensing.md`](quebec/financial-licensing.md). Designations (CPA, CFA, ACCA): [`../../certifications/finance-accounting.md`](../../certifications/finance-accounting.md); reserved professional titles: [`us-canada.md`](us-canada.md#protected-titles). Not read: other provinces' own pages.
+Read IN ADDITION to [`../../certifications/rules.md`](../../../certifications/rules.md) (exam passed is not registered) when the CV lists a CIRO or provincial securities registration, or the Canadian Securities Course. Québec: [`quebec/financial-licensing.md`](../quebec/financial-licensing.md). Designations (CPA, CFA, ACCA): [`../../certifications/finance-accounting.md`](../../../certifications/finance-accounting.md); reserved professional titles: [`canada/market.md`](market.md#protected-titles). Not read: other provinces' own pages.
 
 ## Canada (CIRO, CSA)
 - « Registered and approved with CIRO » is required for individuals dealing or advising through a member Investment Dealer or Mutual Fund Dealer; « must be sponsored by a firm that is a CIRO member » (CIRO, « Becoming a registered individual », snapshot 2026-05-04, S382).

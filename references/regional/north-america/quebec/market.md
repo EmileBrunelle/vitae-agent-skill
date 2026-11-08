@@ -1,10 +1,10 @@
 # Market: Québec (Canada)
 
-Add-on to [`north-america/us-canada.md`](../us-canada.md), which still applies; Québec-specific rules only.
+Add-on to [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md), which still apply; Québec-specific rules only.
 
 ## Length and verbs
 - Québec French: infinitive action verbs (« Concevoir… », « Livrer… ») — a convention taught by university career services, not a provincial norm; noun-phrase style is equally accepted — don't present it to the user as "the Québec convention". Months lowercase (janv., août); « Juin 2026 – présent », never « Depuis juin 2026 » (not ATS-parseable).
-- Québec academic calendars (for bounding year-only education dates, with user confirmation): fall session — cégep starts late August, university early September; winter session — university starts early January, cégep late January; both end in May.
+- Québec academic calendars (for bounding year-only education dates, with user confirmation): fall session — cégep starts late August, university early September; winter session — university starts early January; the winter term ends late April or early May depending on faculty (UQAM 2027: 23 April, 30 April or 2 May, S391); cégep starts late January and ends in May.
 
 ## Protected titles
 - Québec reserves professional titles by law. Code des professions, art. 32 (exclusive-practice professions such as ingénieur, architecte) and art. 36 (reserved-title professions): no one may use the title, or "un titre ou une abréviation pouvant laisser croire" they hold it, without the order's permit. Fines start at 2 500 $ for an individual (art. 188); an employer who designates a non-member that way also commits an offence (art. 188.1). Sources: Code des professions, RLRQ c. C-26

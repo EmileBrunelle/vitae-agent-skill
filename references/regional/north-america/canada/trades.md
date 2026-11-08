@@ -1,6 +1,6 @@
 # Field pack: trades, Canada outside Québec
 
-Load this file with [`fields/trades.md`](../../fields/trades.md) when the trades CV targets a Canadian province or territory other than Québec, or lists a Red Seal endorsement. Québec: [`quebec/trades.md`](quebec/trades.md).
+Load this file with [`fields/trades.md`](../../../fields/trades.md) when the trades CV targets a Canadian province or territory other than Québec, or lists a Red Seal endorsement. Québec: [`quebec/trades.md`](../quebec/trades.md).
 
 ## Provinces and Red Seal
 

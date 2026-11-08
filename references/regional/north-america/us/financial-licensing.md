@@ -1,6 +1,6 @@
 # Financial-services licences: United States (FINRA, NASAA, insurance)
 
-Read IN ADDITION to [`../../certifications/rules.md`](../../certifications/rules.md) (exam passed is not registered) when the CV lists a FINRA registration or Series exam, a state securities licence, or a state insurance producer licence. Designations (CPA, CFA, ACCA): [`../../certifications/finance-accounting.md`](../../certifications/finance-accounting.md); reserved professional titles: [`us-canada.md`](us-canada.md#protected-titles). Not read: US state insurance rules.
+Read IN ADDITION to [`../../certifications/rules.md`](../../../certifications/rules.md) (exam passed is not registered) when the CV lists a FINRA registration or Series exam, a state securities licence, or a state insurance producer licence. Designations (CPA, CFA, ACCA): [`../../certifications/finance-accounting.md`](../../../certifications/finance-accounting.md); reserved professional titles: [`us/market.md`](market.md#protected-titles). Not read: US state insurance rules.
 
 ## United States
 - FINRA: "To become registered, securities professionals must pass qualifying exams administered by FINRA" (FINRA, « Qualification Exams », S385). After the SIE "the next step is becoming associated with a FINRA member firm and taking one of the qualification exams" (FINRA, « SIE », S386).

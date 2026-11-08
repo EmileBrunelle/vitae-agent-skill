@@ -1,0 +1,6 @@
+# Gulf credentials: Saudi Arabia
+
+- **Engineers:** Saudi Council of Engineers accreditation is a stated element of the 2026 engineering Saudization decision (S252); its registration grades and experience thresholds were not read from a primary source, so none is stated. Do not write an accreditation the candidate lacks.
+- **Health practitioners (SCFHS), classification then registration** (S258, S259): the bachelor's must be authenticated when the application rests on a bachelor's alone, the higher degrees when it rests on postgraduate degrees; experience not below one year for non-Saudis (except graduates of Saudi universities); the professional registration certificate from the home country's official authority with a verification letter, or a Ministry of Health letter where no such body exists; an employment letter issued within three months proving clinical practice. Registration asks for a residence permit for non-Saudis. For the candidate: keep the home registration number and issuing body, and exact training dates.
+- A permit or licence from another agency « shall not substitute » for the work permit (Labor Law art. 34; S241).
+- Ministry of Education equivalency for foreign university degrees: not sourced.

@@ -4,7 +4,7 @@ Spain only; never reuse for Latin America (Spanish-language CV conventions diffe
 
 ## At a glance
 - Paper: a4.
-- Photo: optional, not required by law; common in local guidance (LOW confidence: only InfoJobs/Europass advice pages). The candidate decides; if included, formal and neutral (DACH mechanics).
+- Photo: optional, not required by law; common in local guidance (LOW confidence: only InfoJobs/Europass advice pages). The candidate decides; if included, formal, front-facing, plain background (convention, no official source; LOW confidence).
 - CV language: Spanish; the posting's language wins. Catalan, Galician, Basque or Valencian only when the posting or the region's employer asks.
 - Personal data: omit birth date, marital status, children and national ID (DNI/NIE number); nationality only when work authorisation matters.
 - Formality / verb style: no authoritative local norm found; follow the posting's register.

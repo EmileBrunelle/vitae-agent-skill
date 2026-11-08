@@ -1,6 +1,6 @@
 # Field pack: trades, Québec
 
-Load this file with [`fields/trades.md`](../../../fields/trades.md) when the trades CV targets the Québec construction industry (CCQ, RBQ, SAAQ). ASP Construction cards and SIMDUT: [`trades-safety.md`](trades-safety.md), read only when the CV lists them. Red Seal: one line below, detail in [`trades-canada.md`](../trades-canada.md).
+Load this file with [`fields/trades.md`](../../../fields/trades.md) when the trades CV targets the Québec construction industry (CCQ, RBQ, SAAQ). ASP Construction cards and SIMDUT: [`trades-safety.md`](trades-safety.md), read only when the CV lists them. Red Seal: one line below, detail in [`canada/trades.md`](../canada/trades.md).
 
 ## CCQ certificates (Québec construction)
 
@@ -11,7 +11,7 @@ Load this file with [`fields/trades.md`](../../../fields/trades.md) when the tra
 - A MTESS qualification certificate (électricien, système frigorifique, plomberie, chauffage) lets a candidate "obtenir" the CCC only with, in addition, a CCQ-recognised programme and at least 8,000 hours of experience in the trade, training credits included (S316). The MTESS certificate alone is not a CCC.
 - Student CCA: temporary, 6 months, not renewable, cancelled if the student leaves or finishes the programme, though a new application is possible while still enrolled (S317). Print it as a student apprentice certificate with dates.
 - Qualification "opérateur de camion-flèche": added to the compagnon's certificate after the 90-hour module and the exam; maintained by proving 50 hours' work a year (S316).
-- A Red Seal holder applies separately to the CCQ for a certificat de compétence (S322). Red Seal itself: [`trades-canada.md`](../trades-canada.md).
+- A Red Seal holder applies separately to the CCQ for a certificat de compétence (S322). Red Seal itself: [`canada/trades.md`](../canada/trades.md).
 
 ## Entries and hours
 

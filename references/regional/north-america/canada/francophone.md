@@ -1,16 +1,16 @@
 # Market: francophone Canada outside Québec
 
-Add-on to [`north-america/us-canada.md`](us-canada.md), which still applies. Sources loaded: NB, Ontario, PEI, Manitoba, federal; NS only the posting practice below. Québec is not the French-Canadian case.
+Add-on to [`north-america/common.md`](../common.md) and [`canada/market.md`](market.md), which still apply. Sources loaded: NB, Ontario, PEI, Manitoba, federal; NS only the posting practice below. Québec is not the French-Canadian case.
 
 ## Which `quebec/` rules carry over
-- Not outside Québec: OQLF diploma abbreviations, Code des professions, OIQ, MIFI, DEC-BAC ([`quebec/market.md`](quebec/market.md), [`quebec/education.md`](quebec/education.md)). No loaded NB, Ontario or Manitoba source sets an equivalent norm: write diploma names in full as the institution prints them (convention, LOW confidence).
-- Every French CV: the month trap in [`references/ats.md`](../../ats.md). The infinitive verb style is a Québec career-service convention (`quebec/market.md`); follow the posting.
+- Not outside Québec: OQLF diploma abbreviations, Code des professions, OIQ, MIFI, DEC-BAC ([`quebec/market.md`](../quebec/market.md), [`quebec/education.md`](../quebec/education.md)). No loaded NB, Ontario or Manitoba source sets an equivalent norm: write diploma names in full as the institution prints them (convention, LOW confidence).
+- Every French CV: the month trap in [`references/ats.md`](../../../ats.md). The infinitive verb style is a Québec career-service convention (`quebec/market.md`); follow the posting.
 - Québec credentials: the `quebec/outbound-*` files apply, with their "no equivalences" rule; their gloss targets English readers, so a French CV keeps `DEC, Informatique de Gestion` as is. No loaded source says how NB or Ontario francophone employers read a DEC: do not add a gloss unless the candidate approves.
 
 ## Protected titles
 - NB: only members, licensees and certificate holders may use « ingénieur », « ing. », « géoscientifique » or « géosc. » or any addition or abbreviation (s. 9); representing oneself as an engineer by title is deemed practice (s. 10(b)); the French text lists no « P. Eng. », which belongs to English CVs (S193, 2015 bill text of the Act, not the consolidation). The regulator's French name in its own bilingual by-laws: « Association des ingénieurs et des géoscientifiques du Nouveau-Brunswick » (S206).
 - Ontario: without a licence it is an offence to use « ingénieur » or "professional engineer" as an occupational designation, "engineer" so as to suggest one may practise engineering, or any term that suggests it (s. 40(2)); French regulator name « Ordre des ingénieurs de l'Ontario » (s. 2(1)) (S194 and S207, consolidation from 2025-01-01, same wording as the 2012 one). « ingénieur » is defined as the holder of a licence or temporary licence (s. 1(1)); using « stagiaire en ingénierie » (SI) or « technologue en ingénierie titulaire de permis » (TITP) in a way that suggests holding that status is an offence too (s. 40(3.1), (3.2)). No French abbreviation for « ingénieur »: write it and the regulator's French name.
-- Software-engineer rule: `us-canada.md`. No other NB or Ontario regulated title is sourced; use its regulated-occupation check.
+- Software-engineer rule: [`canada/market.md`](market.md#protected-titles). No other NB or Ontario regulated title is sourced; use its regulated-occupation check.
 
 ## Credentials
 - No DEC, AEC or cégep. Secondary: NB as printed on the transcript (S204); Ontario « Diplôme d'études secondaires de l'Ontario (DESO) » (S208). College level and university: CICIC charts show a generic « diplôme d'études collégiales » (1 to 3 years) and « baccalauréat » (3 to 4 years) for both provinces (S204, S205, 2016); that is CICIC's label, not a credential name.

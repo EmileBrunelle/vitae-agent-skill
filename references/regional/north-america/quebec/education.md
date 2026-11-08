@@ -1,6 +1,6 @@
 # Québec education: foreign diplomas and cases
 
-Add-on to [`market.md`](market.md) and [`../us-canada.md`](../us-canada.md): Québec education wording, diploma evaluation, sources.
+Add-on to [`market.md`](market.md) and [`../common.md`](../common.md) and [`../canada/market.md`](../canada/market.md): Québec education wording, diploma evaluation, sources.
 
 ## Foreign diplomas on a Québec CV
 - The MIFI issues an « Évaluation comparative des études effectuées hors du Québec »: an expert opinion that names the Québec academic level the foreign studies compare to — explicitly "not an equivalency" (141 $, target 6 months; since 4 Sept 2025 it no longer compares the field of training, only the level). Sources: Gouvernement du Québec, « Obtenir un avis d’expert pour comprendre un diplôme étranger », consulted 2026-11, Gouvernement du Québec, « Preparing your comparative evaluation application », consulted 2026-11

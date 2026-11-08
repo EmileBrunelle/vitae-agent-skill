@@ -444,3 +444,7 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S388 — NASAA — « Series 63/65/66 exam FAQ » (consulted 2026-11-07) — https://www.nasaa.org/exams/exam-faqs/
 - S389 — NAIC — « Producer Licensing » (last updated 2025-02-10; Wayback capture, live fetch failed) — https://content.naic.org/insurance-topics/producer-licensing
 - S390 — NIPR — « Verify existing insurance licenses » (consulted 2026-11-07) — https://nipr.com/licensing/verify-existing-licenses
+
+## Added 2026-11-08 (Québec university calendar)
+
+- S391 — UQAM — « Calendriers et dates importantes » (no page date; accessed 2026-11-08; winter 2027 starts 11 January, « Fin du trimestre » 23 April, 30 April or 2 May; winter 2028 starts 10 January) — https://etudier.uqam.ca/calendriers
