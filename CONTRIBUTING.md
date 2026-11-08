@@ -40,6 +40,18 @@ Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow, 
 
 Python scripts must type-check with mypy (config in `mypy.ini`, run `python3 -m mypy`) and target Python 3.11 or later.
 
+## Reference file format
+
+Applies to `references/regional/**`, `references/certifications/**` and `references/fields/**`, except `*-common.md`, `overview.md` and stubs under 80 words (`tests/unit/test_reference_format.py` checks the mechanical rules).
+
+- H1 is `# <Genre>: <Subject>`; genres: Market, Education, Regulated professions, Health professions, Academic, Outbound, Law, Field pack, Certifications, Foreign workers, Gulf nationalisation, Gulf credentials. Add a genre only if none fits.
+- The first paragraph is `Loaded on demand when <trigger>.`, optionally followed by a `Read together with` sentence linking the parent file and at most one scope sentence.
+- Market files open with `## At a glance` (bullets in this order when present: Paper, Photo, CV language, Personal data, Length, then others).
+- Common section names when the topic exists: `## Protected titles`, `## Application package`, `## Personal data and law`; country-specific sections after.
+- Every sourced fact carries its S### id, in the form `(Publisher, « Title », consulted YYYY-MM-DD, S###)` or plain S### where the sentence already names publisher, title and date. The date verb is `consulted`, never accessed, retrieved, read or consulté.
+- No URLs in `references/` (they live in `docs/sources.md`).
+- Confidence: a sourced fact carries its S###; an unsourced fact kept as a warning carries `LOW, unsourced`; an unchecked point carries `not checked`. No HIGH, MEDIUM, unverified, not sourced, bare LOW or LOW confidence.
+
 ## Where to edit
 
 [`SKILL.md`](SKILL.md) is a slim entry point and `tests/run_all.sh` fails above 13000 bytes. Add or change step detail in `references/steps/N-<slug>.md` (academic mode in [`references/academic-mode.md`](references/academic-mode.md), traps in [`references/known-traps.md`](references/known-traps.md)); keep `SKILL.md` to the rules and the per-step skeleton. Every `references/`, `scripts/` or `templates/` path cited must exist (also gated).
