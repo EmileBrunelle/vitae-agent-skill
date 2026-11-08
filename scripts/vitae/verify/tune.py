@@ -10,8 +10,8 @@ import re
 import shlex
 import tempfile
 
-import measure_fill
-from verify_base import (
+import vitae.fill as measure_fill
+from vitae.core.base import (
     _FOOTER_TUNE,
     _FOOTER_TUNE_NOPAR,
     _FOOTER_TUNE_UNDER,
@@ -20,9 +20,9 @@ from verify_base import (
     LOWERED_FILL_FLOOR,
     STATE,
 )
-from verify_env import PdfBackend, preflight
-from verify_pdf import compile_pdf, count_pages, render_pngs
-from verify_typst import _read_par, _write_par
+from vitae.core.env import PdfBackend, preflight
+from vitae.verify.pdf import compile_pdf, count_pages, render_pngs
+from vitae.verify.typst import _read_par, _write_par
 
 # ---------- auto-tuner: the fill loop, run by bisection instead of by hand ----------
 

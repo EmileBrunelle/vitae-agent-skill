@@ -42,9 +42,10 @@ import tempfile
 from collections.abc import Callable, Iterator
 from typing import Any, Literal, NoReturn, cast, overload
 
-import measure_fill
-import verify as _v
-from verify import (  # noqa: E402
+import vitae.fill as measure_fill
+import vitae.verify.cli as _v
+from vitae.core.level import Level
+from vitae.verify.cli import (  # noqa: E402
     DEVICE_QUORUM,
     ENTRY_MARKS,
     FURNITURE_SCALE,
@@ -98,10 +99,10 @@ from verify import (  # noqa: E402
     typst_fonts,
     word_boxes,
 )
-from verify_level import Level
-from verify_typst import _doc_leading
+from vitae.verify.typst import _doc_leading
 
-_VERIFY_FILE = _v.__file__
+# the façade scripts/verify.py: what a user runs (and what the subprocess calls below spawn)
+_VERIFY_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py")
 
 
 def run() -> NoReturn:
@@ -243,7 +244,7 @@ def run() -> NoReturn:
     # The family banner is the authority, not the editable header (CHANGELOG, drawn fill target). A header
     # beyond the first 3 lines counts as absent; with no family known the header is read on line 1 only.
     with tempfile.TemporaryDirectory(prefix="vitae-drawn-") as _td:
-        import pick_design as _pd
+        import vitae.design.pick as _pd
         _fam = next(iter(_pd.FAMILIES))
         _exp = tuple(int(_x) for _x in _pd.FAMILIES[_fam]["page"]["fill"].split("-"))
         _ft = os.path.join(_td, "cv.typ")

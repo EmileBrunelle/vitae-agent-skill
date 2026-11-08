@@ -1,7 +1,7 @@
 """The offline typst-wheel hint names the running platform tag and Python version, never a fixed OS/arch."""
 import sys
 
-import verify_env
+import vitae.core.env as verify_env
 
 
 def test_hint_uses_detected_platform_and_python(monkeypatch, capsys):

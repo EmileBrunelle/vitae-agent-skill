@@ -4,7 +4,7 @@ Each test records what the function does TODAY. Former defects (unclosed `#secti
 """
 import pytest
 import verify as v
-import verify_typst
+import vitae.verify.typst as verify_typst
 
 # --- _fold -----------------------------------------------------------------------------------------------------
 

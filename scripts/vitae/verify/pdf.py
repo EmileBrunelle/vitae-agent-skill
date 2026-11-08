@@ -18,10 +18,11 @@ from collections.abc import Sequence
 from typing import Any, Literal, cast, overload
 
 from PIL import Image
-from verify_base import HIDDEN_PPI, Box, WordBox
-from verify_env import PdfBackend, _importable, pdf_backend, typst_font_kw, typst_py
-from verify_page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
-from verify_typst import _strip_typst_comments
+
+from vitae.core.base import HIDDEN_PPI, Box, WordBox
+from vitae.core.env import PdfBackend, _importable, pdf_backend, typst_font_kw, typst_py
+from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
+from vitae.verify.typst import _strip_typst_comments
 
 # ---------- compile / page-count / extraction, native or fallback ----------
 
@@ -123,8 +124,8 @@ def ensure_icons(typ: str) -> None:
                   f"replace it with a regular file")
         return
     if not os.path.exists(dst):
-        src = os.path.join(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__))), "templates", "icons.typ")
+        src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))))), "templates", "icons.typ")
         if not os.path.exists(src):    # no repo fallback (nothing to copy)
             return
         fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL

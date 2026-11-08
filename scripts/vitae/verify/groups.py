@@ -14,11 +14,12 @@ from collections.abc import Callable, Sequence
 from typing import Any, Literal, cast
 
 from PIL import Image
-from verify_base import DetailRow, GapFn, LineBox, Mark, Word, WordBox, _EntryRecord, _Line
-from verify_env import pdf_backend, typst_font_kw, typst_py
-from verify_level import Finding, Level
-from verify_page import INK_DELTA, INK_DPI, RULE_PT, _row_stats, _xheight_band
-from verify_pdf import _boxes_unavailable, _pdfium_render, auto_root, word_boxes
+
+from vitae.core.base import DetailRow, GapFn, LineBox, Mark, Word, WordBox, _EntryRecord, _Line
+from vitae.core.env import pdf_backend, typst_font_kw, typst_py
+from vitae.core.level import Finding, Level
+from vitae.verify.page import INK_DELTA, INK_DPI, RULE_PT, _row_stats, _xheight_band
+from vitae.verify.pdf import _boxes_unavailable, _pdfium_render, auto_root, word_boxes
 
 # ---------- grouping / date / duplicate-name / forced-break gates ----------
 # lib.typ tags every entry head and skill label with an invisible <vitae-head>

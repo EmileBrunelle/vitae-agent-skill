@@ -17,7 +17,7 @@ from collections import Counter
 from collections.abc import Sequence
 from enum import StrEnum
 
-from verify_level import Finding, Level
+from vitae.core.level import Finding, Level
 
 # A family that EXISTS but lacks the glyphs (fontsource's `*-latin-ext-*` files carry the
 # family name and no basic Latin and shadow the `*-latin-*` ones) draws the text in whatever

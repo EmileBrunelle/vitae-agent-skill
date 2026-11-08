@@ -8,14 +8,15 @@ import importlib.util
 from collections.abc import Iterator, Sequence
 from typing import Any
 
-import measure_fill
 from PIL import Image
-from verify_base import Band, Box, WordBox
-from verify_env import _importable
-from verify_fonts import _font_sources, classify_font_fallback, requested_families
-from verify_level import Finding, Level
-from verify_page import BOUNDARY_RATIO, FURNITURE_SCALE, boundary_ink, furniture_ink, near_boundary
-from verify_pdf import _pdfium_doc
+
+import vitae.fill as measure_fill
+from vitae.core.base import Band, Box, WordBox
+from vitae.core.env import _importable
+from vitae.core.level import Finding, Level
+from vitae.verify.fonts import _font_sources, classify_font_fallback, requested_families
+from vitae.verify.page import BOUNDARY_RATIO, FURNITURE_SCALE, boundary_ink, furniture_ink, near_boundary
+from vitae.verify.pdf import _pdfium_doc
 
 # ---------- whitespace structure: section boundaries + canyons ----------
 

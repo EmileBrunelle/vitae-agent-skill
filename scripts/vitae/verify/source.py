@@ -7,9 +7,9 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from verify_lang import _is_latin, _strip_latin_marks
-from verify_pdf import family_from_path
-from verify_typst import _mask_non_markup
+from vitae.verify.lang import _is_latin, _strip_latin_marks
+from vitae.verify.pdf import family_from_path
+from vitae.verify.typst import _mask_non_markup
 
 # The headings come from the SOURCE, not from a guess at what a heading looks
 # like in the extraction: every family defines its own `#section(t, body)` and
@@ -126,7 +126,7 @@ def _drawn_fill(typ: str) -> tuple[tuple[int, int] | None, list[str]]:
     family = family_from_path(typ)
     table: tuple[int, int] | None = None
     if family:
-        import pick_design as pd
+        import vitae.design.pick as pd
         fam = pd.FAMILIES.get(family)
         if fam:
             lo, hi = fam["page"]["fill"].split("-")

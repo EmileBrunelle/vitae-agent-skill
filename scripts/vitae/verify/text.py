@@ -14,12 +14,13 @@ from collections.abc import Callable
 from typing import Any, cast
 
 from PIL import Image
-from verify_base import HIDDEN_PPI, HiddenStat, WordBox
-from verify_env import pdf_backend
-from verify_lang import _is_latin, _strip_latin_marks
-from verify_level import Finding, Level
-from verify_page import _lum
-from verify_pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png
+
+from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
+from vitae.core.env import pdf_backend
+from vitae.core.level import Finding, Level
+from vitae.verify.lang import _is_latin, _strip_latin_marks
+from vitae.verify.page import _lum
+from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png
 
 # Date and number patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")

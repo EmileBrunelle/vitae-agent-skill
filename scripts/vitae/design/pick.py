@@ -1,0 +1,1642 @@
+#!/usr/bin/env python3
+# AGENT: do not read this file — run it. Its printed output is the instruction.
+# Usage: python3 scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --init <cv folder>
+# (Reading it wastes context: a small model read a sibling script 3 times and never wrote the CV.)
+"""Pick the design family and its secondary parameters for one candidate.
+
+Deterministic: the same candidate always gets the same look, so the 1-page,
+2-page and translated versions of one CV never drift apart. Nothing random,
+nothing to remember between sessions.
+
+Usage:
+    python3 scripts/pick_design.py --name "Firstname Lastname" \
+        --field software --market north-america \
+        [--career early|mid|senior] [--photo] [--conservative] \
+        [--audacity sober|expressive|bold] [--creative] [--offline] \
+        [--emit-typ] [--init <cv folder> [--force]]
+    python3 scripts/pick_design.py --list        # families, registers, gamuts
+    python3 scripts/pick_design.py --selftest    # assert determinism + pools
+
+    --career        early (DEFAULT) → the pool leans MODERN. mid → modern +
+                    neutral. senior → neutral + classic. Derive it from the
+                    fact sheet: years of experience, whether this is a first
+                    job, the seniority of the titles. NEVER from age or any
+                    demographic datum — the skill does not ask for age and
+                    does not infer from it.
+    --field         also weights the pool through DOMAIN_REGISTER below:
+                    creative fields lean expressive, conservative fields lean
+                    sober. An unknown field leaves the pool full.
+    --photo         the market/employer expects a photo in the header (keeps
+                    only families whose header has a right-hand slot).
+    --conservative  regulated / traditional target market — drops the loud
+                    families and caps the audacity dial at sober.
+    --audacity      colour dial, see scripts/gen_palette.py. Default sober.
+                    Raise it ONLY on the explicit request of the candidate or
+                    user, never by inference. A conservative target market caps
+                    it back down; a market never raises it.
+    --creative      unlock the `creative` register (avant-poster, gutter-rail,
+                    hard-edge).
+                    Those families are NEVER in the default pool: they need
+                    either a --field whose DOMAIN_REGISTER is creative, or this
+                    flag, i.e. an explicit request from the candidate or user —
+                    never an inference. --conservative drops them regardless.
+                    gutter-rail carries a SECOND lock: its ruled gutter is a
+                    code gutter, so it also needs a TECHNICAL --field
+                    (GUTTER_RAIL_DOMAIN below). The creative unlock alone never
+                    draws it for a non-technical trade.
+    --offline       sandbox with no network to fetch missing fonts: filter the
+                    eligible pool to families that already have at least one
+                    locally installed face in every font role (display, body,
+                    and mono where declared).
+    --init FOLDER   the ONE-COMMAND start: prints the report, then writes
+                    FOLDER/lib.typ + icons.typ (byte copies) and FOLDER/cv.typ
+                    (the drawn family's worked file with the drawn palette,
+                    fonts, leading, mark kit substituted). Refuses to overwrite
+                    an existing cv.typ unless --force. Its printed next steps
+                    are the instruction: scripts are run, never read.
+    --emit-typ      print a ready-to-paste Typst PREAMBLE for the drawn recipe
+                    (tokens, fonts, page/text/par) — never the devices: the
+                    heading device, skills block, accent roles and header
+                    composition stay in references/design/families/<name>.md, because they ARE
+                    the recipe and the whole anti-clone system.
+
+Fourteen families, and every profile draws from at least MIN_POOL = 5 of them
+(so two candidates of the same profile collide at worst 1 time in 5).
+Secondary parameters, drawn from the same hash: accent (plus its paired duotone
+hue B where the family has one), list marker, section-label variant, the
+family's own VARIANT where it declares one, and the font pair from the family's
+own typographic pool. FONTS below is the single
+source of truth for typography — core.md describes the registers and the
+vetting checklist and does NOT repeat the lists (a second list drifts).
+
+The recipes themselves (heading device, skills block, accent role, icons,
+verified leading/spacing) live in references/design/families/<name>.md. This
+script only decides WHICH one; that file says how to build it.
+
+Only name+field enter the hash: the same person keeps their look when the CV
+is retargeted, unless a flag changes which families are eligible.
+
+POSIX fallback (no python3) — same result for the family choice:
+    key="Firstname Lastname+software"
+    h=$(printf '%s' "$key" | sha256sum | cut -c1-8)
+    # n = number of ELIGIBLE families: apply the flags and the career/field
+    # register weighting by hand from core.md's "Family roster" list (id — register). The eligible
+    # list EXCLUDES the three creative-register families unless creative is
+    # unlocked (a creative --field, or --creative). Widen one register tier at a
+    # time (career order), adding families ALPHABETICALLY and STOPPING as soon
+    # as 5 are eligible, then sort what is left alphabetically.
+    echo $(( 0x$h % n ))        # 0-based index into that alphabetical list
+Same key, same sha256, same modulo, so the family matches this script exactly
+— as long as the eligible list matches. The modulo changes when the roster or
+the pool sizes change, and it did change when the roster went from 9 to 13 to 14
+and MIN_POOL from 4 to 5; that is accepted (a family reshuffle is not a
+regression). The secondary parameters do NOT reproduce: take the family's
+documented defaults — its FIRST accent (with the hue B at the same index), its
+first list marker, its own `labels`, its `page`/`order`/`spec`, and the first
+pool member of each font role that `typst fonts` actually lists.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import re
+import subprocess
+import sys
+from collections.abc import Mapping
+from typing import Any, Callable, Literal, NotRequired, TypedDict, cast
+
+Audacity = Literal["sober", "expressive", "bold"]
+Font = tuple[str, str]               # (family name, provenance)
+
+
+class Labels(TypedDict):
+    profile: str
+    skills: str
+    soft: str | None
+
+
+class Page(TypedDict):
+    margin: str
+    body: str
+    fill: str
+
+
+class Family(TypedDict):
+    register: str
+    current: str
+    icons: str
+    accents: list[str]
+    accents2: NotRequired[list[str]]
+    markers: list[str]
+    labels: Labels
+    header: str
+    photo_ok: bool
+    conservative_ok: bool
+    page: Page
+    order: tuple[str, ...]
+    spec: bool
+    leading: str
+    spacing: str
+    above: str
+    variants: NotRequired[list[str]]
+
+
+class FontPool(TypedDict):
+    register: str
+    display: list[Font]
+    body: list[Font]
+    mono: NotRequired[list[Font]]
+
+
+class Pick(TypedDict):
+    key: str
+    family: str
+    have: set[str] | None
+    offline: bool
+    eligible: list[str]
+    recipe: Family
+    mono: Font | None
+    mono_note: str | None
+    variant: str | None
+    career: str
+    domain: str
+    audacity: Audacity
+    accent: str
+    accent2: str | None
+    marker: str
+    markset: tuple[str, str]
+    labels: dict[str, str | None]
+    font_register: str
+    display: Font
+    display_wanted: Font | None
+    display_note: str
+    body: Font
+    body_wanted: Font | None
+    body_note: str
+
+# register: modern | neutral | classic | creative — how current the look reads.
+#   `creative` is NEVER in the default pool: see the pool rules in pick().
+# icons: the family's contact-icon style (none is itself a design statement).
+# labels: the family's DEFAULT section names (the lexical skeleton is a
+#   fingerprint too: fourteen families that all say "Profile / Technical Skills
+#   / Core Strengths" still read as one tool). Variants in LABEL_VARIANTS.
+# header: the order of the header block — another per-family marker.
+# accents2: duotone families only — hue B, paired 1:1 with `accents` (same
+#   index: the pair was validated together, never mix indexes).
+# page: the family's GABARIT — margins, body size and the measured fill target
+#   for scripts/verify.py. The target is DERIVED from the bottom margin
+#   ((100 − bottom-margin%) − 0..2%), which is why a roomier family aims lower:
+#   a 1.2cm bottom leaves 94-96, a 1.6cm bottom leaves 92-94.
+# order: the family's DEFAULT section order, from the 7 legal role names only
+#   (see ORDER_ROLES). A target market's own convention (references/regional.md
+#   § Section order) ALWAYS overrides it.
+# spec: does the header carry a SPECIALITIES LINE (the 5-7 mastered skills,
+#   small caps, separator-joined, no letterspacing)? A family TRAIT, true on
+# variants: a family's OWN variant axis, where its current documents one (only
+#   gutter-rail: the square-vs-pill segment binary). Drawn from the same hash.
+# spec: … true on
+#   exactly FOUR of the fourteen — never universal: the same device on all
+#   fourteen would be a new fingerprint for the tool, which is the opposite of
+#   what the roster exists for. Where it is true, SKILL.md rule 2 applies to
+#   every item on the line.
+ORDER_ROLES = ("profile", "skills", "experience", "other", "education", "soft",
+               "languages")
+STD_PAGE = Page(margin="x: 1.5cm, top: 1.2cm, bottom: 1.2cm", body="10.5pt",
+                fill="94-96")
+CHRONO = ("profile", "experience", "other", "education", "skills", "soft",
+          "languages")
+SKILLS_FIRST = ("profile", "skills", "experience", "other", "education",
+                "soft", "languages")
+FAMILIES: dict[str, Family] = {
+    "avant-poster": Family(
+        register="creative",
+        current="constructivist poster, two-ink discipline (El Lissitzky lineage)",
+        icons="solid: filled + angular, hue B",
+        accents=["#b3261e", "#8c3b00", "#72191f"],
+        accents2=["#1f3a5f", "#0e6862", "#2f4858"],
+        markers=["● (vector circle, hue B)", "•"],
+        labels=Labels(profile="Summary", skills="Technical Stack",
+                    soft="Working Style"),
+        header="full-bleed masthead bar, oversized name, specialities "
+               "line, contacts on one line (NO diagonal)",
+        photo_ok=True, conservative_ok=False,
+        page=Page(margin="x: 1.8cm, top: 1.3cm, bottom: 1.6cm",
+                  body="10.5pt", fill="92-94"),
+        order=CHRONO,          # narrative-led: education before skills
+        spec=True,
+        leading="0.548em", spacing="0.638em",
+        above="15pt / 20pt airy, 6pt after"),
+    "bold-display": Family(
+        register="modern",
+        current="geometric display / heavy weight contrast (Avant-Garde lineage)",
+        icons="solid: filled + angular, hue B",
+        accents=["#8c3b00", "#0e6862", "#3b3486", "#b3261e"],
+        accents2=["#105a90", "#72191f", "#7d3312", "#1a6265"],
+        markers=["▪", "•"],
+        labels=Labels(profile="Profile", skills="Technical Stack",
+                    soft="Core Strengths"),
+        header="oversized hue-A name, role line, contacts on two wide-gap lines",
+        photo_ok=False, conservative_ok=False,
+        page=STD_PAGE, order=CHRONO, spec=True,
+        leading="0.536em", spacing="0.616em", above="14pt / 19pt airy, 6pt after"),
+    "clause-index": Family(
+        register="neutral",
+        current="numbered-clause technical-standard document "
+                "(ISO 2145 / DIN 1421 divisions)",
+        icons="line: thin stroke + rounded, metadata gray (the accent is "
+              "reserved for the numbers)",
+        accents=["#33475b", "#1f3a5f", "#0f4c5c"],
+        markers=["–", "▪"],
+        labels=Labels(profile="Summary", skills="Skills & Tools",
+                    soft="Strengths"),
+        header="two zones: identity + DIN-676 reference row + specialities "
+               "line left, contact column right",
+        photo_ok=True, conservative_ok=True,
+        page=STD_PAGE,
+        order=SKILLS_FIRST,    # skills-forward hybrid
+        spec=True,
+        leading="0.849em", spacing="0.929em",
+        above="22pt / 27pt airy, 5pt after"),
+    "color-band": Family(
+        register="modern",
+        current="colored masthead band, name reversed out (editorial/brand)",
+        icons="solid: filled + angular, white inside the band",
+        accents=["#1f3a5f", "#1e5631", "#3b3486", "#0f4c5c"],
+        accents2=["#502d66", "#2b4b5d", "#733b6c", "#2c1a66"],
+        markers=["•", "▪"],
+        labels=Labels(profile="Profile", skills="Skills & Tools",
+                    soft="Core Strengths"),
+        header="full-width hue-A band: name + role + contacts reversed out",
+        photo_ok=True, conservative_ok=False,
+        page=STD_PAGE, order=CHRONO, spec=False,
+        leading="0.583em", spacing="0.643em", above="7pt / 12pt airy, 5pt after"),
+    "gutter-rail": Family(
+        register="creative",
+        current="the themed developer environment read in print: editor chrome "
+                "(a margin gutter, fold marks, a statusline of segments) + the "
+                "tiling-desktop conventions (bar modules, uniform gaps, ONE "
+                "reserved accent for the live state), from the LIGHT half of "
+                "that tradition",
+        icons="no generic icon (measured: a 0.9pt stroked pin/handset collapses "
+              "at statusline size); every mark is a platform mark, hue B",
+        accents=["#286983", "#174f78", "#4d2287", "#7e3c07"],
+        # hue B is deliberately OUT of the red-brown band (10-35°): at the
+        # lightness the 6:1 guardrail forces, a hue in that band is not a red,
+        # it is a brown, and hue B here carries the page's SMALLEST ink (8.5pt
+        # dates, the 1.5pt change-bar) where a brown reads as faded black
+        # rather than as a colour. Measured on 300dpi crops — references/design/families/gutter-rail.md.
+        accents2=["#6a2f4d", "#983e6a", "#2e6b24", "#1b6a63"],
+        markers=["▎ (vector change-bar, hue B)", "▎"],
+        labels=Labels(profile="Profile", skills="Skills", soft="Working Style"),
+        header="a STATUSLINE STRIP of painted segments across the top "
+               "(contacts), then the name and the role line under it",
+        # the one variant axis: the harvested square-vs-pill binary of the
+        # tradition, applied to every painted surface at once (one corner-style
+        # token, the way an institutional desktop does it).
+        variants=["square segments (flat dialect, radius 0pt)",
+                  "pill segments (rounded dialect, radius 2.5pt)"],
+        photo_ok=False, conservative_ok=False,
+        page=Page(margin="x: 1.5cm, top: 1.5cm, bottom: 1.5cm",
+                  body="10.5pt", fill="93-95"),
+        order=SKILLS_FIRST,    # skills-forward hybrid
+        spec=False,
+        leading="0.761em", spacing="0.851em",
+        above="16pt / 21pt airy, 4.5pt after"),
+    "editorial-serif": Family(
+        register="classic",
+        current="contemporary editorial: serif display over a sans body",
+        icons="line: thin stroke + rounded, accent",
+        accents=["#1f3a5f", "#5b2a5e", "#72191f"],
+        markers=["–", "·"],
+        labels=Labels(profile="Summary", skills="Technical Skills",
+                    soft="Core Strengths"),
+        header="one grid row: serif name + accent role line left, contacts right",
+        photo_ok=True, conservative_ok=True,
+        page=STD_PAGE, order=CHRONO, spec=False,
+        leading="0.550em", spacing="0.630em", above="15pt / 20pt airy, 3pt after"),
+    "engraved-card": Family(
+        register="classic",
+        current="engraved stationery / social-card typography "
+                "(centred axis, one quiet serif)",
+        icons="no generic icon (engraving carried none); platform marks in ink",
+        accents=["#5c1f3a", "#2f4858", "#3d3550"],
+        markers=["–", "·"],
+        labels=Labels(profile="Summary", skills="Skills", soft=None),
+        header="fully CENTRED: name, a short accent rule under it, role line, "
+               "contacts on one centred line",
+        photo_ok=False, conservative_ok=True,
+        page=Page(margin="x: 2.0cm, top: 1.6cm, bottom: 1.6cm",
+                  body="10.5pt", fill="92-94"),
+        # credential-led: education raised, and NO soft section at all
+        order=("profile", "education", "experience", "other", "skills",
+               "languages"),
+        spec=False,
+        leading="0.556em", spacing="0.656em",
+        above="15pt / 20pt airy, 5pt after"),
+    "hard-edge": Family(
+        register="creative",
+        current="neo-brutalist PRINT dialect: knockout black slabs + monospace metadata (no border, no shadow, no tint fields)",
+        icons="solid: filled + angular, hue B",
+        accents=["#b3261e", "#1e5631", "#3b3486"],
+        accents2=["#0f4c5c", "#5c1f3a", "#8c3b00"],
+        markers=["▫ (vector outlined square, hue B)", "▫"],
+        labels=Labels(profile="Profile", skills="Technical Stack",
+                    soft="Strengths"),
+        header="monogram block + name, then the specialities line, then one "
+               "mono contact line",
+        photo_ok=False, conservative_ok=False,
+        page=Page(margin="x: 1.6cm, top: 1.3cm, bottom: 1.3cm",
+                  body="10.5pt", fill="94-96"),
+        order=SKILLS_FIRST,    # skills-forward hybrid
+        spec=True,
+        leading="0.786em", spacing="0.876em",
+        above="20pt / 25pt airy, 6pt after"),
+    "humanist-quiet": Family(
+        register="neutral",
+        current="Vignelli-style restraint: no rules, whitespace as the device",
+        icons="no generic icon (its device is absence); platform marks in the accent",
+        accents=["#0e6862", "#33475b", "#8c3b00"],
+        markers=["–", "•"],
+        labels=Labels(profile="Profile", skills="Skills", soft="Core Strengths"),
+        header="name + role left, contacts on two left-aligned lines below",
+        photo_ok=False, conservative_ok=True,
+        page=STD_PAGE, order=CHRONO, spec=False,
+        leading="0.545em", spacing="0.645em", above="26pt / 31pt airy, 4pt after"),
+    "keyline-corporate": Family(
+        register="modern",
+        current="contemporary corporate report: accent keylines, accent labels",
+        icons="line: thin stroke + rounded, accent",
+        accents=["#33475b", "#1f3a5f", "#0f4c5c", "#5b2a5e"],
+        markers=["–", "·"],
+        labels=Labels(profile="Professional Summary", skills="Technical Skills",
+                    soft="Core Strengths"),
+        header="one grid row: name + role left, contacts right, soft hairline under",
+        photo_ok=True, conservative_ok=True,
+        page=STD_PAGE, order=CHRONO, spec=False,
+        leading="0.540em", spacing="0.620em", above="23pt / 28pt airy, 5pt after"),
+    "margin-index": Family(
+        register="classic",
+        current="classic marginalia / book typography (titles hang in the margin)",
+        icons="no generic icon (marginalia bolts none on); platform marks in ink",
+        accents=["#4a2f10", "#1f3a5f", "#5b2a5e"],
+        markers=["—", "·"],
+        labels=Labels(profile="Summary", skills="Expertise", soft="Strengths"),
+        header="name + italic role in the content column, contacts on one line "
+               "below (photo slot = the margin column)",
+        photo_ok=True, conservative_ok=True,
+        # margin-index keeps its own body size: the marginalia grid was tuned
+        # at 11pt, not 10.5pt.
+        page=Page(margin="x: 1.5cm, top: 1.2cm, bottom: 1.2cm", body="11pt",
+                  fill="94-96"),
+        order=CHRONO, spec=False,
+        leading="0.800em", spacing="1.000em", above="30pt / 35pt airy, body 11pt"),
+    "mono-technical": Family(
+        register="modern",
+        current="technical-documentation / spec-sheet aesthetic (mono headings, "
+                "tabular dates)",
+        icons="line: thin stroke + rounded, hue B",
+        accents=["#1f3a5f", "#33475b", "#0f4c5c", "#5b2a5e"],
+        accents2=["#8f2d3f", "#8a2f2a", "#66291a", "#3c633a"],
+        markers=["▪ (vector square, hue B)", "▪"],
+        labels=Labels(profile="Profile", skills="Technical Stack",
+                    soft="Working Style"),
+        header="name, role, then one mono contact line",
+        photo_ok=False, conservative_ok=False,
+        # NOT STD_PAGE: the spec-sheet look needs a roomier measure than the
+        # standard gabarit, and the template's own verified values are these.
+        page=Page(margin="x: 1.6cm, top: 1.25cm, bottom: 1.2cm", body="10.5pt",
+                  fill="94-96"),
+        order=CHRONO, spec=False,
+        leading="0.651em", spacing="0.771em",
+        above="20pt / 25pt airy, 4pt after"),
+    "quiet-luxury": Family(
+        register="neutral",
+        current="warm restrained minimalism (2020s “quiet luxury”)",
+        icons="line: thin stroke + rounded, metadata gray (never the accent)",
+        accents=["#5c4632", "#33475b", "#0e6862"],
+        markers=["·", "–"],
+        labels=Labels(profile="Professional Summary", skills="Skills & Tools",
+                    soft="Working Style"),
+        header="CONTACTS FIRST (letterhead line), then the name, then the role "
+               "(photo slot = right cell)",
+        photo_ok=True, conservative_ok=True,
+        # NOT STD_PAGE: the restraint of this family IS the extra white, and
+        # the template's own verified values are these.
+        page=Page(margin="x: 1.6cm, top: 1.3cm, bottom: 1.2cm", body="10.5pt",
+                  fill="94-96"),
+        order=CHRONO, spec=False,
+        leading="0.580em", spacing="0.680em",
+        above="20pt / 25pt airy, 4pt after"),
+    "swiss-grid": Family(
+        register="neutral",
+        current="International Typographic Style (Müller-Brockmann / Helvetica)",
+        icons="no generic icon (typographic purism); platform marks in the body ink",
+        accents=["#b3261e", "#33475b", "#0f4c5c"],
+        markers=["▪", "–"],
+        labels=Labels(profile="Profile", skills="Technical Skills",
+                    soft="Strengths"),
+        header="one grid row: name 24pt + role left, 5-line contact column right",
+        photo_ok=True, conservative_ok=True,
+        page=STD_PAGE, order=CHRONO, spec=False,
+        leading="0.555em", spacing="0.615em", above="13pt / 18pt airy, 6pt after"),
+}
+
+# ---------------------------------------------------------------- font pools
+# ONE source of truth for typography; references/design/core.md describes the
+# REGISTER each pool serves and never repeats the lists (a second list drifts).
+# Entry = (family name exactly as `typst fonts` reports it, provenance).
+# Hard rule: no display face is shared between two families — the display face
+# is half of a family's identity. Body faces may overlap.
+# A family may declare an OPTIONAL third role, `mono`, when its recipe sets all
+# metadata in a monospace (hard-edge and gutter-rail).
+# "local:" = present in a standard Linux font set here (verified with
+# `typst fonts`); "GF (...)" = Google Fonts only, OFL, download; "GF · Linux:
+# <pkg>" = on Google Fonts AND packaged on some Linux distros (either route).
+# Documented EXEMPTION to the "at least one local member per role" rule: the
+# three CREATIVE families (avant-poster, gutter-rail, hard-edge) have NO
+# display-pool member in a standard Linux font set — their registers (a
+# wonky/heavy grotesque, a ruled technical grotesque, a
+# condensed poster face) have no equivalent there, and substituting a
+# neo-grotesque would erase the family. The exemption is creative-register
+# only, their BODY pools do carry a local member, and the hand-off names the
+# package to install. Every other family keeps the rule.
+# Extending a pool: run core.md's vetting checklist first, then add here.
+FONTS: dict[str, FontPool] = {
+    "swiss-grid": FontPool(
+        register="neo-grotesque, one family for display and body",
+        display=[("Nimbus Sans", "local: urw-base35-fonts / fonts-urw-base35"),
+                 ("Liberation Sans", "local: liberation-fonts"),
+                 ("Archivo", "GF (OFL)"),
+                 ("Work Sans", "GF (OFL)")],
+        body=[("Nimbus Sans", "local: urw-base35-fonts / fonts-urw-base35"),
+              ("Liberation Sans", "local: liberation-fonts"),
+              ("Source Sans 3", "GF (OFL, Adobe)"),
+              ("Public Sans", "GF (OFL, USWDS)")]),
+    "editorial-serif": FontPool(
+        register="serif display over a humanist sans body",
+        display=[("Caladea", "GF · Linux: fonts-crosextra-caladea (OFL)"),
+                 ("Noto Serif", "GF · Linux: google-noto-serif-fonts / fonts-noto"),
+                 ("Newsreader", "GF (OFL, Production Type)"),
+                 ("Spectral", "GF (OFL, Production Type)")],
+        body=[("Open Sans", "GF · Linux: open-sans-fonts / fonts-open-sans"),
+              ("Source Sans 3", "GF (OFL, Adobe)"),
+              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
+              ("Karla", "GF (OFL)")]),
+    "color-band": FontPool(
+        register="contemporary brand sans, display + text cuts of one system",
+        display=[("Red Hat Display", "GF · Linux: redhat-display-fonts (OFL)"),
+                 ("DM Sans", "GF (OFL)"),
+                 ("Sora", "GF (OFL)")],
+        body=[("Red Hat Text", "GF · Linux: redhat-text-fonts (OFL)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("Public Sans", "GF (OFL, USWDS)")]),
+    "humanist-quiet": FontPool(
+        register="one humanist sans, display and body, nothing else",
+        display=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
+                 ("Karla", "GF (OFL)"),
+                 ("Source Sans 3", "GF (OFL, Adobe)")],
+        body=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("Karla", "GF (OFL)")]),
+    "keyline-corporate": FontPool(
+        register="clean grotesque, weight and size carry the hierarchy",
+        display=[("Vazirmatn", "GF · Linux: vazirmatn-fonts (OFL)"),
+                 ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
+                 ("Libre Franklin", "GF (OFL)")],
+        body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("Liberation Sans", "local: liberation-fonts"),
+              ("Source Sans 3", "GF (OFL, Adobe)")]),
+    "margin-index": FontPool(
+        register="text serif with real italics and old-style figures, "
+                 "one family throughout",
+        display=[("STIX Two Text", "GF · Linux: stix-fonts (OFL)"),
+                 ("Libertinus Serif", "GF · Linux: libertinus-fonts (OFL)"),
+                 ("Source Serif 4", "GF (OFL, Adobe)"),
+                 ("Piazzolla", "GF (OFL)")],
+        body=[("STIX Two Text", "GF · Linux: stix-fonts (OFL)"),
+              ("Libertinus Serif", "GF · Linux: libertinus-fonts (OFL)"),
+              ("PT Serif", "GF (OFL, ParaType)"),
+              ("Source Serif 4", "GF (OFL, Adobe)")]),
+    "mono-technical": FontPool(
+        register="document-grade monospace for the devices + a neutral sans body",
+        display=[("Source Code Pro", "GF · Linux: adobe-source-code-pro-fonts (OFL)"),
+                 ("Adwaita Mono", "local: adwaita-mono-fonts (OFL)"),
+                 ("IBM Plex Mono", "GF (OFL, IBM) / fonts-ibm-plex"),
+                 ("JetBrains Mono", "GF (OFL) — disable ligatures")],
+        body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
+              ("Public Sans", "GF (OFL, USWDS)")]),
+    "quiet-luxury": FontPool(
+        register="one warm humanist sans, generous but unshowy",
+        display=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
+                 ("Manrope", "GF (OFL)"),
+                 ("Outfit", "GF (OFL)")],
+        body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("Manrope", "GF (OFL)")]),
+    "bold-display": FontPool(
+        register="geometric display for the name + a neutral sans body",
+        # Montserrat was removed here on purpose: core.md § Font pools bans
+        # the over-used defaults (Inter, Roboto, Montserrat, Lato, Open Sans)
+        # as DISPLAY faces, and leaving it in the pool meant drawing a banned
+        # face on ~6% of the draws. Three members left = the documented minimum.
+        display=[("URW Gothic", "local: urw-base35-fonts / fonts-urw-base35"),
+                 ("Space Grotesk", "GF (OFL)"),
+                 ("Unbounded", "GF (OFL)")],
+        body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("Work Sans", "GF (OFL)")]),
+    "engraved-card": FontPool(
+        register="one quiet serif for display and body, "
+                 "engraved-letterform lineage",
+        display=[("P052", "local: urw-base35-fonts / fonts-urw-base35 "
+                          "(URW Palladio, Palatino-lineage)"),
+                 ("C059", "local: urw-base35-fonts / fonts-urw-base35 "
+                          "(URW Century Schoolbook)"),
+                 ("URW Bookman", "local: urw-base35-fonts / fonts-urw-base35"),
+                 ("Alegreya", "GF (OFL, Huerta Tipográfica) — old-style AND "
+                              "tabular figures")],
+        body=[("P052", "local: urw-base35-fonts / fonts-urw-base35"),
+              ("C059", "local: urw-base35-fonts / fonts-urw-base35"),
+              ("Crimson Pro", "GF (OFL)"),
+              ("Alegreya", "GF (OFL, Huerta Tipográfica)")]),
+    "clause-index": FontPool(
+        register="institutional grotesque with tabular figures",
+        display=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype "
+                             "(OFL/ParaType FFL)"),
+                 ("Schibsted Grotesk", "GF (OFL, Bakken & Bæck)"),
+                 ("Fira Sans", "GF (OFL) / fonts-fira-sans")],
+        body=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype"),
+              ("Public Sans", "GF (OFL, USWDS)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto")]),
+    "hard-edge": FontPool(
+        register="heavy grotesque display + a neutral sans body + a document "
+                 "mono for ALL metadata",
+        display=[("Familjen Grotesk", "GF (OFL)"),
+                 ("Hanken Grotesk", "GF (OFL)"),
+                 ("Bricolage Grotesque", "GF (OFL, Atelier Triay) — the "
+                  "variable build reports as \"Bricolage Grotesque 96pt\"; "
+                  "no italic")],
+        mono=[("Fira Mono", "GF (OFL) / fonts-fira-mono"),
+              ("DejaVu Sans Mono", "local: dejavu-sans-mono-fonts / fonts-dejavu"),
+              ("Noto Sans Mono", "GF · Linux: google-noto-sans-mono-fonts / fonts-noto")],
+        body=[("Public Sans", "GF (OFL, USWDS)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
+    "gutter-rail": FontPool(
+        register="UI grotesque for the chrome + a document mono for the BUFFER "
+                 "(all metadata) + a neutral sans body",
+        display=[("Geist", "GF (OFL, Vercel)"),
+                 ("Instrument Sans", "GF (OFL, Instrument)"),
+                 ("Onest", "GF (OFL)")],
+        # MEASURED constraint on this pool, and it is specific to a family whose
+        # ENTIRE metadata register is monospaced: a DISPLAY mono is disqualified.
+        # Martian Mono was drawn first and passed the gate (1 page, fill 95%,
+        # ratio 3.75) while breaking line integrity twice — the statusline strip
+        # wrapped onto a second line and the education descriptor wrapped after
+        # "foreign" — because at 8.5pt its advance width is ~25% over a document
+        # mono's. No amount of `--tune` fixes a width problem. Red Hat Mono, Geist
+        # Mono and Noto Sans Mono all hold both lines (verified by bbox).
+        mono=[("Geist Mono", "GF (OFL, Vercel)"),
+              ("Red Hat Mono", "GF (OFL, Red Hat)"),
+              ("Noto Sans Mono", "GF · Linux: google-noto-sans-mono-fonts / fonts-noto")],
+        body=[("Public Sans", "GF (OFL, USWDS)"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
+    "avant-poster": FontPool(
+        register="condensed grotesque display + a humanist sans body",
+        display=[("Chivo", "GF (OFL, Omnibus-Type)"),
+                 ("Big Shoulders Display", "GF (OFL)"),
+                 ("Fira Sans Condensed", "GF (OFL) / fonts-fira-sans")],
+        body=[("Fira Sans", "GF (OFL) / fonts-fira-sans"),
+              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+              ("Public Sans", "GF (OFL, USWDS)")]),
+}
+
+# Section-label pools. The lexical skeleton varies per candidate too, INSIDE
+# the regional conventions (references/regional.md § Section names per
+# language, references/ats.md): a conventional stem, optionally qualified —
+# never an exotic name. "Education", "Languages" and the experience sections
+# are NOT variable: their stems are what ATS section classifiers key on.
+# soft=None means the family drops the soft-skills section entirely.
+LABEL_VARIANTS: dict[str, list[str | None]] = dict(
+    profile=["Profile", "Summary", "Professional Summary"],
+    skills=["Technical Skills", "Skills & Tools", "Skills", "Expertise",
+            "Technical Stack"],
+    soft=["Core Strengths", "Strengths", "Working Style", None],
+)
+
+# Career stage → preferred registers, then the widening tier if the preferred
+# pool is too small to individualise (< 2 families).
+CAREER: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "early":  (("modern",), ("neutral",)),
+    "mid":    (("modern", "neutral"), ("classic",)),
+    "senior": (("neutral", "classic"), ("modern",)),
+}
+
+# Field → how the pool and the colour dial lean. DATA, not logic: extend it.
+# Matched in the case-folded --field (see _field_has: short keys must begin a word, so "art" no longer hits
+# "département" nor "ml" "html"; longer keys and stems stay substrings); first hit wins.
+DOMAIN_REGISTER: dict[str, str] = {
+    # creative: the CV is itself a portfolio piece — expressive families first
+    "design": "creative", "graphic": "creative", "ux": "creative",
+    "ui": "creative", "art": "creative", "illustration": "creative",
+    "photo": "creative", "fashion": "creative", "marketing": "creative",
+    "advertis": "creative", "brand": "creative", "motion": "creative",
+    "architect": "creative", "creative": "creative", "copywrit": "creative",
+    # conservative: sober families, dial capped at sober
+    "law": "conservative", "legal": "conservative", "notar": "conservative",
+    "financ": "conservative", "account": "conservative", "audit": "conservative",
+    "tax": "conservative", "bank": "conservative", "insur": "conservative",
+    "govern": "conservative", "public administration": "conservative",
+    "compliance": "conservative", "actuar": "conservative",
+}
+
+
+def _field_has(field: str | None, key: str) -> bool:
+    """`key` is in the case-folded field. A SHORT key (up to 4 letters: art, ui, ux, ml, tax, law, data, sre) must
+    begin a word, so it cannot sit inside another one ("département", "html", "syntax"); a longer key stays a plain
+    substring, stems and compounds included ("financ" in "finance", "security" in "cybersecurity")."""
+    f = (field or "").casefold()
+    return re.search(r"(?<!\w)" + re.escape(key), f) is not None if len(key) <= 4 else key in f
+
+
+def domain_register(field: str | None) -> str | None:
+    for k, v in DOMAIN_REGISTER.items():
+        if _field_has(field, k):
+            return v
+    return None                                    # unknown field: full pool
+
+
+# gutter-rail is the one family whose device is domain-specific, not just
+# register-specific: the ruled gutter is a code gutter. Requiring one of these
+# in the field is the second half of its lock (see draw()).
+GUTTER_RAIL_DOMAIN = (
+    "software", "developer", "engineer", "data", "devops", "backend",
+    "frontend", "sre", "security", "ml", "informatique", "logiciel",
+)
+
+
+# platform-mark glyph set (mail/web/phone/pin): drawn per candidate so the
+# small glyphs stop being a shared fingerprint. LinkedIn/GitHub stay Simple
+# Icons in every set — a brand logo is a functional identifier, not a style.
+# Sets are fetched into the CV folder's icons.typ; add more in harvest_icons.py
+# (Iconify API — the same data the npm icon packages publish).
+MARK_SETS: list[tuple[str, str]] = [
+    ("tabler", "Tabler Icons filled, MIT"),
+    ("phosphor", "Phosphor fill, MIT — harvested via Iconify/npm"),
+    ("bootstrap", "Bootstrap Icons fill, MIT — harvested via Iconify/npm"),
+]
+
+
+def _idx(key: str, n: int, salt: str = "") -> int:
+    """First 8 hex digits of sha256(salt+key), modulo n — POSIX-reproducible."""
+    h = hashlib.sha256((salt + key).encode("utf-8")).hexdigest()[:8]
+    return int(h, 16) % n
+
+
+MIN_POOL = 5        # a profile that draws from fewer than 5 families collides
+                    # too often; 14 families make a 5-family floor reachable
+                    # for every profile combination (asserted in selftest()).
+
+
+def _fonts_available() -> set[str] | None:
+    """Set of family names `typst fonts` reports (typst-py if no CLI), or None if neither."""
+    try:
+        out = subprocess.run(["typst", "fonts"], capture_output=True,
+                             text=True, timeout=20)
+    except FileNotFoundError:   # no CLI: typst-py reports the same families
+        try:
+            import importlib
+            typst: Any = importlib.import_module("typst")
+            fp = [d for d in os.environ.get("TYPST_FONT_PATHS", "").split(os.pathsep) if d]
+            return set(typst.Fonts(include_system_fonts=True, **({"font_paths": fp} if fp else {})).families())
+        except Exception:
+            return None
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    return {l.strip() for l in out.stdout.splitlines() if l.strip()}
+
+
+def _installed(name: str, have: set[str]) -> str | None:
+    """The name Typst reports for pool family `name`, or None. A variable font
+    with an optical-size axis installs as "X <digits>pt" (references/fonts.md),
+    so "X" matches that variant and the FULL installed name is what to emit."""
+    if name in have:
+        return name
+    best = None
+    for h in have:
+        m = re.fullmatch(r"(.+?) (\d+)pt", h)
+        if m and m.group(1) == name and (best is None or int(m.group(2)) < best[0]):
+            best = (int(m.group(2)), h)
+    return best[1] if best else None
+
+
+def _pick_font(pool: list[Font], key: str, salt: str,
+               have: set[str] | None) -> tuple[Font, Font | None, str]:
+    """Deterministic draw, then availability: if the drawn face is missing
+    locally, fall through the pool in order and report BOTH — never a silent
+    fallback (a missing font only warns in Typst and swaps itself out)."""
+    drawn = pool[_idx(key, len(pool), salt)]
+    if have is None:
+        return drawn, None, "unverified (no `typst fonts` here — check by hand)"
+    got = _installed(drawn[0], have)
+    if got:
+        return (got, drawn[1]), None, "available locally"
+    for cand in pool:
+        got = _installed(cand[0], have)
+        if got:
+            return (got, cand[1]), drawn, ("SUBSTITUTED: drawn %s (%s) not installed, using the "
+                                 "installed face shown — install %s for the exact design"
+                                 % (drawn[0], drawn[1], drawn[0]))
+    return drawn, None, "NO pool member installed — install one before drafting"
+
+
+def _family_usable(fam: str, have: set[str]) -> bool:
+    """Every font role of `fam` has at least one member installed in `have`."""
+    fp = FONTS[fam]
+    return all(any(_installed(n, have) for n, _ in cast(Any, fp)[role])
+               for role in ("display", "body", "mono") if role in fp)
+
+
+def pick(name: str, field: str | None, career: str = "early",
+         photo: bool = False, conservative: bool = False,
+         audacity: Audacity = "sober", check_fonts: bool = True,
+         creative: bool = False, offline: bool = False,
+         have_fonts: set[str] | None = None) -> Pick:
+    key = "%s+%s" % (name, field)
+    dom = domain_register(field)
+    conservative = conservative or dom == "conservative"
+    if conservative and audacity != "sober":
+        audacity = "sober"                         # a market only caps the dial
+    elif dom == "creative" and audacity == "sober":
+        audacity = "expressive"
+
+    hard = [f for f, d in FAMILIES.items()
+            if (d["photo_ok"] or not photo)
+            and (d["conservative_ok"] or not conservative)]
+    # The `creative` register is NEVER in the default pool: those families are
+    # eligible only when the FIELD resolves to creative or --creative was
+    # passed (an explicit request from the candidate or user). Filtered out of
+    # `hard` HERE, before the widening loop, so widening can never pull one in
+    # for a non-creative profile. --conservative drops them anyway via
+    # conservative_ok=False, which is why creative+conservative is not an
+    # empty pool but simply the conservative one.
+    unlocked = creative or dom == "creative"
+    if not unlocked:
+        hard = [f for f in hard if FAMILIES[f]["register"] != "creative"]
+    # gutter-rail carries a SECOND lock on top of the creative one: its vertical
+    # rail with the ruled gutter reads as a code gutter / line-number column, so
+    # it needs a technical FIELD as well as the creative unlock. Measured before
+    # this lock: a fashion designer passing --creative drew it, and the device
+    # was simply wrong for the trade. The creative unlock is necessary, not
+    # sufficient.
+    if not any(_field_has(field, t) for t in GUTTER_RAIL_DOMAIN):
+        hard = [f for f in hard if f != "gutter-rail"]
+    have = have_fonts if have_fonts is not None else (
+        _fonts_available() if check_fonts else None)
+    # In an offline sandbox (--offline), restrict `hard` to families whose font
+    # roles all have at least one locally installed face (when at least one
+    # eligible family is usable), so the draw never lands on a family whose
+    # display or mono pool has 0 installed members (run 17: 7/14 families were
+    # installed, yet keyline-corporate was drawn with no display face).
+    if offline and have is None:
+        print("warning: --offline is ignored with --no-font-check (no installed-font "
+              "list to filter by); drawing from the full pool", file=sys.stderr)
+    elif offline and have is not None:
+        usable = [f for f in hard if _family_usable(f, have)]
+        if usable:
+            hard = usable
+        else:
+            print("warning: --offline: no family in the pool has all font roles "
+                  "installed; falling back to the full pool", file=sys.stderr)
+    if not hard:
+        raise SystemExit("no family satisfies those flags — pick one by hand")
+
+    # Register weighting: a creative field (or --creative) leans on the
+    # creative then modern families whatever the career stage; otherwise the
+    # career stage decides.
+    prefer, widen = CAREER[career]
+    if unlocked:
+        prefer, widen = ("creative", "modern"), ("neutral", "classic")
+    # Widening is ADDITIVE and stops the moment MIN_POOL is reached: replacing
+    # the pool with `hard` wholesale made an EXTRA constraint GROW the pool
+    # (measured before the fix: conservative drew from 4 families,
+    # conservative+photo from 5). Tier order = the career's register
+    # preference, then alphabetical inside a tier, so the result stays
+    # reproducible by hand (see the POSIX fallback above).
+    pool = [f for f in sorted(hard) if FAMILIES[f]["register"] in prefer]
+    # the final catch-all tier does NOT name `creative` either — a creative
+    # family only ever enters through `prefer` above.
+    for tier in (widen, ("modern", "neutral", "classic")):
+        for f in sorted(hard):
+            if len(pool) >= MIN_POOL:
+                break
+            if f not in pool and FAMILIES[f]["register"] in tier:
+                pool.append(f)
+    eligible = sorted(pool)
+
+    fam = eligible[_idx(key, len(eligible))]
+    d = FAMILIES[fam]
+    ai = _idx(key, len(d["accents"]), "accent|")
+    fp = FONTS[fam]
+    disp, disp_want, disp_note = _pick_font(fp["display"], key, "display|", have)
+    body, body_want, body_note = _pick_font(fp["body"], key, "body|", have)
+    mono = mono_note = None
+    if "mono" in fp:                    # optional third role
+        mono, _, mono_note = _pick_font(fp["mono"], key, "mono|", have)
+    # a family MAY declare its own variant axis (only gutter-rail does: the
+    # square-vs-pill segment binary its current documents). Drawn from the same
+    # hash, so it stays deterministic per candidate like everything else.
+    variant = None
+    if "variants" in d:
+        variant = d["variants"][_idx(key, len(d["variants"]), "variant|")]
+    lab: dict[str, str | None] = {}
+    for role, default in cast("Mapping[str, str | None]", d["labels"]).items():
+        # the family's own default is in the pool, so it can be drawn back.
+        # A family whose default is None DROPS that section as a trait (its
+        # `order` has no slot for it): no variant is drawn back in.
+        if default is None:
+            lab[role] = None
+            continue
+        opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
+        lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
+    return dict(key=key, family=fam, have=have, offline=offline, eligible=eligible, recipe=d,
+                mono=mono, mono_note=mono_note, variant=variant,
+                career=career, domain=dom or "none, full pool", audacity=audacity,
+                accent=d["accents"][ai],
+                accent2=d.get("accents2", [None] * len(d["accents"]))[ai],
+                marker=d["markers"][_idx(key, len(d["markers"]), "marker|")],
+                markset=MARK_SETS[_idx(key, len(MARK_SETS), "markset|")],
+                labels=lab, font_register=fp["register"],
+                display=disp, display_wanted=disp_want, display_note=disp_note,
+                body=body, body_wanted=body_want, body_note=body_note)
+
+
+def report(p: Pick, market: str) -> str:
+    d = p["recipe"]
+    lines = [
+        "design family   : %s   [register: %s]" % (p["family"], d["register"]),
+        "  current       : %s" % d["current"],
+        "accent          : %s   (from that family's gamut %s)"
+        % (p["accent"], " ".join(d["accents"])),
+    ]
+    if p["accent2"]:
+        lines.append("accent2 (duotone): %s   hue B, validated as a PAIR with "
+                     "the accent above — never mix indexes" % p["accent2"])
+    # right after the colour block, duotone or not: an insert(4) landed before
+    # the hue B line on monochrome families and after it on duotone ones.
+    if p["audacity"] != "sober":
+        lines.append("  palette       : python3 scripts/gen_palette.py "
+                     "--family %s --seed %r --audacity %s --typst"
+                     % (p["family"], p["key"], p["audacity"]))
+    lines += [
+        "audacity        : %s" % p["audacity"],
+        "list marker     : %s" % p["marker"],
+        *(["family variant  : %s   (this family's own variant axis — apply it "
+           "as drawn)" % p["variant"]] if p["variant"] else []),
+        "contact icons   : %s" % d["icons"],
+        "platform marks  : email · LinkedIn · GitHub · site — in EVERY family; "
+        "mail/web/phone/pin glyphs from the drawn mark set: %s (%s); "
+        "LinkedIn/GitHub always Simple Icons, CC0" % p["markset"],
+        "section labels  : profile=%r  skills=%r  soft=%r"
+        % (p["labels"]["profile"], p["labels"]["skills"], p["labels"]["soft"]),
+        "                  (Education / Languages / the experience sections keep"
+        " their conventional stems — regional.md)",
+        "type register    : %s" % p["font_register"],
+        "display font    : %s   [%s]  — %s"
+        % (p["display"][0], p["display"][1], p["display_note"]),
+        "body font       : %s   [%s]  — %s"
+        % (p["body"][0], p["body"][1], p["body_note"]),
+    ]
+    if p["mono"]:
+        lines.append("mono font       : %s   [%s]  — %s   (ALL metadata)"
+                     % (p["mono"][0], p["mono"][1], p["mono_note"]))
+    # A GF-only face is in no distro and has to be fetched; a "GF · Linux:
+    # <pkg>" face has two routes. Say so once, and only when this draw needs it.
+    roles = [p["display"], p["body"]] + ([p["mono"]] if p["mono"] else [])
+    notes = [p["display_note"], p["body_note"]] + (
+        [p["mono_note"]] if p["mono"] else [])
+    need = [r[1] or "" for r, nt in zip(roles, notes)
+            if "GF" in (r[1] or "") and not (
+                "Linux:" in r[1] and (nt or "").startswith("available"))]
+    if any("Linux:" not in x for x in need):
+        lines.append(
+            "                  faces marked [GF] are Google Fonts (OFL) and "
+            "ship in no distro package:")
+    elif need:
+        lines.append(
+            "                  faces marked [GF · Linux: pkg] are Google Fonts "
+            "(OFL) AND packaged on some distros:")
+    if need:
+        lines.append(
+            "                  install them (Google Fonts download%s), then "
+            "confirm with `typst fonts` — references/fonts.md has the URL,"
+            % (", or the named Linux package"
+               if any("Linux:" in x for x in need) else ""))
+        lines.append(
+            "                  the licence and both installation routes "
+            "(~/.local/share/fonts + fc-cache, or --font-path).")
+    if any((nt or "").startswith("NO pool member") for nt in notes) \
+            and p["have"] is not None and not p["offline"]:
+        lines.append(
+            "                  offline sandbox (cannot fetch fonts)? Re-run "
+            "pick_design.py with --offline to draw from locally installed "
+            "families only.")
+    pg = d["page"]
+    lines += [
+        "par leading     : %s      spacing: %s" % (d["leading"], d["spacing"]),
+        "section spacing : %s" % d["above"],
+        "gabarit         : margin (%s), body %s" % (pg["margin"], pg["body"]),
+        "fill target     : %s%%   → scripts/verify.py cv.typ 1 %s %s"
+        % (pg["fill"], *pg["fill"].split("-")),
+        "section order   : %s" % " → ".join(d["order"]),
+        "                  (the family DEFAULT — a target market's own "
+        "convention overrides it: regional.md)",
+        "header order    : %s" % d["header"],
+        "career / market : %s / %s (field register: %s)"
+        % (p["career"], market, p["domain"]),
+        "eligible were   : %s" % ", ".join(p["eligible"]),
+        "hash key        : %r" % p["key"],
+    ]
+    if d["spec"]:
+        lines += [
+            "specialities    : this family CARRIES a specialities line in the "
+            "header (5-7 mastered",
+            "                  skills, small caps, separator-joined, no "
+            "letterspacing). SKILL.md rule 2",
+            "                  applies to EVERY item on it.",
+        ]
+    lines += [
+        "",
+        "Apply the family's recipe: read references/design/families/%s.md whole" % p["family"],
+        "(plus references/design/core.md, the shared rules), then re-run",
+        "scripts/verify.py — the leading/spacing above were verified",
+        "on the template's own filler content, not on this candidate's, and a",
+        "different font pair shifts the fill: re-run the tuning loop.",
+    ]
+    return "\n".join(lines)
+
+
+def _chain(pool: list[Font], drawn: Font, role: str,
+           have: set[str] | None = None) -> str:
+    """Typst font fallback chain: the drawn face first, then the rest of the
+    family's own pool, and always ENDING on a face a standard Linux font set
+    has — otherwise Typst silently substitutes something arbitrary."""
+    names = [drawn[0]] + [n for n, _ in pool if n != drawn[0]]
+    if have is not None:                # font check on: emit installed names only
+        inst = [drawn[0]]               # the chosen face is always kept
+        for n, _ in pool:
+            got = _installed(n, have)
+            if got and got not in inst:
+                inst.append(got)
+        names = inst
+    tail = "DejaVu Sans Mono" if role == "mono" else "Noto Sans"
+    if not any(("local" in prov or "Linux:" in prov) for n, prov in pool
+               if n in names or _installed(n, have or set()) in names):
+        if have is None:
+            names.append(tail)
+        elif (inst_tail := _installed(tail, have)):
+            names.append(inst_tail)
+    return "(" + ", ".join('"%s"' % n for n in names) + ")"
+
+
+def _icon_colour(icons: str) -> str:
+    """The family's icon colour, read off its own `icons` string."""
+    for needle, tok in (("hue B", "accent2"),
+                        ("white inside the band", "white"),
+                        ("metadata gray", "muted"),
+                        ("body ink", "dark"),
+                        ("accent", "accent"),
+                        ("in ink", "ink")):
+        if needle in icons:
+            return tok
+    return "ink"
+
+
+def _vitae_header(pg: Any) -> str:
+    """The FIRST line of a drawn cv.typ: verify.py reads the drawn fill target
+    from it, so a lowered target on the command line cannot pass unnoticed."""
+    return "// vitae: pages=1 fill=%s" % pg["fill"]
+
+
+def lang_arg(lang: str, region: str | None = None) -> str:
+    """The Typst `lang: "xx"[, region: "yy"]` fragment (shape-validated upstream)."""
+    return 'lang: "%s"' % lang + (', region: "%s"' % region if region else "")
+
+
+def emit_typ(p: Pick, market: str, lang: str = "en",
+             region: str | None = None) -> str:
+    """A ready-to-paste PREAMBLE for the drawn recipe — not a whole CV, and
+    deliberately not the devices (those are the recipe: references/design/families/<family>.md)."""
+    d, fp, pg = p["recipe"], FONTS[p["family"]], p["recipe"]["page"]
+    lo, hi = pg["fill"].split("-")
+    try:                                  # the duotone hue jobs live next door
+        from vitae.palette import DUOTONE
+    except ImportError:
+        DUOTONE = {}
+    o = [_vitae_header(pg),
+         "// %s — %s / %s, drawn for key %r"
+         % (p["family"], p["career"], market, p["key"]),
+         "// PREAMBLE ONLY. The hand-off is TWO files: this .typ and lib.typ "
+         "beside it.",
+         "// Copy templates/icons.typ here too (the empty fallback lib.typ "
+         "imports), then",
+         "// fetch the real contact marks into THIS folder (the path data is "
+         "third-party",
+         "// artwork the skill does not ship): python3 scripts/harvest_icons.py .",
+         "// It always writes ./icons.typ — on a network failure with empty "
+         "marks, and the CV",
+         "// then compiles with no icons and its contact URLs in plain text.",
+         '#import "lib.typ": *',
+         "",
+         "// ---------- Palette (scripts/gen_palette.py validates every "
+         "contrast) ----------"]
+    jobs = DUOTONE.get(p["family"])
+    o.append('#let accent = rgb("%s")%s' % (
+        p["accent"], "        // hue A — %s" % jobs[1] if jobs else ""))
+    if p["accent2"]:
+        o.append('#let accent2 = rgb("%s")%s' % (
+            p["accent2"], "       // hue B — %s" % jobs[2] if jobs else
+            "       // hue B, paired with hue A by index"))
+        o.append("// Each hue keeps 1-2 jobs, never more (core.md § Tokens).")
+    o += ["#let pal = derive(accent)",
+          "#let soft = pal.soft        // decorative hairlines only, never text",
+          "#let ink = pal.ink          // metadata gray, biased to the accent hue",
+          "#let muted = ink",
+          "#let dark = pal.dark        // body ink",
+          "",
+          "// ---------- Type: %s ----------" % p["font_register"],
+          "#let bodyf = %s" % _chain(fp["body"], p["body"], "body", p["have"]),
+          "#let dispf = %s" % _chain(fp["display"], p["display"], "display", p["have"])]
+    if p["mono"]:
+        o.append("#let monof = %s   // ALL metadata sits in this face"
+                 % _chain(fp["mono"], p["mono"], "mono", p["have"]))
+    col = _icon_colour(d["icons"])
+    o += ["",
+          "// ---------- Contact icons + platform marks ----------",
+          "// family icon style: %s" % d["icons"],
+          "#let ic-col = %s" % col]
+    if "no generic icon" in d["icons"]:
+        o.append("// no `ic`: this family carries NO generic pin/phone icon — "
+                 "see its `icons` line just above for why.")
+    else:
+        o.append("#let ic = icons-%s(ic-col)"
+                 % ("solid" if d["icons"].startswith("solid") else "line")
+                 + ("   // bg: the band colour where they sit reversed out"
+                    if col == "white" else ""))
+    o += ["#let mk = marks(ic-col, kit: \"%s\")   // drawn mark set: %s"
+          % p["markset"]]
+    if "no generic icon" not in d["icons"]:
+        o.append("#let ic = gate-icons(ic, mk)   // drawn icons follow marks' "
+                 "all-or-nothing")
+    o += ["",
+          "// ---------- Gabarit (fill target %s%% is derived from the bottom "
+          "margin) ----------" % pg["fill"],
+          '#set page(paper: "us-letter", margin: (%s))' % pg["margin"],
+          '#set text(font: bodyf, size: %s, %s, fill: dark, '
+          "hyphenate: false)" % (pg["body"], lang_arg(lang, region)),
+          "// Primary fill-tuning knobs ↓ (±0.01-0.03em steps)",
+          "#set par(justify: false, leading: %s, spacing: %s)"
+          % (d["leading"], d["spacing"]),
+          "// section blocks: above %s" % d["above"],
+          "",
+          "// ---------- The rest of the recipe (NOT emitted, on purpose) "
+          "----------",
+          "// section labels : profile=%r  skills=%r  soft=%r"
+          % (p["labels"]["profile"], p["labels"]["skills"], p["labels"]["soft"]),
+          "//                  Education / Languages / the experience sections "
+          "keep their",
+          "//                  conventional stems (regional.md, ats.md).",
+          *(["// family variant : %s" % p["variant"]] if p["variant"] else []),
+          "// section order  : %s" % " → ".join(d["order"]),
+          "//                  the family DEFAULT — a target market's own "
+          "convention overrides it.",
+          *(["//                  soft=None for this draw: drop `soft` from "
+             "that order."] if p["labels"]["soft"] is None
+            and "soft" in d["order"] else []),
+          "// specialities   : %s" % ("YES — 5-7 mastered skills in the header, "
+                                      "small caps, separator-joined, no"
+                                      if d["spec"] else "no — this family "
+                                      "carries no specialities line."),
+          ]
+    if d["spec"]:
+        o.append("//                  letterspacing. SKILL.md rule 2 applies "
+                 "to EVERY item on it.")
+    o += ["// Heading device, skills-block shape, accent roles and header "
+          "composition are NOT",
+          "// emitted: see references/design/families/<family>.md. They ARE "
+          "the recipe, and",
+          "// emitting them is what would turn fourteen families back into one "
+          "template.",
+          "// header order   : %s" % d["header"],
+          "",
+          "// Verify after EVERY edit:  scripts/verify.py cv.typ 1 %s %s"
+          % (lo, hi)]
+    return "\n".join(o)
+
+
+def _sub1(src: str, pat: str, repl: str | Callable[[re.Match[str]], str],
+          what: str, family: str, required: bool = True) -> str:
+    """Replace exactly one match of `pat` (MULTILINE) in `src`."""
+    new, n = re.subn(pat, repl, src, count=0, flags=re.M)
+    if n != 1:
+        if n == 0 and not required:
+            return src
+        raise SystemExit("--init: %s: %d match(es) for %s (need exactly 1) — "
+                         "the family file changed shape; fall back to the "
+                         "manual route (cp + --emit-typ)" % (family, n, what))
+    return new
+
+
+def _write_nofollow(path: str, data: bytes) -> None:
+    """Write bytes to `path`, refusing to follow a symlink at the final component."""
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags, 0o644)
+    except OSError as e:
+        raise SystemExit("--init: cannot write %s (%s)" % (path, e.strerror)) from e
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(data)
+
+
+def _apply_labels(src: str, default: Mapping[str, object],
+                  drawn: Mapping[str, object], family: str) -> str:
+    """Make the starter's section headings the DRAWN labels. The family file
+    ships with the family's default names; a drawn variant renames the heading,
+    a drawn None drops the whole soft-skills section (its leading comment
+    line included)."""
+    for role in ("profile", "skills", "soft"):
+        _o, _n = default.get(role), drawn.get(role)
+        old = _o if isinstance(_o, str) else None
+        new = _n if isinstance(_n, str) else None
+        if old is None or old == new:
+            continue
+        if new is None:
+            src = _sub1(src, r'(?s)(?:^// -[^\n]*\n)?^#section\("%s"\)\[\n.*?^\]\n\n?'
+                        % re.escape(old), "", "soft section", family)
+        else:
+            label: str = new
+
+            def _rename(mm: re.Match[str], label: str = label) -> str:
+                return mm.group(1) + '"%s"' % label
+            src = _sub1(src, r'^(#section\()"%s"' % re.escape(old),
+                        _rename, "#section(%r)" % old, family)
+    return src
+
+
+def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
+                region: str | None = None) -> None:
+    """One executed command -> a compiling starting point in `folder`.
+
+    lib.typ / icons.typ are copied byte for byte. cv.typ is the drawn family's
+    worked file with the drawn recipe's VALUES substituted line by line on the
+    preamble's known `#let` / `#set par` lines (the family's own icon helpers,
+    selective imports and devices are untouched — a wholesale preamble swap
+    would drop them: color-band keeps its own ic-* defs, avant-poster its `mx`)."""
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    fam, d, fp = p["family"], p["recipe"], FONTS[p["family"]]
+    fdir = os.path.join(root, "templates", "families", fam)
+    out = os.path.join(folder, "cv.typ")
+    for _n in ("cv.typ", "lib.typ", "icons.typ"):
+        _d = os.path.join(folder, _n)
+        if os.path.islink(_d):
+            raise SystemExit("--init: %s is a symlink — refusing to write "
+                             "through it (replace it with a regular file or "
+                             "remove it first)" % _d)
+    if os.path.exists(out) and not force:
+        raise SystemExit("--init: %s exists — refusing to overwrite (re-run "
+                         "with --force to replace it)" % out)
+    import shlex
+    q = shlex.quote
+    body_c = _chain(fp["body"], p["body"], "body", p["have"])
+    disp_c = _chain(fp["display"], p["display"], "display", p["have"])
+
+    def head_names(src: str) -> tuple[re.Match[str] | None, re.Match[str] | None]:
+        g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.M)
+        return g("bodyf"), g("dispf")
+    # pair B iff the drawn faces are the second pair's lead faces
+    pick_file, best = "resume.typ", -1
+    for fn in ("resume.typ", "resume-pair-b.typ"):
+        fpth = os.path.join(fdir, fn)
+        if not os.path.exists(fpth):
+            continue
+        b, ds = head_names(open(fpth, encoding="utf-8").read())
+        score = (b is not None and b.group(1) == p["body"][0]) + \
+                (ds is not None and ds.group(1) == p["display"][0])
+        if score > best or (score == best and fn == "resume.typ"):
+            pick_file, best = fn, score
+    src = open(os.path.join(fdir, pick_file), encoding="utf-8").read()
+    # family files import the shared lib by repo-relative path; the starter has
+    # lib.typ/icons.typ copied beside it, so point the import there.
+    src = src.replace('#import "../../lib.typ"', '#import "lib.typ"')
+
+    def lead(name: str) -> str:                       # keep `#let name = ` + trailing // note
+        return r'^(#let %s = )[^\n]*?(\s*//[^\n]*)?$' % name
+
+    def accent_line(name: str, val: str) -> tuple[str, Callable[[re.Match[str]], str]]:
+        # gutter-rail: `if screen { rgb(A) } else { rgb(B) }` — drawn value is
+        # the print branch; keep the screen branch as shipped.
+        m = re.search(r'^#let %s = if screen \{ (rgb\("[^"]+"\)) \} else '
+                      r'\{ rgb\("[^"]+"\) \}' % name, src, re.M)
+        if m:
+            return (r'^(#let %s = if screen \{ rgb\("[^"]+"\) \} else \{ )'
+                    r'rgb\("[^"]+"\)( \}.*)$' % name,
+                    lambda mm: mm.group(1) + 'rgb("%s")' % val + mm.group(2))
+        return (lead(name),
+                lambda mm: mm.group(1) + 'rgb("%s")' % val + (mm.group(2) or ""))
+    pat, afn = accent_line("accent", p["accent"])
+    src = _sub1(src, pat, afn, "#let accent", fam)
+    if p["accent2"]:
+        pat, afn = accent_line("accent2", p["accent2"])
+        src = _sub1(src, pat, afn, "#let accent2", fam)
+    sub: Callable[[str], Callable[[re.Match[str]], str]] = lambda v: (lambda mm: mm.group(1) + v + (mm.group(2) or ""))
+    src = _sub1(src, lead("bodyf"), sub(body_c), "#let bodyf", fam)
+    if re.search(r'^#let dispf = monof\b', src, re.M):
+        # mono-technical: the display face IS the mono face
+        src = _sub1(src, lead("monof"), sub(disp_c), "#let monof", fam)
+    else:
+        src = _sub1(src, lead("dispf"), sub(disp_c), "#let dispf", fam)
+        if p["mono"]:
+            src = _sub1(src, lead("monof"), sub(
+                _chain(fp["mono"], p["mono"], "mono", p["have"])),
+                "#let monof", fam)
+    if lang != "en" or region:            # worked files ship lang: "en"
+        src, n_lang = re.subn(r'(#set text\([^\n]*?)lang: "en"',
+                     lambda mm: mm.group(1) + lang_arg(lang, region), src,
+                     count=1)
+        if n_lang != 1:
+            raise SystemExit("--init: %s: no `lang: \"en\"` in its `#set text(` line to rewrite "
+                             "— the family file changed shape; fall back to the manual route "
+                             "(cp + --emit-typ)" % fam)
+    src = _sub1(src, r'^(#set par\(justify: false, )leading: [^,]+, spacing: '
+                r'[^)]+(\).*)$',
+                lambda mm: mm.group(1) + "leading: %s, spacing: %s" % (
+                    d["leading"], d["spacing"]) + mm.group(2),
+                "#set par", fam)
+    src = _sub1(src, r'^(#let mk = marks\(ic-col)(\).*)$',
+                lambda mm: mm.group(1) + ', kit: "%s"' % p["markset"][0]
+                + mm.group(2), "#let mk", fam)
+    if p["variant"]:                      # gutter-rail's square/pill axis
+        r = "2.5pt" if "pill" in p["variant"] else "0pt"
+        src = _sub1(src, r'^(#let seg-radius = )\S+', lambda mm: mm.group(1) + r,
+                    "#let seg-radius", fam)
+    src = _apply_labels(src, d["labels"], p["labels"], fam)
+    pg = d["page"]
+    for k, v in (("margin", pg["margin"]), ("body", pg["body"])):
+        if k == "margin" and "(%s)" % v not in src and v not in src:
+            sys.stderr.write("note: %s's own page margin differs from the "
+                             "recipe's (%s) — kept the family file's\n"
+                             % (fam, v))
+    os.makedirs(folder, exist_ok=True)
+    kept = []
+    for f in ("lib.typ", "icons.typ"):
+        srcf, dst = os.path.join(root, "templates", f), os.path.join(folder, f)
+        if os.path.exists(dst):
+            if f == "lib.typ" and open(dst, "rb").read() != open(srcf, "rb").read():
+                kept.append("kept existing %s (differs from the skill's) — a lib "
+                            "update is deliberate: cp %s %s"
+                            % (q(dst), q(srcf), q(dst)))
+                continue
+            if f == "icons.typ" and os.path.getsize(dst) > 0:
+                kept.append("kept existing %s (harvested icons)" % q(dst))
+                continue
+        _write_nofollow(dst, open(srcf, "rb").read())
+    # one comment line: the full call form of the family's entry wrapper
+    src = re.sub(r'^(#job\()', r'// job(role, org, dates, note) - 4 positional args, "note" required; '
+                 r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.M)
+    _write_nofollow(out, (_vitae_header(pg) + "\n" + src).encode("utf-8"))
+    lo, hi = pg["fill"].split("-")
+    if any((cast(str, p.get(k)) or "").startswith("NO pool member")
+           for k in ("display_note", "body_note", "mono_note")):
+        kept.append("at least one font role of %s has NO pool member installed "
+                    "locally — install the face above before verifying%s"
+                    % (fam, "" if p["offline"] else
+                       ", or in an offline sandbox re-run pick_design.py "
+                       "with --offline --force"))
+    print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "
+          "byte-for-byte)" % (out, fam, fam, pick_file))
+    for k in kept:
+        print("note: " + k)
+    vf = q(os.path.join(root, "scripts", "verify.py"))
+    print("next, run these (do not read the scripts, their output is the "
+          "instruction):")
+    print("  python3 %s %s" % (q(os.path.join(root, "scripts", "harvest_icons.py")), q(folder)))
+    print("  python3 %s --tune %s 1 %s %s" % (vf, q(out), lo, hi))
+    print("  python3 %s %s 1 %s %s" % (vf, q(out), lo, hi))
+    print("The filler starter may overflow/underfill with the drawn fonts: expected. "
+          "Replace the filler with the candidate's facts first, then --tune, then verify.")
+
+
+def selftest() -> None:
+    # --init: starter headings are exactly the drawn labels; a drawn soft=None
+    # leaves no soft-skills section behind (every family, every variant).
+    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    for _f, _d in FAMILIES.items():
+        _fs = open(os.path.join(_root, "templates", "families", _f, "resume.typ"),
+                   encoding="utf-8").read()
+        for _role in ("profile", "skills", "soft"):
+            _dl = _d["labels"][_role]
+            if _dl is None:
+                continue
+            for _new in LABEL_VARIANTS[_role]:
+                _o = _apply_labels(_fs, _d["labels"],
+                                   dict(_d["labels"], **{_role: _new}), _f)
+                _h = re.findall(r'^#section\("([^"]*)"', _o, re.M)
+                if _new is None:
+                    assert _dl not in _h, (_f, _role, _h)
+                else:
+                    assert _new in _h and (_new == _dl or _dl not in _h), \
+                        (_f, _role, _new, _h)
+    # _installed: plain name wins; "X <n>pt" variant resolves to the full
+    # installed name, smallest n numerically; no false prefix matches.
+    assert _installed("DM Sans", {"DM Sans", "DM Sans 9pt"}) == "DM Sans"
+    assert _installed("DM Sans", {"DM Sans 14pt", "DM Sans 9pt"}) == "DM Sans 9pt"
+    assert _installed("Noto Sans", {"Noto Sans Mono", "Noto Sans Display 12pt"}) is None
+    assert _installed("Noto Sans", {"Noto Sans 12pt"}) == "Noto Sans 12pt"
+    # _chain with a synthetic font set: every emitted name is installed,
+    # including the tail; have=None keeps the full pool plus the tail.
+    _pool = [("DM Sans", "GF (OFL)"), ("Sora", "GF (OFL)"),
+             ("Red Hat Display", "GF · Linux: redhat-display-fonts")]
+    _have = {"DM Sans 9pt", "Red Hat Display", "Noto Sans"}
+    _names = re.findall(r'"([^"]+)"', _chain(_pool, ("DM Sans 9pt", "x"), "display", _have))
+    assert _names and all(n in _have for n in _names), _names
+    assert _names[0] == "DM Sans 9pt" and "Sora" not in _names, _names
+    _nt = re.findall(r'"([^"]+)"', _chain(_pool, ("DM Sans", "x"), "display", None))
+    assert _nt == ["DM Sans", "Sora", "Red Hat Display"], _nt
+    _nt = re.findall(r'"([^"]+)"', _chain([("Sora", "GF")], ("Sora", "GF"), "display", None))
+    assert _nt == ["Sora", "Noto Sans"], _nt
+    # --offline: filters eligible families to those with >=1 installed face per
+    # role (run 17 sandbox: 7/14 families installed, keyline-corporate's display
+    # pool missing).
+    _r17_have = {"Liberation Sans", "Noto Sans", "DejaVu Sans Mono", "P052",
+                 "Cantarell", "PT Sans", "Adwaita Sans", "Adwaita Mono",
+                 "URW Gothic", "Libertinus Serif"}
+    assert not _family_usable("keyline-corporate", _r17_have)
+    assert _family_usable("humanist-quiet", _r17_have)
+    _po = pick("Candidate A", "operations", offline=True, have_fonts=_r17_have)
+    assert all(_family_usable(_f, _r17_have) for _f in _po["eligible"]), _po["eligible"]
+    assert "keyline-corporate" not in _po["eligible"]
+    assert not _po["display_note"].startswith("NO pool member"), _po
+    assert not _po["body_note"].startswith("NO pool member"), _po
+    # --offline edge cases warn on stderr (fallback behaviour unchanged)
+    import contextlib
+    import io
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        _pe = pick("Candidate A", "operations", offline=True, have_fonts={"Nope"})
+    assert "no family in the pool has all font roles installed" in _err.getvalue(), _err.getvalue()
+    assert _pe["family"] == pick("Candidate A", "operations", have_fonts={"Nope"})["family"]
+    assert "with --offline to draw" not in report(_pe, "us")
+    assert "with --offline to draw" in report(pick("Candidate A", "operations", have_fonts={"Nope"}), "us")
+    import tempfile
+    for _off in (True, False):
+        _pi = pick("Candidate A", "operations", offline=_off, have_fonts={"Nope"})
+        _buf = io.StringIO()
+        with tempfile.TemporaryDirectory() as _td, contextlib.redirect_stdout(_buf), \
+                contextlib.redirect_stderr(io.StringIO()):
+            init_folder(_pi, _td + "/cv")
+        _o = _buf.getvalue()
+        assert "install the face above before verifying" in _o, _o
+        assert ("--offline --force" in _o) == (not _off), _o
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        _pn = pick("Candidate A", "operations", offline=True, check_fonts=False)
+    assert "--offline is ignored with --no-font-check" in _err.getvalue(), _err.getvalue()
+    assert _pn["family"] == pick("Candidate A", "operations", check_fonts=False)["family"]
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        pick("Candidate A", "operations", offline=True, have_fonts=_r17_have)
+    assert _err.getvalue() == "", _err.getvalue()
+    a = pick("Candidate A", "software", check_fonts=False)
+    assert a == pick("Candidate A", "software", check_fonts=False), \
+        "not deterministic"
+    assert pick("Candidate A", "nursing", check_fonts=False)["key"] != a["key"]
+    # default career is early -> a modern-first pool (all four modern families
+    # in, then just enough of the widening tier to reach MIN_POOL)
+    assert a["career"] == "early"
+    assert all(FAMILIES[f]["register"] in ("modern", "neutral")
+               for f in a["eligible"]), a["eligible"]
+    assert all(f in a["eligible"] for f, d in FAMILIES.items()
+               if d["register"] == "modern"), a["eligible"]
+    # senior -> neutral + classic only
+    s = pick("Candidate A", "software", career="senior", check_fonts=False)
+    assert set(FAMILIES[f]["register"] for f in s["eligible"]) <= \
+        {"neutral", "classic"}
+    # every profile draws from at least MIN_POOL families (1-in-5 collision at
+    # worst), flags applied on top; and the creative register is NEVER in the
+    # pool without the unlock
+    pools = {}
+    cases: list[tuple[str, dict[str, Any]]] = [("plain", {}), ("photo", dict(photo=True)),
+                      ("conservative", dict(conservative=True)),
+                      ("photo+cons", dict(photo=True, conservative=True)),
+                      ("creative", dict(creative=True)),
+                      ("creative+cons", dict(creative=True,
+                                             conservative=True))]
+    for label, kw in cases:
+        for c in CAREER:
+            p = pick("X", "y", career=c, check_fonts=False, **kw)
+            assert len(p["eligible"]) >= MIN_POOL, (c, kw, p["eligible"])
+            pools["%s/%s" % (c, label)] = len(p["eligible"])
+            if kw.get("photo"):
+                assert all(FAMILIES[f]["photo_ok"] for f in p["eligible"])
+            if kw.get("conservative"):
+                assert all(FAMILIES[f]["conservative_ok"] for f in p["eligible"])
+            crea = [f for f in p["eligible"]
+                    if FAMILIES[f]["register"] == "creative"]
+            if kw.get("creative") and not kw.get("conservative"):
+                assert crea, (c, label, "unlock did not surface them")
+            else:
+                assert not crea, (c, label, crea)
+    # field table: creative leans creative+modern and lifts the dial;
+    # conservative caps it
+    cg = pick("Candidate A", "graphic design", check_fonts=False)
+    assert cg["domain"] == "creative" and cg["audacity"] == "expressive"
+    assert [f for f in cg["eligible"]
+            if FAMILIES[f]["register"] == "creative"], cg["eligible"]
+    kl = pick("Candidate A", "corporate law", audacity="bold", check_fonts=False)
+    assert kl["domain"] == "conservative" and kl["audacity"] == "sober"
+    assert all(FAMILIES[f]["conservative_ok"] for f in kl["eligible"])
+    assert domain_register("plumbing") is None
+    # bold survives only when nothing caps it — and only because it was asked for
+    assert pick("Candidate A", "software", audacity="bold",
+                check_fonts=False)["audacity"] == "bold"
+    assert a["accent"] in FAMILIES[a["family"]]["accents"]
+    assert _idx("Candidate A+software", 3) == int(
+        hashlib.sha256(b"Candidate A+software").hexdigest()[:8], 16) % 3
+    # duotone: hue B is paired 1:1 with the accent (same index), and only the
+    # five declared families have one
+    for f, d in FAMILIES.items():
+        if "accents2" in d:
+            assert len(d["accents2"]) == len(d["accents"]), f
+    for i in range(60):
+        p = pick("N%02d" % i, "software", check_fonts=False)
+        d = FAMILIES[p["family"]]
+        if "accents2" in d:
+            assert d["accents2"][d["accents"].index(p["accent"])] == p["accent2"]
+        else:
+            assert p["accent2"] is None
+    # roster invariants: 14 families, fonts and families in lockstep, and the
+    # three per-family keys present everywhere
+    assert len(FAMILIES) == 14, len(FAMILIES)
+    assert set(FONTS) == set(FAMILIES), set(FONTS) ^ set(FAMILIES)
+    for f, d in FAMILIES.items():
+        for k in ("page", "order", "spec"):
+            assert k in d, (f, k)
+        for k in ("margin", "body", "fill"):
+            assert k in d["page"], (f, k)
+        o = d["order"]
+        assert set(o) <= set(ORDER_ROLES), (f, set(o) - set(ORDER_ROLES))
+        assert len(set(o)) == len(o), (f, "duplicate section role")
+        assert o[0] == "profile", (f, o)
+        assert ("soft" in o) == (d["labels"]["soft"] is not None), (f, o)
+    n_spec = sum(1 for d in FAMILIES.values() if d["spec"])
+    assert n_spec == 4, n_spec        # a TRAIT, not a house style
+    # a family's variant axis: drawn deterministically, always one of its own,
+    # and None everywhere else (a variant on every family would be one more
+    # thing all fourteen share).
+    for i in range(40):
+        q = pick("V%02d" % i, "software", creative=True, check_fonts=False)
+        dv = FAMILIES[q["family"]]
+        assert q["variant"] in dv["variants"] if "variants" in dv \
+            else q["variant"] is None, (q["family"], q["variant"])
+    # no display face is shared between two families (half of the identity)
+    seen: dict[str, str] = {}
+    for f, fp in FONTS.items():
+        # 3 members is the documented pool minimum (see bold-display above);
+        # `mono` is optional and only hard-edge declares one.
+        assert set(fp) - {"register", "mono"} == {"display", "body"}, f
+        for role in ("display", "body", "mono"):
+            if role not in fp:
+                continue
+            assert 3 <= len(fp[role]) <= 5, (f, role)
+            assert len(set(n for n, _ in fp[role])) == len(fp[role]), (f, role)
+        for n, prov in fp["display"]:
+            assert n not in seen, ("display face shared", n, f, seen.get(n))
+            seen[n] = f
+            assert prov, (f, n)
+    # labels: every drawn variant stays inside the documented pools, and the
+    # family default is always reachable
+    triples: dict[tuple[str | None, ...], str] = {}
+    for f, d in FAMILIES.items():
+        for role, default in d["labels"].items():
+            assert default is None or default in LABEL_VARIANTS[role], (f, role)
+        # no two families ship the SAME default triple, over all fourteen:
+        # three of them used to default to "Profile / Technical Skills / Core
+        # Strengths", which is exactly the lexical fingerprint core.md
+        # denounces
+        t = tuple(d["labels"][r] for r in ("profile", "skills", "soft"))
+        assert t not in triples, ("duplicate default labels", t, f, triples[t])
+        triples[t] = f
+    spread: dict[str, int] = {}
+    for i in range(400):
+        p = pick("Person %03d" % i, "software", career="mid", check_fonts=False)
+        spread[p["family"]] = spread.get(p["family"], 0) + 1
+        for role in ("profile", "skills", "soft"):
+            assert p["labels"][role] in LABEL_VARIANTS[role], p["labels"]
+    assert len(spread) >= MIN_POOL, spread
+    n_var = sum(1 for d in FAMILIES.values() if "variants" in d)
+    _p = pick("Lang Check", "software", career="mid", check_fonts=False)
+    assert '#set text(font: bodyf' in emit_typ(_p, "unspecified")
+    assert 'lang: "en"' in emit_typ(_p, "unspecified")
+    assert 'lang: "fr"' in emit_typ(_p, "unspecified", "fr")
+    assert 'lang: "fr", region: "ca"' in emit_typ(_p, "unspecified", "fr", "ca")
+    assert "region:" not in emit_typ(_p, "unspecified", "fr")
+    print("selftest OK — %d families, %d with a specialities line, "
+          "%d with a variant axis, MIN_POOL=%d"
+          % (len(FAMILIES), n_spec, n_var, MIN_POOL))
+    print("  mid-career spread over 400 names: %s"
+          % ", ".join("%s %d" % kv for kv in sorted(spread.items())))
+    print("  eligible-pool size per profile:")
+    for c in ("early", "mid", "senior"):
+        print("    %-7s %s" % (c, "  ".join(
+            "%s=%d" % (k.split("/")[1], v)
+            for k, v in pools.items() if k.startswith(c + "/"))))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(add_help=True, description=__doc__.split("\n")[0])
+    ap.add_argument("--name")
+    ap.add_argument("--field")
+    ap.add_argument("--market", default="unspecified")
+    ap.add_argument("--career", default="early", choices=sorted(CAREER))
+    ap.add_argument("--audacity", default="sober",
+                    choices=["sober", "expressive", "bold"])
+    ap.add_argument("--photo", action="store_true")
+    ap.add_argument("--conservative", action="store_true")
+    ap.add_argument("--creative", action="store_true",
+                    help="unlock the creative-register families (explicit "
+                         "request only — never inferred)")
+    ap.add_argument("--emit-typ", action="store_true",
+                    help="print a paste-ready Typst preamble for the recipe")
+    ap.add_argument("--init", metavar="FOLDER",
+                    help="write a compiling starting point into FOLDER: "
+                         "lib.typ + icons.typ (byte copies) and cv.typ = the "
+                         "drawn family's worked file with the drawn recipe's "
+                         "palette/fonts/leading substituted")
+    ap.add_argument("--force", action="store_true",
+                    help="with --init: overwrite an existing cv.typ")
+    ap.add_argument("--list", action="store_true")
+    ap.add_argument("--offline", action="store_true",
+                    help="restrict the eligible pool to families whose font "
+                         "roles all have at least one locally installed face")
+    ap.add_argument("--no-font-check", action="store_true",
+                    help="skip the local `typst fonts` availability check")
+    ap.add_argument("--lang", default="en", metavar="CODE",
+                    help="language of the CV, ISO 639 code (fr, en, de, fil...) — "
+                         "emitted as Typst `lang:` (default en)")
+    ap.add_argument("--region", metavar="CC",
+                    help="optional ISO 3166-1 alpha-2 region (CA, CH...) — "
+                         "emitted as Typst `region:` only when given")
+    ap.add_argument("--selftest", action="store_true")
+    a = ap.parse_args()
+    if not re.fullmatch(r"[a-z]{2,3}", a.lang):
+        ap.error("--lang must be a lowercase ISO 639 language code (2-3 letters) like fr, en, de "
+                 "(got %r)" % a.lang)
+    if a.region is not None:
+        if not re.fullmatch(r"[A-Za-z]{2}", a.region):
+            ap.error("--region must be two letters like CA (got %r)" % a.region)
+        a.region = a.region.lower()
+    if a.selftest:
+        selftest()
+    elif a.list:
+        for f in sorted(FAMILIES):
+            d = FAMILIES[f]
+            print("%-18s %-8s photo=%-5s cons=%-5s duotone=%-5s spec=%-5s "
+                  "icons=%s"
+                  % (f, d["register"], d["photo_ok"], d["conservative_ok"],
+                     "accents2" in d, d["spec"], d["icons"]))
+            print("%18s   gabarit margin (%s), body %s, fill %s%%"
+                  % ("", d["page"]["margin"], d["page"]["body"],
+                     d["page"]["fill"]))
+            print("%18s   order   %s" % ("", " → ".join(d["order"])))
+            print("%18s   accents %s" % ("", " ".join(d["accents"])))
+            if "accents2" in d:
+                print("%18s   hue B   %s  (paired by index)"
+                      % ("", " ".join(d["accents2"])))
+            print("%18s   labels  %s" % ("", d["labels"]))
+            print("%18s   type    %s" % ("", FONTS[f]["register"]))
+            for role in ("display", "mono", "body"):
+                if role in FONTS[f]:
+                    print("%18s   %-8s%s" % ("", role, ", ".join(
+                        "%s [%s]" % nv for nv in FONTS[f][role])))
+    elif a.name and a.field:
+        p = pick(a.name, a.field, a.career, a.photo, a.conservative,
+                 cast(Audacity, a.audacity), not a.no_font_check, a.creative,
+                 a.offline)
+        if a.init:
+            print(report(p, a.market))
+            print()
+            init_folder(p, a.init, a.force, a.lang, a.region)
+        else:
+            print(emit_typ(p, a.market, a.lang, a.region) if a.emit_typ
+                  else report(p, a.market))
+    else:
+        sys.exit(__doc__)
+
+
+if __name__ == "__main__":
+    main()

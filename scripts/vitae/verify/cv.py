@@ -14,13 +14,19 @@ import sys
 import tempfile
 from typing import NoReturn
 
-import measure_fill
-from verify_base import _FOOTER_GATE, LEADING_WARN, LOWERED_FILL_FLOOR, STATE, DetailRow, HiddenStat
-from verify_env import preflight, typst_can_query
-from verify_groups import ENTRY_MARKS, _typst_query, check_date_adjacency, check_duplicate_names, check_group_proximity
-from verify_layout import check_font_fallback, check_text_clip, check_whitespace
-from verify_level import Finding, Level
-from verify_pdf import (
+import vitae.fill as measure_fill
+from vitae.core.base import _FOOTER_GATE, LEADING_WARN, LOWERED_FILL_FLOOR, STATE, DetailRow, HiddenStat
+from vitae.core.env import preflight, typst_can_query
+from vitae.core.level import Finding, Level
+from vitae.verify.groups import (
+    ENTRY_MARKS,
+    _typst_query,
+    check_date_adjacency,
+    check_duplicate_names,
+    check_group_proximity,
+)
+from vitae.verify.layout import check_font_fallback, check_text_clip, check_whitespace
+from vitae.verify.pdf import (
     _boxes_unavailable,
     compile_pdf,
     count_pages,
@@ -30,9 +36,9 @@ from verify_pdf import (
     render_pngs,
     word_boxes,
 )
-from verify_source import _drawn_fill, _fill_args_ok, check_forced_linebreak, check_literal_tilde, check_no_split
-from verify_text import check_bullet_chars, check_facts_coverage, check_hidden_text
-from verify_typst import _doc_body_size, _doc_par_list, _strip_typst_comments
+from vitae.verify.source import _drawn_fill, _fill_args_ok, check_forced_linebreak, check_literal_tilde, check_no_split
+from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
+from vitae.verify.typst import _doc_body_size, _doc_par_list, _strip_typst_comments
 
 
 def run_hidden_gate(pdf: str) -> int:
@@ -213,7 +219,7 @@ def check_all(directory: str) -> int:
         print(f"\n=== {typ}  (expects {' '.join(args)}"
               f"{'' if m else ' — inferred from the file name, no header'})")
         r = subprocess.run([sys.executable,
-                            os.path.join(os.path.dirname(os.path.abspath(__file__)), "verify.py"), typ]
+                            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py"), typ]
                            + args)
         fail |= bool(r.returncode)
     if unchecked:
@@ -244,7 +250,7 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
     FAIL for a lib whose content differs from the skill's (older release or edited: a model once
     rewrote it from memory, dropped `derive()` and looped; BOM and CRLF are ignored); WARN, not FAIL,
     when a lib.typ sits beside the CV but no import resolves to it (integrity unchecked)."""
-    skill_dir = skill_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    skill_dir = skill_dir or os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     ref = os.path.join(skill_dir, "templates", "lib.typ")
     # Follow local #import "x.typ" chains (cv.typ -> family.typ -> lib.typ).
     lib, shown, seen, todo = None, None, set(), [os.path.abspath(typ_path)]

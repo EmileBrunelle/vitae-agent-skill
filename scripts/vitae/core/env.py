@@ -199,7 +199,7 @@ def check_fonts() -> None:
     its pool has at least one installed member (`_installed`). pick_design
     draws from at least MIN_POOL families, so fewer usable ones means it will
     substitute."""
-    import pick_design as pd
+    import vitae.design.pick as pd
     have = pd._fonts_available()
     if have is None:
         print("WARN  fonts not checked (`typst fonts` failed or timed out)")
