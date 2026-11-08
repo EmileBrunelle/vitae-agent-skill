@@ -1,24 +1,23 @@
 # Market: Morocco
 
-Part of the Maghreb set — read together with [`maghreb-common.md`](maghreb-common.md); the three markets are *non-interchangeable*.
+Part of the Maghreb set: read together with [`maghreb-common.md`](maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`maghreb-education.md`](maghreb-education.md).
 
 Paper: a4.
 
-## At a glance
+All CV-practice cells below are job-site guidance, not law: Jobsquare.ma, « Comment rédiger un CV au Maroc : guide complet et exemples » (published 2026-07-08, modified 2026-10-29, S608); Africarrières, « Rediger un CV au Maroc - Conseils et modeles 2026 » (published 2026-02-22, modified 2026-08-07, S609).
 
-
-| | Paper | Photo | CV language | Personal data | Formality / verb style | Length |
-|---|---|---|---|---|---|---|
-| Morocco | a4 | Still quasi-expected | FR private sector; AR public; EN rising | Birth date/nationality declining — omit by default | French mechanics; « titre de CV » expected | 1 p. junior, 2 p. senior |
-
-## Where it diverges from the other two
-
-| | Morocco |
+| Topic | Rule or custom |
 |---|---|
-| Length | 1 p. junior (<5 yrs), 2 p. max senior |
-| Personal data | Birth date/nationality still common but declining; marital status on its way out — omit by default and say so |
-| Country-specific field | **Note du bac if >14/20** is worth listing (rare elsewhere) |
+| Photo | Africarrières: « La photo reste fortement recommandée au Maroc. » Jobsquare: « Aucune règle ne l'impose : c'est un usage, répandu au Maroc sans être universel. » Tell the user the custom; the candidate decides |
+| Personal data | Sources split. Africarrières: « les informations personnelles détaillées restent couramment demandées au Maroc » (age or date of birth, family status, nationality in its header list). Jobsquare: « Pas de date de naissance, pas de situation familiale (ces informations ne sont plus requises dans les pratiques modernes) », and « beaucoup de candidats indiquent encore leur date de naissance ». Omit by default, say so, candidate decides |
+| Length | Jobsquare: 1 page under 3 years of experience, 2 pages maximum beyond. Africarrières: « 1 à 2 pages maximum » |
+| Header | Jobsquare lists a « titre du poste visé ». Africarrières recommends an « Objectif professionnel » of 2 to 3 lines, a different element |
+| Dates | mois/année (both guides) |
+| Country-specific field | Africarrières: « Mentionnez obligatoirement votre note du baccalauréat si elle est supérieure à 14/20 » (a « spécificité marocaine »; single source, no second one found) |
+| CV language | Private sector: see [`maghreb-common.md`](maghreb-common.md). Public sector: below |
+| Language levels | No source read |
 
-## Country notes
+## Public sector
 
-**Morocco.** 1 page junior. Photo quasi-expected. Date format mois/année. Nationality/birth date still seen but declining — omit by default, flag the custom to the user. Mention the bac grade when above 14/20. Sage dominates PME accounting stacks, SAP the large groups/Big Four; audit postings increasingly name data tools (Power Query, ACL, IDEA) beyond advanced Excel.
+- Language: follow the avis. The 2011 Constitution art. 5 makes Arabic (and Tamazight) official, and is silent on the language of an application (English translation on constituteproject.org, S605). Décret 2-11-621 of 25 November 2011 (competitions; copy hosted by the SGG/MMSP, S606) is silent on language. The one avis read, ANCFCC (Rabat, 2024, S607), art. 4: « L'épreuve écrite peut être rédigée en langue arabe ou française, au choix du candidat. » Jobsquare: « l'arabe peut être demandé par certaines administrations. En cas de doute, suivez la langue de l'annonce. »
+- Dossier versus CV: the décret art. 8 requires a « طلب ترشيح » (application) with a certified copy of the CNI and of the required diploma (S606), no CV. Each avis sets its own file: the ANCFCC avis art. 5 lists a filled application form, « Un Curriculum Vitae avec une photo récente », diploma copies, transcripts and the CNI, all registered on the agency's site as PDFs (S607). Read the avis; its list overrides this page.

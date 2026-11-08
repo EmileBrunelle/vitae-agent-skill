@@ -100,6 +100,7 @@ Oceania, Latin America, Africa
 - [`regional/africa/morocco.md`](regional/africa/morocco.md) — Morocco; read with `maghreb-common.md`
 - [`regional/africa/algeria.md`](regional/africa/algeria.md) — Algeria; read with `maghreb-common.md`
 - [`regional/africa/tunisia.md`](regional/africa/tunisia.md) — Tunisia; read with `maghreb-common.md`
+- [`regional/africa/maghreb-education.md`](regional/africa/maghreb-education.md) — official diploma titles, lengths and mention scales of the three home systems; read when a Maghreb credential is written on the CV
 - [`regional/africa/maghreb-outbound/common.md`](regional/africa/maghreb-outbound/common.md) — read IN ADDITION to the target market's file when the candidate holds Moroccan, Algerian or Tunisian credentials (alone or mixed with other countries') and targets Québec/Canada or Europe, plus ONE of:
   - [`regional/africa/maghreb-outbound/to-quebec-canada.md`](regional/africa/maghreb-outbound/to-quebec-canada.md) — target Québec or English Canada (MIFI, IRCC ECA, OIQ)
   - [`regional/africa/maghreb-outbound/to-europe.md`](regional/africa/maghreb-outbound/to-europe.md) — target France; Belgium, Spain and Germany not covered

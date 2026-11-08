@@ -1,0 +1,28 @@
+# Maghreb: diplomas in the home system
+
+Part of the Maghreb set ([`maghreb-common.md`](maghreb-common.md)). Official titles and lengths as the texts state them; print the title exactly as on the diploma. Lengths, ministry labels and evaluator wording for candidates going abroad: [`maghreb-outbound/common.md`](maghreb-outbound/common.md) (Algeria S271-S272, Morocco S270, Tunisia S273-S274, not repeated here). GPA and mention display on a Québec résumé: [`north-america/quebec/education.md`](../north-america/quebec/education.md).
+
+## Morocco
+
+Texts: décret n° 2-04-89 of 7 June 2004 (cycles and national diplomas), amended by décret 2-06-489 (BO 5544, 19 July 2007); arrêté 2136-08 of 15 April 2009; licence cahier des normes (BO 5270, 2 December 2004). All read in the ministry's compilation « Textes législatifs et réglementaires relatifs à l'enseignement supérieur » (December 2010) as hosted by FMPM-UCA, not the ministry site; later amendments not checked (S610).
+- LMD in force progressively from the 2003-2004 rentrée (décret art. 14). Licence: six semestres after the baccalauréat (art. 5); the first four end in a « DEUG » (fundamental tracks) or « DEUP » (professional tracks), the last two in a « licence d'études fondamentales (LEF) » or « licence professionnelle (LP) ». Master: four semestres after the LEF or LP, titled « Master » or « Master spécialisé » (art. 6). Doctorat: three years after the master, extendable by one or two (art. 8).
+- « Diplôme d'ingénieur d'État »: six semestres, access after the two années préparatoires or by concours (arrêté 2136-08). Écoles à accès régulé also issue the DUT, the « Diplôme d'études universitaires en sciences et techniques » and the licence/master « en sciences et techniques » (art. 11).
+- Pre-LMD (décret arts. 15-17): transition for the old « licence ès lettres / ès sciences / en droit / en sciences économiques » until 31 July 2008; DESA (« diplôme d'études supérieures approfondies ») and DESS (« diplôme d'études supérieures spécialisées ») students stayed under décret 2.96.796 of 19 February 1997.
+- Mentions: « Très bien » from 16/20, « Bien » 14 to under 16, « Assez bien » 12 to under 14, « Passable » 10 to under 12 for the licence (norm RG13, S610); same four for the master (norm RG21, arrêté 1891-25 of 25 July 2025, master of four semestres and 120 credits, BO 7488, 5 March 2026, translation edition, S611); the DUT lists only the first three (S610).
+
+## Algeria
+
+- Licence « nouveau régime »: three years, six semestres (décret exécutif 04-371 of 21 November 2004, art. 2, JORADP n° 75, 24 November 2004, S620). Repealed by décret exécutif 08-265 of 19 August 2008 (art. 20), which sets the licence, master and doctorat regime: master 120 credits, 30 per semester (art. 12), 180 credits when prepared in an école outside the university (art. 13); the doctorat « sanctionne la formation de troisième cycle » (art. 19) (JORADP n° 48, 24 August 2008, S621; amendments not checked).
+- Ingénieur d'État, magister and the old titles (licence classique, DES, DEUA, Technicien Supérieur): lengths from the ministry's table in S271 (see the outbound file). The legal text re-establishing the ingénieur d'État in 2021-2022 was not found.
+- Language of instruction: the minister stated the goal of extending English, with « 80 % des spécialités, notamment les domaines des sciences et des technologies » taught by qualified teachers (radio forum of 10 February 2025, MESRS, S622). On 9-10 July 2026 the MESRS announced the first English-taught cohorts graduating at Université d'Alger 3 (information-communication, political science, economics-management, sports), « the vanguard of the nationwide expansion » (S623). No decision text found; scope (which programmes, mandatory or progressive) and diploma language not verified. Print the diploma title as issued.
+
+## Tunisia
+
+- « Diplôme national de mastère », LMD, « mastère professionnel » or « mastère de recherche » (not « master »): two years, 120 credits, four semestres (décret n° 2012-1227 of 1 August 2012, arts. 2 and 5, JORT n° 66, 21 August 2012; copy hosted by SupCom, S601). Mastère professionnel mentions (art. 21): Passable from 10/20 to under 12, Assez bien 12 to under 14, Bien 14 to under 16, Très bien from 16/20.
+- Doctorat: three years after the mastère or another diploma (décret n° 2013-47 of 4 January 2013, art. 2, JORT n° 4, 11 January 2013, S602).
+- « Diplôme national d'ingénieur »: five years, a two-year cycle préparatoire then three years (décret n° 95-2602 of 25 December 1995, art. 3; copy hosted by ESIP, JORT not read, the amendment by décret 2009-643 not checked, S603). Licence: see S274 in the outbound file (décret 2008-3123).
+- Pre-LMD (arrêté of 15 August 1996 amended 28 March 2002, via Wayback copy of mes.tn, arts. 4-18, S604): diplôme d'études universitaires de premier cycle (2 years), maîtrise (4 years, 3 allowed), « diplôme de technicien supérieur » (2 years), « diplôme d'études supérieures de technologie » (5 semestres), diplôme d'ingénieur (5 years), DESS (1 year after a 4-year diploma), DEA (1 year after the maîtrise).
+
+## Not sourced
+
+No official text obtained for: bac mentions and thresholds (only press and private sites, all three countries); DTS/BTS (Morocco), BTS and technicien supérieur in vocational training (Algeria, Tunisia), ISET and the licence appliquée text (Tunisia); the Moroccan DEUG/DEUP dates; Algerian licence/master mention scales. Mention scales are issued by the institution: print as on the transcript, never converted. CV wording of titles: convention, no official source.
