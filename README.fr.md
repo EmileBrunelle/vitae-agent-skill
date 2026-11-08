@@ -96,63 +96,36 @@ Notes par plateforme :
 
 ## Organisation
 
+Les routeurs sont l'index fichier par fichier : `SKILL.md`, `references/regional.md` et `references/certifications/rules.md` listent les fichiers qu'ils chargent, l'arbre ci-dessous ne les répète donc pas.
+
 ```
-SKILL.md                         # point d'entrée allégé : règles non négociables + un squelette par étape (<= 13000 o, vérifié)
-references/steps/                # corps des étapes 0-8 (N-<slug>.md + sous-fichiers tune/companions), lus au début de l'étape
-references/academic-mode.md      # mode CV académique : fichier de données, propriétés de correction, ce qui ne s'applique pas, gate (sorti de SKILL.md)
-references/known-traps.md        # pièges connus (sortis de SKILL.md)
-references/design/core.md        # règles de design communes : invariants, tokens, primitives, boucle d'ajustement du remplissage
-references/design/families/      # une recette par famille de design (14), lue en entier pour la famille tirée
-references/icons.md              # provenance des icônes et ajout d'une marque
-references/ats.md                # règles d'analyse + commandes de vérification
-references/workday.md            # Workday : comportement mesuré + version d'analyse seule
-references/regional.md           # routeur régional : règles universelles + matrice
-references/regional/<région>/…   # profondeur par marché en sous-dossiers de région (north-america/ [+ quebec/, us-canada-government, francophone-canada], europe/, india/ [+ to-europe/], asia/ [+ east-asia/, outbound, southeast-asia/], middle-east/ [gulf/, near-east/], oceania/, latin-america/, africa/ [+ maghreb-outbound/ dont transnational]), chargé seulement pour le marché cible
-references/certifications/…      # certifications professionnelles sur un CV : rules.md + fichiers par famille (tech, finance-accounting, project-hr, health, languages ; les permis liés à une juridiction sont dans les fichiers régionaux), chargés à l'étape 4 quand le CV en mentionne une
-references/reviews.md            # protocole de revue adversariale
-references/fields/software-dev.md # pack de domaine : développement logiciel
-references/fields/academic.md     # connaissance du genre CV académique : sections, régional, organismes de financement, disciplines (remplace les règles industrielles, sans s'y superposer)
-references/typst-primer.md       # syntaxe Typst minimale pour les agents qui ne la connaissent pas
-references/companion-guide.md    # recette optionnelle du guide de recherche d'emploi; aussi la doctrine des lettres de présentation
-references/fonts.md              # provenance des polices : URL Google Fonts, licences, deux façons de les installer
-templates/resume.typ             # gabarit de départ annoté
-templates/lib.typ                # mécanique vérifiée partagée (les dispositifs restent propres à chaque famille); ce sont ces deux fichiers qui font office de passation
-templates/icons.typ              # marques de repli VIDES (versionnées); une récolte écrit la copie du dossier de CV, jamais celle-ci
-templates/letter.typ             # gabarit de lettre de présentation : en-tête réduit copié du CV de la même offre, vérifié par scripts/verify_letter.py
-templates/academic/              # mode CV académique : gabarit neutre, aucun tirage de design
-  cv.typ                         #   gabarit de départ annoté pour le genre académique
-  lib-academic.typ               #   mécanique propre aux entrées académiques (publications, subventions, enseignement, service)
-  faits-academique.example.toml  #   exemple de fichier de données déclarées que verify_academic.py confronte au PDF
-templates/families/<family>/     # IMPLÉMENTATIONS DE RÉFÉRENCE des quatorze familles de design
-  resume.typ                     #   paire de polices A — le tirage principal de la famille
-  resume-pair-b.typ              #   paire de polices B — la MÊME famille avec sa seconde paire de polices, pour prouver
-                                 #   que la recette survit à une autre paire (pas une page 2)
-  (ni lib.typ ni icons.typ ici)  #   les fichiers de famille importent ../../lib.typ — une seule source de vérité, aucune copie, aucun lien symbolique (à la main, compilez depuis la racine du dépôt avec `typst compile --root . templates/families/<famille>/resume.typ`); icons.typ se résout via lib.typ vers le repli vide, pour que chaque famille compile hors ligne
-templates/families/swiss-grid/resume-2page.typ   # l'exemple 2 pages travaillé (bandeau courant, saut délibéré, les deux pages mesurées)
-scripts/pick_design.py           # tirage déterministe du design : famille, polices, libellés de sections, puces; `--lang` (et `--region`, facultatif) fixent le `lang`/`region` de Typst; --emit-typ affiche le préambule Typst prêt à coller pour la recette tirée
-scripts/gen_palette.py           # palettes génératives à contraste validé (duotone inclus)
-scripts/measure_fill.py          # mesure de la couverture d'encre
-scripts/harvest_icons.py         # récupère les données de tracé des icônes de contact/plateforme dans un icons.typ généré au moment du build du CV (n'écrase jamais le repli vide versionné)
-scripts/verify.py                # portail + doctor : compilation + pages + remplissage + extraction, toute plateforme; --tune fait une bissection sur #set par(leading:, spacing:) vers la cible de remplissage (ne remplace pas le portail — le lancer après)
-scripts/verify_lang.py           # aides d'écriture de verify.py : tests d'écriture latine
-scripts/verify_typst.py          # lecture de cv.typ pour verify.py : texte en entrée, valeurs en sortie (commentaires retirés, corps de section, arguments d'entrée, lecture des `#set par/text/list`); aucun affichage, aucun rendu
-scripts/verify_selftest.py       # verify.py --selftest, sorti de verify.py : intégrité de lib.typ, allers-retours des regex du réglage, poppler et typst présents; chargé à la demande, accessible seulement par `verify.py --selftest`
-scripts/verify_level.py          # niveaux de sévérité (FAIL / WARN / OK / INFO) et tuple Finding communs à verify.py et à ses modules utilitaires; bibliothèque standard seulement, n'importe rien de verify
-scripts/verify_base.py           # formes, constantes et état partagés des modules verify_* (une feuille : n'importe aucun frère)
-scripts/verify_env.py            # vérification des dépendances (`--doctor`) et sondes de typst-py / du CLI typst
-scripts/verify_pdf.py            # compilation Typst, nombre de pages, extraction du texte et des boîtes de mots, rendu PNG
-scripts/verify_source.py         # contrôles sur la source cv.typ : découpe en sections, sauts de ligne forcés, `~` littéral, déclaration de remplissage en en-tête
-scripts/verify_text.py           # contrôles sur le texte extrait du PDF : couverture des faits, puces, texte caché, métadonnées
-scripts/verify_layout.py         # portails de mise en page : blancs (frontières de section, canyons), texte coupé, repli silencieux de police
-scripts/verify_groups.py         # portails de regroupement, d'adjacence des dates et de doublons de noms, avec le lecteur de marques `typst query` qu'ils partagent
-scripts/verify_tune.py           # `--tune` : dichotomie sur `#set par(leading:, spacing:)` jusqu'au plus grand rythme qui garde le nombre de pages
-scripts/verify_cv.py             # portail par CV : lecture de l'en-tête, classement des fichiers, `--all`, intégrité de lib, lanceur des nouveaux portails
-scripts/verify_fonts.py          # gestion des polices de verify.py : familles demandées par un CV (arguments `font:` résolus à travers les `#let`) et face dans laquelle le PDF a dessiné chaque caractère; aucun accès au PDF, aucun affichage
-scripts/verify_page.py           # outils de mesure de page de verify.py : bandes d'encre hors des boîtes de mots, lesquelles se trouvent à une frontière de section, aplats et icônes découpés dans une image de page, bande de hauteur d'x d'une ligne de texte; pixels et boîtes en entrée, nombres en sortie, aucun constat affiché, aucun rendu
-scripts/verify_academic.py       # portail du mode académique : vérification des sauts de page au niveau de l'entrée + comptes/ordre déclarés vs extraits, confrontés au fichier de données TOML (ne réutilise que la mécanique de verify.py, aucune de ses constantes de remplissage)
-scripts/verify_letter.py         # portail des lettres de présentation : exactement une page, employeur et intitulé exact du poste tous deux présents dans le texte extrait
-scripts/verify.sh                # enveloppe POSIX autour de verify.py (2 lignes)
-assets/example-1page.png         # rendu d'exemple du gabarit
+SKILL.md                      # point d'entrée : règles non négociables + un squelette par étape (<= 13000 o, vérifié)
+references/                   # chargé à la demande, jamais en bloc
+  regional.md                 #   routeur de regional/<région>/ (profondeur par marché, chargé pour le marché visé)
+  certifications/rules.md     #   routeur des fichiers de certifications professionnelles
+  steps/                      #   corps des étapes 0-8, lus au début de l'étape
+  fields/                     #   packs par domaine (software-dev, métiers, genre CV académique)
+  design/core.md, families/   #   règles de design communes ; une recette par famille de design (14)
+  *.md                        #   notes par sujet : ats, fonts, icons, known-traps, reviews, typst-primer, ...
+templates/                    # points de départ Typst
+  resume.typ, lib.typ         #   gabarit annoté + mécaniques vérifiées communes (le transfert, c'est ces deux fichiers)
+  letter.typ                  #   gabarit de lettre de motivation (vérifié par scripts/verify_letter.py)
+  icons.typ                   #   repli VIDE, versionné ; une récolte écrit la copie du dossier du CV, jamais celle-ci
+  academic/                   #   gabarit de CV académique (sans tirage de design) + exemple de fichier de données
+  families/<famille>/         #   implémentation de référence de chaque famille : resume.typ, resume-pair-b.typ
+                              #   importent ../../lib.typ (aucune copie) ; compiler depuis la racine du dépôt :
+                              #   typst compile --root . templates/families/<famille>/resume.typ
+    swiss-grid/resume-2page.typ #   l'exemple travaillé sur 2 pages
+scripts/                      # Python, stdlib d'abord
+  pick_design.py              #   tirage déterministe du design (famille, polices, libellés, puces) ; --emit-typ imprime le préambule
+  verify.py, verify.sh        #   gate + doctor + --tune ; verify.sh est un wrapper POSIX
+  verify_*.py                 #   modules de gate sortis de verify.py
+  look.py, measure_fill.py    #   aide au contrôle visuel ; mesure de couverture d'encre
+  gen_palette.py              #   palettes validées en contraste
+  harvest_icons.py            #   récupère les tracés d'icônes dans l'icons.typ du dossier du CV, à la construction
+tests/                        # run_all.sh (suite de gates), unit/, backend_equiv.py, fixtures
+docs/                         # sources.md, models.md (agents et modèles testés)
+assets/                       # image d'exemple du README, badges, aperçus des familles
 ```
 
 ## Ce que ce skill fait sur votre machine

@@ -96,63 +96,36 @@ Platform notes:
 
 ## Layout
 
+Routers are the per-file index: `SKILL.md`, `references/regional.md` and `references/certifications/rules.md` list the files they load, so this tree does not.
+
 ```
-SKILL.md                         # slim entry point: non-negotiable rules + one skeleton per step (<= 13000 B, gated)
-references/steps/                # step bodies 0-8 (N-<slug>.md + tune/companions sub-files), read when the step starts
-references/academic-mode.md      # academic-CV mode: data file, correctness properties, what does not apply, gate (moved out of SKILL.md)
-references/known-traps.md        # known traps (moved out of SKILL.md)
-references/design/core.md        # shared design rules: invariants, tokens, primitives, page-fill tuning loop
-references/design/families/      # one recipe file per design family (14), read whole for the family drawn
-references/icons.md              # icon provenance and how to source a new mark
-references/ats.md                # parsing rules + verification commands
-references/workday.md            # Workday autofill: measured behaviour + parse-only build
-references/regional.md           # regional router: file list + universal rules
-references/regional/<region>/…    # per-market depth in region subfolders (north-america/ [+ quebec/, us-canada-government, francophone-canada], europe/, india/ [+ to-europe/], asia/ [+ east-asia/, outbound, southeast-asia/], middle-east/ [gulf/, near-east/], oceania/, latin-america/, africa/ [+ maghreb-outbound/ incl. transnational]), loaded only for the target market
-references/certifications/…      # professional certifications on a CV: rules.md + per-family files (tech, finance-accounting, project-hr, health, languages; jurisdiction-bound licences are in the regional files), loaded at step 4 when the CV lists one
-references/reviews.md            # adversarial review protocol
-references/fields/software-dev.md # field pack: software development
-references/fields/academic.md     # academic-CV genre knowledge: sections, regional, funding agencies, disciplines (replaces industry rules, not layered)
-references/typst-primer.md       # minimal Typst syntax for agents that don't know it
-references/companion-guide.md    # optional job-search guide recipe; also the cover-letter doctrine
-references/fonts.md              # font provenance: Google Fonts URLs, licences, both install routes
-templates/resume.typ             # annotated starting template
-templates/lib.typ                # shared verified mechanics (devices stay per-family); hand-off is these two files
-templates/icons.typ              # EMPTY fallback marks (committed); a harvest writes the CV folder's copy, never this one
-templates/letter.typ             # cover-letter gabarit: reduced letterhead copied from the same posting's CV, verified by scripts/verify_letter.py
-templates/academic/              # academic CV mode: neutral gabarit, no design draw
-  cv.typ                         #   annotated starting template for the academic genre
-  lib-academic.typ               #   mechanics specific to academic entries (publications, funding, teaching, service)
-  faits-academique.example.toml  #   example declared-facts data file verify_academic.py round-trips against
-templates/families/<family>/     # REFERENCE IMPLEMENTATIONS of all fourteen design families
-  resume.typ                     #   font pair A — the family's primary draw
-  resume-pair-b.typ              #   font pair B — the SAME family on its second font pair, to prove
-                                 #   the recipe survives a different pair (not a page 2)
-  (no lib.typ / icons.typ here)  #   the family files import ../../lib.typ — one source of truth, no copies, no symlinks (by hand, compile from the repo root with `typst compile --root . templates/families/<family>/resume.typ`); icons.typ resolves via lib.typ to the empty fallback, so every family compiles offline
-templates/families/swiss-grid/resume-2page.typ   # the worked 2-page sample (runhead, deliberate break, both pages measured)
-scripts/pick_design.py           # deterministic design draw: family, fonts, section labels, list markers; `--lang` (and optional `--region`) set the Typst `lang`/`region`; --emit-typ prints the ready-to-paste Typst preamble for the drawn recipe
-scripts/gen_palette.py           # generative, contrast-validated palettes (duotone included)
-scripts/measure_fill.py          # ink-coverage measurement
-scripts/harvest_icons.py         # fetches contact/platform icon path data into a generated icons.typ at CV-build time (never overwrites the committed empty fallback)
-scripts/verify.py                # gate + doctor: compile + pages + fill + extraction, any platform; --tune bisects #set par(leading:, spacing:) to the fill target (does not replace the gate — run it after)
-scripts/verify_lang.py           # verify.py's script helpers: Latin-script tests
-scripts/verify_typst.py          # verify.py's cv.typ parsing: pure text in, values out (comments stripped, section bodies, entry arguments, `#set par/text/list` readers); no printing, no rendering
-scripts/verify_selftest.py       # verify.py --selftest, moved out of verify.py: lib.typ integrity, tuner regex round-trips, poppler/typst present; loaded lazily, reachable only through `verify.py --selftest`
-scripts/verify_level.py          # severity levels (FAIL / WARN / OK / INFO) and Finding tuple shared by verify.py and its helpers; stdlib only, imports nothing from verify
-scripts/verify_base.py           # shared shapes, constants and mutable state of the verify_* modules (a leaf: imports no sibling)
-scripts/verify_env.py            # dependency preflight (`--doctor`) and the typst-py / typst CLI probes
-scripts/verify_pdf.py            # Typst compile, page count, text and word-box extraction, PNG render
-scripts/verify_source.py         # checks on the cv.typ source: section split, forced line breaks, literal `~`, header fill declaration
-scripts/verify_text.py           # checks on the text extracted from the PDF: facts coverage, bullet characters, hidden text, metadata
-scripts/verify_layout.py         # layout gates: whitespace (section boundaries, canyons), clipped text, silent font fallback
-scripts/verify_groups.py         # grouping, date-adjacency and duplicate-name gates, plus the `typst query` mark reader they share
-scripts/verify_tune.py           # `--tune`: bisects `#set par(leading:, spacing:)` to the largest rhythm that holds the page count
-scripts/verify_cv.py             # the per-CV gate: header parsing, file classification, `--all`, lib integrity, new-gate runner
-scripts/verify_fonts.py          # verify.py's font handling: which families a CV asks for (`font:` arguments resolved through `#let` chains) and which face the PDF drew each character in; no PDF access, no printing
-scripts/verify_page.py           # verify.py's page measurement helpers: ink bands outside the word boxes, which of them sit at a section boundary, fill and icon candidates cut from a page raster, x-height band of a text line; pixels and boxes in, numbers out, no findings printed, no rendering
-scripts/verify_academic.py       # academic-mode gate: entry-level page-break check + declared vs. extracted counts/order, round-tripped against the TOML data file (reuses verify.py's plumbing only, none of its fill constants)
-scripts/verify_letter.py         # cover-letter gate: exactly one page, employer and exact job title both present in the extracted text
-scripts/verify.sh                # POSIX wrapper around verify.py (2 lines)
-assets/example-1page.png         # rendered template example
+SKILL.md                      # entry point: non-negotiable rules + one skeleton per step (<= 13000 B, gated)
+references/                   # loaded on demand, never all at once
+  regional.md                 #   router for regional/<region>/ (per-market depth, loaded for the target market)
+  certifications/rules.md     #   router for professional-certification files
+  steps/                      #   step bodies 0-8, read when the step starts
+  fields/                     #   field packs (software-dev, trades, academic CV genre)
+  design/core.md, families/   #   shared design rules; one recipe per design family (14)
+  *.md                        #   topic notes: ats, fonts, icons, known-traps, reviews, typst-primer, ...
+templates/                    # Typst starting points
+  resume.typ, lib.typ         #   annotated template + shared verified mechanics (hand-off is these two files)
+  letter.typ                  #   cover-letter gabarit (checked by scripts/verify_letter.py)
+  icons.typ                   #   EMPTY fallback, committed; a harvest writes the CV folder's copy, never this one
+  academic/                   #   academic-CV gabarit (no design draw) + its data-file example
+  families/<family>/          #   reference implementation of each family: resume.typ, resume-pair-b.typ
+                              #   import ../../lib.typ (no copies); compile from the repo root:
+                              #   typst compile --root . templates/families/<family>/resume.typ
+    swiss-grid/resume-2page.typ #   the worked 2-page sample
+scripts/                      # Python, stdlib-first
+  pick_design.py              #   deterministic design draw (family, fonts, labels, markers); --emit-typ prints the preamble
+  verify.py, verify.sh        #   gate + doctor + --tune; verify.sh is a POSIX wrapper
+  verify_*.py                 #   gate modules split out of verify.py
+  look.py, measure_fill.py    #   visual check helper; ink-coverage measurement
+  gen_palette.py              #   contrast-validated palettes
+  harvest_icons.py            #   fetches icon paths into the CV folder's icons.typ at build time
+tests/                        # run_all.sh (gate suite), unit/, backend_equiv.py, fixtures
+docs/                         # sources.md, models.md (tested agents and models)
+assets/                       # README example image, badges, family previews
 ```
 
 ## What this skill does on your machine
