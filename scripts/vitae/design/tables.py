@@ -561,7 +561,7 @@ MARK_SETS: list[tuple[str, str]] = [
 
 
 def _idx(key: str, n: int, salt: str = "") -> int:
-    """First 8 hex digits of sha256(salt+key), modulo n — POSIX-reproducible."""
+    """First 8 hex digits of sha256(salt+key), modulo n — deterministic (same input, same draw)."""
     h = hashlib.sha256((salt + key).encode("utf-8")).hexdigest()[:8]
     return int(h, 16) % n
 

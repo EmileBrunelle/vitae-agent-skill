@@ -5,7 +5,6 @@ No `import verify`.
 from __future__ import annotations
 
 import glob
-import hashlib
 import os
 import re
 import shlex
@@ -168,13 +167,10 @@ def check_all(directory: str) -> int:
     return fail
 
 
-def digest_of(f: str) -> str:
-    """sha256 of a lib file, BOM and CRLF normalised, so a copy re-saved on Windows still matches."""
+def _normalised(f: str) -> bytes:
+    """A lib file's bytes, BOM and CRLF normalised, so a copy re-saved on Windows still compares equal."""
     with open(f, "rb") as fh:
-        data = fh.read()
-    if data.startswith(b"\xef\xbb\xbf"):
-        data = data[3:]
-    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+        return fh.read().removeprefix(b"\xef\xbb\xbf").replace(b"\r\n", b"\n")
 
 
 def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Finding]:
@@ -223,12 +219,12 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
         # A family template copied without its "change the import" step: the
         # import still climbs out of the CV folder. Copy lib.typ NEXT TO cv.typ.
         cp = f"cp {shlex.quote(ref)} {shlex.quote(here + '/')}"
-        if not os.path.isfile(lib) or digest_of(lib) != digest_of(ref):
+        if not os.path.isfile(lib) or _normalised(lib) != _normalised(ref):
             return [(Level.FAIL, f'cv.typ imports "{shown}" (outside this folder): change the import to '
                              f'`#import "lib.typ": *` and copy lib.typ next to cv.typ: {cp}')]
     if not os.path.isfile(lib):
         return [(Level.FAIL, f"{shown} is imported but missing — copy it: {cp}")]
-    if digest_of(lib) == digest_of(ref):
+    if _normalised(lib) == _normalised(ref):
         return []
     return [(Level.FAIL, "lib.typ differs from the skill's (older release or edited): "
                      f"copy it again: {cp}")]

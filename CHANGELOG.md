@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `check_lib_integrity` compares the normalised lib bytes directly instead of hashing them; stale "POSIX-reproducible" wording removed from the draw docstring.
 - `.vitae-manifest` dropped (and `Bash(sha256sum:*)` from `allowed-tools`): a PASS from a previous session is never reused, the gate is re-run on existing deliverables at session start (`steps/0-env.md`, `steps/7-review.md`, `known-traps.md`, both READMEs).
 - Typing: explicit `Any` removed from `scripts/` (TypedDict/`object` narrowing for TOML and `typst query` data, `ModuleType` for optional libs, small Protocols in `core/pdfium.py` and `core/pixels.py`); ruff rule ANN401 now enforces it.
 - `references/regional/india/` moved to `references/regional/asia/india/` (links, router and test allowlist updated; `regional.md` Asia block split into "Outbound credentials" and "Target markets"; no content change).
