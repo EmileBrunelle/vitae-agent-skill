@@ -1,0 +1,28 @@
+# Certifications: safety professional designations (BCSP, NEBOSH, BCRSP)
+
+Read only when the CV lists a CSP or ASP (BCSP, US), a NEBOSH certificate or diploma (UK) or a CRSP (BCRSP, Canada). Loaded with [`rules.md`](rules.md) (exam passed is not certified; validity and renewal). Paper cards (OSHA Outreach, first aid, forklift): [`../regional/north-america/workplace-safety.md`](../regional/north-america/workplace-safety.md). Each fact is what the body's own page says (consulted 2026-11-08) and holds for that body only. Not read: IOSH's own site, NEBOSH guidance on CV wording, any BCSP display rules (none found).
+
+## BCSP: CSP and ASP (US)
+- BCSP's "Associate Safety Professional (ASP)" is not the Québec "ASP Construction" site-safety card: that one is in [`../regional/north-america/quebec/trades-safety.md`](../regional/north-america/quebec/trades-safety.md).
+- BCSP calls them certifications and the holders "certificants": "Candidates who meet requirements and pass the examination are awarded their certification and become BCSP certificants" (S574). No page read calls either one a licence; never write "licensed".
+- CSP prerequisites: "At minimum, a bachelor’s degree" and "Four (4) years of safety, health, and environment (SH&E) experience, at least 50% of which is/was preventative, professional level work with breadth and depth of safety duties" (S574). ASP: "At minimum, a bachelor’s degree in any field or an associate in safety, health, or the environment" and "Passing the ASP examination" (S575). Exam alone is not the CSP: print the credential only if awarded.
+- Renewal: "Recertification cycles normally run five (5) years, starting July 1 and ending June 30 of the fifth year" (S576). Holders "share their activities to earn recertification points required every five (5) years"; "an annual fee is assessed to credential holders in order to retain use of BCSP credentials" (S574). Ask the candidate for the current cycle dates.
+- Lapsed: the annual-fee sentence above is the only rule on retaining use; BCSP's policy "prohibits unauthorized use of designations, certifications, marks" (S577). Print a lapsed CSP as earned with dates, not as current (`rules.md`).
+- BCSP's own wording when it confirms a holder: "(Name of person) is currently certified as a (Certification Title) and in good standing with the Board of Certified Safety Professionals" (S577). That is BCSP's reply to a verifier, not CV wording; convention (not sourced): do not print "good standing" unless the candidate has BCSP's confirmation.
+- Print (suggested wording, not from a source): "Certified Safety Professional (CSP), BCSP, since 2019" / "Associate Safety Professional (ASP), BCSP". Avoid (convention, not sourced): "licensed", "CSP (pending)", "CSP-eligible"; ASP is not an associate degree.
+
+## NEBOSH (UK)
+- NEBOSH's pages say "qualification". "Ofqual regulates our two NEBOSH Occupational Health and Safety Diplomas taken internationally and in the UK", and "Certificates for regulated qualifications carry the Ofqual logo" (S580). The NGC page says it "has been accredited and credit rated by the Qualifications Scotland Accreditation" (S578). Convention (inference, LOW): do not write "Ofqual regulated" for an NGC or IGC.
+- National General Certificate (NGC): "has been accredited and credit rated by the Qualifications Scotland Accreditation"; level: "SCQF Level 6 is comparable to RQF/CQFW Level 3 in England, Wales and Northern Ireland" (S578). The International General Certificate (IGC) page has the same level sentence (S579). State a level only as NEBOSH words it.
+- Where it was taken: the regulator "does not currently regulate outside of the UK and therefore does not permit use of its logo on parchments" (S583); "Assessments must be taken in the UK to be eligible for IOSH membership, unless the learner was registered with NEBOSH before 31 August 2022" (S578; same sentence S579). IOSH grades are IOSH's, not a NEBOSH result; not verified here.
+- Diplomas: holders are "entitled to use the designatory letters IDipNEBOSH" (International Diploma, "set at SCQF Level 10") (S581) or "DipNEBOSH" (National Diploma) (S582). No designatory letters are stated for the General Certificates: print none.
+- "The National Diploma in Occupational Health and Safety has been withdrawn" (S582): on an older CV print it with its year.
+- Validity: no page read states an expiry. Print issuer, exact title and year awarded; never "valid until".
+- Print (suggested wording, not from a source): "NEBOSH National General Certificate in Occupational Health and Safety, 2024". Avoid (convention, not sourced): "NEBOSH certified", "licensed", "NEBOSH Level 3".
+
+## BCRSP: CRSP (Canada)
+- BCRSP says "certifications", "certificate", "credential" (S584, S585); no page read calls it a licence: never write "licensed". « Professionnel en sécurité agréé du Canada (PSAC) » is BCRSP's own French form (S584).
+- "BCRSP certifications are awarded to individuals, not to companies, and must only be used with individual names" (S584): never a firm described as CRSP-certified.
+- Form: "The credential may be displayed either with or without periods between the letters" (S584).
+- Validity: use beyond the authorised period without renewal "constitutes unauthorized use of the credential" (S584). Proof is a certificate plus an ID card "issued annually upon receipt of the renewal fee"; "for verification purposes both a certificate and ID card are necessary" (S585). The ID card shows the "expiry date of certification" (S585): ask for it.
+- Print (suggested wording, not from a source): "Canadian Registered Safety Professional (CRSP), BCRSP, current (ID card 2026)"; FR « Professionnel en sécurité agréé du Canada (PSAC), BCRSP ».

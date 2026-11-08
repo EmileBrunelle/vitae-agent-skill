@@ -1,6 +1,6 @@
 # Workplace safety training: first aid (Québec), OSHA Outreach cards, forklift
 
-Read only when the CV lists a workplace first-aid certificate, an OSHA 10/30-hour card or forklift training. Each time: who issued the paper, and does a regulator call it a licence, a certificate or training. Construction-site cards (ASP Construction), SIMDUT and PEMP: [`quebec/trades-safety.md`](quebec/trades-safety.md). Medical resuscitation credentials (CPR/BLS): [`../../certifications/health.md`](../../certifications/health.md). Validity: [`../../certifications/rules.md`](../../certifications/rules.md). Each fact is what the regulator's page or text says (consulted 2026-11-07).
+Read only when the CV lists a workplace first-aid certificate, an OSHA 10/30-hour card or forklift training. Each time: who issued the paper, and does a regulator call it a licence, a certificate or training. Construction-site cards (ASP Construction), SIMDUT and PEMP: [`quebec/trades-safety.md`](quebec/trades-safety.md). Safety professional designations (BCSP CSP/ASP, NEBOSH, BCRSP CRSP): [`../../certifications/safety-professional.md`](../../certifications/safety-professional.md). Medical resuscitation credentials (CPR/BLS): [`../../certifications/health.md`](../../certifications/health.md). Validity: [`../../certifications/rules.md`](../../certifications/rules.md). Each fact is what the regulator's page or text says (consulted 2026-11-07).
 
 ## Québec: « secouriste en milieu de travail » (CNESST)
 

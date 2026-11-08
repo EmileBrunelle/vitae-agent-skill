@@ -636,3 +636,15 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S571 — University of Ottawa — « C-2 Admission to Graduate Programs », Regulation C-2, §§ C-2.1.1, C-2.1.2 (no date shown; consulted 2026-11-08) — https://www.uottawa.ca/about-us/leadership-governance/policies-regulations/C-2-admission-graduate-programs
 - S572 — Treasury Board of Canada Secretariat — « Qualification standards for the core public administration by occupational group or classification » (page modified 2024-07-24; consulted 2026-11-08) — https://www.canada.ca/en/treasury-board-secretariat/services/staffing/qualification-standards/core.html
 - S573 — Carleton University, Graduate Studies — « Minimum Requirements » (consulted 2026-11-08) — https://graduate.carleton.ca/apply-online/minimum-requirements/
+- S574 — BCSP — « Certified Safety Professional (CSP) » (undated; consulted 2026-11-08) — https://www.bcsp.org/certified-safety-professional-csp
+- S575 — BCSP — « Associate Safety Professional (ASP) » (undated; consulted 2026-11-08) — https://www.bcsp.org/associate-safety-professional-asp
+- S576 — BCSP — « Recertification » (undated; consulted 2026-11-08) — https://www.bcsp.org/recertification
+- S577 — BCSP — « Unauthorized Use of Credentials and Other BCSP Protected Materials Policy » (11/2022; consulted 2026-11-08) — https://www.bcsp.org/hubfs/8981246/Downloads-PDFs-and-PPTs/BCSP-Unauthorized-Use-Policy.pdf
+- S578 — NEBOSH — « National General Certificate in Occupational Health and Safety » (undated; consulted 2026-11-08) — https://www.nebosh.org.uk/qualifications/national-general-certificate/
+- S579 — NEBOSH — « International General Certificate in Occupational Health and Safety » (undated; consulted 2026-11-08) — https://www.nebosh.org.uk/qualifications/international-general-certificate/
+- S580 — NEBOSH — « Our Recognition » (undated; consulted 2026-11-08) — https://www.nebosh.org.uk/about-nebosh/our-recognition/
+- S581 — NEBOSH — « International Diploma in Occupational Health and Safety » (undated; consulted 2026-11-08) — https://www.nebosh.org.uk/qualifications/international-diploma-in-occupational-health-and-safety/
+- S582 — NEBOSH — « National Diploma in Occupational Health and Safety » (undated; consulted 2026-11-08) — https://www.nebosh.org.uk/qualifications/national-diploma-in-occupational-health-and-safety/
+- S583 — NEBOSH — « Recognition of NEBOSH qualifications » (8 August 2022, updated 16 August 2022; consulted 2026-11-08) — https://www.nebosh.org.uk/our-news-and-events/our-news/recognition-of-nebosh-qualifications/
+- S584 — BCRSP — « Use of Certification Marks » (undated; consulted 2026-11-08) — https://www.bcrsp.ca/en/about-us/policies/use-certification-marks
+- S585 — BCRSP — « Certificate Usage Policy » (undated; consulted 2026-11-08) — https://www.bcrsp.ca/en/about-us/policies/certificate-usage-policy
