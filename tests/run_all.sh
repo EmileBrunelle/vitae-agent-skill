@@ -182,8 +182,8 @@ doctor_pip_broken() {
   txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
   echo "$txt"
   [ "$rc" -eq 1 ] || { echo "doctor exit $rc, expected 1"; return 1; }
-  echo "$txt" | grep -q '^BROKEN  typst' || { echo "no BROKEN typst line"; return 1; }
-  echo "$txt" | grep -q '^OK    typst' && { echo "typst reported OK"; return 1; }
+  grep -q <<<"$txt" '^BROKEN  typst' || { echo "no BROKEN typst line"; return 1; }
+  grep -q <<<"$txt" '^OK    typst' && { echo "typst reported OK"; return 1; }
   return 0
 }
 check doctor-pip-broken doctor_pip_broken
@@ -196,9 +196,9 @@ doctor_pip_too_old() {
   txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
   echo "$txt"
   [ "$rc" -eq 1 ] || { echo "doctor exit $rc, expected 1"; return 1; }
-  echo "$txt" | grep -q '^BROKEN  typst.*too old' || { echo "no too-old line"; return 1; }
-  echo "$txt" | grep -q 'pip install typst==0.15.0' || { echo "no upgrade advice"; return 1; }
-  echo "$txt" | grep -q 'force-reinstall' && { echo "advises reinstall for an old wheel"; return 1; }
+  grep -q <<<"$txt" '^BROKEN  typst.*too old' || { echo "no too-old line"; return 1; }
+  grep -q <<<"$txt" 'pip install typst==0.15.0' || { echo "no upgrade advice"; return 1; }
+  grep -q <<<"$txt" 'force-reinstall' && { echo "advises reinstall for an old wheel"; return 1; }
   return 0
 }
 check doctor-pip-too-old doctor_pip_too_old
@@ -210,13 +210,13 @@ doctor_pip_compile_only() {
   txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
   echo "$txt"
   [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
-  echo "$txt" | grep -q '^DEGRADED  typst' || { echo "no DEGRADED typst line"; return 1; }
-  echo "$txt" | grep -q 'date adjacency' || { echo "typst block names no skipped check"; return 1; }
-  echo "$txt" | grep -q '^OK    typst' && { echo "typst reported OK"; return 1; }
+  grep -q <<<"$txt" '^DEGRADED  typst' || { echo "no DEGRADED typst line"; return 1; }
+  grep -q <<<"$txt" 'date adjacency' || { echo "typst block names no skipped check"; return 1; }
+  grep -q <<<"$txt" '^OK    typst' && { echo "typst reported OK"; return 1; }
   # pypdf may be absent on the host; with pypdfium2 present the backend is pdfium, not DEGRADED
   if python3 -c "import pypdf" 2>/dev/null && ! python3 -c "import pypdfium2" 2>/dev/null; then
-    echo "$txt" | grep -q '^DEGRADED  pypdf' || { echo "no DEGRADED pypdf line"; return 1; }
-    echo "$txt" | grep -q 'hidden-text gate' || { echo "pypdf block names no skipped check"; return 1; }
+    grep -q <<<"$txt" '^DEGRADED  pypdf' || { echo "no DEGRADED pypdf line"; return 1; }
+    grep -q <<<"$txt" 'hidden-text gate' || { echo "pypdf block names no skipped check"; return 1; }
   fi
   return 0
 }
@@ -226,8 +226,8 @@ check doctor-pip-compile-only doctor_pip_compile_only
 doctor_pip_query() {
   local d="$out/doctor-sim-q"; doctor_env "$d" python3; stub_typst "$d/py/typst.py" working
   local txt; txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || true
-  echo "$txt" | grep -q '^OK    typst 9.9.9 (Python API: compile, query, fonts)' || { echo "$txt"; echo "no OK typst Python API line"; return 1; }
-  echo "$txt" | grep -q '^DEGRADED  typst' && { echo "typst still DEGRADED"; return 1; }
+  grep -q <<<"$txt" '^OK    typst 9.9.9 (Python API: compile, query, fonts)' || { echo "$txt"; echo "no OK typst Python API line"; return 1; }
+  grep -q <<<"$txt" '^DEGRADED  typst' && { echo "typst still DEGRADED"; return 1; }
   return 0
 }
 check doctor-pip-query doctor_pip_query
@@ -237,13 +237,13 @@ doctor_old_typst() {
   local d="$out/doctor-sim-old"; doctor_env "$d" python3; SHIM_VER=0.14.0 shim_typst "$d" "DejaVu Sans"
   local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || true
   echo "$txt"
-  echo "$txt" | grep -q '^DEGRADED  typst 0.14.0 (CLI): fill targets are calibrated on typst 0.15' || { echo "no DEGRADED old CLI line"; return 1; }
+  grep -q <<<"$txt" '^DEGRADED  typst 0.14.0 (CLI): fill targets are calibrated on typst 0.15' || { echo "no DEGRADED old CLI line"; return 1; }
   rm "$d/bin/typst"; stub_typst "$d/py/typst.py" working; sed -i 's/9\.9\.9/0.14.2/' "$d/py/typst.py"
   txt="$(PATH="$d/bin" PYTHONPATH="$d/py" "$PY" scripts/verify.py --doctor 2>&1)" || true
   echo "$txt"
-  echo "$txt" | grep -q '^DEGRADED  typst 0.14.2 (Python API): fill targets are calibrated on typst 0.15' || { echo "no DEGRADED old Python line"; return 1; }
-  echo "$txt" | grep -q 'apt install typst' && { echo "advises apt install typst"; return 1; }
-  echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) with an old typst"; return 1; }
+  grep -q <<<"$txt" '^DEGRADED  typst 0.14.2 (Python API): fill targets are calibrated on typst 0.15' || { echo "no DEGRADED old Python line"; return 1; }
+  grep -q <<<"$txt" 'apt install typst' && { echo "advises apt install typst"; return 1; }
+  grep -q <<<"$txt" '^OK (Python)' && { echo "OK (Python) with an old typst"; return 1; }
   return 0
 }
 check doctor-old-typst doctor_old_typst
@@ -256,11 +256,11 @@ if "$PY" -c "import typst, pypdfium2" 2>/dev/null; then
     local txt rc=0; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || rc=$?
     echo "$txt"
     [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
-    echo "$txt" | grep -q '^OK    typst .* (Python API: compile, query, fonts)' || { echo "no OK typst Python API line"; return 1; }
-    echo "$txt" | grep -q '^OK    pdf: pypdfium2' || { echo "no OK pypdfium2 line"; return 1; }
-    echo "$txt" | grep -q '^OK (Python)' || { echo "no OK (Python) line"; return 1; }
-    echo "$txt" | grep -q '^DEGRADED\|^MISSING\|^BROKEN' && { echo "unexpected DEGRADED/MISSING/BROKEN"; return 1; }
-    echo "$txt" | grep -q -- '--font-path' && { echo "advises --font-path with no CLI"; return 1; }
+    grep -q <<<"$txt" '^OK    typst .* (Python API: compile, query, fonts)' || { echo "no OK typst Python API line"; return 1; }
+    grep -q <<<"$txt" '^OK    pdf: pypdfium2' || { echo "no OK pypdfium2 line"; return 1; }
+    grep -q <<<"$txt" '^OK (Python)' || { echo "no OK (Python) line"; return 1; }
+    grep -q <<<"$txt" '^DEGRADED\|^MISSING\|^BROKEN' && { echo "unexpected DEGRADED/MISSING/BROKEN"; return 1; }
+    grep -q <<<"$txt" -- '--font-path' && { echo "advises --font-path with no CLI"; return 1; }
     return 0
   }
   check doctor-pip-full doctor_pip_full
@@ -276,9 +276,9 @@ runpy.run_path('scripts/verify.py', run_name='__main__')" 2>&1)" || rc=$?
       echo "$txt"
       [ "$rc" -eq 0 ] || { echo "doctor exit $rc, expected 0"; return 1; }
       # the line names what the gate really skips on this backend (pdfium: tiny-text; poppler: off-page)
-      if echo "$txt" | grep -q '^OK    pdf: pypdfium2'; then want='tiny-text'; else want='off-page'; fi
-      echo "$txt" | grep -q "^DEGRADED  pypdf: not installed.*$want.*pip install pypdf" || { echo "no DEGRADED pypdf line naming $want"; return 1; }
-      echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) hides the missing pypdf"; return 1; }
+      if grep -q <<<"$txt" '^OK    pdf: pypdfium2'; then want='tiny-text'; else want='off-page'; fi
+      grep -q <<<"$txt" "^DEGRADED  pypdf: not installed.*$want.*pip install pypdf" || { echo "no DEGRADED pypdf line naming $want"; return 1; }
+      grep -q <<<"$txt" '^OK (Python)' && { echo "OK (Python) hides the missing pypdf"; return 1; }
       return 0
     }
     check doctor-no-pypdf doctor_no_pypdf
@@ -293,8 +293,8 @@ from vitae.core.env import preflight
 design_fonts._fonts_available = lambda: {'DejaVu Sans'}
 preflight()" 2>&1)" || rc=$?
     echo "$txt"
-    echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
-    echo "$txt" | grep -q '^OK (Python)' && { echo "OK (Python) after a DEGRADED line"; return 1; }
+    grep -q <<<"$txt" '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
+    grep -q <<<"$txt" '^OK (Python)' && { echo "OK (Python) after a DEGRADED line"; return 1; }
     return 0
   }
   check doctor-degraded-no-ok doctor_degraded_no_ok
@@ -308,8 +308,8 @@ if command -v typst >/dev/null && command -v pdfinfo >/dev/null && command -v pd
     local d="$out/doctor-sim2"; doctor_env "$d" python3 typst pdfinfo pdftotext
     local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
     echo "$txt"
-    echo "$txt" | grep -q '^DEGRADED  poppler-utils' || { echo "no DEGRADED poppler line"; return 1; }
-    echo "$txt" | grep -q 'hidden-text ink check' || { echo "no skipped check named"; return 1; }
+    grep -q <<<"$txt" '^DEGRADED  poppler-utils' || { echo "no DEGRADED poppler line"; return 1; }
+    grep -q <<<"$txt" 'hidden-text ink check' || { echo "no skipped check named"; return 1; }
   }
   check doctor-no-pdftoppm doctor_no_pdftoppm
 else
@@ -323,9 +323,9 @@ if command -v typst >/dev/null && "$PY" -c "import pypdfium2" 2>/dev/null; then
     local d="$out/doctor-sim5"; doctor_env "$d" python3 typst
     local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || { echo "$txt"; return 1; }
     echo "$txt"
-    echo "$txt" | grep -q '^OK    pdf: pypdfium2 .* (Python: text, word boxes, raster, metadata, attachments)' || { echo "no OK pypdfium2 line"; return 1; }
-    echo "$txt" | grep -q 'academic mode still needs poppler' || { echo "no academic-mode line"; return 1; }
-    echo "$txt" | grep -q '^DEGRADED  pypdf\|^MISSING' && { echo "unexpected DEGRADED/MISSING"; return 1; }
+    grep -q <<<"$txt" '^OK    pdf: pypdfium2 .* (Python: text, word boxes, raster, metadata, attachments)' || { echo "no OK pypdfium2 line"; return 1; }
+    grep -q <<<"$txt" 'academic mode still needs poppler' || { echo "no academic-mode line"; return 1; }
+    grep -q <<<"$txt" '^DEGRADED  pypdf\|^MISSING' && { echo "unexpected DEGRADED/MISSING"; return 1; }
     return 0
   }
   check doctor-pdfium doctor_pdfium
@@ -340,8 +340,8 @@ doctor_minimal_fonts() {
   local d="$out/doctor-sim3"; doctor_env "$d" python3; shim_typst "$d" "DejaVu Sans" "DejaVu Sans Mono"
   local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || true
   echo "$txt"
-  echo "$txt" | grep -q '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
-  echo "$txt" | grep -q 'pick_design' || { echo "fonts block names no consequence"; return 1; }
+  grep -q <<<"$txt" '^DEGRADED  fonts' || { echo "no DEGRADED fonts line"; return 1; }
+  grep -q <<<"$txt" 'pick_design' || { echo "fonts block names no consequence"; return 1; }
 }
 check doctor-minimal-fonts doctor_minimal_fonts
 
@@ -355,8 +355,8 @@ for fp in FONTS.values():
   shim_typst "$d" "${fams[@]}"
   local txt; txt="$(PATH="$d/bin" "$PY" scripts/verify.py --doctor 2>&1)" || true
   echo "$txt"
-  echo "$txt" | grep -q '^OK    fonts' || { echo "expected OK fonts line"; return 1; }
-  echo "$txt" | grep -q '^DEGRADED  fonts' && { echo "unexpected DEGRADED fonts"; return 1; }
+  grep -q <<<"$txt" '^OK    fonts' || { echo "expected OK fonts line"; return 1; }
+  grep -q <<<"$txt" '^DEGRADED  fonts' && { echo "unexpected DEGRADED fonts"; return 1; }
   return 0
 }
 check doctor-full-fonts doctor_full_fonts
@@ -501,7 +501,7 @@ text_render_bad() {
   for m in --text --render; do
     rc=0; txt="$(python3 -I scripts/verify.py $m "$d/bad.pdf" --out "$d/o" 2>&1)" || rc=$?
     [ "$rc" -eq 1 ] || { echo "$m exit $rc, expected 1: $txt"; return 1; }
-    [ "$(echo "$txt" | wc -l)" -eq 1 ] && echo "$txt" | grep -q '^FAIL  .*not a readable PDF' || { echo "$m: bad message: $txt"; return 1; }
+    [ "$(echo "$txt" | wc -l)" -eq 1 ] && grep -q <<<"$txt" '^FAIL  .*not a readable PDF' || { echo "$m: bad message: $txt"; return 1; }
   done
   local pdf; pdf="$(ls "$out"/pdf/*.pdf 2>/dev/null | head -1)"; [ -n "$pdf" ] || return 1
   mkdir -p "$d/o"; local stem; stem="$(basename "$pdf" .pdf)"
@@ -530,7 +530,7 @@ TYP
   r="$(python3 -I scripts/verify.py --render "$d/c.pdf" --out "$d/b" --crops)" || return 1
   [ "$(echo "$r" | sed -n 1p | xargs basename)" = "c-p1.png" ] || { echo "page PNG not first: $r"; return 1; }
   echo "$r" | sed -n 2p | grep -q '/c-p1-fill1\.png$' || { echo "no fill1 crop: $r"; return 1; }
-  echo "$r" | grep -q '/c-p1-icon1\.png$' || { echo "no icon1 crop: $r"; return 1; }
+  grep -q <<<"$r" '/c-p1-icon1\.png$' || { echo "no icon1 crop: $r"; return 1; }
   echo "$r" | while read -r f; do [ -s "$f" ] || exit 1; done || { echo "empty or missing file in: $r"; return 1; }
   # Stale crops: recompile without the band, re-render into the same --out: the old -fill1/-icon1 go,
   # a sibling stem's crops (<stem>x-...) stay.
