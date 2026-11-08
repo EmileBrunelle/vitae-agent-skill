@@ -2,9 +2,9 @@
 
 Part of the Maghreb set: read together with [`maghreb-common.md`](maghreb-common.md); the three markets are *non-interchangeable*. Credentials: [`maghreb-education.md`](maghreb-education.md).
 
-Paper: a4.
+Paper: a4 (convention, LOW, unsourced).
 
-All CV-practice cells below are job-site guidance, not law: Jobsquare.ma, « Comment rédiger un CV au Maroc : guide complet et exemples » (published 2026-07-08, modified 2026-10-29, S608); Africarrières, « Rediger un CV au Maroc - Conseils et modeles 2026 » (published 2026-02-22, modified 2026-08-07, S609).
+All CV-practice cells below are job-site guidance, not law: Jobsquare.ma, « Comment rédiger un CV au Maroc : guide complet et exemples » (published 2026-07-08, modified 2026-10-29, S608); Africarrières, « Rediger un CV au Maroc - Conseils et modeles 2026 » (published 2026-02-22, modified 2026-08-07, S609; the page states « Guide informatif rédigé avec l'aide de l'IA »).
 
 | Topic | Rule or custom |
 |---|---|
@@ -13,9 +13,9 @@ All CV-practice cells below are job-site guidance, not law: Jobsquare.ma, « Com
 | Length | Jobsquare: 1 page under 3 years of experience, 2 pages maximum beyond. Africarrières: « 1 à 2 pages maximum » |
 | Header | Jobsquare lists a « titre du poste visé ». Africarrières recommends an « Objectif professionnel » of 2 to 3 lines, a different element |
 | Dates | mois/année (both guides) |
-| Country-specific field | Africarrières: « Mentionnez obligatoirement votre note du baccalauréat si elle est supérieure à 14/20 » (a « spécificité marocaine »; single source, no second one found) |
+| Country-specific field | Africarrières: « Mentionnez obligatoirement votre note du baccalauréat si elle est supérieure à 14/20 » (a « spécificité marocaine »). LOW: single source, no second one found, and the page declares itself « rédigé avec l'aide de l'IA » |
 | CV language | Private sector: see [`maghreb-common.md`](maghreb-common.md). Public sector: below |
-| Language levels | No source read |
+| Language levels | Africarrières: « Notions / Bon niveau / Courant / Bilingue / Langue maternelle ». Jobsquare: CECRL (A1 à C2) or certified assessments (DELF, DALF…) |
 
 ## Public sector
 
