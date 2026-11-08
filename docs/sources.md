@@ -154,7 +154,7 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S126 — Ontario Human Rights Commission — « Human Rights at Work 2008, 6. Requesting job-related sensitive information » — https://www.ohrc.on.ca/en/iv-human-rights-issues-all-stages-employment/6-requesting-job-related-sensitive-information
 - S127 — Alberta Human Rights Commission — « Job advertisements and applications » — https://albertahumanrights.ab.ca/issues-at-work/job-advertisements-and-applications/
 - S128 — Université de Montréal, Secrétariat général — « Règlement des études de premier cycle » (Recueil officiel no 30.1, modifié 2026-02-17) — https://secretariatgeneral.umontreal.ca/public/secretariatgeneral/documents/doc_officiels/reglements/enseignement/ens30_1-reglement-etudes-premier-cycle.pdf
-- S129 — UQAM — « Règlement no 5, Règlement des études de premier cycle » (version en vigueur le 29 octobre 2020), art. 8.2.2 — https://services-medias.uqam.ca/media/uploads/sites/44/2020/12/REGLEMENT_NO_5.pdf
+- S129 — UQAM — « Règlement no 5, Règlement des études de premier cycle » (version en vigueur le 29 octobre 2020), art. 1.4.1 et 8.2.2 — https://services-medias.uqam.ca/media/uploads/sites/44/2020/12/REGLEMENT_NO_5.pdf
 - S130 — Université Laval — « Règlement des études » (CU-2026-105, en vigueur 2026-09-01), art. 4.29 and 4.51 — https://www.ulaval.ca/sites/default/files/notre-universite/direction-gouv/Documents_officiels/Reglements/Reglement_des_etudes.pdf
 - S131 — Université de Sherbrooke — « Règlement des études (Règlement 2575-009) » (mis à jour 2026-09-09) — https://www.usherbrooke.ca/decouvrir/fileadmin/sites/decouvrir/documents/direction/reglements/2575-009.pdf
 - S132 — Concordia University, Gina Cody School — « Grade point average » (undated, faculty page) — https://www.concordia.ca/ginacody/students/academic-services/undergraduate/grade-point-average.html
@@ -555,3 +555,15 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S490 — Concordia University — « Understanding your degree credit requirements » (consulted 2026-11-08) — https://www.concordia.ca/students/registration/advising/degree-credit-requirements.html
 - S491 — University of Toronto SGS — « FAQ » (consulted 2026-11-08) — https://sgs.utoronto.ca/?p=5988
 - S492 — WES — « Using Your WES Credential Evaluation to Advance Your Job Search » (consulted 2026-11-08) — https://www.wes.org/credential-evaluation-for-employment/
+- S493 — Université Laval — « Règlement des études » (in force 2026-09-01; consulted 2026-11-08) — https://www.dc.ulaval.ca/sites/default/files/notre-universite/direction-gouv/Documents_officiels/Reglements/Reglement_des_etudes.pdf
+- S494 — UQAR — « Règlement 5 » (PDF uploaded 2024-04; consulted 2026-11-08) — https://uqar.ca/app/uploads/2024/04/reglement5.pdf
+- S495 — HEC Montréal — « Règlement pédagogique » (consulted 2026-11-08) — https://www.hec.ca/direction_services/secretariat_general/juridique/reglements_politiques/documents/REG_reglement-pedagogique.pdf
+- S496 — York University — « 2026-2027 Undergraduate Academic Calendar, Lassonde School of Engineering, degree programs » (consulted 2026-11-08) — https://calendars.students.yorku.ca/node/149
+- S497 — Laurentian University — « Computer Science » (program page, undated; consulted 2026-11-08) — https://laurentian.ca/program/computer-science
+- S498 — Trent University — « Undergraduate Academic Calendar 2025-2026 » (May edition, 2025-05-23), BS.COIS Computer Science BSc General (consulted 2026-11-08) — https://www.trentu.ca/registrar/sites/trentu.ca.registrar/files/documents/Trent%20Calendar%202025%2026%20May%20Edition%2023.05.2025%20(Final).pdf
+- S499 — Western University, Faculty of Science — « Articulation Agreement Degree Completion Checklist, Fanshawe, Computer Programmer Analyst, 3 Year BSc Major in Computer Science » (2024; consulted 2026-11-08) — https://uwo.ca/sci/advising/pdf/articulation/2024_update/fanshawe/Comp%20Sci%20Articulation%203%20yr%20Major%202024.pdf
+- S500 — McGill University, Science Office for Undergraduate Student Advising (SOUSA) — « Advanced standing & transfer credit » (consulted 2026-11-08) — https://www.mcgill.ca/sousa/new-students/advancedstanding
+- S501 — UBC Vancouver Academic Calendar — « Applicants from a CEGEP » (consulted 2026-11-08) — https://vancouver.calendar.ubc.ca/admissions/applicants-post-secondary-institution/applicants-cegep
+- S502 — University of Waterloo — « Transfer credits for CEGEP students » (consulted 2026-11-08) — https://uwaterloo.ca/future-students/transfer-students/cegep-transfer-credits
+- S503 — Government of Alberta, IQAS — « Assessment for work or study – How to apply » (consulted 2026-11-08) — https://www.alberta.ca/iqas-employment-apply
+- S504 — Government of Ontario — « Ontario Qualifications Framework » (published 2022-03-22, updated 2026-07-16; consulted 2026-11-08) — https://www.ontario.ca/page/ontario-qualifications-framework
