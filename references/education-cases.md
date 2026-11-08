@@ -40,7 +40,7 @@ Universal rule: the CV never implies a diploma the candidate does not hold. Writ
 
 ## Credits
 - When a credit count is printed, always with unit and system: "60 ECTS", "30 crédits (Québec)", "US credit hours", "CATS". Never convert silently; for credits only, a conversion may go in parentheses, marked approx. Fact: "1 full academic year = 60 credits" in ECTS (Europass, « Europass Mobility Instructions », 2021-07). The labelling rule is convention.
-- Degree-level credit totals (e.g. "90 crédits" for a whole bachelor's) that the reader's system would misread as a shorter degree: omit, and state the program's length and prerequisites in words the reader can check. The unit-and-system labelling rule above still applies when a count is printed. Market wording: [`regional/north-america/quebec/outbound-canada.md`](regional/north-america/quebec/outbound-canada.md#degree-length-ask-the-path-first). Convention, LOW.
+- Degree-level credit totals (e.g. "90 crédits" for a whole bachelor's) that the reader's system would misread as a shorter degree: omit, and state the program's length and prerequisites in words the reader can check. The unit-and-system labelling rule above still applies when a count is printed. Market wording: [`regional/north-america/quebec/outbound-canada.md`](regional/north-america/quebec/outbound-canada.md#degree-length-identify-the-path-first). Convention, LOW.
 
 ## Grades
 - Write every grade or GPA against its scale ("3,8/4,0", "15/20"); never convert, not even in parentheses (Münster: « Abschlussnote: 3.8 von 4.0 oder 3.8/4.0 »). Québec scales: [`regional/north-america/quebec/education.md`](regional/north-america/quebec/education.md#gpa-moyenne-cumulative).
