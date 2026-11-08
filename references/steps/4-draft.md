@@ -5,10 +5,8 @@
    on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
    replace the filler with the candidate's facts, then read
    [`references/steps/4-draft/tune.md`](4-draft/tune.md), then `--tune`, then verify. **Scripts are
-   run, never read — their printed output is the instruction.** **Read order: run `pick_design.py` first. Then read [`references/design/core.md`](../design/core.md) whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** Fallback only if
-   `--init` errors (rerun with the same `--lang`/`--region` for the manual path): `cp <skill>/templates/families/<family>/resume.typ <folder>/cv.typ`
-   (then change its `#import "../../lib.typ"` line to `#import "lib.typ"`) plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
-   apply the values of `--emit-typ --lang <iso639> [--region <iso3166>]` by hand. **Never retype, rewrite or summarize
+   run, never read — their printed output is the instruction.** **Read order: run `pick_design.py` first. Then read [`references/design/core.md`](../design/core.md) whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** If `--init` fails or python3 is missing: [`4-draft/fallback.md`](4-draft/fallback.md).
+   **Never retype, rewrite or summarize
    `lib.typ`** (a rewrite from memory lost `derive()` and the build never compiled
    again); customization goes in `cv.typ`. `verify.py` FAILs a lib that is not a
    copy. `section()`, `job()`, `skill()` and the other devices are defined in the
@@ -78,25 +76,7 @@
    `FONTS` once it passed the gate). The draw is deterministic per candidate,
    so the 1-page, 2-page and translated versions share one look. The user may
    override with an explicit family or their own combination — an explicit
-   choice always wins; silence does not. Without python3, use this POSIX
-   fallback (`sha256sum` + modulo over the eligible families in alphabetical
-   order, then the family's default accent and marker) — same family, default
-   secondary parameters:
-   ```sh
-   key="Firstname Lastname+software"
-   h=$(printf '%s' "$key" | sha256sum | cut -c1-8)
-   # n = number of ELIGIBLE families: apply the flags and the career/field
-   # register weighting by hand from core.md's "Family roster" list (id — register). The eligible
-   # list EXCLUDES the three creative-register families unless creative is
-   # unlocked (a creative --field, or --creative). Widen one register tier at a
-   # time (career order), adding families ALPHABETICALLY and STOPPING as soon
-   # as 5 are eligible, then sort what is left alphabetically.
-   echo $(( 0x$h % n ))        # 0-based index into that alphabetical list
-   ```
-   The fallback does not reproduce the secondary parameters; use the family's
-   documented defaults: its first accent (hue B at the same index), its first
-   list marker, its own `labels`, its `page`/`order`/`spec`, and the first pool
-   member of each font role that `typst fonts` actually lists.
+   choice always wins; silence does not.
    **Derive `--career` from the fact sheet** — years of experience, whether
    this is a first job, the seniority of the titles — and the market from
    step 2's regional file and the employer type. **Never from age, birth year,
@@ -130,15 +110,6 @@
    Structure notes: the "target-field experience / other professional
    experience" split exists only to keep an off-track role from leading the
    page — when every job is on target, use a single experience section.
-   For French output, when the family's `skill()` label ends with a colon,
-   change the helper to `#cat~:` (non-breaking space before the colon); a family
-   that uses an em dash or another separator keeps it. Employer descriptor line under each role;
+   Employer descriptor line under each role;
    evidence-based soft-skill lines instead of bare adjective lists.
-   Long careers (15+ years): condense old roles into one "Early career"
-   block — one line per role (title, org, years), no bullets, linear entry
-   variant — and detail only the recent decade; if honest content still
-   overflows 2 pages and the market tolerates it (academic, DACH +
-   attachments), a third page beats cramming. Career changers with under ~1
-   year in the target field: lead with an evidence-anchored skills/projects
-   section before the chronological timeline instead of letting an off-track
-   role lead the page.
+   If the CV is French, the career spans 15+ years, the candidate changes careers, or a 3rd page is allowed: [`4-draft/structure.md`](4-draft/structure.md).
