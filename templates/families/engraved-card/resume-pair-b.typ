@@ -28,6 +28,10 @@
 // Fill target derives from the 2cm bottom margin: (100 - 7.2) - 0..2%.
 #set page(paper: "us-letter", margin: (x: 2.0cm, top: 1.6cm, bottom: 1.6cm))
 #set page(..wd-page-x(2.0cm)) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.568em, spacing: 0.668em)
 

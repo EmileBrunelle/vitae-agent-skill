@@ -28,6 +28,10 @@
 
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.25cm, bottom: 1.2cm))
 #set page(..wd-page-x(1.6cm)) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.545em, spacing: 0.665em)
 

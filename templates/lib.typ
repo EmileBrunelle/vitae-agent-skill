@@ -154,6 +154,14 @@
 #let wd-extra = 40cm - 21.59cm
 #let wd-page-x(x) = (width: 40cm, height: auto, margin: (right: wd-extra + x))
 #let wd-page = wd-page-x(1.5cm)
+// Opt-in accent band: a solid, text-free vertical strip down the LEFT page edge,
+// full page height. Use it as `#set page(background: accent-band(accent)) if band`.
+// It lives in the page background, outside the text flow, and carries no text, so
+// extraction (default and -layout) is identical with and without it. Not checked at
+// compile time: `width` (8mm) + 4mm clearance = 12mm of left margin is required; the
+// eligible families all have >= 15mm, and pick_design.py --band gates the family list.
+#let accent-band(c, width: 8mm) = place(left + top,
+  rect(width: width, height: 100%, fill: c, stroke: none))
 // Verification markers — PURE METADATA, no layout effect. `head-mark` tags an
 // entry head / skill label and `sec-mark` a section title with their page and
 // position; scripts/verify.py reads them with `typst query` (<vitae-head>,

@@ -534,6 +534,20 @@ GUTTER_RAIL_DOMAIN = (
 )
 
 
+# --band (opt-in accent band, lib.typ accent-band, 8mm strip in the left margin):
+# offered to the sober, non-creative families only, and not to those that already
+# carry their own left/top furniture: color-band (masthead band), margin-index
+# (left index column). Creative families (avant-poster, gutter-rail, hard-edge)
+# are out by register. Required left margin: 8mm band + 4mm clearance = 12mm;
+# every eligible family has >= 15mm. The flag never enters the draw: an excluded family is
+# still drawn, the flag is just ignored with a notice.
+BAND_EXCLUDED = ("color-band", "margin-index")
+
+
+def band_ok(family: str) -> bool:
+    return FAMILIES[family]["register"] != "creative" and family not in BAND_EXCLUDED
+
+
 # platform-mark glyph set (mail/web/phone/pin): drawn per candidate so the
 # small glyphs stop being a shared fingerprint. LinkedIn/GitHub stay Simple
 # Icons in every set — a brand logo is a functional identifier, not a style.

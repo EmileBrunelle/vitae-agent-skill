@@ -12,7 +12,7 @@ Usage:
     python3 scripts/pick_design.py --name "Firstname Lastname" \
         --field software --market north-america \
         [--career early|mid|senior] [--photo] [--conservative] \
-        [--audacity sober|expressive|bold] [--creative] [--offline] \
+        [--audacity sober|expressive|bold] [--creative] [--offline] [--band] \
         [--emit-typ] [--init <cv folder> [--force]]
     python3 scripts/pick_design.py --list        # families, registers, gamuts
     python3 scripts/pick_design.py --selftest    # assert determinism + pools
@@ -44,6 +44,12 @@ Usage:
                     code gutter, so it also needs a TECHNICAL --field
                     (GUTTER_RAIL_DOMAIN below). The creative unlock alone never
                     draws it for a non-technical trade.
+    --band          OPT-IN, never by default or by inference: a solid text-free
+                    accent strip (8mm) down the left page edge, in the page
+                    background (it never enters the text flow). Eligible: the
+                    sober families with free margins; color-band, margin-index
+                    and the creative families ignore it with a notice. It never
+                    changes the draw.
     --offline       sandbox with no network to fetch missing fonts: filter the
                     eligible pool to families that already have at least one
                     locally installed face in every font role (display, body,
@@ -90,7 +96,7 @@ from vitae.design.emit import emit_typ
 from vitae.design.init import init_folder
 from vitae.design.pick import pick
 from vitae.design.report import report
-from vitae.design.tables import CAREER, FAMILIES, FONTS, Audacity
+from vitae.design.tables import CAREER, FAMILIES, FONTS, Audacity, band_ok
 from vitae.selftest.design import selftest
 
 
@@ -107,6 +113,12 @@ def main() -> None:
     ap.add_argument("--creative", action="store_true",
                     help="unlock the creative-register families (explicit "
                          "request only — never inferred)")
+    ap.add_argument("--band", action="store_true",
+                    help="opt-in: a text-free accent band (8mm, the family's "
+                         "accent) down the left page edge, drawn in the page "
+                         "background. Ignored with a notice for families that "
+                         "have their own band/rail/margin furniture or are "
+                         "creative. Never part of the draw")
     ap.add_argument("--emit-typ", action="store_true",
                     help="print a paste-ready Typst preamble for the recipe")
     ap.add_argument("--init", metavar="FOLDER",
@@ -164,12 +176,18 @@ def main() -> None:
         p = pick(a.name, a.field, a.career, a.photo, a.conservative,
                  cast(Audacity, a.audacity), not a.no_font_check, a.creative,
                  a.offline)
+        band = a.band
+        if band and not band_ok(p["family"]):
+            band = False
+            sys.stderr.write("note: --band ignored: %s has its own band/rail/"
+                             "margin furniture or is creative-register\n"
+                             % p["family"])
         if a.init:
             print(report(p, a.market))
             print()
-            init_folder(p, a.init, a.force, a.lang, a.region)
+            init_folder(p, a.init, a.force, a.lang, a.region, band)
         else:
-            print(emit_typ(p, a.market, a.lang, a.region) if a.emit_typ
+            print(emit_typ(p, a.market, a.lang, a.region, band) if a.emit_typ
                   else report(p, a.market))
     else:
         sys.exit(__doc__)

@@ -62,7 +62,7 @@ def _apply_labels(src: str, default: Mapping[str, object],
 
 
 def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
-                region: str | None = None) -> None:
+                region: str | None = None, band: bool = False) -> None:
     """One executed command -> a compiling starting point in `folder`.
 
     lib.typ / icons.typ are copied byte for byte. cv.typ is the drawn family's
@@ -157,6 +157,9 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
         r = "2.5pt" if "pill" in p["variant"] else "0pt"
         src = _sub1(src, r'^(#let seg-radius = )\S+', lambda mm: mm.group(1) + r,
                     "#let seg-radius", fam)
+    if band:                              # opt-in accent band (lib.typ accent-band)
+        src = _sub1(src, r'^(#let band = )false', lambda mm: mm.group(1) + "true",
+                    "#let band", fam)
     src = _apply_labels(src, d["labels"], p["labels"], fam)
     pg = d["page"]
     for k, v in (("margin", pg["margin"]), ("body", pg["body"])):

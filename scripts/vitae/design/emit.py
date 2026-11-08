@@ -56,7 +56,7 @@ def lang_arg(lang: str, region: str | None = None) -> str:
 
 
 def emit_typ(p: Pick, market: str, lang: str = "en",
-             region: str | None = None) -> str:
+             region: str | None = None, band: bool = False) -> str:
     """A ready-to-paste PREAMBLE for the drawn recipe — not a whole CV, and
     deliberately not the devices (those are the recipe: references/design/families/<family>.md)."""
     d, fp, pg = p["recipe"], FONTS[p["family"]], p["recipe"]["page"]
@@ -126,6 +126,8 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           '#set page(paper: "us-letter", margin: (%s))' % pg["margin"],
           '#set text(font: bodyf, size: %s, %s, fill: dark, '
           "hyphenate: false)" % (pg["body"], lang_arg(lang, region)),
+          *(['#set page(background: accent-band(accent))   // opt-in --band: '
+             "text-free strip in the left margin"] if band else []),
           "// Primary fill-tuning knobs ↓ (±0.01-0.03em steps)",
           "#set par(justify: false, leading: %s, spacing: %s)"
           % (d["leading"], d["spacing"]),
