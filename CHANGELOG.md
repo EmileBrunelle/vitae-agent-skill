@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `driving.md`: Québec class 1 vs Ontario AZ keeps the "never equivalent to AZ" rule and now says why (CCMTA NSC 6: classes used by all jurisdictions except Ontario; CVSA guide descriptions of Ontario A/Z and Québec 1/F, both non-legal sources); air-brake handling differs by province (Alberta, Ontario); `docs/sources.md` S590-S591.
 - Three more LOW verdicts upgraded: India (AICTE circular of 23.10.2020 on faculty recruitment, read from the scanned page; « Chartered Engineer (India) » attributed to IEI's Royal Charter, Declaration 16, with IEI's own Article 372 statement), Thailand (Engineer Act ss. 71-72 penalties, maximums as enacted); `docs/sources.md` S586-S589.
 - Safety professional designations: `certifications/safety-professional.md` (BCSP CSP/ASP, NEBOSH NGC/IGC/Diplomas, BCRSP CRSP: issuer's own word, renewal, designatory letters, words to avoid); routed from `certifications/rules.md`, `SKILL.md` step 4 and `workplace-safety.md`; `docs/sources.md` S574-S585.
 - Québec candidates, degree length: `quebec/outbound-canada.md` gains the federal public service rule (TBS core standard defines a degree as a baccalaureate with no length: degree name only), UBC graduate studies (French universities, three-year bachelor's with DEC), uOttawa Regulation C-2 and Carleton Graduate Studies minimum requirements (both silent on Québec); `docs/sources.md` S570-S573.
