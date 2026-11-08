@@ -49,20 +49,21 @@ Europe
 - [`regional/europe/switzerland.md`](regional/europe/switzerland.md) — Switzerland; read with `dach-common.md`
 - [`regional/europe/spain.md`](regional/europe/spain.md) — Spain only, never Latin America (a4; no consent clause, títulos oficiales vs propios, convocatorias)
 
-India
-- [`regional/india/market.md`](regional/india/market.md) — India (a4; resume vs biodata, CA/architect titles, CTC, campus and PSU hiring)
-- [`regional/india/to-anglosphere.md`](regional/india/to-anglosphere.md) — read IN ADDITION to the target market's file when the candidate holds Indian credentials or Indian CV habits (3-year bachelor's, ICAI, NBA, ECA, ACS) and targets USA, Canada, UK, Australia or NZ (not Ireland or continental Europe: see below)
-- [`regional/india/to-europe/common.md`](regional/india/to-europe/common.md) — Indian credentials targeting Germany, Ireland, the Netherlands or France: read it IN ADDITION to the target market's file, plus the target's file only (degree evaluation; Blue Card and carte talent diploma conditions):
-  - [`regional/india/to-europe/germany.md`](regional/india/to-europe/germany.md) — Germany (anabin/ZAB)
-  - [`regional/india/to-europe/ireland.md`](regional/india/to-europe/ireland.md) — Ireland (NARIC Ireland)
-  - [`regional/india/to-europe/netherlands.md`](regional/india/to-europe/netherlands.md) — the Netherlands (Nuffic)
-  - [`regional/india/to-europe/france.md`](regional/india/to-europe/france.md) — France (ENIC-NARIC France)
-
 Asia
-- [`regional/asia/outbound/common.md`](regional/asia/outbound/common.md) — read IN ADDITION to the target market's file, plus the origin file(s) below (one or several), when the candidate holds Pakistani, Bangladeshi, Nepali, Philippine or Chinese credentials (2-year bachelor's, K-12 reform, CHSI/CSSD) and targets a market outside their home country (India: [`regional/india/to-anglosphere.md`](regional/india/to-anglosphere.md))
+
+Outbound credentials
+- [`regional/asia/outbound/common.md`](regional/asia/outbound/common.md) — read IN ADDITION to the target market's file, plus the origin file(s) below (one or several), when the candidate holds Pakistani, Bangladeshi, Nepali, Philippine or Chinese credentials (2-year bachelor's, K-12 reform, CHSI/CSSD) and targets a market outside their home country
   - [`regional/asia/outbound/south-asia.md`](regional/asia/outbound/south-asia.md) — Pakistani, Bangladeshi or Nepali credentials (one or several)
   - [`regional/asia/outbound/philippines.md`](regional/asia/outbound/philippines.md) — Philippine credentials (K-12, pre-reform degrees)
   - [`regional/asia/outbound/china.md`](regional/asia/outbound/china.md) — Chinese credentials (CHSI, CSSD)
+- [`regional/asia/india/to-anglosphere.md`](regional/asia/india/to-anglosphere.md) — read IN ADDITION to the target market's file when the candidate holds Indian credentials or Indian CV habits (3-year bachelor's, ICAI, NBA, ECA, ACS) and targets USA, Canada, UK, Australia or NZ (not Ireland or continental Europe: see below)
+- [`regional/asia/india/to-europe/common.md`](regional/asia/india/to-europe/common.md) — Indian credentials targeting Germany, Ireland, the Netherlands or France: read it IN ADDITION to the target market's file, plus the target's file only (degree evaluation; Blue Card and carte talent diploma conditions):
+  - [`regional/asia/india/to-europe/germany.md`](regional/asia/india/to-europe/germany.md) — Germany (anabin/ZAB)
+  - [`regional/asia/india/to-europe/ireland.md`](regional/asia/india/to-europe/ireland.md) — Ireland (NARIC Ireland)
+  - [`regional/asia/india/to-europe/netherlands.md`](regional/asia/india/to-europe/netherlands.md) — the Netherlands (Nuffic)
+  - [`regional/asia/india/to-europe/france.md`](regional/asia/india/to-europe/france.md) — France (ENIC-NARIC France)
+
+Target markets
 - [`regional/asia/east-asia/japan.md`](regional/asia/east-asia/japan.md) — read when the CV goes to a Japanese employer (including a foreign applicant moving to Japan: status-of-residence evidence, HSP points, JLPT wording) or the candidate has Japanese home habits (rirekisho vs shokumu keirekisho); official-source facts only, no full market file
 - [`regional/asia/east-asia/korea.md`](regional/asia/east-asia/korea.md) — read when the CV goes to a Korean employer (including a foreign applicant moving to Korea: E-7 wage floors, apostille, TOPIK) or the candidate has Korean home habits (hiring-law personal-data ban); official-source facts only, no full market file
 - [`regional/asia/east-asia/taiwan.md`](regional/asia/east-asia/taiwan.md) — read only when the target is Taiwan AND the candidate is a foreign professional (work permit or Gold Card, TOCFL, Employment Service Act discrimination list); official-source facts only, no full market file
@@ -73,6 +74,7 @@ Asia
   - [`regional/asia/southeast-asia/philippines.md`](regional/asia/southeast-asia/philippines.md) — Philippines
   - [`regional/asia/southeast-asia/vietnam.md`](regional/asia/southeast-asia/vietnam.md) — Vietnam
   - [`regional/asia/southeast-asia/thailand.md`](regional/asia/southeast-asia/thailand.md) — Thailand
+- [`regional/asia/india/market.md`](regional/asia/india/market.md) — India (a4; resume vs biodata, CA/architect titles, CTC, campus and PSU hiring)
 
 Middle East
 - [`regional/middle-east/gulf/market.md`](regional/middle-east/gulf/market.md) — the CV goes to an employer in the UAE, Saudi Arabia or Qatar and the candidate is an expatriate (work authorisation, notice, probation, mobility; no CV-custom source, so no photo/DOB/nationality rule; three *non-interchangeable* markets; Kuwait, Oman and Bahrain: no file)

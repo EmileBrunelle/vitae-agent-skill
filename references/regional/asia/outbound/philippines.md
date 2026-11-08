@@ -4,4 +4,4 @@
 - Local CV habits: [`southeast-asia/philippines.md`](../southeast-asia/philippines.md).
 
 ## Netherlands target only
-Nuffic mappings, read with the Netherlands section of [`india/to-europe/common.md`](../../india/to-europe/common.md): started before 2018 « an associate degree or 2 years of HBO »; 2018 or later « an HBO bachelor's degree or 2 years of WO » (S189).
+Nuffic mappings, read with the Netherlands section of [`india/to-europe/common.md`](../india/to-europe/common.md): started before 2018 « an associate degree or 2 years of HBO »; 2018 or later « an HBO bachelor's degree or 2 years of WO » (S189).
