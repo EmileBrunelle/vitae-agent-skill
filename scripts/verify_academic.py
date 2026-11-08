@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Five binary gates for an academic CV — a round-trip between the declared
 TOML data file (source of truth for counts/order) and the rendered PDF
-(`pdftotext -layout`). See academic-mode.md §3 for the design rationale; the
+(`pdftotext -layout`). See academic-mode.md for the design rationale; the
 five checks and the non-goals below are DECIDED THERE, not here.
 
 PLUMBING REUSED from verify.py (imported, not copied — none of it carries a
@@ -12,13 +12,12 @@ fill line.
 NOT REUSED, on purpose (commit c7ca219): check_whitespace(), tune(), or any
 of BOUNDARY_RATIO / SEPARATION_CEILING / DEVICE_QUORUM / CANYON /
 BOUNDARY_CEILING. Those are curve-fit to one/two-page industry résumés and
-are meaningless on a genre with no fill target at all (academic-mode.md §3.4:
+are meaningless on a genre with no fill target at all (academic-mode.md "What does not apply here":
 "Écarté, pas assoupli" — no fill floor, not even on the last page).
 
 This script also never regexes the .typ source and compares it to a PDF
 built from that same source — that round-trip is a tautology, and a
-previous attempt at exactly this had to be deleted (academic-mode.md note,
-commit d7f67da). Every declared count/order/prefix comes from the TOML;
+previous attempt at exactly this had to be deleted (commit d7f67da). Every declared count/order/prefix comes from the TOML;
 every extracted count/order comes from the rendered PDF.
 
 Usage:
@@ -356,7 +355,7 @@ def check_running_head(per_page_footer: list[Footer],
                        per_page_surname: list[bool],
                        total_pages: int) -> list[Result]:
     """Check E: running head (surname) + 'n / N' pagination on every page,
-    beyond 2 pages (academic-mode.md §3.2 E: deliberately not required at
+    beyond 2 pages (academic-mode.md "Correctness properties" E: deliberately not required at
     1-2 pages)."""
     if total_pages <= 2:
         return [("E", True, f'{total_pages} page(s) -- running head/pagination '
@@ -504,7 +503,7 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
 
     # NOTE: deliberately no verify.ensure_icons(typ) here -- lib-academic.typ
     # never imports icons.typ (icons/photo are an explicit anti-goal for this
-    # genre, academic-mode.md §1.1), so that plumbing would just write an
+    # genre, field-academic.md "Never on an academic CV"), so that plumbing would just write an
     # unused file under templates/academic/.
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "cv.pdf")
@@ -518,7 +517,7 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
         results = check_headings_table(data) + results
 
         # ---- reported-only metrics (never failed): page count, last-page
-        # fill, and a rough prose/list share. academic-mode.md §3.3/§3.4.
+        # fill, and a rough prose/list share. academic-mode.md "Correctness properties" and "What does not apply here".
         reported = [f'{total_pages} page(s)']
         pages_from_cli = verify.count_pages(pdf, backend)
         if pages_from_cli and str(pages_from_cli) != str(total_pages):
@@ -689,7 +688,7 @@ continuing the first entry here, with no year token and no heading
     _assert_fails_with(results, "E", "footer none", "missing-pagination")
 
     # bonus: E is a no-op below 3 pages, so a 2-page footerless CV still
-    # passes overall (§3.2: "beyond 2 pages").
+    # passes overall (academic-mode.md, property E: "beyond 2 pages").
     text_short = _compile_and_extract(_baseline_src(with_footer=False, pages=2))
     results, total_pages = analyze(text_short, _baseline_sections(2), "Doe")
     assert total_pages == 2

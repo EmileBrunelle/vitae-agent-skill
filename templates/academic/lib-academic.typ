@@ -52,7 +52,7 @@
 //
 // `block(breakable: false)` is non-negotiable per the design note (check D):
 // never lift it to fix an orphan — a short page tail is free here, there is
-// no fill target in this genre (§3.4 of the design note).
+// no fill target in this genre (academic-mode.md, "What does not apply here").
 #let aentry(year, body, above: 3pt, below: 3pt, year-w: 2.2cm,
             year-st: it => text(weight: "bold", it)) = block(
   breakable: false, above: above, below: below)[

@@ -99,7 +99,7 @@ Platform notes:
 ```
 SKILL.md                         # slim entry point: non-negotiable rules + one skeleton per step (<= 13000 B, gated)
 references/steps/                # step bodies 0-8 (N-<slug>.md + tune/companions sub-files), read when the step starts
-references/academic-mode.md      # academic-CV mode workflow (moved out of SKILL.md)
+references/academic-mode.md      # academic-CV mode: data file, correctness properties, what does not apply, gate (moved out of SKILL.md)
 references/known-traps.md        # known traps (moved out of SKILL.md)
 references/design/core.md        # shared design rules: invariants, tokens, primitives, page-fill tuning loop
 references/design/families/      # one recipe file per design family (14), read whole for the family drawn
@@ -110,7 +110,7 @@ references/regional.md           # regional router: file list + universal rules
 references/regional/*.md         # per-market depth, loaded only for the target market
 references/reviews.md            # adversarial review protocol
 references/field-software-dev.md # field pack: software development
-references/field-academic.md     # field pack + workflow for the academic-CV mode (replaces industry rules, not layered)
+references/field-academic.md     # academic-CV genre knowledge: sections, regional, funding agencies, disciplines (replaces industry rules, not layered)
 references/typst-primer.md       # minimal Typst syntax for agents that don't know it
 references/companion-guide.md    # optional job-search guide recipe; also the cover-letter doctrine
 references/fonts.md              # font provenance: Google Fonts URLs, licences, both install routes

@@ -98,7 +98,7 @@ Notes par plateforme :
 ```
 SKILL.md                         # point d'entrée allégé : règles non négociables + un squelette par étape (<= 13000 o, vérifié)
 references/steps/                # corps des étapes 0-8 (N-<slug>.md + sous-fichiers tune/companions), lus au début de l'étape
-references/academic-mode.md      # workflow du mode CV académique (sorti de SKILL.md)
+references/academic-mode.md      # mode CV académique : fichier de données, propriétés de correction, ce qui ne s'applique pas, gate (sorti de SKILL.md)
 references/known-traps.md        # pièges connus (sortis de SKILL.md)
 references/design/core.md        # règles de design communes : invariants, tokens, primitives, boucle d'ajustement du remplissage
 references/design/families/      # une recette par famille de design (14), lue en entier pour la famille tirée
@@ -109,7 +109,7 @@ references/regional.md           # routeur régional : règles universelles + ma
 references/regional/*.md         # profondeur par marché, chargé seulement pour le marché cible
 references/reviews.md            # protocole de revue adversariale
 references/field-software-dev.md # pack de domaine : développement logiciel
-references/field-academic.md     # pack de domaine + workflow du mode CV académique (remplace les règles industrielles, sans s'y superposer)
+references/field-academic.md     # connaissance du genre CV académique : sections, régional, organismes de financement, disciplines (remplace les règles industrielles, sans s'y superposer)
 references/typst-primer.md       # syntaxe Typst minimale pour les agents qui ne la connaissent pas
 references/companion-guide.md    # recette optionnelle du guide de recherche d'emploi; aussi la doctrine des lettres de présentation
 references/fonts.md              # provenance des polices : URL Google Fonts, licences, deux façons de les installer

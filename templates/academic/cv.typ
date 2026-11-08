@@ -8,8 +8,8 @@
 //
 // Design is an explicit ANTI-GOAL for this genre: one neutral gabarit, no
 // family draw, no palette generation, no photo, no icons, no profile/summary
-// hook, no keyword-skills list, no level bars. See academic-mode.md §1.1 for
-// the full ban list. Data is TOML, not FAITS.md prose, because the ~200-plus
+// hook, no keyword-skills list, no level bars. See academic-mode.md "What does not apply here" for
+// the full ban list (and field-academic.md "Never on an academic CV"). Data is TOML, not FAITS.md prose, because the ~200-plus
 // enumerated entries need a format Typst AND Python read without a new
 // dependency (`toml()` here, `tomllib` stdlib on the gate side) — the TOML,
 // not this file, is the declared source of truth for section counts and
@@ -17,7 +17,7 @@
 //
 // Verify with: typst compile --root . templates/academic/cv.typ out.pdf
 // then pdftotext -layout out.pdf - | less  (checks A-E are manual until the
-// academic gate is built; see academic-mode.md §3.2).
+// academic gate is built; see academic-mode.md "Correctness properties").
 #import "lib-academic.typ": *
 
 #let data = toml("faits-academique.example.toml")
