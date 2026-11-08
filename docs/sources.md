@@ -568,3 +568,10 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S503 — Government of Alberta, IQAS — « Assessment for work or study – How to apply » (consulted 2026-11-08) — https://www.alberta.ca/iqas-employment-apply
 - S504 — Government of Ontario — « Ontario Qualifications Framework » (published 2022-03-22, updated 2026-07-16; consulted 2026-11-08) — https://www.ontario.ca/page/ontario-qualifications-framework
 - S505 — Université de Montréal, Secrétariat général — « Règlement des études de premier cycle », art. 1.7 (consulted 2026-11-08) — https://secretariatgeneral.umontreal.ca/documents-officiels/reglements-et-politiques/reglement-des-etudes-de-premier-cycle/
+- S506 — Bundesagentur für Arbeit, ZAV — « Bewerbungsverfahren in Deutschland » (Working and living in Germany, newsletter 01/2026; consulted 2026-11-07) — https://www.arbeitsagentur.de/vor-ort/zav/working-and-living-in-germany/newsletter-iss/01-2026/bewerbung
+- S507 — Bundesagentur für Arbeit — « Praktische Bewerbungstipps » (PDF, created 2025-03-13; consulted 2026-11-07) — https://www.arbeitsagentur.de/vor-ort/datei/praktische-bewerbungstipps_ba141790.pdf
+- S508 — AMS Österreich — « Lebenslauf » Vorlage, wichtige Infos & Tipps (undated; consulted 2026-11-07) — https://www.ams.at/arbeitsuchende/richtig-bewerben/ansprechender-lebenslauf
+- S509 — SECO / arbeit.swiss — « Tips on applying for jobs » (undated; consulted 2026-11-07) — https://www.arbeit.swiss/en/jobseekers/tips-on-applying-for-jobs
+- S510 — ChileAtiende (Gobierno de Chile) — « Buscar un nuevo trabajo » (consulted 2026-11-07, via Wayback capture) — https://www.chileatiende.gob.cl/hito-vida/Quedar+sin+trabajo/Buscar+un+nuevo+trabajo
+- S511 — Gob.cl — « ¿Cómo hacer un CV para postular a un trabajo? » (2023-07-14; consulted 2026-11-07, via Wayback capture) — https://www.gob.cl/noticias/como-hacer-curriculum-vitae-cv-guia-pasos-postular-trabajo-plataformas/
+- S512 — SBFI/SERI — « Ausübung des Architektenberufs in der Schweiz » (May 2023; consulted 2026-11-07) — https://www.sbfi.admin.ch/dam/de/sd-web/FIAAM1R6mF-u/Architektenberuf_de.pdf

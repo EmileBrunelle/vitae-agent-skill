@@ -10,7 +10,7 @@ Part of the DACH group: shared points in [`dach-common.md`](dach-common.md). Wea
 - Germany: the AGG says nothing about photos (AGG § 1 lists the grounds); optionality comes from the Bundesagentur's guidance, not from the statute.
 
 ## Protected titles
-- Germany: « Ingenieur » is protected by Land law, not federal. NRW: graduates of a technical or natural-science programme of at least 3 years, or authorised persons; misuse is an Ordnungswidrigkeit (Land NRW, « Ingenieurgesetz – IngG », §§ 1, 8). Other Länder differ; a foreign degree needs the Land's check (LOW confidence on the procedure).
+- Germany: « Ingenieur » is protected by Land law, not federal. NRW: a technical or natural-science programme of at least 3 years at a German Hochschule (or equivalent German Ingenieurschule), or a right granted by the authority; misuse is an Ordnungswidrigkeit (Land NRW, « Ingenieurgesetz – IngG », §§ 1, 8, S49). A foreign degree needs the Bezirksregierung's authorisation, granted when no substantial difference from the German programme exists (§ 2, S49). Other Länder not checked.
 
 ## Application package
 - Cover letter: Germany, max one A4 page, no conditional (« würde », « könnte »), salary only if asked (Bundesagentur).
