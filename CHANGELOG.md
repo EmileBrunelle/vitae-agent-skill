@@ -4,6 +4,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- New `regional/india-outbound.md` add-on (Indian credentials, targets USA/Canada/UK/Ireland/AU-NZ), wired in `regional.md`, `regional/india.md`, `steps/2-region.md`; `docs/sources.md` S159, S160, S162, S164.
+- `north-america.md`: USA engineering rule generalised beyond Texas (NCEES, Florida, New York), new sections for USAJOBS (2-page limit) and GC Jobs (pasted text, screening questions), regulated-occupation check, EEOC personal-data line; `quebec-outbound.md` US boards (Texas, Florida, California); `docs/sources.md` S143–S152.
+- `education-cases.md` made market-neutral: Québec-shaped example rewritten as an English-style unfinished-program line with credit units; new cases (exchange/study abroad, double/joint degree, work-integrated study, completed-not-conferred, return to studies with work alongside, credits, grades); `SKILL.md` triggers extended; `docs/sources.md` S134–S142; MBA and professional master's section, S155–S158.
 - `quebec.md`: GPA rule — print the scale (4,3 / 4,33 / 4.0), no conversion between scales on the CV, distinctions first, HEC's ≥ 3,5/4,3 threshold (for its master CV); `docs/sources.md` S128–S133.
 - `field-software-dev.md`: header title example no longer hard-codes the masculine French form.
 - `references/academic-mode.md` now holds the academic mode (data file, correctness properties, what does not apply, gate specifics) and `field-academic.md` only the genre knowledge; the sections moved from one to the other with the duplicated rules (fill target, palette, entry_status) merged. `SKILL.md` now points the academic workflow at `academic-mode.md` and names the qualification dossier.

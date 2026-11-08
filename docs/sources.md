@@ -159,3 +159,34 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S131 — Université de Sherbrooke — « Règlement des études (Règlement 2575-009) » (mis à jour 2026-09-09) — https://www.usherbrooke.ca/decouvrir/fileadmin/sites/decouvrir/documents/direction/reglements/2575-009.pdf
 - S132 — Concordia University, Gina Cody School — « Grade point average » (undated, faculty page) — https://www.concordia.ca/ginacody/students/academic-services/undergraduate/grade-point-average.html
 - S133 — HEC Montréal — « Tutoriel : Rédigez votre CV maître » (master CV; undated) — https://www.hec.ca/etudiants/soutien-ressources/gestion-carriere/cv-et-lettres/tutoriel/tutoriel-redigez-cv-maitre.html
+- S134 — University of Warwick Careers — « CV example template » (undated) — https://text.www2.warwick.ac.uk/services/careers/applications/cvs/cv_example_template.pdf
+- S135 — University of Kent — « Returning from a Year Abroad: Employability Workshop » (undated) — https://media.www.kent.ac.uk/se/22469/Employability-Workshop.pdf
+- S136 — Universität Münster, WiWi CDC — « CDC Career Info – Lebenslauf » (2019) — https://www.wiwi.uni-muenster.de/fakultaet/sites/fakultaet/files/broschuere_lebenslauf_final_neu.pdf
+- S137 — Universität zu Köln, WiSo Career — « Kurzinfo Lebenslauf » (2018) — https://wiso.uni-koeln.de/sites/wiso_career/pdf/Allgemeines_UEbergreifendes/Bewerbungshilfen/Kurzinfo_Lebenslauf.pdf
+- S138 — University of Sydney Careers — « How to write a resume » (undated) — https://www.sydney.edu.au/careers/students/applying-for-jobs/how-to-write-a-resume.html
+- S139 — Boston University — « Sample Resume – Addendum for Dual Degree Candidates » (2015) — https://www.bu.edu/com/files/2015/09/resume_dual_degree_addendum.pdf
+- S140 — Cedefop — « Instructions for using the Europass curriculum vitae » (undated) — https://www.eeas.europa.eu/sites/default/files/europass_cv_instructions.pdf
+- S141 — Europass — « Europass Mobility Instructions » (2021-07) — https://europass.europa.eu/system/files/2021-07/Europass%20Mobility%20Instructions%20English.pdf
+- S142 — University of Leeds — « Guidelines for writing CVs and covering letters » (undated) — https://students.leeds.ac.uk/careers/doc/guidelines-writing-cvs-covering-letters
+- S143 — Florida Legislature — « Fla. Stat. §471.031, Engineering » (2026) — http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0400-0499/0471/Sections/0471.031.html
+- S144 — Florida Administrative Code (via Cornell LII) — « Rule 61G15-20.001, Fla. Admin. Code » (amended 2019) — https://www.law.cornell.edu/regulations/florida/Fla-Admin-Code-Ann-R-61G15-20-001
+- S145 — California BPELSG — « Application and Licensing FAQs » (undated) — https://www.bpelsg.ca.gov/applicants/faq
+- S146 — NCEES — « Model Law » (2018) — https://ncees.org/wp-content/uploads/Model_Law_2018.pdf
+- S147 — NCEES — « Model Rules » (2016) — https://ncees.org/wp-content/uploads/Model-Rules.pdf
+- S148 — OPM — « Agency Guidance on the Two-Page Limit on Resume Length » (2025-09-12) — https://www.opm.gov/policy-data-oversight/hiring-information/merit-hiring-plan-resources/agency-guidance-on-the-two-page-limit-on-resume-length
+- S149 — Public Service Commission of Canada — « Applying for Government of Canada jobs: How to apply » (2026-09-28) — https://www.canada.ca/en/public-service-commission/jobs/services/gc-jobs/applying-government-canada-jobs-how-to-apply.html
+- S150 — IRCC — « Regulated or certified occupations – Processing of work permit applications » (2024-05-21) — https://www.canada.ca/en/immigration-refugees-citizenship/corporate/publications-manuals/operational-bulletins-manuals/temporary-residents/foreign-workers/regulated-certified-occupations.html
+- S151 — Québec.ca — « Ordres professionnels » (2026-09-29) — https://www.quebec.ca/emploi/informer-metier-profession/ordres-professionnels
+- S152 — EEOC — « Prohibited Employment Policies/Practices » (undated) — https://www.eeoc.gov/prohibited-employment-policiespractices
+- S153 — École de technologie supérieure — « Baccalauréat ÉTS » (brochure, undated) — https://etudier.etsmtl.ca/hubfs/brochure-baccalaureat-ETS.pdf
+- S154 — Concordia University — « Mechanical Engineering (BEng) » (program page) — https://www.concordia.ca/academics/undergraduate/mechanical-engineering.html
+- S155 — Wharton MBA Career Management — « 2018 Resume Tips and Resume Book Process » (2018) — https://students.mbacareers.wharton.upenn.edu/wp-content/uploads/2018/09/2018-Resume-Tips-and-Resume-Book-Process-FINAL.pdf
+- S156 — Robert H. Smith School of Business — « The Smith MBA Resume: Guidelines and Standards » (2017) — https://networth.rhsmith.umd.edu/sites/default/files/_images/2017%20-%20Smith%20MBA%20Resume%20Guidelines.pdf
+- S157 — Kellogg School of Management — « Resumes and cover letters » (alumni career guide; undated) — https://www.kellogg.northwestern.edu/alumni/career-development/articles-videos-and-career-guides/article-resumes-and-cover-letters.aspx
+- S158 — Chicago Booth — « MBA application: work experience and resume » (2025-10-06) — https://www.chicagobooth.edu/mba/mba-life/mba-application-work-experience-resume
+- S159 — WES — « Understanding the Three-Year Indian Bachelor's Degree in the U.S. » (2024-01-19) — https://www.wes.org/resource-library/blog/credential-advice/3-year-indian-bachelors-degree/
+- S160 — UK ENIC — « Revised UK ENIC comparisons for Indian Bachelor degrees » (2025-09-30) — https://www.enic.org.uk/our-role/news/1686
+- S162 — ACS — « InfoHub – Assessment Process » (© 2025) — https://www.acs.org.au/msa/infohub/assessment-process.html
+- S164 — CPA Australia — « CPA Australia and ICAI renew Mutual Recognition Agreement » (undated) — https://www.cpaaustralia.com.au/about-cpa-australia/media/media-releases/cpa-australia-and-icai-renew-mutual-recognition-agreement
+- S165 — New York State Senate — N.Y. Education Law § 7202 (practice of engineering; title "professional engineer") — https://www.nysenate.gov/legislation/laws/EDN/7202
+- S166 — USCIS — Policy Manual, Volume 2, Part P, Chapter 6 « Requirements for Specific Occupations » — https://www.uscis.gov/policy-manual/volume-2-part-p-chapter-6

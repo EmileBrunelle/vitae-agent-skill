@@ -2,6 +2,8 @@
 
 India only (private sector, public sector/PSU, campus and lateral hiring). Thinly sourced: official bodies publish little CV guidance, so most custom rules below are labelled LOW confidence; ask the user which segment they target.
 
+Candidate with Indian credentials targeting another market: also read [`india-outbound.md`](india-outbound.md).
+
 ## At a glance
 - Paper: a4.
 - Photo: not required by any source found; Naukri's own resume template still carries a passport-size photograph placeholder (Naukri, « Resume template », n.d.). Tell the user the custom; the candidate decides. Default omit for private-sector/MNC/ATS targets (LOW confidence).
