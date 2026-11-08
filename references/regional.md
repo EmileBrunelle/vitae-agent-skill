@@ -31,7 +31,7 @@ North America
 - [`regional/north-america/us/teaching.md`](regional/north-america/us/teaching.md) — read IN ADDITION when the CV lists a US K-12 teaching certificate or credential
 - [`regional/north-america/aviation.md`](regional/north-america/aviation.md) — read IN ADDITION when the CV lists a pilot licence, permit, certificate or rating (Transport Canada, FAA)
 - [`regional/north-america/workplace-safety.md`](regional/north-america/workplace-safety.md) — read IN ADDITION when the CV lists a workplace first-aid certificate (Québec), an OSHA 10/30-hour card or forklift training
-- [`regional/north-america/driving.md`](regional/north-america/driving.md) — read IN ADDITION when the job requires driving a heavy or commercial vehicle and the CV lists a US commercial driver's licence (CDL)
+- [`regional/north-america/driving.md`](regional/north-america/driving.md) — read IN ADDITION when the job requires driving a heavy or commercial vehicle and the CV lists a commercial licence (US CDL, Canadian or Québec class 1)
 - [`regional/north-america/quebec/outbound-common.md`](regional/north-america/quebec/outbound-common.md) — when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: read it IN ADDITION to the target market's file, plus the file for the target country
   - [`regional/north-america/quebec/outbound-canada.md`](regional/north-america/quebec/outbound-canada.md) — target English Canada
   - [`regional/north-america/quebec/outbound-us.md`](regional/north-america/quebec/outbound-us.md) — target USA

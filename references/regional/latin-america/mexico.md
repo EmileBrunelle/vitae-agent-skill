@@ -4,9 +4,9 @@ Spanish-speaking (es). Non-interchangeable markets: read the country file, never
 
 ## At a glance
 - Paper: letter (LOW confidence).
-- Photo: unverified (LOW confidence).
+- Photo: SEP educational material: « La foto ya no es obligatoria y en algunos casos es recomendable omitirla » (Secretaría de Educación Pública, DGETAyCM, « Orientación educativa: Búsqueda de empleo y elaboración del CV », 2021, S550; teaching material for students, not a labour-authority statement). The candidate decides.
 - CV language: es-MX.
-- Personal data: omit protected data (statute below).
+- Personal data: SEP (S550): place and date of birth, « Si crees que puede ser un dato negativo, no lo incluyas »; estado civil, « Sólo cuando lo solicitan ». Omit protected data (statute below).
 - Formality / verb style: no sourced rule; neutral-formal.
 - Length: 1-2 pages (LOW confidence).
 

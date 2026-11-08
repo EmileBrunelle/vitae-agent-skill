@@ -1,6 +1,6 @@
-# Driving: US commercial driver's licence (CDL)
+# Driving: commercial licences (US CDL, Canada/Québec)
 
-Read only when the job requires driving a heavy or commercial vehicle and the candidate lists a driver credential. Québec classes (1, 2, 3, 5; mentions F, M, T): [`quebec/trades.md`](quebec/trades.md) (SAAQ). A licence is issued by a government for a jurisdiction; it is not a training card. Each fact is what the regulator's own page or text says (consulted 2026-11-07).
+Read only when the job requires driving a heavy or commercial vehicle and the candidate lists a driver credential. Québec classes (1, 2, 3, 5; mentions F, M, T): [`quebec/trades.md`](quebec/trades.md) (SAAQ). A licence is issued by a government for a jurisdiction; it is not a training card. Each fact is what the regulator's own page or text says (consulted 2026-11-07; the Canadian and Québec licence sources, 2026-11-08).
 
 ## Who issues what
 
@@ -24,3 +24,10 @@ Read only when the job requires driving a heavy or commercial vehicle and the ca
 
 - A footnote to 49 CFR 383.23 records the Administrator's determination that commercial licences issued by Canadian provinces and territories "in conformity with the Canadian National Safety Code" are in accordance with the US standards, and a driver holding one "is prohibited from obtaining a non-domiciled CDL, or any other type of driver's license" from a US state (S458). Print the Canadian licence as issued (province, class); do not describe it as a "US CDL".
 - Canadian provinces other than Québec: no official page loaded; not covered here.
+
+## Canadian and Québec licences
+
+- Québec class 1 (SAAQ): "authorizes its holder to drive a combination of vehicles", a road tractor with trailer(s) or semi-trailer(s), and "all other types of road vehicles, except for" motorcycles (check the exceptions on the page); mentions F "To drive a heavy vehicle equipped with an air brake system" and M "To drive a heavy vehicle equipped with a manual transmission" S556. Classes and T: [`quebec/trades.md`](quebec/trades.md) (S329).
+- CV line: `Class 1 driver's licence (Québec, SAAQ), endorsements F, M, valid until <year>`: class, the endorsements the licence shows (omit endorsements the licence does not show), validity as [`../../certifications/rules.md`](../../certifications/rules.md#validity-and-renewal) says. A DEP in truck driving is a course, not the licence (see [`quebec/outbound-canada.md`](quebec/outbound-canada.md#d-highest-credential-is-not-a-bachelors)). Convention (LOW).
+- Ontario: "If you have a truck driver's licence from another province, your Ontario licence will be the same class" S557; an out-of-province licence can be exchanged when relocating from "any Canadian province or territory" S558. No page read maps Québec class 1 to Ontario AZ: never write "equivalent to AZ" or "AZ equivalent" (rule); if asked, say it is a likely reading of the Ontario sentence, to confirm with the employer or the licensing office (LOW, inference). Other provinces: no page loaded.
+- US: the 49 CFR 383.23 footnote above applies; print the licence as issued (Québec, class 1), never as a "US CDL" or "Class A".

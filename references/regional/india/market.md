@@ -6,7 +6,7 @@ Candidate with Indian credentials targeting another market: also read [`india/to
 
 ## At a glance
 - Paper: a4.
-- Photo: not required by any source found; Naukri's own resume template still carries a passport-size photograph placeholder (Naukri, « Resume template », n.d.). Tell the user the custom; the candidate decides. Default omit for private-sector/MNC/ATS targets (LOW confidence).
+- Photo: not required by any source found; the government NCS CV builder invites one (« A clear, professional photo increases your chances of getting noticed »; a form hint, not a rule) and has no marital status or date of birth field (National Career Service, CV builder, S548); Naukri's own resume template still carries a passport-size photograph placeholder (Naukri, « Resume template », n.d.). Tell the user the custom; the candidate decides. Default omit for private-sector/MNC/ATS targets (skill default, LOW confidence).
 - CV language: English for private sector and MNCs. Government/PSU postings may require an application form in the posting's language, not a free-form CV.
 - Personal data: private sector, omit all but contact. Government/PSU and some campus formats use fuller personal details (father's name, marital status, gender) (LOW confidence). Never a national ID (Aadhaar, PAN) or passport number.
 - Formality / verb style: English; no India-specific verb convention found.
@@ -19,7 +19,7 @@ Candidate with Indian credentials targeting another market: also read [`india/to
 ## Degree names and grading
 - Naukri's template lists education from the highest qualification down to Class XII and Class X, each with board/university and percentage or CGPA (Naukri, « Resume template », n.d.). Campus and fresher CVs routinely keep Class X and XII results; experienced CVs drop them.
 - B.E. vs B.Tech.: both are four-year engineering bachelor's degrees; the name is the awarding university's choice, and AICTE leaves equivalence to the recruiting agency (Careers360, « AICTE clarifies stand on degree equivalence in appointments », 2020-11-02; secondary source, LOW confidence). Write the exact name on the diploma and never normalise one into the other.
-- Grades: write the figure as awarded with its scale (« CGPA 8.4/10 » or « 78% »). Do not convert CGPA to percentage yourself: universities use different formulas (the common « CGPA × 9.5 » is a convention, not a confirmed UGC rule; LOW confidence). Use the formula printed by the candidate's university, or leave the original figure.
+- Grades: write the figure as awarded with its scale (« CGPA 8.4/10 » or « 78% »). Do not convert CGPA to percentage yourself: universities use different formulas (UGC's CBCS guidelines say « The conversion from marks to letter grades and the letter grades used vary widely across the HEIs in the country » and give no CGPA-to-percentage formula; UGC, « UGC Guidelines on Adoption of Choice Based Credit System », S520). Use the formula printed by the candidate's university, or leave the original figure.
 
 ## Protected titles
 - Chartered Accountant / « CA »: only a member of ICAI may use the designation or the « CA » prefix; passing the Final examination alone does not qualify (ICAI, « Pre-conditions for using the designation Chartered Accountant », 2009-08-07; ICAI, « Use of designation(s) other than the designation of Chartered Accountant », 2015-02-18; both citing Chartered Accountants Act 1949, s. 7). A CA-Final-passed non-member or a student writes « CA Intermediate » / « CA Final (cleared) » only if true, never « CA ».

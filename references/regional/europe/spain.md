@@ -4,11 +4,11 @@ Spain only; never reuse for Latin America (Spanish-language CV conventions diffe
 
 ## At a glance
 - Paper: a4.
-- Photo: optional, not required by law; common in local guidance (LOW confidence: only InfoJobs/Europass advice pages). The candidate decides; if included, formal, front-facing, plain background (convention, no official source; LOW confidence).
+- Photo: optional; SEPE says « Se puede incluir una foto » and, in its advice for Spain, « Es recomendable incluir una foto, de formato “carnet” o de medio cuerpo, que sea de calidad (evitar selfies …), sobre un fondo neutro » (SEPE, « Recomendaciones generales para Currículum y Carta de presentación », 2025; S540). The candidate decides; if included, formal and neutral background.
 - CV language: Spanish; the posting's language wins. Catalan, Galician, Basque or Valencian only when the posting or the region's employer asks.
-- Personal data: omit birth date, marital status, children and national ID (DNI/NIE number); nationality only when work authorisation matters.
+- Personal data: national ID (DNI/NIE number) never by default (rule); birth date, marital status, children and nationality: ask the candidate. SEPE: « No incluir en el CV expectativas salariales ni detalles personales (estado civil, hijos, religión, política) » (S540).
 - Formality / verb style: no authoritative local norm found; follow the posting's register.
-- Length: 1-2 pages (LOW confidence: dated editorial advice, InfoJobs, « Cómo se hace un buen currículum: estructura y contenido », 2012).
+- Length: aim for one page, two at most with a lot of experience (SEPE, 2025: « Intente que el CV no supere una página, máximo dos si tiene ya mucha experiencia »; a recommendation, not a rule; S540).
 
 ## Personal data and law
 - Non-discrimination in hiring is statutory: the Estatuto de los Trabajadores (RDL 2/2015, art. 4.2.c and 17.1) lists estado civil, edad, discapacidad and « lengua dentro del Estado español » among the grounds. This is why the data above is omitted by default; it does not forbid volunteering it.

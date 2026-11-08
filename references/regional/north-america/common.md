@@ -3,12 +3,12 @@
 Add-on to [`canada/market.md`](canada/market.md) and [`us/market.md`](us/market.md); rules that apply to both countries.
 
 ## At a glance
-- Paper: us-letter. Photo: never.
+- Paper: us-letter. Photo: never. Canada: Job Bank says « it is not the norm in Canada » (« How to write a good resume », S546); the EEOC says US employers « should not ask for a photograph of an applicant » (S125; employer-side, no official US candidate-side source).
 - CV language: English, or French for Québec and francophone employers elsewhere in Canada.
-- Personal data: none (no age, no marital status).
+- Personal data: skip age and marital status by default (candidate decides); Canada: never the SIN (rule). Job Bank: « It is best to leave out any personal details such as age, weight, height, marital status, religious preference, political views … never include your Social Insurance Number in your resume » (S546).
 - Work authorization: no official candidate-side guidance exists (LOW confidence: convention). State it only if the posting asks or the candidate wants it; never invent a status.
 - Formality / verb style: verb-first bullets; English past tense (current role in present); French-Québec infinitive (see [`north-america/quebec/market.md`](quebec/market.md)).
-- Length: 1 page junior, 2 pages max overall (US established firms expect 1 page well past 10 years).
+- Length: skill default 1 page junior, 2 pages max overall (US established firms expect 1 page well past 10 years: LOW confidence, no official source). Canada: Job Bank: « Limit your resume to two pages » (S546). US: CareerOneStop: two pages are « quite acceptable for experienced professionals » (S547).
 
 ## Protected titles
 - Any regulated occupation (licence required, or titles reserved "where only members of a regulatory body can make use of specific titles and abbreviations allowed by law") exists in every province and state (IRCC, « Regulated or certified occupations – Processing of work permit applications » (2024-05-21); Québec.ca, « Ordres professionnels » (2026-09-29); consulted 2026-11). Before writing a licence-type title, check the regulator (Canada: Job Bank Foreign Credential Recognition tool or the regulatory body; Québec: the order's répertoire des membres; USA: the state licensing board). Write the licence with its jurisdiction and status.

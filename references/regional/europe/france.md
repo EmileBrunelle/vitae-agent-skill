@@ -23,7 +23,7 @@ Personal-data law, protected titles and degree naming for France. Points without
 
 ## Degree names and levels
 - « Bac+N » is spoken shorthand; the official scale is the 8-level RNCP framework: level 5 DEUG, BTS, DUT; level 6 licence, licence professionnelle, BUT; level 7 master, diplôme d'ingénieur; level 8 doctorat (Service-Public / DILA, « Quelle est la nomenclature des diplômes par niveau ? », vérifiée le 20 octobre 2025).
-- Write the real diploma name and institution; add « (Bac+5) » only as an optional gloss, and verify a level on the RNCP record rather than from years of study (LOW confidence on the gloss convention).
+- Write the real diploma name and institution; add « (Bac+5) » only as an optional gloss, and verify a level on the RNCP record rather than from years of study: « la mention « bac + » est souvent trompeuse car elle n'est pas associée à une reconnaissance officielle de la certification professionnelle visée » (France Compétences, « Vademecum. Le Répertoire national des certifications professionnelles », juillet 2022, S526). The gloss itself is a convention (LOW confidence).
 
 ## Application package
 - Typography: espace insécable before `:` (`~:` in Typst), « guillemets », typographic apostrophes, months lowercase (LOW confidence).

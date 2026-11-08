@@ -6,7 +6,7 @@ Two legal systems, not one market: they share the CV format but differ on equali
 - Paper: a4 (both).
 - Photo: omit (LOW confidence: no official source forbids or requires it; careers-service convention).
 - CV language: English, British spelling in both countries (LOW confidence: unsourced convention, no source contradicts it).
-- Personal data: no date of birth, age, marital status or nationality (National Careers Service, UK). Ireland: same; age, `civil status` and `family status` are protected grounds.
+- Personal data: UK: do not include age, date of birth, marital status or nationality (National Careers Service: « You should not include your age, your date of birth, whether you're married or your nationality », S59; advice, not a legal rule). Ireland: Careers Portal says « You are not expected to include age or date of birth » (S541); age, `civil status`, `family status` and nationality are among the nine protected grounds (Workplace Relations Commission, S62). No Irish official source on marital status or nationality on a CV: apply the UK rule as the skill's default and ask the candidate.
 - Formality / verb style: no sourced market rule; universal rules apply. The word is « CV ».
 
 ## Application package

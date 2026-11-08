@@ -4,9 +4,9 @@ Spanish-speaking (es). Non-interchangeable markets: read the country file, never
 
 ## At a glance
 - Paper: letter (LOW confidence).
-- Photo: unverified (LOW confidence).
+- Photo: the Servicio Público de Empleo blog quotes a selection specialist: « posturas religiosas, número de hijos, estado civil o fotografías, no son necesarias a menos que sean exigidas en primera instancia » (« ¿Qué información debe tener su hoja de vida? », 2021, S551). Not the Service's own rule (LOW confidence).
 - CV language: es-CO.
-- Personal data: omit protected data.
+- Personal data: same source as the photo line (S551: religion, children and estado civil are not needed unless required (ask the candidate): « no son necesarias a menos que sean exigidas »; LOW confidence).
 - Formality / verb style: no sourced rule; neutral-formal.
 - Length: 1-2 pages (LOW confidence).
 

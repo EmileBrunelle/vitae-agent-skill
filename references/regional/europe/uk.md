@@ -3,7 +3,7 @@
 Part of the UK / Ireland pair: shared points in [`uk-ireland-common.md`](uk-ireland-common.md). Points that could not be confirmed are labelled LOW confidence.
 
 ## At a glance
-- Length: UK: no official limit (National Careers Service gives none); two pages is common practice (LOW confidence), one page early-career (LOW confidence).
+- Length: UK: the National Careers Service gives no limit; nidirect (Northern Ireland government) says « aim for no more than two pages » (S542). For Great Britain, two pages is common practice (LOW confidence), one page early-career (LOW confidence): no official source.
 
 ## Personal data and law
 - UK: the Equality Act 2010 protects nine characteristics (s. 4) and applies in Great Britain; Northern Ireland has its own equality legislation (LOW confidence).
