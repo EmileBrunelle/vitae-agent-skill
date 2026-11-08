@@ -108,12 +108,12 @@ if mode == "size":
     if n > LIMIT:
         print(f"FAIL SKILL.md is {n} bytes, limit is {LIMIT} ({n - LIMIT} over)"); sys.exit(1)
     print(f"ok SKILL.md {n} bytes <= {LIMIT}"); sys.exit(0)
-steps = sorted(glob.glob(os.path.join(root, "references/steps/*.md")))
+steps = sorted(glob.glob(os.path.join(root, "references/steps/**/*.md"), recursive=True))
 if mode == "steps":
     bad = []
     texts = {f: open(f, encoding="utf-8").read() for f in [skill] + steps}
     for f in steps:
-        b = os.path.basename(f)
+        b = os.path.relpath(f, os.path.join(root, "references/steps"))
         if not any(b in t for g, t in texts.items() if g != f):
             bad.append(f"FAIL orphan {b}: cited by neither SKILL.md nor another steps file")
         lines = [l for l in texts[f].split("\n") if l.strip()]
@@ -124,7 +124,7 @@ if mode == "steps":
     for m in bad: print(m)
     if bad: sys.exit(1)
     print(f"ok {len(steps)} steps files: none orphaned, all start with H1 and end cleanly"); sys.exit(0)
-srcs = [skill] + sorted(glob.glob(os.path.join(root, "references/steps/*.md")))
+srcs = [skill] + steps
 srcs += [os.path.join(root, "references", f) for f in ("academic-mode.md", "known-traps.md")]
 pat = re.compile(r"(?:references|scripts|templates)/[A-Za-z0-9_./<>-]+")
 bad = []; seen = 0

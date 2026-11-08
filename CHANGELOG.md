@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- `references/steps/`: one top-level file per step; sub-files moved into a same-named folder (`4-draft/traps.md`, `4-draft/tune.md`, `6-verify/tune.md`); `8-companions.md` folded into `8-deliver.md`. The `steps` test now recurses into those folders.
 - New `references/fields/` folder: `field-software-dev.md` and `field-academic.md` moved to `fields/software-dev.md` and `fields/academic.md`; links and routing updated.
 - Trades pack: `fields/trades.md` (common rules) plus `regional/north-america/quebec/trades.md` (CCQ, RBQ, SAAQ, French trade names), `quebec/trades-safety.md` (ASP Construction card, SIMDUT; split out because only CVs listing safety training need it), `trades-canada.md` (Red Seal, Ontario) and `trades-us.md` (apprenticeship, state licences); `docs/sources.md` S315–S334.
 - Health professions: `certifications/health.md` keeps the jurisdiction-free certifications (HSFC, AHA, CNA, AACN CCRN, NREMT, PTCB) and the exam / licence / certification rule; licences moved to the regional tree by the owner's placement rule (a licence or reserved title depends on a jurisdiction, a certification does not): `quebec/health.md` (OIIQ, CEPI, OPQ, CMQ), `health-canada.md` (CNO), `health-us.md` (NCLEX, Nurse Licensure Compact); `docs/sources.md` S335–S355.

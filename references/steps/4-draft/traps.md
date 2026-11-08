@@ -2,7 +2,7 @@
 
 Not enforced by a gate: avoid these while writing `cv.typ`.
 
-- Multi-row data grids, and single lines of `•`-separated items that wrap, both scatter fragments in extraction → linear paragraphs / bulleted lists ([`references/ats.md`](../ats.md)).
+- Multi-row data grids, and single lines of `•`-separated items that wrap, both scatter fragments in extraction → linear paragraphs / bulleted lists ([`references/ats.md`](../../ats.md)).
 - Letterspacing (`tracking`) on headings extracts as "S O F T WA R E" → none on ATS-read text; single-row alignment grids are safe, data grids are not.
 - Typst markup (`#box`, `*bold*`) inside a helper's *string* argument renders literally → pass content in `[brackets]` when markup is needed.
 - `#`, `$`, `[`, `]`, `~`, `@` in generated prose are Typst syntax → escape.

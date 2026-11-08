@@ -5,4 +5,4 @@
    - Questions for the candidate are diffed against the fact sheet before sending (never ask what is already known), rephrased in plain language (never a raw reviewer finding), kept short, and sent in the candidate's language.
    - Do not hand off the final package while open questions could still change its content.
 
-   Optional companions (job-search guide, cover letter per posting, LinkedIn checklist): read [`references/steps/8-companions.md`](8-companions.md) now.
+   Optional companions — build them with [`references/companion-guide.md`](../companion-guide.md): job-search guide, a cover letter per posting (`templates/letter.typ`, gated by `scripts/verify_letter.py`), LinkedIn alignment checklist. Rule 1 applies to companions too: no salary range or market statistic without web verification, and label them indicative.

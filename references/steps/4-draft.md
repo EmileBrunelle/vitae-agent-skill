@@ -4,7 +4,7 @@
    <lo> <hi>`, then `verify.py <folder>/cv.typ 1 <lo> <hi>`) — run them verbatim, but
    on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
    replace the filler with the candidate's facts, then read
-   [`references/steps/4-tune.md`](4-tune.md), then `--tune`, then verify. **Scripts are
+   [`references/steps/4-draft/tune.md`](4-draft/tune.md), then `--tune`, then verify. **Scripts are
    run, never read — their printed output is the instruction.** **Read order: run `pick_design.py` first. Then read [`references/design/core.md`](../design/core.md) whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** Fallback only if
    `--init` errors (rerun with the same `--lang`/`--region` for the manual path): `cp <skill>/templates/families/<family>/resume.typ <folder>/cv.typ`
    (then change its `#import "../../lib.typ"` line to `#import "lib.typ"`) plus `cp <skill>/templates/lib.typ <skill>/templates/icons.typ <folder>/`, then
