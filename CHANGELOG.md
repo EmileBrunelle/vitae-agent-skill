@@ -4,6 +4,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+## 0.10.0 - 2026-11-08
+
 - Reference file format applied to all of `regional/north-america/` (Québec, Canada, US and the shared root files): genre H1 and load sentence, `## At a glance` on market-type pages (only facts the page already states, the rest marked not checked), full citations with consulted dates from `docs/sources.md`, HIGH/MEDIUM labels dropped and `LOW, unsourced` scoped to uncited clauses. Format only: adversarial reviews restored two dropped legal pinpoints (Texas §133.31(c), Florida 61G15-20.001(2)(b)) and removed an invented CV-language directive before commit.
 - `check_lib_integrity` compares the normalised lib bytes directly instead of hashing them; stale "POSIX-reproducible" wording removed from the draw docstring.
 - `.vitae-manifest` dropped (and `Bash(sha256sum:*)` from `allowed-tools`): a PASS from a previous session is never reused, the gate is re-run on existing deliverables at session start (`steps/0-env.md`, `steps/7-review.md`, `known-traps.md`, both READMEs).

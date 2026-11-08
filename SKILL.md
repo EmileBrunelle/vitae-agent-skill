@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires typst 0.15+ and Python 3 with Pillow (pip-only install of typst pypdfium2 Pillow pypdf). poppler-utils (pdftotext, pdfinfo) recommended but optional - text extraction, the section-separation gate and the text-clip gate (check_text_clip) run on pypdfium2 without it; only academic mode needs poppler. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
 metadata:
   author: EmileBrunelle
-  version: "0.9.1"
+  version: "0.10.0"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(cp:*) Bash(pdftoppm:*)
 ---
