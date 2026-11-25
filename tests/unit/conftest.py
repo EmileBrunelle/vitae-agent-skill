@@ -7,7 +7,8 @@ import sys
 import pytest
 from _paths import SCRIPTS
 
-sys.path.insert(0, str(SCRIPTS))
+# Appended, not prepended: mutmut puts its mutated copy of the package (mutants/src) first, and it must win.
+sys.path.append(str(SCRIPTS))
 
 
 TEMPLATE_FAMILIES = {"Carlito", "Montserrat"}      # resume.typ fits its one page only with these (body, headings)

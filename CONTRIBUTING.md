@@ -29,6 +29,16 @@ Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow, 
    npx skills-ref validate .
    ```
 
+### Mutation testing (local, not in CI)
+
+`pip install mutmut` (3.8.1 used; into any env, it is not a dependency of the skill), then from the repository root:
+
+```
+tests/mutmut.sh run --max-children 4     # ~3 min; then: tests/mutmut.sh results | show <mutant> | browse
+```
+
+The scope is `[tool.mutmut]` in `pyproject.toml`: `source_paths` (the modules to mutate, written `src/vitae/...`: mutmut only strips a leading `src.`, so `tests/mutmut.sh` links `src -> scripts` for the run) and `pytest_add_cli_args_test_selection` (the test files that run). To widen it, add the module to `source_paths` and the test files that import it to the selection. Survivors are either equivalent mutants (no behaviour change: case-insensitive regex keys, `encoding="UTF-8"`, unread initial values) or test gaps; kill the latter with a behaviour test, never one that mirrors the code. Current scope: `verify/review_record.py` (94 %), `verify/jsonout.py` (96 %); all survivors left are equivalent.
+
 ## Branching
 
 `main` always holds the latest released, tested version: `npx skills add/update` installs the default branch, so anything merged to `main` ships to every user at once. Fork, work on a topic branch, open the PR against `main`. PRs are merged at release time with the version bump and CHANGELOG entry, not one by one. There is no long-lived dev branch.

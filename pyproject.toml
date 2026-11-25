@@ -21,3 +21,10 @@ markers = [
     "integration: spawns subprocesses, uses external binaries or real sockets",
     "lint: repo ratchet over the checked-in files (SKILL.md, Markdown, references), not over code behaviour",
 ]
+
+# Local mutation testing (not run in CI): `tests/mutmut.sh run`, see CONTRIBUTING.md.
+[tool.mutmut]
+source_paths = ["src/vitae/verify/review_record.py", "src/vitae/verify/jsonout.py"]
+pytest_add_cli_args_test_selection = ["tests/unit/test_verify_review_record.py", "tests/unit/test_verify_json.py", "tests/unit/test_verify_jsonout.py", "tests/unit/test_verify_placeholders.py"]
+also_copy = ["src/", "scripts/", "SKILL.md", "templates/", "references/", "tests/unit/"]
+max_stack_depth = 8

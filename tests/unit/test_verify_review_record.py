@@ -641,3 +641,25 @@ def test_academic_mechanical_fail_skips_the_record(monkeypatch, tmp_path, capsys
     with pytest.raises(SystemExit) as e:
         acli.main()
     assert e.value.code == 1 and "review record" not in capsys.readouterr().out
+
+
+def test_field_names_are_case_insensitive(tmp_path):
+    """A hand-written record may say `Runtime:` / `CV:`; the key is not case-sensitive (the value rules are separate)."""
+    text = GOOD.replace("runtime:", "Runtime:").replace("cv:", "CV:").replace("personas:", "PERSONAS:").replace("layout:", "Layout:")
+    _passes(_check(tmp_path, text))
+
+
+def test_failure_messages_read_as_the_instruction_the_agent_acts_on(tmp_path):
+    """The FAIL text is what the agent reads to fix the record: each one is a whole sentence starting `review record: `
+    with the documented forms, not just a keyword."""
+    (msg,) = _fails(_check(tmp_path, GOOD.replace("## Findings", "### Findings")))
+    assert msg == "review record: no `## Findings` section"
+    (msg,) = _fails(_check(tmp_path, HEAD + "Everything was fine.\n"))
+    assert msg == ("review record: the Findings section has text but no parseable finding — one bullet per finding "
+                   "(`-`, `*` or `1.`), each ending `→ applied` or `→ rejected: <reason>`")
+    (msg,) = _fails(_check(tmp_path, GOOD.replace("subagent haiku", "later")))
+    assert msg == ("review record: `layout:` must be one of subagent <model> | self | other-model <model> | user | "
+                   "not run (no redesign) (got 'later')")
+    (msg,) = _fails(_check(tmp_path, GOOD.replace("subagent haiku", "self")))
+    assert msg == ("review record: `layout:` with `runtime: sub-agents` must be subagent <model> | other-model <model> | "
+                   "user — the layout reviewer always runs on the full path (got 'self')")
