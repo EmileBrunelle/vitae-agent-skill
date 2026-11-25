@@ -28,9 +28,27 @@ class TestHierarchy:
         h, n = head("Cat", 0), head("Next", 41)
         h["kind"] = n["kind"] = "skill"
         (lv, msg), = groups.check_group_proximity("", "", heads=[h, n], secs=[], pages=[words], detail=[])
-        assert lv is Level.WARN and "entries barely separated" in msg
+        assert lv is Level.WARN and "skill rows barely separated" in msg and "entries" not in msg.split("\n")[0]
+        assert "gap to the next skill row" in msg and "inside a skill row" in msg
         assert "`skill` wrapper" in msg and "srow(above:)" in msg and "entry(above:)" not in msg
         assert "never per row, never in lib.typ" in msg
+
+    def test_entry_only_groups_say_entry(self):
+        words = [line("Role", 0), line("Detail", 20), line("Next", 41)]
+        (lv, msg), = groups.check_group_proximity("", "", heads=[head("Role", 0), head("Next", 41)], secs=[],
+                                                  pages=[words], detail=[])
+        assert lv is Level.WARN and "entries barely separated" in msg and "skill row" not in msg
+        assert "inside an entry" in msg and "gap to the next entry" in msg
+
+    def test_mixed_groups_say_entries_but_worst_clause_follows_its_own_kind(self):
+        # worst group (ratio 1.0) is a skill row; the other flat group (ratio 1.1) is an entry
+        words = [line("Cat", 0), line("Detail", 20), line("Role", 40), line("Detail2", 60), line("Next", 81)]
+        h1, h2, n = head("Cat", 0), head("Role", 40), head("Next", 81)
+        h1["kind"] = "skill"
+        (lv, msg), = groups.check_group_proximity("", "", heads=[h1, h2, n], secs=[], pages=[words], detail=[])
+        first = msg.split("\n")[0]
+        assert lv is Level.WARN and "entries barely separated" in first and "skill rows" not in first
+        assert "inside an entry" in first and "gap to the next skill row" in first
 
     def test_prox_warn_boundary_picks_the_message(self):
         # ratio 0.84 -> the attached-to-next WARN; 0.85 sits on the line (>=, not >): hierarchy WARN only

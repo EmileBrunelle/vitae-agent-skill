@@ -531,10 +531,14 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     flat = [r for r in grp if not r["next_sec"] and not r["ratio"] >= PROX_HIER]
     if flat:
         f = min(flat, key=lambda r: r["ratio"])
-        fw = (f'(worst {q(f["text"][:30])}: gap to the next entry {f["between"]:.1f}pt vs {f["internal"]:.1f}pt '
+        # Plural names every flat group (mixed kinds read as entries); the worst-case clause names f's own kind.
+        many, a_one = (("skill rows", "a skill row") if all(r["hkind"] == "skill" for r in flat)
+                       else ("entries", "an entry"))
+        one = "skill row" if f["hkind"] == "skill" else "entry"
+        fw = (f'(worst {q(f["text"][:30])}: gap to the next {one} {f["between"]:.1f}pt vs {f["internal"]:.1f}pt '
               f'inside it, ratio {f["ratio"]:.2f})')
-        return out + [(Level.WARN, f"group proximity: entries barely separated: gap between entries ≈ gap inside an "
-                 f"entry in {len(flat)}/{len(grp)} groups {fw}; aim for >= {PROX_HIER}\n"
+        return out + [(Level.WARN, f"group proximity: {many} barely separated: gap between {many} ≈ gap inside "
+                 f"{a_one} in {len(flat)}/{len(grp)} groups {fw}; aim for >= {PROX_HIER}\n"
                  + _hier_advice(f["hkind"]))]
     return out + [(Level.OK, f"group proximity: {len(grp)} groups, gap to next block >= {PROX_WARN} x internal gap "
              f'(tightest "{m["text"][:30]}": ratio {m["ratio"]:.2f}, {m["between"]:.1f}pt vs {m["internal"]:.1f}pt)')]

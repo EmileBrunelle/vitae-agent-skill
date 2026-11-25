@@ -426,3 +426,21 @@ def test_scratch_copies_do_not_feed_the_placeholder_list(tmp_path):
     (tmp_path / "_raw.typ").write_text('#x("[Scratch only]")\n', encoding="utf-8")
     (tmp_path / "_drawn.typ").write_text('#x("[Also scratch]")\n', encoding="utf-8")
     assert placeholders.placeholders_from(tmp_path) == ("[Real sample]",)
+
+
+def test_letter_placeholders_are_derived_from_the_template_source(tmp_path):
+    # A span nobody listed anywhere is a placeholder as soon as a template writes it (salutation included).
+    (tmp_path / "letter.typ").write_text("Dear \\[Zorblax Recipient\\],\n\n\\[Opening hook for this employer\\]\n", encoding="utf-8")
+    assert set(placeholders.placeholders_from(tmp_path)) == {"[Zorblax Recipient]", "[Opening hook for this employer]"}
+    ctx = _ctx(tmp_path, "Dear \\[Zorblax Recipient\\],")
+    found = placeholders.check_placeholders(ctx, tmp_path)
+    assert [lvl for lvl, _ in found] == [Level.FAIL] and "[Zorblax Recipient]" in found[0][1]
+
+
+def test_bare_salutation_is_not_a_placeholder_but_its_bracketed_form_is(tmp_path):
+    # Boundary: the same words without brackets are a legitimate salutation; only the bracketed span is the sample.
+    (tmp_path / "letter.typ").write_text("Dear \\[Hiring Manager\\],\n", encoding="utf-8")
+    bare = _ctx(tmp_path, "Dear Hiring Manager,", name="bare")
+    assert placeholders.check_placeholders(bare, tmp_path) == []
+    marked = _ctx(tmp_path, "Dear \\[Hiring Manager\\],", name="marked")
+    assert [lvl for lvl, _ in placeholders.check_placeholders(marked, tmp_path)] == [Level.FAIL]

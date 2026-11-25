@@ -53,7 +53,7 @@
 #text(weight: "bold")[\[Re: Application for the Backend Software Developer position\]]
 #v(10pt)
 
-Dear Hiring Manager,
+Dear \[Hiring Manager\],
 
 \[Paragraph 1 — why this employer specifically: a fact about their product,
 mission or team drawn from the posting or public sources, tied to what draws

@@ -71,7 +71,7 @@
 // Linear skill line — NEVER a data grid (ATS extracts grids column-by-column).
 // French: use [#cat~:] for the non-breaking space before the colon.
 // Markup (*bold*, #box) inside items only works if you pass [content],
-// e.g. #skill("Programming", [item, *item*]) — a "string" renders it literally.
+// e.g. #skill("[Category]", [\[item\], *\[item\]*]) — a "string" renders it literally.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
