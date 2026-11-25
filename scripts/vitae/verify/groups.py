@@ -289,6 +289,8 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     {kind: "group"|"sec", text, page, ...}. Single-line groups, last blocks on a
     page, rail titles beside the body and unlocated text are skipped."""
     gap_fn = gap_fn or (lambda page, up, lo: lo[2] - up[3])
+    heads = [h for h in heads if "page" in h and "y" in h and "x" in h]   # a partial mark has no position to measure from: skipped
+    secs = [sc for sc in secs if "page" in sc and "y" in sc]
     rows: list[DetailRow] = []
     skipped = 0
     # the marks tagged with their kind ("h" head / "s" section)
