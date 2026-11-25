@@ -3,13 +3,16 @@ than the gaps inside one; groups before a section title are left to the section 
 first bullet figures that measure_groups records. Mutation check, each verified by hand: PROX_HIER = 1.0 makes
 test_ratio_1_1_warns fail; dropping `not r["next_sec"]` makes test_group_before_a_section_is_excluded fail;
 `n >= 4` -> `n >= 3` (or `gaps[1]` -> `gaps[0]`) makes the org-gap tests fail."""
+from collections.abc import Sequence
+
 import pytest
-from test_verify_groups import head, line, sec
+from test_verify_groups import head, line, only_group, sec
+from vitae.core.base import GroupRow, Mark
 from vitae.core.level import Level
 from vitae.verify import groups
 
 
-def _run(between, secs=(), internal=10.0):
+def _run(between: float, secs: Sequence[Mark] = (), internal: float = 10.0):
     nxt = 20 + internal + between
     words = [line("Role", 0), line("Detail", 10 + internal), line("Next", nxt)]
     return groups.check_group_proximity("", "", heads=[head("Role", 0), head("Next", nxt)], secs=list(secs),
@@ -80,7 +83,7 @@ class TestHierarchy:
         assert _run(5)[0][0] is Level.FAIL
 
 
-def _entry(gap_head, pitch, org="Acme"):
+def _entry(gap_head: float, pitch: float, org: str = "Acme") -> GroupRow:
     """Role, org line, then three bullets `pitch` apart (the first `gap_head` after the org line), next head."""
     ys = [0.0, 12.0]
     ys.append(ys[-1] + 10 + gap_head)
@@ -88,7 +91,7 @@ def _entry(gap_head, pitch, org="Acme"):
     words = [line(t, y) for t, y in zip(("Role", "Acme", "B1", "B2", "B3"), ys)] + [line("Next", ys[-1] + 60)]
     h = head("Role", 0)
     h["org"] = org
-    return groups.measure_groups([h, head("Next", ys[-1] + 60)], [], [words])[0][0]
+    return only_group(groups.measure_groups([h, head("Next", ys[-1] + 60)], [], [words])[0])
 
 
 class TestOrgToFirstBullet:
@@ -98,6 +101,7 @@ class TestOrgToFirstBullet:
 
     def test_larger_head_gap_is_visible_in_the_figures(self):
         r = _entry(9.0, 3.0)
+        assert r["head_gap"] is not None and r["pitch"] is not None
         assert r["head_gap"] > r["pitch"]
 
     def test_needs_an_org_and_two_bullets(self):
@@ -105,7 +109,7 @@ class TestOrgToFirstBullet:
         words = [line("Role", 0), line("Acme", 12), line("B1", 24), line("Next", 80)]
         h = head("Role", 0)
         h["org"] = "Acme"
-        (r,), _ = groups.measure_groups([h, head("Next", 80)], [], [words])
+        r = only_group(groups.measure_groups([h, head("Next", 80)], [], [words])[0])
         assert r["head_gap"] is None and r["pitch"] is None             # one bullet: no pitch
 
     def test_wrapped_org_or_role_is_skipped(self):
@@ -113,12 +117,12 @@ class TestOrgToFirstBullet:
         words = [line("Role", 0), line("Acme", 12), line("Corp", 24), line("B1", 36), line("B2", 48), line("Next", 90)]
         h = head("Role", 0)
         h["org"] = "Acme Corp"
-        (r,), _ = groups.measure_groups([h, head("Next", 90)], [], [words])
+        r = only_group(groups.measure_groups([h, head("Next", 90)], [], [words])[0])
         assert r["head_gap"] is None
         # role wraps: the org lands on line 2
         words = [line("Role", 0), line("more", 12), line("Acme", 24), line("B1", 36), line("B2", 48), line("Next", 90)]
         h["org"] = "Acme"
-        (r,), _ = groups.measure_groups([h, head("Next", 90)], [], [words])
+        r = only_group(groups.measure_groups([h, head("Next", 90)], [], [words])[0])
         assert r["head_gap"] is None
 
     def test_printed_in_detail_but_never_a_finding(self, capsys):

@@ -4,10 +4,13 @@ FAIL/WARN thresholds), entry records, date adjacency in reading order, duplicate
 Everything runs on small synthetic word lists and marks (the shapes lib.typ's markers and the PDF word
 extraction give), so no PDF or Typst is needed."""
 import math
+from collections.abc import Sequence
 
 import pytest
+from vitae.core.base import DetailRow, GroupRow, Mark, SecRow, _Line
 from vitae.core.level import Level
 from vitae.verify import groups
+from vitae.verify.groups import dates, proximity
 
 PROX_THRESHOLDS = (groups.PROX_FAIL, groups.PROX_WARN)
 
@@ -19,6 +22,11 @@ def W(x0, y0, x1, y1, t):
 def line(text, y, x=10.0, h=10.0, w=40.0):
     """One word of `text` on its own text line starting at y."""
     return W(x, y, x + w, y + h, text)
+
+
+def text_line(*words) -> _Line:
+    """A text line holding `words` (only its words matter to the tests that use it)."""
+    return _Line(y0=0.0, y1=10.0, c=5.0, x0=0.0, words=list(words))
 
 
 # ---------------------------------------------------------------- _gnorm
@@ -111,22 +119,36 @@ class TestFindRun:
 class TestLineIndex:
     def test_matches_by_identity_not_equality(self):
         a, b = W(0, 0, 5, 5, "x"), W(0, 0, 5, 5, "x")           # equal values, distinct objects
-        lines = [{"words": [a]}, {"words": [b]}]
+        lines = [text_line(a), text_line(b)]
         assert groups._line_index(lines, [b]) == 1
         assert groups._line_index(lines, [a]) == 0
 
     def test_absent_word_is_none(self):
-        assert groups._line_index([{"words": [W(0, 0, 1, 1, "x")]}], [W(0, 0, 1, 1, "x")]) is None
+        assert groups._line_index([text_line(W(0, 0, 1, 1, "x"))], [W(0, 0, 1, 1, "x")]) is None
 
 
 # ---------------------------------------------------------------- measure_groups
 
-def head(text, y, page=1, x=10.0):
-    return {"kind": "entry", "text": text, "page": page, "x": x, "y": y}
+def head(text: str, y: float, page: int = 1, x: float = 10.0) -> Mark:
+    return Mark(kind="entry", text=text, page=page, x=x, y=y)
 
 
-def sec(text, y, page=1, x=10.0):
-    return {"text": text, "page": page, "x": x, "y": y}
+def sec(text: str, y: float, page: int = 1, x: float = 10.0) -> Mark:
+    return Mark(text=text, page=page, x=x, y=y)
+
+
+def only_group(rows: Sequence[DetailRow]) -> GroupRow:
+    """The single row of `rows`, which must be an entry/skill group."""
+    (r,) = rows
+    assert r["kind"] == "group"
+    return r
+
+
+def only_sec(rows: Sequence[DetailRow]) -> SecRow:
+    """The single section-title row among `rows`."""
+    (r,) = [r for r in rows if r["kind"] == "sec"]
+    assert r["kind"] == "sec"
+    return r
 
 
 class TestMeasureGroups:
@@ -134,7 +156,7 @@ class TestMeasureGroups:
         words = [line("Role", 0), line("Org", 12), line("Bullet", 24), line("Next", 50)]
         rows, skipped = groups.measure_groups([head("Role", 0), head("Next", 50)], [], [words])
         assert skipped == 0
-        (r,) = rows
+        r = only_group(rows)
         assert (r["kind"], r["text"], r["page"], r["n"]) == ("group", "Role", 1, 3)
         assert r["gaps"] == [2.0, 2.0]
         assert (r["internal"], r["between"], r["ratio"]) == (2.0, 16.0, 8.0)
@@ -142,7 +164,7 @@ class TestMeasureGroups:
 
     def test_the_largest_internal_gap_names_its_pair(self):
         words = [line("A", 0), line("B", 12), line("C", 40), line("Next", 80)]
-        (r,), _ = groups.measure_groups([head("A", 0), head("Next", 80)], [], [words])
+        r = only_group(groups.measure_groups([head("A", 0), head("Next", 80)], [], [words])[0])
         assert r["internal"] == 18.0 and r["pair_in"] == ("B", "C")
 
     def test_custom_gap_function_is_used(self):
@@ -152,13 +174,13 @@ class TestMeasureGroups:
         def gap(page, up, lo):
             calls.append((page, up[2], lo[2]))
             return 4.0
-        (r,), _ = groups.measure_groups([head("A", 0), head("Next", 50)], [], [words], gap)
+        r = only_group(groups.measure_groups([head("A", 0), head("Next", 50)], [], [words], gap)[0])
         assert r["internal"] == 4.0 and r["between"] == 4.0 and r["ratio"] == 1.0
         assert calls == [(1, 0.0, 12.0), (1, 12.0, 50.0)]
 
     def test_zero_internal_gap_is_an_infinite_ratio(self):
         words = [line("A", 0), line("B", 10), line("Next", 40)]            # B touches A
-        (r,), _ = groups.measure_groups([head("A", 0), head("Next", 40)], [], [words])
+        r = only_group(groups.measure_groups([head("A", 0), head("Next", 40)], [], [words])[0])
         assert r["internal"] == 0 and math.isinf(r["ratio"])
 
     def test_single_line_group_is_not_a_row_and_not_skipped(self):
@@ -185,7 +207,7 @@ class TestMeasureGroups:
         # (Side shares B's text line: were it taken as the next block, A would read as a two-line group)
         words = [line("A", 0), line("B", 12), line("Side", 12, x=110), line("Next", 50)]
         rows, _ = groups.measure_groups([head("A", 0), head("Side", 12, x=110), head("Next", 50)], [], [words])
-        (r,) = [r for r in rows if r["text"] == "A"]
+        r = only_group([r for r in rows if r["text"] == "A"])
         assert r["pair_btw"][1] == "Next" and r["between"] == 28.0
 
     def test_next_head_exactly_sixty_points_right_still_counts_as_same_column(self):
@@ -203,19 +225,20 @@ class TestMeasureGroups:
         # the cut is "more than 2 pt below"; a mark that close but past it opens the next block
         words = [line("A", 0), line("B", 12), line("C", 24)]
         rows, _ = groups.measure_groups([head("A", 0), head("C", 2.5)], [], [words])
-        assert [(r["text"], r["pair_btw"]) for r in rows if r["text"] == "A"] == [("A", ("B", "C"))]
+        assert [(r["text"], r["pair_btw"]) for r in rows if r["kind"] == "group" and r["text"] == "A"] == [
+            ("A", ("B", "C"))]
 
     def test_in_flow_title_starting_left_of_an_indented_head_is_read_in_the_flow(self):
         # gutter-rail style: the head is indented (x=30) and its next block, a title, starts just left of it
         # (27.9 < 30 - 2) yet extends past the body edge, so it is not a rail title
         words = [line("A", 0, x=30), line("B", 12, x=30), line("TITLE", 40, x=27.9, w=60)]
         rows, _ = groups.measure_groups([head("A", 0, x=30)], [sec("TITLE", 40, x=27.9)], [words])
-        (r,) = [r for r in rows if r["kind"] == "group"]
+        r = only_group([r for r in rows if r["kind"] == "group"])
         assert r["pair_btw"] == ("B", "TITLE")
 
     def test_section_title_is_a_next_block_of_the_group_above(self):
         words = [line("A", 0), line("B", 12), line("EDU", 40)]
-        (r,), _ = groups.measure_groups([head("A", 0)], [sec("EDU", 40)], [words])
+        r = only_group(groups.measure_groups([head("A", 0)], [sec("EDU", 40)], [words])[0])
         assert r["pair_btw"] == ("B", "EDU")
 
     def test_rail_title_left_of_the_body_reads_the_head_in_its_window(self):
@@ -225,7 +248,7 @@ class TestMeasureGroups:
                  line("Next", 42, x=100)]
         rows, _ = groups.measure_groups([head("A", 0, x=100), head("Next", 42, x=100)], [sec("RAIL", 40, x=10)],
                                         [words])
-        (r,) = [r for r in rows if r["kind"] == "group"]
+        r = only_group([r for r in rows if r["kind"] == "group"])
         assert r["pair_btw"][1] == "Next"
 
     def test_rail_title_whose_in_column_head_is_not_located_is_skipped(self):
@@ -241,7 +264,7 @@ class TestMeasureGroups:
     def test_section_rows_measure_gap_above_and_below_the_title(self):
         words = [line("A", 0), line("B", 12), line("EDU", 40), line("Item", 62)]
         rows, _ = groups.measure_groups([head("A", 0)], [sec("EDU", 40)], [words])
-        (s,) = [r for r in rows if r["kind"] == "sec"]
+        s = only_sec(rows)
         assert (s["before"], s["after"], s["ratio"]) == (18.0, 12.0, 1.5)
 
     def test_section_without_a_line_above_or_below_is_not_measured(self):
@@ -257,18 +280,18 @@ class TestMeasureGroups:
         assert [r for r in rows if r["kind"] == "sec"] == []
 
     @pytest.mark.parametrize("partial", [
-        ("head", {"kind": "entry", "text": "Ghost", "page": 1, "y": 20}),           # no x
-        ("head", {"kind": "entry", "text": "Ghost", "page": 1, "x": 10.0}),         # no y
-        ("head", {"kind": "entry", "text": "Ghost", "y": 20, "x": 10.0}),           # no page
-        ("sec", {"text": "EDU", "page": 1}),                                        # no y
-        ("sec", {"text": "EDU", "y": 40}),                                          # no page
+        ("head", Mark(kind="entry", text="Ghost", page=1, y=20)),                   # no x
+        ("head", Mark(kind="entry", text="Ghost", page=1, x=10.0)),                 # no y
+        ("head", Mark(kind="entry", text="Ghost", y=20, x=10.0)),                   # no page
+        ("sec", Mark(text="EDU", page=1)),                                          # no y
+        ("sec", Mark(text="EDU", y=40)),                                            # no page
     ], ids=["head-no-x", "head-no-y", "head-no-page", "sec-no-y", "sec-no-page"])
     def test_a_partial_mark_is_skipped_and_the_well_formed_head_is_measured_as_before(self, partial):
         words = [line("A", 0), line("B", 12), line("Next", 50)]
-        heads, secs = [head("A", 0), head("Next", 50)], []
+        heads, secs = [head("A", 0), head("Next", 50)], list[Mark]()
         (heads if partial[0] == "head" else secs).append(partial[1])
         rows, _ = groups.measure_groups(heads, secs, [words])
-        (r,) = rows
+        r = only_group(rows)
         assert (r["text"], r["internal"], r["between"], r["ratio"]) == ("A", 2.0, 28.0, 14.0)
 
     def test_section_title_beside_the_body_is_skipped(self):
@@ -289,7 +312,7 @@ def _two_lines_then_next(between, internal=10.0):
 
 def _prox(between, internal=10.0, **kw):
     heads, words = _two_lines_then_next(between, internal)
-    detail = []
+    detail: list[DetailRow] = []
     out = groups.check_group_proximity("", "", heads=heads, secs=kw.pop("secs", []),
                                        pages=[kw.pop("words", words)], detail=detail)
     return out, detail
@@ -332,10 +355,11 @@ class TestCheckGroupProximity:
     def test_nan_ratio_counts_as_failing(self, monkeypatch):
         # `not ratio >= PROX_FAIL`, not `ratio < PROX_FAIL`: a NaN must never pass as fine
         heads, words = _two_lines_then_next(7)
-        rows = [{"kind": "group", "text": "t", "page": 1, "n": 2, "gaps": [1], "internal": 1.0,
-                 "between": float("nan"), "ratio": float("nan"), "ls": [], "pair_in": ("a", "b"),
-                 "pair_btw": ("c", "d"), "next_sec": False, "head_gap": None, "pitch": None}]
-        monkeypatch.setattr(groups.proximity, "measure_groups", lambda *a, **k: (rows, 0))
+        rows: list[DetailRow] = [GroupRow(
+            kind="group", text="t", page=1, n=2, gaps=[1.0], internal=1.0, between=float("nan"),
+            ratio=float("nan"), hkind=None, ls=[], pair_in=("a", "b"), pair_btw=("c", "d"), next_sec=False,
+            head_gap=None, pitch=None)]
+        monkeypatch.setattr(proximity, "measure_groups", lambda *a, **k: (rows, 0))
         out = groups.check_group_proximity("", "", heads=heads, secs=[], pages=[words])
         assert out[-1][0] is Level.FAIL
 
@@ -360,22 +384,22 @@ class TestCheckGroupProximity:
         assert out[0][0] is Level.WARN and "no lib entry()/srow() heads" in out[0][1]
 
     def test_unavailable_typst_query_is_not_checked(self, monkeypatch):
-        monkeypatch.setattr(groups.proximity, "_typst_query", lambda *a, **k: None)
-        monkeypatch.setattr(groups.proximity, "pdf_backend", lambda: "poppler")
+        monkeypatch.setattr(proximity, "_typst_query", lambda *a, **k: None)
+        monkeypatch.setattr(proximity, "pdf_backend", lambda: "poppler")
         out = groups.check_group_proximity("cv.typ", "cv.pdf", pages=[[]])
         assert out == [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
 
     def test_unavailable_pdfium_words_name_the_reason(self, monkeypatch):
-        monkeypatch.setattr(groups.proximity, "pdf_backend", lambda: "pdfium")
-        monkeypatch.setattr(groups.proximity, "_boxes_unavailable", lambda pdf: "WHY")
-        monkeypatch.setattr(groups.proximity, "word_boxes", lambda pdf, with_text=False: None)
+        monkeypatch.setattr(proximity, "pdf_backend", lambda: "pdfium")
+        monkeypatch.setattr(proximity, "_boxes_unavailable", lambda pdf: "WHY")
+        monkeypatch.setattr(proximity, "word_boxes", lambda pdf, with_text=False: None)
         out = groups.check_group_proximity("", "x.pdf", heads=[head("A", 0)], secs=[])
         assert len(out) == 1 and "WHY" in out[0][1] and out[0][0] is Level.WARN
 
     def test_word_boxes_are_flattened_when_pages_are_not_given(self, monkeypatch):
         heads, words = _two_lines_then_next(20)
         wb = [[((w[0], w[1], w[2], w[3]), w[4]) for w in words]]
-        monkeypatch.setattr(groups.proximity, "word_boxes", lambda pdf, with_text=False: wb)
+        monkeypatch.setattr(proximity, "word_boxes", lambda pdf, with_text=False: wb)
         out = groups.check_group_proximity("", "", heads=heads, secs=[])
         assert [lv for lv, _ in out] == [Level.OK]
 
@@ -413,8 +437,8 @@ class TestSectionProximity:
 
 # ---------------------------------------------------------------- _entry_records
 
-def mk(kind, **kw):
-    return {"kind": kind, **kw}
+def mk(kind: str, text: str = "") -> Mark:
+    return Mark(kind=kind, text=text)
 
 
 class TestEntryRecords:
@@ -430,7 +454,7 @@ class TestEntryRecords:
         assert r["date_first"] is False
 
     def test_first_part_of_a_kind_wins_and_date_first_is_set_once(self):
-        e, o1, o2, d = mk("entry"), mk("org", n=1), mk("org", n=2), mk("date")
+        e, o1, o2, d = mk("entry"), mk("org", "1"), mk("org", "2"), mk("date")
         (r,) = groups._entry_records([e, o1, o2, d])
         assert r["org"] is o1 and r["date"] is d and r["date_first"] is False
 
@@ -493,9 +517,9 @@ class TestFirstWord:
 
 # ---------------------------------------------------------------- check_date_adjacency
 
-H = {"kind": "entry", "text": "Dev", "page": 1, "x": 10.0, "y": 0.0, "dated": True, "anchor": True}
-D = {"kind": "date", "page": 1, "x": 200.0, "y": 0.0, "w": 30.0, "h": 10.0}
-O = {"kind": "org", "page": 1, "x": 10.0, "y": 14.0, "w": 40.0, "h": 10.0}
+H = Mark(kind="entry", text="Dev", page=1, x=10.0, y=0.0, dated=True, anchor=True)
+D = Mark(kind="date", text="", page=1, x=200.0, y=0.0, w=30.0, h=10.0)
+O = Mark(kind="org", text="", page=1, x=10.0, y=14.0, w=40.0, h=10.0)
 DEV = WB(10, 0, 30, 10, "Dev")
 DATE = WB(200, 0, 230, 10, "2020")
 ACME = WB(10, 14, 50, 24, "Acme")
@@ -523,14 +547,17 @@ class TestCheckDateAdjacency:
         assert msg.startswith("lengthen the org/descriptor line of")
 
     def test_date_read_in_the_middle_of_the_role_fails(self):
-        h = {**H, "text": "Senior Dev"}
+        h = H.copy()
+        h["text"] = "Senior Dev"
         words = [WB(10, 0, 40, 10, "Senior"), DATE, WB(45, 0, 70, 10, "Dev"), ACME]
         fails, _, _ = adj([h, D, O], words)
         (msg,) = fails
         assert "read in the middle of its role" in msg and 'before "Dev"' in msg
 
     def test_date_read_after_the_next_entry_starts_fails(self):
-        h2 = {**H, "text": "Ops", "y": 50.0}
+        h2 = H.copy()
+        h2["text"] = "Ops"
+        h2["y"] = 50.0
         words = [DEV, ACME, WB(10, 50, 30, 60, "Ops"), DATE]
         # no org mark so the org-order check cannot be the one that fires
         fails, _, _ = adj([H, D, h2], words)
@@ -550,18 +577,23 @@ class TestCheckDateAdjacency:
         assert stats["unmeasured"] == 1 and stats["measured"] == 0
 
     def test_date_on_another_page_fails(self):
-        d = {**D, "page": 2}
+        d = D.copy()
+        d["page"] = 2
         fails, _, _ = adj([H, d, O], [DEV, DATE, ACME])
         assert "its date is set on page 2, its head on page 1" in fails[0]
 
     def test_head_page_beyond_the_pdf_is_only_a_note(self):
-        h = {**H, "page": 3}
-        d = {**D, "page": 3}
+        h = H.copy()
+        h["page"] = 3
+        d = D.copy()
+        d["page"] = 3
         fails, warns, _ = adj([h, d, O], [DEV, DATE, ACME])
         assert fails == [] and 'page 3 not in the PDF' in warns[0]
 
     def test_undated_entry_is_counted_and_never_fails(self):
-        fails, warns, stats = adj([{**H, "dated": False}], [DEV])
+        undated = H.copy()
+        undated["dated"] = False
+        fails, warns, stats = adj([undated], [DEV])
         assert (fails, warns) == ([], [])
         assert stats == {"measured": 0, "undated": 1, "unmeasured": 0}
 
@@ -571,12 +603,12 @@ class TestCheckDateAdjacency:
         assert stats["unmeasured"] == 1
 
     def test_head_without_lib_markers_is_noted_when_others_have_them(self):
-        old = {"kind": "entry", "text": "Old", "page": 1, "x": 10.0, "y": 80.0}
+        old = Mark(kind="entry", text="Old", page=1, x=10.0, y=80.0)
         fails, warns, _ = adj([H, D, O, old], [DEV, DATE, ACME])
         assert fails == [] and any('entry "Old": no lib markers' in w for w in warns)
 
     def test_no_entry_carries_markers_is_one_note(self):
-        old = {"kind": "entry", "text": "Old", "page": 1, "x": 10.0, "y": 0.0}
+        old = Mark(kind="entry", text="Old", page=1, x=10.0, y=0.0)
         fails, warns, stats = adj([old], [DEV])
         assert fails == [] and len(warns) == 1 and "no lib markers" in warns[0]
 
@@ -591,39 +623,50 @@ class TestCheckDateAdjacency:
 
     def test_org_line_twelve_points_from_its_marker_is_still_matched(self):
         # the org words are looked up within max(h, 6) + 10 pt of the marker's y
-        o = {**O, "x": 20.0, "y": 14.0, "h": 6.0}
+        o = O.copy()
+        o["x"] = 20.0
+        o["y"] = 14.0
+        o["h"] = 6.0
         acme = WB(20, 21, 60, 31, "Acme")                      # centre 26: 12 pt below the marker
         fails, warns, stats = adj([H, D, o], [DEV, DATE, acme])
         assert (fails, warns) == ([], []) and stats["measured"] == 1
 
     def test_org_line_not_found_is_a_note_not_a_failure(self):
-        o = {**O, "x": 20.0}                       # no word starts at the org marker's x
+        o = O.copy()
+        o["x"] = 20.0
         fails, warns, stats = adj([H, D, o], [DEV, DATE])
         assert fails == [] and any("employer line words not found" in w for w in warns)
         assert stats["measured"] == 1
 
     def test_unavailable_word_positions_are_a_note(self, monkeypatch):
-        monkeypatch.setattr(groups.dates, "word_boxes", lambda pdf, with_text=False: None)
-        monkeypatch.setattr(groups.dates, "pdf_backend", lambda: "poppler")
+        monkeypatch.setattr(dates, "word_boxes", lambda pdf, with_text=False: None)
+        monkeypatch.setattr(dates, "pdf_backend", lambda: "poppler")
         warns = []
         assert groups.check_date_adjacency("", "x.pdf", marks=[H, D, O], warns=warns) == []
         assert warns == ["pdftotext unavailable (word positions needed)"]
 
     def test_inline_date_after_the_role_is_measured_on_the_head_line(self):
-        d = {**D, "x": 35.0, "inline": True, "w": 25.0}
+        d = D.copy()
+        d["x"] = 35.0
+        d["inline"] = True
+        d["w"] = 25.0
         words = [DEV, WB(35, 0, 60, 10, "2020"), ACME]
         fails, warns, stats = adj([H, d, O], words)
         assert (fails, stats["measured"]) == ([], 1)
 
     def test_inline_date_read_after_the_org_line_fails_with_the_rebuild_advice(self):
-        d = {**D, "x": 35.0, "inline": True, "w": 25.0}
+        d = D.copy()
+        d["x"] = 35.0
+        d["inline"] = True
+        d["w"] = 25.0
         words = [DEV, ACME, WB(35, 0, 60, 10, "2020")]
         (msg,), _, _ = adj([H, d, O], words)
         assert msg.startswith("rebuild entry \"Dev\" with the family's unmodified job()")
         assert "already set its date inline after the role" in msg
 
     def test_old_lib_head_without_anchor_gets_the_recopy_advice(self):
-        h = {k: v for k, v in H.items() if k != "anchor"}
+        h = H.copy()
+        del h["anchor"]
         (msg,), _, _ = adj([h, D, O], [DEV, ACME, DATE])
         assert "recopy the skill's lib.typ" in msg
 
@@ -633,17 +676,18 @@ class TestCheckDateAdjacency:
         assert "by at least 153pt" in msg
 
     def test_org_line_that_already_reaches_the_date_gets_the_rebuild_advice(self):
-        o = {**O, "w": 200.0}
+        o = O.copy()
+        o["w"] = 200.0
         (msg,), _, _ = adj([H, D, o], [DEV, WB(10, 14, 230, 24, "Acme"), DATE])
         assert "already runs its org line under the date" in msg
 
     def test_words_are_read_from_the_pdf_when_not_given(self, monkeypatch):
-        monkeypatch.setattr(groups.dates, "word_boxes", lambda pdf, with_text=False: [[DEV, DATE, ACME]])
+        monkeypatch.setattr(dates, "word_boxes", lambda pdf, with_text=False: [[DEV, DATE, ACME]])
         assert groups.check_date_adjacency("", "x.pdf", marks=[H, D, O]) == []
 
     def test_marks_come_from_typst_query_when_not_given(self, monkeypatch):
         seen = []
-        monkeypatch.setattr(groups.dates, "_typst_query", lambda typ, sel, root=None: seen.append(sel) or [H, D, O])
+        monkeypatch.setattr(dates, "_typst_query", lambda typ, sel, root=None: seen.append(sel) or [H, D, O])
         groups.check_date_adjacency("cv.typ", "", words=[[DEV, DATE, ACME]])
         assert seen == [groups.ENTRY_MARKS]
 
@@ -675,10 +719,10 @@ class TestDuplicateNames:
         assert groups.check_duplicate_names([{"text": "---"}], [{"kind": "skill", "text": "..."}]) == []
 
     def test_first_title_with_a_key_names_the_clash(self):
-        secs = [{"text": "Skills"}, {"text": "SKILLS"}]
+        secs: list[Mark] = [{"text": "Skills"}, {"text": "SKILLS"}]
         out = groups.check_duplicate_names(secs, [{"kind": "skill", "text": "skills"}])
         assert 'section title "Skills"' in out[0]
 
     def test_each_clashing_row_is_reported(self):
-        heads = [{"kind": "skill", "text": "A"}, {"kind": "skill", "text": "B"}]
+        heads: list[Mark] = [{"kind": "skill", "text": "A"}, {"kind": "skill", "text": "B"}]
         assert len(groups.check_duplicate_names([{"text": "a"}, {"text": "b"}], heads)) == 2
