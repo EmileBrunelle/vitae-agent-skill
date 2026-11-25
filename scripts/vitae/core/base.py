@@ -6,7 +6,7 @@ run prints last is returned by the mode that computes it (see `_run` in vitae/ve
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 # ---------- shapes passed around ----------
 # Geometry, in PDF points unless said otherwise (pdftotext -bbox).
@@ -21,29 +21,49 @@ GapFn = Callable[[int, LineBox, LineBox], float]   # optical gap (pt) between tw
 HiddenStat = tuple[int, str, Box, float, float | None, bool]
 
 
-class Mark(TypedDict, total=False):
+class _MarkExtras(TypedDict, total=False):
+    """The keys only some marks carry (shared by Mark and HeadMark)."""
+    kind: str           # "entry" / "skill" (heads) or "date" / "org" / "date-col" (parts)
+    org: str            # heads only
+    w: float            # measured cell width (parts)
+    h: float            # measured cell height (parts)
+    dated: bool         # entry heads of a lib that tags them: given a date?
+    anchor: bool        # entry heads of a lib that tags them: date anchor present
+    inline: bool        # date parts: set inline after the role
+
+
+class Mark(_MarkExtras):
     """One value of lib.typ's invisible markers, read back by `typst query`
-    (<vitae-head> / <vitae-part> / <vitae-sec>). Every key is optional: an old
-    lib omits some, and the different mark kinds carry different subsets.
-    kind: "entry" / "skill" (heads) or "date" / "org" / "date-col" (parts)."""
-    kind: str
+    (<vitae-head> / <vitae-part> / <vitae-sec>). Only `text` is on every one: a
+    section title has no x and no kind, and the fallback marks built from the
+    source (and partial marks of an old lib) carry no position. The gates that
+    measure positions work on HeadMark / SecMark, which they narrow to."""
     text: str
-    org: str
+    page: NotRequired[int]
+    x: NotRequired[float]
+    y: NotRequired[float]
+
+
+class HeadMark(_MarkExtras):
+    """A Mark known to carry its x: an entry head, skill label or part (<vitae-head> / <vitae-part>)."""
+    text: str
     page: int
     x: float
     y: float
-    w: float            # measured cell width (parts)
-    h: float            # measured cell height (parts)
-    dated: bool         # entry heads: given a date?
-    anchor: bool        # entry heads: lib's date anchor present
-    inline: bool        # date parts: set inline after the role
+
+
+class SecMark(TypedDict):
+    """A section title mark (<vitae-sec>) with its position: no x, no kind."""
+    text: str
+    page: int
+    y: float
 
 
 class _EntryRecord(TypedDict):
     """_entry_records(): an entry head with the part marks that follow it."""
-    head: Mark
-    date: Mark | None
-    org: Mark | None
+    head: HeadMark
+    date: HeadMark | None
+    org: HeadMark | None
     date_first: bool | None
 
 
