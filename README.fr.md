@@ -90,7 +90,7 @@ Le CV peut être dans n'importe quelle langue que Typst sait composer. Les contr
 
 Notes par plateforme :
 - **Linux / macOS** : fonctionne tel quel (Apple Silicon pris en charge).
-- **Windows** (référence : Windows 11+, à jour) : `python scripts\verify.py --doctor` s'exécute directement, sans passer par un « doctor » PowerShell; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` ou `scoop install poppler` — ou utilisez WSL/Git Bash et suivez plutôt la voie POSIX ([`scripts/verify.sh`](scripts/verify.sh), une enveloppe autour de `verify.py`).
+- **Windows** (référence : Windows 11+, à jour) : `python scripts\verify.py --doctor` s'exécute directement; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` ou `scoop install poppler`. Ailleurs, `python3 scripts/verify.py`.
 - **Environnements pip seul** (aucun gestionnaire de paquets, aucun droit admin) : `pip install typst pypdfium2 Pillow pypdf` couvre tout sauf le mode académique (qui requiert poppler) : il compile le PDF (`typst` via son API Python), mesure le remplissage des pages, produit les PNG de pages et exécute les contrôles d'adjacence des dates, de proximité des groupes, de texte caché et de texte coupé (text-clip) (`pypdfium2` pour les comptes de pages, les boîtes de mots et le rendu, `pypdf` pour le contrôle du texte minuscule), et `python3 scripts/verify.py --doctor` affiche `OK (Python)`; l'extraction de texte ATS n'est qu'indicative. Avec `pypdf` seul (sans `pypdfium2`), ces quatre contrôles sont sautés (WARN) et `--doctor` affiche `DEGRADED` en les nommant. Pour une extraction de qualité poppler (et le mode académique), installez `poppler-utils` (ou `poppler`) avec le gestionnaire de paquets du système; `pip install typst==0.15.0` fournit typst sans droits admin (`--user` ou un venv). Lancez `python3 scripts/verify.py --doctor` pour les indications d'installation (voir [`references/steps/0-env.md`](references/steps/0-env.md)); voir [`references/ats.md`](references/ats.md) pour la mise en garde connue au sujet de pypdf.
 - **Agents et modèles testés** : voir [`docs/models.md`](docs/models.md) pour le verdict par plateforme (essais uniques, n=1), les notes sur le bac à sable hors ligne et l'import par zip, et les modèles utilisables comme vérificateur visuel.
 
@@ -118,7 +118,7 @@ templates/                    # points de départ Typst
     swiss-grid/resume-2page.typ #   l'exemple travaillé sur 2 pages
 scripts/                      # Python, stdlib d'abord
   pick_design.py              #   tirage déterministe du design (famille, polices, libellés, puces) ; --emit-typ imprime le préambule
-  verify.py, verify.sh        #   gate + doctor + --tune ; verify.sh est un wrapper POSIX
+  verify.py                   #   gate + doctor + --tune
   verify_*.py                 #   modules de gate sortis de verify.py
   look.py, measure_fill.py    #   aide au contrôle visuel ; mesure de couverture d'encre
   gen_palette.py              #   palettes validées en contraste

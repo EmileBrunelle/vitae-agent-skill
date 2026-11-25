@@ -71,7 +71,7 @@ Measured 2026-10-28 on one tenant: the parser loses the employer on one-line `Ti
 
 ## Verification commands
 
-One command in any POSIX shell: `scripts/verify.sh cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]` runs everything below plus the fill measurement and exits non-zero on any failure. `scripts/verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX` runs a page-fill loop by bisection on `#set par(leading:, spacing:)` and writes the winning values — it does NOT replace the gate; run the gate after it. The individual checks:
+One command: `python3 scripts/verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX]` runs everything below plus the fill measurement and exits non-zero on any failure. `scripts/verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX` runs a page-fill loop by bisection on `#set par(leading:, spacing:)` and writes the winning values — it does NOT replace the gate; run the gate after it. The individual checks:
 
 ```
 pdfinfo cv.pdf | grep Pages          # exact page count

@@ -26,7 +26,7 @@ Usage:
     verify_academic.py --doctor
 
 When the five checks hold, the step-7 review record (`review.md` beside the CV) is checked like verify.py does; --rebuild
-skips only that check (the candidate's rebuild.sh, never the agent's final run).
+skips only that check (the candidate's rebuild.py, never the agent's final run).
 
 Exit codes: 0 PASS, 1 FAIL, 2 usage error.
 

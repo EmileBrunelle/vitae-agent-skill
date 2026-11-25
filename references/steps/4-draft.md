@@ -71,6 +71,7 @@
    is content and rule 2 applies to it in the most prominent position on the
    page). Where a family declares its own **variant** axis (one does), apply the
    drawn variant too.
+   **Languages section: only when** the facts list a language other than the CV's own, or the market or posting calls for it (bilingual role, Canadian federal second-official-language levels, Québec, a posting requiring a language, a candidate applying outside their home-language market); otherwise omit it (« English (native) » on an English CV for an English market is filler).
    Every dated entry must use lib `entry()`: a hand-built grid is not measured by the date-adjacency gate. Check that verify.py's `INFO  date adjacency: N lib entries measured, …` line counts every dated entry in the CV.
    Fresh fonts beyond the pool: only on the user's explicit request, or when
    nothing in the pool is available — then follow core.md § Font pools

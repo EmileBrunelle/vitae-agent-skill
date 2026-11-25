@@ -1,6 +1,6 @@
 // vitae template — fill the data, keep the system.
 // Design rules: references/design/core.md · ATS rules: references/ats.md
-// Verify after EVERY edit: scripts/verify.sh resume.typ 1 94 96
+// Verify after EVERY edit: python3 scripts/verify.py resume.typ 1 94 96
 
 // ---------- Shared mechanics (templates/lib.typ) ----------
 // The verified MECHANICS live in lib.typ and are imported, never re-typed:
@@ -168,7 +168,7 @@ with the field's key terms in *bold*.]
 #skill("[Category from the facts]", "[item], [item], [item], [item], [item], [item]")
 ]
 
-// ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native. Keep only if the facts list a language beyond the CV's own, or the market/posting asks; else delete the section ----------
 #section("Languages")[
 [Language] ([level as stated]) #h(8pt)#drawn-marker("dot", accent)#h(8pt) [Language] ([level as stated])
 ]

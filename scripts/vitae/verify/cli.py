@@ -29,7 +29,7 @@ bullet characters, template placeholders left in the text); last, the gates that
 group proximity, date adjacency, forced line breaks and `~`, duplicate names).
 When all of those pass, the step-7 review record (`review.md` beside the CV, vitae/verify/review_record.py) is checked; the
 --allow-placeholders runs of the shipped templates, --gates and --rebuild skip it. --rebuild is for the candidate's own
-rebuild.sh after re-tailoring the .typ (the edit makes the record stale); it says so on the verdict line, and the agent's
+rebuild.py after re-tailoring the .typ (the edit makes the record stale); it says so on the verdict line, and the agent's
 final verify never uses it.
 
 Design principle (scope): the scripts know no language and no country. They make only objective checks: what a PDF, a
@@ -121,7 +121,7 @@ def _usage(prog: str) -> str:
     return (f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--allow-placeholders] [--rebuild]\n"
             f"         --facts: WARN on every year / numeric month+year / number in the CV absent from the facts file\n"
             f"         --allow-placeholders: skip the template-placeholder gate; for checking the shipped templates themselves, never a real CV\n"
-            f"         --rebuild: skip ONLY the review-record check, for the candidate's rebuild.sh; never the agent's final verify\n"
+            f"         --rebuild: skip ONLY the review-record check, for the candidate's rebuild.py; never the agent's final verify\n"
             f"         --json: ONE JSON object on stdout, diagnostics on stderr; also for --doctor, other modes exit 2\n"
             f"           {{tool, version, file, pages_expected, fill:{{min,max,measured}}, verdict PASS|FAIL, exit_code,\n"
             f"            checks:[{{level, check, message}}], footer}}; a usage error is {{verdict:ERROR, exit_code:2, error}}\n"
