@@ -85,7 +85,7 @@ from typing import NoReturn
 
 from vitae.core.base import _FOOTER_GATE, HIDDEN_PPI, DetailRow
 from vitae.core.env import pdf_backend, preflight
-from vitae.verify.cv import _check_cv, check_all
+from vitae.verify.cv import _ALLOW_REFUSED, _check_cv, check_all, placeholders_allowed
 from vitae.verify.gates import LAYOUT_GATES, make_context
 from vitae.verify.pdf import extract_text, pdf_unreadable, render_crops, render_pages
 from vitae.verify.registry import run_gates
@@ -203,8 +203,12 @@ def main() -> tuple[int, str | None]:
             sys.exit(1)
         # LO alone is ignored: the bounds come as a pair or not at all
         bounds = ((float(ta.lo), float(ta.hi)) if ta.hi is not None else (None, None))
+        allow = "--allow-placeholders" in argv
+        if allow and not placeholders_allowed(ta.typ):
+            print(_ALLOW_REFUSED)
+            sys.exit(1)
         return tune(ta.typ, int(ta.pages), int(ta.fill_min), int(ta.fill_max),
-                    lo=bounds[0], hi=bounds[1], allow_placeholders="--allow-placeholders" in argv)
+                    lo=bounds[0], hi=bounds[1], allow_placeholders=allow)
 
     # Default mode: the one-file gate. --facts is the only option here, so it is cut out by hand.
     allow_placeholders = "--allow-placeholders" in argv

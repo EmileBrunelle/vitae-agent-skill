@@ -34,7 +34,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.719em, spacing: 0.799em)
+#set par(justify: false, leading: 0.653em, spacing: 0.733em)
 
 // device: oversized dark title over a heavy accent underline as wide as the title
 #let section(t, body, airy: false) = block(breakable: false,
@@ -54,14 +54,14 @@
 #let skill(cat, items) = srow(box[#text(weight: "bold")[#cat]#h(12pt)], items)
 
 #set list(marker: drawn-marker("square", accent2, bold: true), indent: 10pt,
-  spacing: 0.604em, body-indent: 6pt)
+  spacing: 0.549em, body-indent: 6pt)
 
 // header: oversized accent name left, contacts on one line below
 #block(above: 0pt, below: 12pt)[
   #text(font: dispf, size: 29pt, weight: "bold", fill: accent)[Firstname Lastname]
-  #v(-3pt)
+  #v(0pt)
   #text(size: 11pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-1pt)
+  #v(2pt)
   // SPECIALITIES LINE — the skills the facts support, before the profile prose, so
   // the 30-second scan gets the stack first and retailoring per application is
   // one line. NO `tracking`: letterspacing extracts as "N E X T" and stops
@@ -71,7 +71,7 @@
   #text(font: dispf, size: 8.5pt, weight: "bold", fill: accent2)[#specline(
     ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
     sep: [ #box(width: 3pt, height: 3pt, fill: accent2) ])]
-  #v(-3pt)
+  #v(1pt)
   #text(size: 9pt, fill: muted)[
     #nb(ic.pin)[\[City, Region\]] #h(9pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(9pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \

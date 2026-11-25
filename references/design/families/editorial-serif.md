@@ -9,5 +9,5 @@ The serif family of the roster, modernised: a **serif display face over a sans b
 - **Header**: one grid ROW — serif name 25pt bold + accent role line left, contact column right (photo slot = right cell). No rule.
 - **Type**: serif display over a humanist sans body; body stays 10.5pt — the sans body is what keeps it out of the LaTeX register. Pool: `pick_design.py` FONTS `editorial-serif`.
 - **Accents** (mono harmony): `#1f3a5f` navy · `#5b2a5e` plum · `#72191f` oxblood (bronze `#6e4a1f` was dropped: muddy at text sizes, see the muddy-hue veto).
-- **Verified**: leading `0.764em`, spacing `0.844em`, section `above` 15pt (20pt airy), 3pt after the title (5.0:1) → 1 page, fill 96%, white-run ratio 3.00 (1.5% of page height). The boundary is carried by the kicker bar *plus* a 5:1 ratio; buying that air cost 0.07em of leading. Default labels: Summary / Technical Skills.
+- **Verified**: leading `0.678em`, spacing `0.758em`, section `above` 15pt (20pt airy), 3pt after the title (5.0:1) → 1 page, fill 96%, white-run ratio 3.75 (1.5% of page height). The boundary is carried by the kicker bar *plus* a 5:1 ratio; buying that air cost 0.07em of leading. Default labels: Summary / Technical Skills.
 - Markets: academia, law, finance, public sector, DACH, France. Safe for conservative. Photo: yes.

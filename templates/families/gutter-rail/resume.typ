@@ -93,7 +93,7 @@
 #set page(paper: "us-letter", fill: paper, margin: (x: 1.5cm, top: 1.5cm, bottom: 1.5cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.890em, spacing: 0.980em)
+#set par(justify: false, leading: 0.774em, spacing: 0.864em)
 
 // DEVICE: a GUTTER RAIL. Each section carries a 0.9pt hue-A rule running down
 // the margin beside it, for exactly the height of that section and no further —
@@ -179,7 +179,7 @@
 // vocabulary instead of inventing a second one). Emits no text. The roster's
 // other drawn markers are a filled square, an outlined square and a circle.
 #set list(marker: box(width: 1.5pt, height: 5.4pt, fill: accent2,
-    baseline: -0.6pt), indent: 10pt, spacing: 0.526em, body-indent: 7pt)
+    baseline: -0.6pt), indent: 10pt, spacing: 0.457em, body-indent: 7pt)
 
 // HEADER: a STATUSLINE STRIP first, then the identity. The contacts ride the top
 // of the page as a run of discrete segments — the bar of a themed desktop, or

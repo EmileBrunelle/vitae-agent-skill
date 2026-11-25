@@ -33,7 +33,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.586em, spacing: 0.686em)
+#set par(justify: false, leading: 0.539em, spacing: 0.639em)
 
 // DEVICE: a small accent LOZENGE (a rotated filled square — vector, emits no
 // text) centred above a CENTRED title. The engraver's spot: one mark, dead
@@ -64,14 +64,14 @@
   role-st: it => text(size: 11.5pt, weight: "bold", it),
   date-st: it => text(size: 9.5pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it),
-  meta-size: 9.5pt, below: 3pt)
+  meta-size: 9.5pt, above: 12pt, below: 5.5pt)
 
 // skills: the label, then a FULL STOP, then the items — the engraved
 // catalogue/trade-card convention, where the period was the separator because
 // a rule or a colour was not available. Nobody else punctuates with a period.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat.], items)
 
-#set list(marker: drawn-marker("dash", accent), indent: 10pt, spacing: 0.45em,
+#set list(marker: drawn-marker("dash", accent), indent: 10pt, spacing: 0.414em,
   body-indent: 6pt)
 
 // HEADER: fully CENTRED — the social-stationery lockup. Name, a short centred

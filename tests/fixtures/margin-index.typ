@@ -23,7 +23,7 @@
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 11pt, lang: "en", fill: dark, hyphenate: false,
   number-type: "old-style", number-width: "proportional")
-#set par(justify: false, leading: 0.839em, spacing: 1.039em)
+#set par(justify: false, leading: 0.833em, spacing: 1.033em)
 
 // device: NO rule, NO bar — the title hangs in the left margin column beside
 // its own content. Single-ROW grid per section (safe: ats.md), title cell first
@@ -56,7 +56,7 @@
 // jump does the separating (nobody else uses italic as the skills device)
 #let skill(cat, items) = srow(text(style: "italic")[#cat], items)
 
-#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.85em, body-indent: 6pt)
+#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.844em, body-indent: 6pt)
 
 // header: name and role in the content column, contacts on one line under it;
 // the margin column stays empty here (extraction keeps the name first)

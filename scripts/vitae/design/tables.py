@@ -58,7 +58,7 @@ class FontPool(TypedDict):
 #   for scripts/verify.py. The target is DERIVED from the bottom margin
 #   ((100 − bottom-margin%) − 0..2%), which is why a roomier family aims lower:
 #   a 1.2cm bottom leaves 94-96, a 1.6cm bottom leaves 92-94.
-# order: the family's DEFAULT section order, from the 7 legal role names only
+# order: the family's DEFAULT section order, from the legal role names only
 #   (see ORDER_ROLES). A target market's own convention (references/regional.md
 #   § Section order) ALWAYS overrides it.
 # spec: does the header carry a SPECIALITIES LINE (the skills the facts support,

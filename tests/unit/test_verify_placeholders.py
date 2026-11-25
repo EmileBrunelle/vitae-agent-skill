@@ -2,6 +2,7 @@
 
 The CVs are tiny Typst documents compiled with the `typst` package, read back through the pdfium extractor."""
 import dataclasses
+import pathlib
 import shutil
 import subprocess
 import sys
@@ -335,3 +336,94 @@ def test_stray_bracket_does_not_make_a_huge_warn(tmp_path):
     text = "Opening \\[ " + "word " * 60 + " closing \\] here and a real \\[note here\\]."
     out = placeholders.check_placeholders(_ctx(tmp_path, text))
     assert [lvl for lvl, _ in out] == [Level.WARN] and "[note here]" in out[0][1] and len(out[0][1]) < 200
+
+
+@pytest.fixture
+def shipped_resume(skill_copy):
+    """The shipped resume.typ (with its lib/icons) inside the scratch skill: the gate's PDF/PNGs land in the copy."""
+    for name in ("resume.typ", "lib.typ", "icons.typ"):
+        shutil.copy(TEMPLATES / name, skill_copy / "templates" / name)
+    return skill_copy / "scripts" / "verify.py", skill_copy / "templates" / "resume.typ"
+
+
+def test_pass_verdict_points_to_step_7_review_and_a_fail_does_not(shipped_resume):
+    """Dropping the NOTE print fails the first assert."""
+    script, typ = shipped_resume
+    out = _verify(str(typ), "1", "--allow-placeholders", script=script).splitlines()
+    verdict = next(i for i, ln in enumerate(out) if ln.startswith("PASS "))
+    assert "step 7" in out[verdict + 1] and "references/steps/7-review.md" in out[verdict + 1].replace("\\", "/")
+    failed = _verify(str(typ), "1", script=script)       # no flag: the template's samples FAIL the placeholder gate
+    assert "FAIL  template placeholder left in the text" in failed
+    assert "PASS " not in failed and "7-review.md" not in failed
+
+
+def test_lowered_fill_pass_prints_the_warn_right_under_it_then_the_step_7_note(shipped_resume):
+    script, typ = shipped_resume
+    typ.write_text("// vitae: pages=1 fill=94-96\n" + typ.read_text(encoding="utf-8"), encoding="utf-8")
+    out = _verify(str(typ), "1", "60", "100", "--allow-placeholders", script=script).splitlines()
+    verdict = next(i for i, ln in enumerate(out) if ln.startswith("PASS (fill target lowered"))
+    assert out[verdict + 1].startswith("WARN  fill target lowered below drawn target")
+    assert out[verdict + 2].startswith("NOTE  this mechanical gate is not delivery")
+
+
+def test_tune_refuses_the_flag_outside_the_skill_templates(tmp_path):
+    typ = _lorem_cv(tmp_path / "cv.typ", 130)
+    before = pathlib.Path(typ).read_text(encoding="utf-8")
+    proc = subprocess.run([sys.executable, "-I", str(SCRIPTS / "verify.py"), "--tune", typ, "1", "99", "100", "--allow-placeholders"],
+                          capture_output=True, text=True, timeout=300, stdin=subprocess.DEVNULL)
+    assert proc.returncode == 1 and "FAIL  --allow-placeholders is only for the shipped templates" in proc.stdout
+    assert "--allow-placeholders`" not in proc.stdout and "tuning" not in proc.stdout
+    assert pathlib.Path(typ).read_text(encoding="utf-8") == before
+
+
+def test_bracketed_bare_sample_is_one_fail_not_a_fail_plus_a_warn(tmp_path):
+    out = placeholders.check_placeholders(_ctx(tmp_path, "Contact: \\[me\\@example.com\\]"))
+    assert [lvl for lvl, _ in out] == [Level.FAIL]
+
+
+def test_hits_are_listed_most_specific_first(tmp_path):
+    d = tmp_path / "tpl"
+    d.mkdir()
+    (d / "t.typ").write_text('#x("[Role]", "[Role at the employer]", "[Dates]")\n', encoding="utf-8")
+    out = placeholders.check_placeholders(_ctx(tmp_path, "\\[Dates\\] \\[Role\\] \\[Role at the employer\\]"), d)
+    msg = out[0][1]
+    assert out[0][0] == Level.FAIL
+    assert msg.index("[Role at the employer]") < msg.index("[Dates]") < msg.index('"[Role]"')
+
+
+def _letter_src(body):
+    return '#set page(paper: "us-letter")\n#set text(size: 11pt)\n' + body
+
+
+def test_letter_gate_fails_on_a_leftover_sample_and_passes_a_clean_letter(tmp_path):
+    import verify_letter as vl
+    good = tmp_path / "good.typ"
+    good.write_text(_letter_src("Dear team, I apply as Data Analyst at Acme Corp. Reach me at alix\\@acme.test.\n"), encoding="utf-8")
+    ok, msgs = vl.check_letter(str(good), "Acme Corp", "Data Analyst")
+    assert ok, msgs
+    bad = tmp_path / "bad.typ"
+    bad.write_text(_letter_src("Dear team, I apply as Data Analyst at Acme Corp.\n\n\\[Re: Application for the Backend Software Developer position\\]\n"),
+                   encoding="utf-8")
+    ok, msgs = vl.check_letter(str(bad), "Acme Corp", "Data Analyst")
+    assert not ok and any(f and "template placeholder left in the text" in m for f, m in msgs)
+
+
+def test_shipped_letter_template_is_checkable_with_allow_placeholders_only_there(tmp_path):
+    import verify_letter as vl
+    tpl = TEMPLATES / "letter.typ"
+    ok, msgs = vl.check_letter(str(tpl), "Employer Name", "Backend Software Developer")
+    assert not ok and any(f and "template placeholder left in the text" in m for f, m in msgs)
+    ok, msgs = vl.check_letter(str(tpl), "Employer Name", "Backend Software Developer", allow_placeholders=True)
+    assert ok, msgs
+    copy = tmp_path / "letter.typ"
+    shutil.copy(tpl, copy)
+    shutil.copy(TEMPLATES / "lib.typ", tmp_path / "lib.typ")
+    ok, msgs = vl.check_letter(str(copy), "Employer Name", "Backend Software Developer", allow_placeholders=True)
+    assert not ok and any("--allow-placeholders is only for" in m for _, m in msgs)
+
+
+def test_scratch_copies_do_not_feed_the_placeholder_list(tmp_path):
+    (tmp_path / "t.typ").write_text('#x("[Real sample]")\n', encoding="utf-8")
+    (tmp_path / "_raw.typ").write_text('#x("[Scratch only]")\n', encoding="utf-8")
+    (tmp_path / "_drawn.typ").write_text('#x("[Also scratch]")\n', encoding="utf-8")
+    assert placeholders.placeholders_from(tmp_path) == ("[Real sample]",)

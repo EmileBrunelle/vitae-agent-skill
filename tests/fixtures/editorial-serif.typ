@@ -32,7 +32,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.764em, spacing: 0.844em)
+#set par(justify: false, leading: 0.678em, spacing: 0.758em)
 
 // device: short heavy accent bar 20 a large serif title (magazine kicker rule)
 #let section(t, body, airy: false) = block(breakable: false,
@@ -53,7 +53,7 @@
 // skills: serif bold label, thin accent tick (vector), sans items
 #let skill(cat, items) = srow([#text(font: dispf, size: 11pt, weight: "bold")[#cat] #box(width: 3pt, height: 3pt, fill: accent, baseline: -2pt)], items)
 
-#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.545em, body-indent: 6pt)
+#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.484em, body-indent: 6pt)
 
 // header: oversized serif name, then role line left / contact column right (photo slot)
 #block(above: 0pt, below: 12pt)[

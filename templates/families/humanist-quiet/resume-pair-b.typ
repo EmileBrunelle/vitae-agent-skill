@@ -29,12 +29,12 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.605em, spacing: 0.700em)
+#set par(justify: false, leading: 0.581em, spacing: 0.676em)
 #show link: set text(fill: accent)
 
 // device: none — whitespace and a size/weight step do all the delimiting
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 28pt } else { 23pt }, below: 0pt)[
+  above: if airy { 28pt } else { 21pt }, below: 0pt)[
   #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
   #v(14pt)
   #block(above: 0pt, below: 0pt, width: 100%, body)
@@ -42,13 +42,14 @@
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it),
+  above: 11pt)
 
 // skills: bulleted rows, accent marker, em-dash label (hanging indent aligns wraps)
 #let skill(cat, items) = srow([#drawn-marker("dash", accent, bold: true)#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.604em, body-indent: 6pt)
+  spacing: 0.580em, body-indent: 6pt)
 
 // header: name + subtitle left, contacts on two left-aligned lines below
 #block(above: 0pt, below: 12pt)[

@@ -8,6 +8,7 @@ import atexit
 import json
 import os
 import shutil
+import statistics
 import subprocess
 import tempfile
 from collections.abc import Callable, Sequence
@@ -275,6 +276,16 @@ class _KMark(Mark):
     _k: str
 
 
+def _org_on_one_line(org: str, line: _Line) -> bool:
+    """True when the org text's first and last tokens both sit on `line`: the line under the role is the
+    whole org line (a wrapped role pushes the org down, a wrapped org spills onto the next line)."""
+    toks = [t for t in (_gnorm(w) for w in org.split()) if t]
+    if not toks:
+        return False
+    have = {_gnorm(w[4]) for w in line["words"]}
+    return toks[0] in have and toks[-1] in have
+
+
 def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[Word]],
                    gap_fn: GapFn | None = None) -> tuple[list[DetailRow], int]:
     """Whole-group proximity. A group is an entry/skill row from its FIRST line
@@ -358,7 +369,16 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
         between = gap_fn(h["page"], ls[-2], ls[-1])
         internal = max(gaps)
         wi = gaps.index(internal)              # the line pair behind the largest internal gap
-        rows.append({"kind": "group", "text": h["text"], "page": h["page"], "n": len(ls) - 1,
+        # head -> first bullet vs the bullet pitch: line 0 is the role, line 1 the org/descriptor line
+        # (only when the entry was given an org), the lines after it the bullets. An entry whose role or
+        # org wraps is skipped: its line 1 would not be the whole org line, so gaps[1] is not that gap.
+        n = len(ls) - 1
+        hb: float | None = None
+        pitch: float | None = None
+        if h.get("kind") == "entry" and h.get("org") and n >= 4 and _org_on_one_line(h["org"], lines[i0 + 1]):
+            hb, pitch = gaps[1], statistics.median(gaps[2:])
+        rows.append({"kind": "group", "text": h["text"], "page": h["page"], "n": n, "hkind": h.get("kind"),
+                     "next_sec": m["_k"] == "s", "head_gap": hb, "pitch": pitch,
                      "gaps": gaps, "internal": internal, "between": between,
                      "ratio": (between / internal) if internal > 0 else float("inf"), "ls": ls,
                      "pair_in": (tx[wi], tx[wi + 1]), "pair_btw": (tx[-2], tx[-1])})
@@ -386,9 +406,19 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     return rows, skipped
 
 
+def _hier_advice(kind: str | None) -> str:
+    """Where to widen the gap between entries: the family's own wrapper, once, for every entry."""
+    if kind == "skill":
+        return ("      widen the gap between skill rows in the family's `skill` wrapper (its `srow(above:)`, or "
+                "`#set par(spacing:)` for bare rows), once for every row; never per row, never in lib.typ, not the content")
+    return ("      widen the gap between entries in the family's `job` wrapper (its `entry(above:)`), once for every "
+            "entry; never per entry, never in lib.typ, not the content")
+
+
 # Gestalt-proximity thresholds on between/internal gap ratio; their calibration is recorded in
-# check_group_proximity's docstring. Section titles use the same two.
-PROX_FAIL, PROX_WARN = 0.7, 0.85
+# check_group_proximity's docstring. Section titles use the first two; PROX_HIER (groups not followed
+# by a section title) is the visible-hierarchy floor.
+PROX_FAIL, PROX_WARN, PROX_HIER = 0.7, 0.85, 1.2
 
 
 def check_group_proximity(typ: str, pdf: str, root: str | None = None,
@@ -410,7 +440,21 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     0.71), the old WARN line (0.83-0.86) at 0.81-0.91; shipped templates and
     fixtures sit at >= 0.85. Section titles get the same thresholds on gap above
     the title (or its bar) / gap below it to the section's first line (DETAIL
-    rows, kind "sec")."""
+    rows, kind "sec").
+
+    PROX_HIER (1.2, WARN, 2026-11-25): attached-to-next is not the only defect;
+    an entry also has to read as one unit, i.e. the gap between entries clearly
+    larger than the line gaps inside one. Groups followed by a section title are
+    excluded (their `between` includes the section's `above`: 1.5-4.2). Measured
+    per-file minimum ratio over the entry-to-entry groups: the previous (visibly
+    defective) templates median 1.15; the fixed templates median 1.42, minimum
+    1.07; real model CVs 0.92-1.19. 1.2 sits between the two template medians.
+
+    Each group row also records head_gap (org line -> first bullet) and pitch
+    (median bullet-to-bullet gap), printed in DETAIL for entries with an org line
+    and >= 2 bullet lines. Measured head_gap/pitch (per-file minimum): previous
+    templates 0.43-0.77, fixed templates 0.62-1.15 (most 0.82-1.1): the two
+    ranges overlap, so it is a DETAIL figure only, never a finding."""
     heads = _typst_query(typ, "<vitae-head>", root) if heads is None else heads
     secs = (_typst_query(typ, "<vitae-sec>", root) or []) if secs is None else secs
     if pages is None:
@@ -431,8 +475,10 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     if not grp:
         return [(Level.WARN, f"group proximity: no checkable group ({skipped} head(s) not located) — unchecked")]
     for r in grp:
+        hp = "" if r["head_gap"] is None or r["pitch"] is None else \
+            f' head-gap={r["head_gap"]:.2f}pt pitch={r["pitch"]:.2f}pt'
         print(f'DETAIL group "{r["text"][:30]}" p{r["page"]} lines={r["n"]} internal={r["internal"]:.2f}pt '
-              f'between={r["between"]:.2f}pt ratio={r["ratio"]:.2f}')
+              f'between={r["between"]:.2f}pt ratio={r["ratio"]:.2f}{hp}{" next=section" if r["next_sec"] else ""}')
     for row in rows:
         if row["kind"] == "sec":
             print(f'DETAIL section "{row["text"][:30]}" p{row["page"]} before-bar={row["before"]:.2f}pt '
@@ -480,6 +526,16 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
                  f'{worst}; aim for >= {PROX_WARN})\n'
                  "      do not override entry/srow above/gap/below per entry; check for a manual #v, linebreak or "
                  "blank line inside that entry")]
+    # hierarchy: an entry must also read as ONE unit, so the gap to the next entry has to be visibly
+    # larger than the gaps inside it. Groups before a section title are left to the section rules.
+    flat = [r for r in grp if not r["next_sec"] and not r["ratio"] >= PROX_HIER]
+    if flat:
+        f = min(flat, key=lambda r: r["ratio"])
+        fw = (f'(worst {q(f["text"][:30])}: gap to the next entry {f["between"]:.1f}pt vs {f["internal"]:.1f}pt '
+              f'inside it, ratio {f["ratio"]:.2f})')
+        return out + [(Level.WARN, f"group proximity: entries barely separated: gap between entries ≈ gap inside an "
+                 f"entry in {len(flat)}/{len(grp)} groups {fw}; aim for >= {PROX_HIER}\n"
+                 + _hier_advice(f["hkind"]))]
     return out + [(Level.OK, f"group proximity: {len(grp)} groups, gap to next block >= {PROX_WARN} x internal gap "
              f'(tightest "{m["text"][:30]}": ratio {m["ratio"]:.2f}, {m["between"]:.1f}pt vs {m["internal"]:.1f}pt)')]
 

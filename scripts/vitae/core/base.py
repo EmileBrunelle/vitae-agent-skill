@@ -66,6 +66,10 @@ class GroupRow(TypedDict):
     internal: float                 # the largest of them
     between: float                  # last line -> next block's first line
     ratio: float                    # between / internal
+    hkind: str | None               # the head mark kind: "entry" or "skill"
+    next_sec: bool                  # the next block is a section title
+    head_gap: float | None          # org line -> first bullet (entries with an org line and >= 2 bullet lines)
+    pitch: float | None             # median gap between the bullet lines
     ls: list[LineBox]
     pair_in: tuple[str, str]        # the line pair behind `internal`
     pair_btw: tuple[str, str]       # the line pair behind `between`

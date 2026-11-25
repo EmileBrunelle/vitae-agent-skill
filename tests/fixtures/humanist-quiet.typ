@@ -30,7 +30,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.850em, spacing: 0.950em)
+#set par(justify: false, leading: 0.757em, spacing: 0.857em)
 #show link: set text(fill: accent)
 
 // device: none — whitespace and a size/weight step do all the delimiting
@@ -49,7 +49,7 @@
 #let skill(cat, items) = srow([#drawn-marker("dash", accent, bold: true)#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.575em, body-indent: 6pt)
+  spacing: 0.512em, body-indent: 6pt)
 
 // header: name + subtitle left, contacts on two left-aligned lines below
 #block(above: 0pt, below: 12pt)[

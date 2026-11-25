@@ -36,7 +36,7 @@
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.3cm))
 #set page(..wd-page-x(1.6cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.905em, spacing: 0.995em)
+#set par(justify: false, leading: 0.741em, spacing: 0.831em)
 
 // DEVICE: the title KNOCKED OUT of a hard black slab, the slab only as wide as
 // its own title — nothing full-width anywhere in the document. Square corners,
@@ -102,13 +102,13 @@
 #let stag(cat) = chip(
   text(font: monof, size: 8pt, weight: "bold", fill: white)[#upper(cat)],
   fill: dark, extent: 1pt)
-#let skill(cat, items) = srow(stag(cat), items, above: auto, lift: -1.5pt, below: 0pt)
+#let skill(cat, items) = srow(stag(cat), items, above: auto, lift: 2pt, below: 0pt)
 #let sskill(cat, items) = skill(cat, items)
 
 // List marker: a hard-bordered SQUARE OUTLINE, drawn (emits no text). Nobody
 // else uses an outlined marker — mono-technical's is filled.
 #set list(marker: box(width: 4pt, height: 4pt, baseline: -0.5pt,
-    stroke: 1pt + accent2), indent: 10pt, spacing: 0.535em, body-indent: 7pt)
+    stroke: 1pt + accent2), indent: 10pt, spacing: 0.437em, body-indent: 7pt)
 
 // HEADER: MONOGRAM + TWO ZONES. A hard-bordered square holds the initials
 // reversed out of hue A, the name sits beside it, then the specialities line

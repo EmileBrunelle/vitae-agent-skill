@@ -281,7 +281,8 @@ def _prox(between, internal=10.0, **kw):
 class TestCheckGroupProximity:
     @pytest.mark.parametrize("between, level", [
         (6.9, Level.FAIL), (7.0, Level.WARN),       # exactly PROX_FAIL (0.7) is not a failure
-        (8.4, Level.WARN), (8.5, Level.OK),         # exactly PROX_WARN (0.85) is fine
+        (8.4, Level.WARN),
+        (12, Level.OK),                             # >= PROX_WARN and >= PROX_HIER (1.2); 0.85-1.2 is the hierarchy WARN
         (20, Level.OK),
     ])
     def test_thresholds_on_the_between_over_internal_ratio(self, between, level):
@@ -316,7 +317,7 @@ class TestCheckGroupProximity:
         heads, words = _two_lines_then_next(7)
         rows = [{"kind": "group", "text": "t", "page": 1, "n": 2, "gaps": [1], "internal": 1.0,
                  "between": float("nan"), "ratio": float("nan"), "ls": [], "pair_in": ("a", "b"),
-                 "pair_btw": ("c", "d")}]
+                 "pair_btw": ("c", "d"), "next_sec": False, "head_gap": None, "pitch": None}]
         monkeypatch.setattr(groups, "measure_groups", lambda *a, **k: (rows, 0))
         out = groups.check_group_proximity("", "", heads=heads, secs=[], pages=[words])
         assert out[-1][0] is Level.FAIL

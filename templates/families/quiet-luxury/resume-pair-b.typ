@@ -28,14 +28,14 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.486em, spacing: 0.586em)
+#set par(justify: false, leading: 0.480em, spacing: 0.580em)
 
 // device: the title, then a SHORT hairline tick on its own baseline-centre —
 // inline punctuation, not furniture. Never under the heading, never full width
 // (a rule spanning the measure beside every title reads as word-processor
 // furniture; measured and rejected).
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 27pt } else { 22pt }, below: 0pt)[
+  above: if airy { 27pt } else { 20pt }, below: 0pt)[
   #text(font: dispf, size: 12pt, weight: "semibold", fill: dark)[#t]
   #h(7pt)
   #box(baseline: -3pt, line(length: 34pt, stroke: 2pt + accent))
@@ -48,13 +48,14 @@
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   org-st: it => text(weight: "semibold", fill: accent, it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it),
+  above: 11pt)
 
 // skills: the label is set in the METADATA GRAY — colour, not weight or a
 // glyph, does the separating. No colon, no dash, no bullet.
 #let skill(cat, items) = srow(text(fill: ink, weight: "semibold")[#cat], items)
 
-#set list(marker: drawn-marker("mid", dark), indent: 10pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: drawn-marker("mid", dark), indent: 10pt, spacing: 0.444em, body-indent: 6pt)
 
 // header: CONTACTS FIRST (a letterhead line), then the name, then the role —
 // the reverse of every other family's header order.

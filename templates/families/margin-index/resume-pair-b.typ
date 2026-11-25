@@ -22,13 +22,13 @@
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 11pt, lang: "en", fill: dark, hyphenate: false,
   number-type: "old-style", number-width: "proportional")
-#set par(justify: false, leading: 0.835em, spacing: 1.075em)
+#set par(justify: false, leading: 0.813em, spacing: 1.053em)
 
 // device: NO rule, NO bar — the title hangs in the left margin column beside
 // its own content. Single-ROW grid per section (safe: ats.md), title cell first
 // so the extraction order stays heading → body.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 36pt } else { 31pt }, below: 0pt)[
+  above: if airy { 36pt } else { 28pt }, below: 0pt)[
   #if workday [
     // parse copy: title ABOVE the body, so the extraction order stays heading → body
     // (a margin column wraps the title and is read before the header contacts)
@@ -49,13 +49,14 @@
 // keeps the date anchored in the extraction (ats.md, orphaned-date trap)
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it),
+  above: 14pt)
 
 // skills: italic run-in label, no separator glyph at all — the italic/roman
 // jump does the separating (nobody else uses italic as the skills device)
 #let skill(cat, items) = srow(text(style: "italic")[#cat], items)
 
-#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.85em, body-indent: 6pt)
+#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.828em, body-indent: 6pt)
 
 // header: name and role in the content column, contacts on one line under it;
 // the margin column stays empty here (extraction keeps the name first)

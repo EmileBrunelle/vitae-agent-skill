@@ -439,6 +439,7 @@ lowered_fill() {
   local f a b d
   read -r f a b <<< "$(echo "$targets" | head -1)"
   d="templates/families/$f"
+  trap "rm -f '$d'/_drawn.*" RETURN   # the scratch copy never outlives the check
   { printf '// vitae: pages=1 fill=%s-%s\n' "$a" "$b"; cat "$d/resume.typ"; } > "$d/_drawn.typ"
   python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$a" "$b" --allow-placeholders | grep -q '^PASS ' || { echo "header target did not pass"; return 1; }
   local lo=$((a - 6)) log; log="$S/lowered.log"
@@ -459,6 +460,7 @@ raw_template_fails_placeholders() {
   local f a b rc=0 log="$S/placeholders.log"
   read -r f a b <<< "$(echo "$targets" | head -1)"
   local d="templates/families/$f"   # own copy: the background tpl_run of this family reads resume.pdf
+  trap "rm -f '$d'/_raw.*" RETURN   # the scratch copy never outlives the check (placeholders_from ignores _raw*/_drawn* anyway)
   cp "$d/resume.typ" "$d/_raw.typ"
   python3 -I scripts/verify.py "$d/_raw.typ" 1 "$a" "$b" >"$log" 2>&1 || rc=$?
   [ "$rc" -ne 0 ] || { echo "a raw template passed without --allow-placeholders"; return 1; }

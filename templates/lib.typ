@@ -250,7 +250,7 @@
            org-st: it => text(weight: "semibold", it),
            note-st: it => it,
            sep: [ — ], meta-size: 9pt, gap: 1.5pt,
-           above: auto, lift: 0.1em, below: 3pt) = context {
+           above: auto, lift: 0.1em, below: 5.5pt) = context {
   // In-head spacing, measured from the faces in use (no ambient block spacing:
   // the head row is wrapped so `par.spacing` never lands between role and org).
   // `clr` is the smallest role-baseline -> org-line-top distance at which the
@@ -261,13 +261,14 @@
   let dsc(st) = ht(st(text(top-edge: "baseline", bottom-edge: "descender")[gy]))
   let o(t) = ht(text(size: meta-size, org-st(text(top-edge: t, bottom-edge: "baseline")[Hd])))
   let clr = calc.max(dsc(role-st), dsc(date-st)) + o("ascender") - o("cap-height")
-  // Gap ABOVE the entry (to the previous entry's last line): at least the
-  // body leading (the gap between two wrapped lines inside the entry), and at
+  // Gap ABOVE the entry (to the previous entry's last line): at least 1.4x the
+  // body leading (the gap between two wrapped lines inside the entry; a clearly
+  // larger step than the bullet pitch, still below the section gap), and at
   // least the role -> org distance plus `lift` (the previous entry's last line
   // usually has descenders, the role line usually none), so the head never
   // sits closer to the previous entry than to its own org line.
   let ab = if above != auto { above } else {
-    calc.max(par.leading.to-absolute(), clr + gap.to-absolute() + lift.to-absolute())
+    calc.max(1.4 * par.leading.to-absolute(), clr + gap.to-absolute() + lift.to-absolute())
   }
   let dated = has-text(dates)
   let line = [#org-st(org)#if note != none [#note-st([#sep#note])]]
@@ -345,7 +346,8 @@
 //   brk: true      two-line: label alone on its line, items under it
 //   hang: <len>    wrapped lines align under the label (bulleted rows)
 // `above`/`below` given => the row becomes a block (needed for the two-line
-// shape); left at `none` it stays a bare `par` and keeps par spacing.
+// shape); left at `none` it stays a bare row: block spacing, with the gap ABOVE it
+// max(par.spacing, 1.4 x leading) so wrapped rows stay visibly apart (verify: PROX_HIER).
 #let srow(label, items, hang: 0pt, brk: false, brk-gap: none, above: none, lift: 0pt,
           below: none) = {
   let row = if brk and brk-gap != none {
@@ -358,7 +360,12 @@
     let body = if brk { [#head-mark("skill", label)#label \ #items] } else { [#head-mark("skill", label)#label #items] }
     par(hanging-indent: hang, body)
   }
-  if above == none and below == none { row } else if above == auto {
+  if above == none and below == none {
+    // bare row: the gap to the row above is the paragraph spacing, but never under 1.4x the
+    // leading, so a category whose items wrap keeps its rows visibly apart (verify: PROX_HIER)
+    context block(above: calc.max(par.spacing.to-absolute(), 1.4 * par.leading.to-absolute()),
+      below: par.spacing.to-absolute(), row)
+  } else if above == auto {
     // `auto`: the gap to the row above is the body leading (+ `lift`), so a
     // row's own wrapped lines never sit farther apart than two rows do.
     context block(above: par.leading.to-absolute() + lift,

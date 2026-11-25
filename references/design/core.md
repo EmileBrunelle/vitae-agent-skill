@@ -31,7 +31,7 @@ Under `DEVICE_QUORUM` the page FAILs — really, not conditionally on the white 
 **When a boundary does not read, whitespace is the LAST lever, not the first.** The observed failure mode is an agent that sees a weak boundary and answers with vertical space, page after page, until the CV is a ladder of empty bands. The gate warns over `SEPARATION_CEILING` (6.0×) for exactly that, and FAILs only when the page also carries no device at any boundary. Fixed order, stop at the first that works:
 
 1. **Add ink.** The family's own boundary device, or the thin `soft` hairline above the section (§ Boundaries carry ink by default). One 0.5pt line beats 8pt of air and costs no page.
-2. **Raise the contrast downward** — tighten the *intra*-section rhythm (leading, list-item gap, job-entry gap). The ratio is a ratio: lowering the median separates the boundary without spending a millimetre of page. Do it through leading (`verify.py --tune`), never by overriding `entry()`/`srow()` `above`/`gap` per entry: `above: auto` is already max(leading, clearance + gap + lift), and `check_group_proximity` FAILs (optical gap ratio, baseline → x-height, < 0.7) a sub-line that sits nearer the next block than its own head.
+2. **Raise the contrast downward** — tighten the *intra*-section rhythm (leading, list-item gap, job-entry gap). The ratio is a ratio: lowering the median separates the boundary without spending a millimetre of page. Do it through leading (`verify.py --tune`), never by overriding `entry()`/`srow()` `above`/`gap` per entry (setting `above` once in the family's `job`/`skill` wrapper, for every entry, is allowed; `lib.typ` is never edited): `above: auto` is already max(1.4 × leading, clearance + gap + lift), and `check_group_proximity` FAILs (optical gap ratio, baseline → x-height, < 0.7) a sub-line that sits nearer the next block than its own head.
 3. **Only then**, widen the section gap — and only within the family's measured `above`, never past a 5% run and never with `v(1fr)`.
 
 A high ratio on a family that *has* a device means step 3 was used to paper over step 1. The empty band is not separation, it is an unanswered question.
@@ -98,25 +98,25 @@ Every family recipe (`references/design/families/`) was built on the template, p
 
 **Section boundaries (the 30-second scan).** A section break must read as a break at arm's length. Two requirements, both verified per family:
 
-- **Spacing hierarchy, sharply stepped**: `section` gap ≫ job-entry gap (5-6pt) > list-item gap (0.45em) > line leading. The section gap is at least **2× the space between a heading and its own body** — the gap belongs to the boundary, not to the heading. Two documented exemptions, both measured: a family whose device is a *filled* shape may go **below** 2:1 (`color-band` runs 7pt over 5pt = 1.4:1 and still measures the strongest boundary of the roster — the reversed bar is the boundary); and a family whose device is *nothing* needs 4:1 or more (`humanist-quiet` 26/4 = 6.5:1). A family whose heading sits *beside* its body has no heading→body gap at all and the ratio does not apply: `margin-index` puts the title in a 2.5cm margin column, so its whole boundary budget is the 30pt section gap plus the short accent rule above the title (11.5% of page width — real ink, and the reason `RULE_FLOOR` sits below that), with the white-run ratio below governing the rest (4.75).
+- **Spacing hierarchy, sharply stepped**: `section` gap ≫ job-entry gap (`entry()` default: 1.4 × leading, about 8-12pt) > list-item gap (0.45em) > line leading; the org line sits 5.5pt above its first bullet, a little more than a bullet pitch. The section gap is at least **2× the space between a heading and its own body** — the gap belongs to the boundary, not to the heading. Two documented exemptions, both measured: a family whose device is a *filled* shape may go **below** 2:1 (`color-band` runs 7pt over 5pt = 1.4:1 and still measures the strongest boundary of the roster — the reversed bar is the boundary); and a family whose device is *nothing* needs 4:1 or more (`humanist-quiet` 26/4 = 6.5:1). A family whose heading sits *beside* its body has no heading→body gap at all and the ratio does not apply: `margin-index` puts the title in a 2.5cm margin column, so its whole boundary budget is the 30pt section gap plus the short accent rule above the title (11.5% of page width — real ink, and the reason `RULE_FLOOR` sits below that), with the white-run ratio below governing the rest (4.62).
 - **Measured, in the gate**: `scripts/verify.py` scans every rendered PNG (`measure_fill.gaps`) and FAILs when any run exceeds **5% of page height**, or when a run over **3.5%** is not a boundary. That last clause is the pre-heading exemption: the white immediately above a section title is allowed to run to 5%, a hole in the middle of a section is not. The white-run ratio is reported, not failed (§ Invariants). Re-measured 2026-11-25 at 90 ppi on `resume.typ` page 1, all 14 families (max run / median run, max run as % of page height, devices found AT a boundary):
 
   | family | ratio | max run | boundary devices |
   |---|---|---|---|
-  | `color-band` | 2.57 | 1.8% | 8 |
-  | `engraved-card` | 2.75 | 2.2% | 1 |
-  | `swiss-grid` | 2.80 | 1.4% | 7 |
-  | `editorial-serif` | 3.00 | 1.5% | 8 |
-  | `mono-technical` | 3.29 | 2.3% | 0 |
-  | `keyline-corporate` | 3.57 | 2.5% | 7 |
-  | `hard-edge` | 3.86 | 2.7% | 11 |
+  | `color-band` | 3.00 | 1.8% | 8 |
+  | `swiss-grid` | 3.00 | 1.5% | 7 |
+  | `engraved-card` | 3.14 | 2.2% | 1 |
+  | `mono-technical` | 3.54 | 2.3% | 0 |
+  | `editorial-serif` | 3.75 | 1.5% | 8 |
+  | `keyline-corporate` | 4.17 | 2.5% | 7 |
   | `clause-index` | 4.17 | 2.5% | 0 |
-  | `gutter-rail` | 4.25 | 3.4% | 1 |
-  | `avant-poster` | 4.55 | 2.5% | 0 |
+  | `hard-edge` | 4.33 | 2.6% | 11 |
+  | `gutter-rail` | 4.43 | 3.1% | 1 |
   | `quiet-luxury` | 4.60 | 2.3% | 0 |
-  | `margin-index` | 4.75 | 3.8% | 7 |
-  | `bold-display` | 4.80 | 2.4% | 7 |
-  | `humanist-quiet` | 6.00 | 3.0% | 0 |
+  | `margin-index` | 4.62 | 3.7% | 7 |
+  | `bold-display` | 5.20 | 2.6% | 7 |
+  | `avant-poster` | 6.25 | 2.5% | 0 |
+  | `humanist-quiet` | 7.50 | 3.0% | 0 |
 
   The ratios move with every leading change, so re-measure the table after one (the sampling in `measure_fill.gaps` also changed once, at commit 42049f6: every 4th column → every column). The right column is the one that separates. `keyline-corporate` measured 7.25 here until it was given the rule it was named for: its vertical keyline marks the title but is invisible to a horizontal boundary scan, so empty space was doing the whole separating. A `soft` rule across the boundary plus the reclaimed gap (leading 0.540 → 0.741em) put it at 3.57. If the gap you want would overflow the page or open a canyon, take the space from the *intra*-section rhythm instead of adding to the gap — raising the contrast between the two is what makes the boundary read, not the absolute size of the gap.
 

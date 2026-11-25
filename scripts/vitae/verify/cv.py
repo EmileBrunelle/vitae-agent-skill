@@ -342,6 +342,14 @@ def _body_size_warn(typ: str) -> str:
     return ""
 
 
+def _step7_note() -> str:
+    """The line printed under a PASS: the mechanical gate is not delivery, step 7 (adversarial review) follows."""
+    review = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                          "references", "steps", "7-review.md")
+    return ("NOTE  this mechanical gate is not delivery: step 7 (adversarial multi-persona review) comes next — "
+            f"read {review} before delivering")
+
+
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
               facts: str | None = None, allow_placeholders: bool = False) -> tuple[int, str | None]:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Returns (exit code,
@@ -508,12 +516,15 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         if lowered:
             print(f"PASS (fill target lowered: {lowered}{skip}) all mechanical checks — now LOOK at the PNGs")
             print(_LOWERED_WARN.format(a=lowered.split(" ")[0]))
+            print(_step7_note())
         elif fmin and fmax:
             print(f"PASS {tag}all mechanical checks — now LOOK at the PNGs")
+            print(_step7_note())
         else:
             print(f"PASS {tag}mechanical checks except fill (no FILL_MIN FILL_MAX "
                   "given) — rerun with the fill targets from the pick_design.py "
                   "report, then LOOK at the PNGs")
+            print(_step7_note())
         if lead_warn:        # repeated after PASS so a green run does not bury them
             print(lead_warn)
         if size_warn:

@@ -44,9 +44,9 @@
 #v(10pt)
 
 #text(size: 10.5pt)[
-  Hiring Manager \
-  Employer Name \
-  Employer Address
+  \[Hiring Manager\] \
+  \[Employer Name\] \
+  \[Employer Address\]
 ]
 #v(10pt)
 
@@ -55,16 +55,16 @@
 
 Dear Hiring Manager,
 
-Paragraph 1 — why this employer specifically: a fact about their product,
+\[Paragraph 1 — why this employer specifically: a fact about their product,
 mission or team drawn from the posting or public sources, tied to what draws
-the candidate to apply here and not to a generic opening elsewhere.
+the candidate to apply here and not to a generic opening elsewhere.\]
 
-Paragraph 2 — two or three proofs, each one a fact already on the CV /
-`FAITS.md`, matched explicitly to a requirement named in the posting. Never a
-claim that is not already verified for the CV.
+\[Paragraph 2 — two or three proofs, each one a fact already on the CV /
+FAITS.md, matched explicitly to a requirement named in the posting. Never a
+claim that is not already verified for the CV.\]
 
-Paragraph 3 — availability and a closing line inviting next steps, no
-salary figure unless the posting asked for one.
+\[Paragraph 3 — availability and a closing line inviting next steps, no
+salary figure unless the posting asked for one.\]
 
 #v(10pt)
 Sincerely, \

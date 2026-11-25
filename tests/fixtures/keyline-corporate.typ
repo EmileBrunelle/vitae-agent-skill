@@ -31,7 +31,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.741em, spacing: 0.821em)
+#set par(justify: false, leading: 0.709em, spacing: 0.789em)
 
 // device: a `soft` rule ACROSS the boundary, plus the accent keyline down the
 // left of the title. The rule is what separates sections — the vertical
@@ -54,7 +54,7 @@
 // skills: the label itself carries the accent — no separator, no rule
 #let skill(cat, items) = srow(text(fill: accent, weight: "bold")[#cat], items)
 
-#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.431em, body-indent: 6pt)
 
 // header: name left + contact column right (photo slot = right cell), no rule
 #block(above: 0pt, below: 12pt)[

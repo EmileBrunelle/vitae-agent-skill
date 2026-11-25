@@ -33,11 +33,11 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.545em, spacing: 0.665em)
+#set par(justify: false, leading: 0.506em, spacing: 0.626em)
 
 // device: a filled hue-A square, then the title in the MONO face. No rules.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 27pt } else { 22pt }, below: 0pt)[
+  above: if airy { 27pt } else { 20pt }, below: 0pt)[
   #box(width: 6pt, height: 6pt, fill: accent, baseline: 0pt)
   #box(width: 3pt, height: 6pt, fill: accent2, baseline: 0pt)
   #h(5pt)
@@ -51,7 +51,8 @@
 // in the extraction (ats.md, orphaned-date trap).
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(font: dispf, size: 8.5pt, fill: accent2, weight: "medium", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it),
+  above: 11pt)
 
 // skills: a spec-sheet KEY = VALUE row — mono key in hue A, the "=" in hue B,
 // values in the body sans. Verified alternative to inline "chips": one box per
@@ -60,7 +61,7 @@
 #let skill(cat, items) = srow([#text(font: dispf, size: 8.5pt, weight: "bold", fill: accent)[#upper(cat)] #text(font: dispf, size: 8.5pt, fill: accent2)[=]], items)
 
 #set list(marker: box(width: 3pt, height: 3pt, fill: accent2, baseline: -0.5pt),
-  indent: 10pt, spacing: 0.45em, body-indent: 7pt)
+  indent: 10pt, spacing: 0.418em, body-indent: 7pt)
 
 // header: name, role, then the contacts on ONE mono line (spec-sheet footer)
 #block(above: 0pt, below: 12pt)[

@@ -8,9 +8,11 @@ script reuses only verify.py's compile/extract plumbing, never its constants
 Gates:
   1. the letter compiles to exactly ONE page.
   2. the employer AND the exact job title both appear in the extracted text.
+  (+ no template sample left in the text — the CV gate's placeholder check;
+  --allow-placeholders skips it, for the shipped templates/letter.typ only.)
 
 Usage:
-    verify_letter.py letter.typ EMPLOYER "EXACT JOB TITLE"
+    verify_letter.py letter.typ EMPLOYER "EXACT JOB TITLE" [--allow-placeholders]
     verify_letter.py --selftest
 
 Exit codes: 0 PASS, 1 FAIL, 2 usage error.
@@ -33,16 +35,23 @@ from typing import NoReturn
 
 from vitae.core.env import preflight
 from vitae.core.level import Level  # noqa: E402
+from vitae.verify.cv import _ALLOW_REFUSED, placeholders_allowed
+from vitae.verify.gates import _placeholders, make_context
 from vitae.verify.pdf import compile_pdf, count_pages, ensure_icons, extract_text
 from vitae.verify.text import check_hidden_text
 
 
-def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tuple[bool | None, str]]]:
+def check_letter(typ: str, employer: str, job_title: str,
+                 allow_placeholders: bool = False) -> tuple[bool, list[tuple[bool | None, str]]]:
     """Returns (ok, messages) — messages are (is_fail, text) pairs.
 
     is_fail is True for a FAIL, False for an informational OK line, and None
     for a WARN that is printed but never fails the gate (hidden-text warnings).
+    A template sample left in the text (the CV gate's placeholder check) FAILs; `allow_placeholders` skips it,
+    for the shipped templates/letter.typ only.
     """
+    if allow_placeholders and not placeholders_allowed(typ):
+        return False, [(True, _ALLOW_REFUSED.removeprefix("FAIL  "))]
     ok, use_cli, backend = preflight()
     if not ok:
         return False, [(True, "missing dependency — see --doctor output above")]
@@ -71,6 +80,15 @@ def check_letter(typ: str, employer: str, job_title: str) -> tuple[bool, list[tu
             else:
                 msgs.append((False, f'{label} "{needle}" found'))
 
+        if allow_placeholders:
+            msgs.append((None, "placeholder gate skipped (--allow-placeholders): only for the shipped templates, never a real letter"))
+        else:
+            with open(typ, encoding="utf-8") as f:
+                ctx = make_context(typ, pdf, txt, f.read(), backend, can_query=False)
+            for lvl, msg in _placeholders(ctx):
+                msgs.append((True if lvl == Level.FAIL else None, msg))
+                fail = fail or lvl == Level.FAIL
+
         # shared with verify.py and verify_academic.py: a letter can hide text too
         # is_fail None = WARN (printed, never fails)
         for lvl, msg in check_hidden_text(pdf):
@@ -85,7 +103,7 @@ class _UsageParser(argparse.ArgumentParser):
 
     def error(self, message: str) -> NoReturn:
         prog = os.path.basename(sys.argv[0])
-        print(f"usage: {prog} letter.typ EMPLOYER \"EXACT JOB TITLE\"\n"
+        print(f"usage: {prog} letter.typ EMPLOYER \"EXACT JOB TITLE\" [--allow-placeholders]\n"
               f"       {prog} --selftest", file=sys.stderr)
         sys.exit(2)
 
@@ -95,6 +113,8 @@ def main() -> None:
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("args", nargs="*")
     argv = sys.argv[1:]
+    allow_placeholders = "--allow-placeholders" in argv
+    argv = [a for a in argv if a != "--allow-placeholders"]
     # as the old manual argv: only argv[0] is a mode flag (the rest is
     # ignored then); otherwise every argument is a positional, even "-x"
     argv = argv[:1] if argv and argv[0] == "--selftest" else ["--"] + argv
@@ -147,7 +167,7 @@ def main() -> None:
         ap.error("expected letter.typ EMPLOYER JOB_TITLE")
 
     typ, employer, job_title = parsed.args
-    ok, msgs = check_letter(typ, employer, job_title)
+    ok, msgs = check_letter(typ, employer, job_title, allow_placeholders)
     for is_fail, msg in msgs:
         print(f"{'FAIL' if is_fail else 'WARN' if is_fail is None else 'OK  '}  {msg}")
     if ok:

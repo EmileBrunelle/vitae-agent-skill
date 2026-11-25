@@ -33,7 +33,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.778em, spacing: 0.878em)
+#set par(justify: false, leading: 0.749em, spacing: 0.849em)
 
 // DEVICE: a small accent LOZENGE (a rotated filled square — vector, emits no
 // text) centred above a CENTRED title. The engraver's spot: one mark, dead
@@ -67,7 +67,7 @@
 // a rule or a colour was not available. Nobody else punctuates with a period.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat.], items)
 
-#set list(marker: drawn-marker("dash", accent), indent: 10pt, spacing: 0.604em,
+#set list(marker: drawn-marker("dash", accent), indent: 10pt, spacing: 0.581em,
   body-indent: 6pt)
 
 // HEADER: fully CENTRED — the social-stationery lockup. Name, a short centred

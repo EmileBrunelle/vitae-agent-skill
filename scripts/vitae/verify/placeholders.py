@@ -33,6 +33,8 @@ _SAMPLES = (
 _ANY_SPAN = re.compile(r"\[([^\[\]]{3,80})\]")   # capped: a stray `[` far from a `]` is not one span
 
 
+_SCRATCH_PREFIXES = ("_raw", "_drawn")
+
 _FOLD = str.maketrans({"\u2019": "'", "\u2018": "'", "\u201c": '"', "\u201d": '"', "*": None, "_": None})
 _QUOTES_CASE = {k: v for k, v in _FOLD.items() if v is not None}   # the CV-text side: quotes and case only
 # Used only when the templates yield no list (folder missing): the sample contact data, as shipped.
@@ -82,6 +84,8 @@ def placeholders_from(templates: Path) -> tuple[str, ...]:
     """Every placeholder string the templates render, longest first (so the report names the specific one)."""
     found: set[str] = set()
     for f in sorted(templates.rglob("*.typ")):
+        if f.name.startswith(_SCRATCH_PREFIXES):      # a test's scratch copy of a template, never a template
+            continue
         found |= placeholders_in(f.read_text(encoding="utf-8"))
     return tuple(sorted(found, key=lambda s: (-len(s), s)))
 
@@ -98,12 +102,13 @@ def check_placeholders(ctx: VerifyContext, templates: Path = TEMPLATES) -> list[
     # `[linkedin.com/in/handle]` also contains the bare sample: report only the outer hit.
     by_key = {_squash(p): p for p in reversed([p for p in known if _matcher(p).search(flat)])}
     hits = [p for k, p in by_key.items() if not any(j != k and k in j for j in by_key)]
+    hits.sort(key=lambda p: (-len(p), p))     # the most specific first, as `known` is
     if hits:
         shown = ", ".join(f'"{p}"' for p in hits[:6]) + (f" (+{len(hits) - 6} more)" if len(hits) > 6 else "")
         out.append((Level.FAIL, f"template placeholder left in the text: {shown} — replace it with the facts' value or remove it"))
     hit_keys = {_squash(p) for p in hits}
     others = [m.group(0) for m in _ANY_SPAN.finditer(" ".join(ctx.txt.split()))
-              if re.search(r"[A-Za-z]", m.group(1)) and _squash(m.group(0)) not in hit_keys]
+              if re.search(r"[A-Za-z]", m.group(1)) and not any(k in _squash(m.group(0)) for k in hit_keys)]
     if others:
         shown = ", ".join(f'"{o}"' for o in others[:5]) + (f" (+{len(others) - 5} more)" if len(others) > 5 else "")
         out.append((Level.WARN, f"bracketed text in the extraction: {shown} — a placeholder left over, or intended?"))

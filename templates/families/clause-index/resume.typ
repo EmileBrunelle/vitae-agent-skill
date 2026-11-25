@@ -30,7 +30,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.88em, spacing: 0.96em)
+#set par(justify: false, leading: 0.802em, spacing: 0.882em)
 
 // DEVICE: an OUTDENTED CLAUSE NUMBER. The numbering-of-divisions convention of
 // technical standards (ISO 2145, DIN 1421): the division number hangs in a
@@ -76,7 +76,7 @@
    #text(weight: "bold")[#cat]], items)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.529em, body-indent: 6pt)
+  spacing: 0.482em, body-indent: 6pt)
 
 // HEADER: TWO ZONES over a REFERENCE ROW. The identity block left, the contact
 // block right (that right cell is also the photo slot), and under both a

@@ -39,7 +39,7 @@
 #set text(font: ("Carlito", "Noto Sans", "Liberation Sans"), size: 10.5pt,
   lang: "en", fill: dark, hyphenate: false)
 // Primary fill-tuning knobs ↓ (±0.01-0.03em steps)
-#set par(justify: false, leading: 0.724em, spacing: 0.804em)
+#set par(justify: false, leading: 0.701em, spacing: 0.781em)
 
 // ---------- Primitives ----------
 // One unbreakable block per section: never split across pages.
@@ -75,7 +75,7 @@
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.584em, body-indent: 6pt)
+  spacing: 0.565em, body-indent: 6pt)
 
 // ---------- Header (centered; platform marks only, no generic icons) ----------
 // The marks are vector and emit no text; the readable URL beside each one is
