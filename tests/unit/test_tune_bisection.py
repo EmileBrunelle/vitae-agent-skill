@@ -43,7 +43,9 @@ class TestSuccess:
         from vitae.verify.typst import _read_par
         install(monkeypatch, lstar=0.93)
         T.tune(str(typ), 1, 80, 99)
-        lead, spacing = _read_par(typ.read_text(encoding="utf-8"))
+        par = _read_par(typ.read_text(encoding="utf-8"))
+        assert par is not None
+        lead, spacing = par
         assert spacing - lead == pytest.approx(0.10, abs=2e-3)
 
     def test_prefers_largest_probe_inside_target_over_overshooting_top(self, typ, monkeypatch):

@@ -185,7 +185,9 @@ class TestWordBoxes:
         assert [[w for _, w in pg] for pg in pages] == [["Hello", "world", "Second", "line"], ["Page", "two"]]
 
     def test_boxes_are_in_points_top_down(self, two_page, backend):
-        (hello, world, second, _), _ = pdf.word_boxes(two_page)
+        pages = pdf.word_boxes(two_page)
+        assert pages is not None
+        (hello, world, second, _), _ = pages
         assert hello[0] < world[0] and hello[2] <= world[0] + 1        # same row, left to right
         assert second[1] > hello[3] - 3                                # next line is lower
         assert all(0 <= b[0] < b[2] <= 200 and 0 <= b[1] < b[3] <= 100 for b in (hello, world, second))

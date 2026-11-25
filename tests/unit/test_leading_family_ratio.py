@@ -5,7 +5,14 @@ from vitae.verify import tune as T
 from vitae.verify.cv import LEADING_WARN, _family_default, _leading_warn
 from vitae.verify.typst import _doc_par_list, _scale_list_spacing
 
-_L, _S = _family_default("color-band", 1)
+
+def _default(family: str, pages: int) -> tuple[float, float]:
+    d = _family_default(family, pages)
+    assert d is not None
+    return d
+
+
+_L, _S = _default("color-band", 1)
 BAND = _L / _S        # the shipped color-band ratio, read from the template
 
 
@@ -41,8 +48,8 @@ class TestFamilyRelative:
 
     def test_two_page_reference_is_the_2page_template(self, tmp_path):
         # a file at exactly the swiss-grid 2-page default: silent against it, fires against resume.typ
-        l2, s2 = _family_default("swiss-grid", 2)
-        l1, s1 = _family_default("swiss-grid", 1)
+        l2, s2 = _default("swiss-grid", 2)
+        l1, s1 = _default("swiss-grid", 1)
         assert (l2 / s2) / (l1 / s1) > LEADING_FAMILY_RATIO_WARN   # precondition: the two defaults differ
         p = cv(tmp_path, l2, s2, "swiss-grid")
         assert _leading_warn(p, 2) == ""
@@ -94,6 +101,7 @@ class TestTuneScalesList:
         _install(monkeypatch)
         assert T.tune(str(typ), 1, 80, 99)[0] == 0
         lead, lsp = _doc_par_list(typ.read_text(encoding="utf-8"))
+        assert lead is not None and lsp is not None
         assert lead > 0.7 and lead / lsp == pytest.approx(0.60 / 0.45, rel=3e-3)
 
     def test_no_list_spacing_untouched(self, tmp_path, monkeypatch):

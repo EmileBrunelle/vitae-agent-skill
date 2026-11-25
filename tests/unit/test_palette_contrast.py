@@ -43,8 +43,8 @@ class TestContrastRatio:
 
     def test_known_gray_767676_on_white_just_passes_aa(self):
         # #767676 is the lightest gray that reaches 4.5:1 on white
-        assert contrast((0x76,) * 3, WHITE) == pytest.approx(4.54, abs=0.01)
-        assert contrast((0x77,) * 3, WHITE) < 4.5
+        assert contrast((0x76, 0x76, 0x76), WHITE) == pytest.approx(4.54, abs=0.01)
+        assert contrast((0x77, 0x77, 0x77), WHITE) < 4.5
 
 
 class TestHexAndMix:
@@ -122,6 +122,7 @@ class TestBuild:
     def test_duotone_pair_separates_in_grayscale(self):
         for i in range(30):
             p = P.build("color-band", f"k{i}")
+            assert p["accent2"] is not None
             assert contrast(p["accent"], p["accent2"]) >= P.DUOTONE_SEP
 
     def test_monochrome_family_has_no_second_hue(self):

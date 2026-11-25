@@ -297,7 +297,8 @@ def test_all_forwards_the_flag_to_each_child(tmp_path, monkeypatch):
     seen = []
     monkeypatch.setattr(cv.subprocess, "run", lambda cmd, *a, **k: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0))
     d = tmp_path / "templates"
-    _lorem_cv(d / "a.typ", 20), _lorem_cv(d / "b" / "c.typ", 20)
+    _lorem_cv(d / "a.typ", 20)
+    _lorem_cv(d / "b" / "c.typ", 20)
     assert cv.check_all(str(d), allow_placeholders=True) == 0
     assert len(seen) == 2 and all(c[-1] == "--allow-placeholders" for c in seen)
     seen.clear()
@@ -395,7 +396,7 @@ def _letter_src(body):
 
 
 def test_letter_gate_fails_on_a_leftover_sample_and_passes_a_clean_letter(tmp_path):
-    import verify_letter as vl
+    import vitae.verify.letter as vl
     good = tmp_path / "good.typ"
     good.write_text(_letter_src("Dear team, I apply as Data Analyst at Acme Corp. Reach me at alix\\@acme.test.\n"), encoding="utf-8")
     ok, msgs = vl.check_letter(str(good), "Acme Corp", "Data Analyst")
@@ -408,7 +409,7 @@ def test_letter_gate_fails_on_a_leftover_sample_and_passes_a_clean_letter(tmp_pa
 
 
 def test_shipped_letter_template_is_checkable_with_allow_placeholders_only_there(tmp_path):
-    import verify_letter as vl
+    import vitae.verify.letter as vl
     tpl = TEMPLATES / "letter.typ"
     ok, msgs = vl.check_letter(str(tpl), "Employer Name", "Backend Software Developer")
     assert not ok and any(f and "template placeholder left in the text" in m for f, m in msgs)

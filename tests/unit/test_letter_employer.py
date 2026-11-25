@@ -1,5 +1,5 @@
 """verify_letter.check_letter finds the employer name regardless of case and sharp s."""
-import verify_letter as vl
+import vitae.verify.letter as vl
 
 
 def _letter(monkeypatch, tmp_path, text, employer, title):

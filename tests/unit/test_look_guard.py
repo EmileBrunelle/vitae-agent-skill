@@ -1,6 +1,6 @@
 """look.py's remote-host guard: the decision is pure (injected resolver), no network."""
-import look
 import pytest
+import vitae.look as look
 
 
 def res(*addrs):
@@ -124,7 +124,7 @@ def test_local_request_ignores_proxy_env(monkeypatch):
             self.end_headers()
             self.wfile.write(body)
 
-        def log_message(self, *a):
+        def log_message(self, format, *args):
             pass
 
     srv = http.server.HTTPServer(("127.0.0.1", 0), H)

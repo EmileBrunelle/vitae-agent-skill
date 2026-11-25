@@ -1,6 +1,4 @@
 """verify_academic: headings are declared in [headings], never guessed from a language."""
-from typing import Any
-
 import pytest
 import vitae.verify.academic.checks as va_checks
 import vitae.verify.academic.parse as va_parse
@@ -16,12 +14,13 @@ def failures(results):
 
 def _full_data(data):
     # Mirrors the parsed TOML [counts] table: ints, plus nested tables for publications and talks.
-    counts: dict[str, Any] = {k: 0 for k in ("education", "appointments", "honours", "funding", "supervision", "teaching", "service",
-                             "knowledge_mobilization", "references")}
-    counts["publications"] = {"journal": 0, "conference": 0, "preprint": 0}
-    counts["talks"] = {k: 0 for k in ("plenary", "invited", "conference", "seminar", "poster")}
+    flat: dict[str, int] = {k: 0 for k in ("education", "appointments", "honours", "funding", "supervision", "teaching", "service",
+                                           "knowledge_mobilization", "references")}
+    publications: dict[str, int] = {"journal": 0, "conference": 0, "preprint": 0}
+    talks: dict[str, int] = {k: 0 for k in ("plenary", "invited", "conference", "seminar", "poster")}
+    publications.update(data["counts"].get("publications", {}))
+    counts: dict[str, int | dict[str, int]] = {**flat, "publications": publications, "talks": talks}
     counts.update({k: v for k, v in data["counts"].items() if k != "publications"})
-    counts["publications"].update(data["counts"].get("publications", {}))
     return {**data, "counts": counts}
 
 

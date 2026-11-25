@@ -12,11 +12,11 @@ import shutil
 import sys
 import tempfile
 import threading
-from typing import Any, Callable, Optional
+from typing import Callable, NotRequired, Optional, TypedDict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
-import look  # noqa: E402 -- must follow the sys.path insert above
+import vitae.look as look  # noqa: E402 -- must follow the sys.path insert above
 
 N = 0
 IDS = ["L1", "L2", "L3"]
@@ -90,9 +90,42 @@ ok({k for k, v in scopes.items() if v == "pages"} == {"L7", "L15"}, scopes)
 ok(sum(v == "page" for v in scopes.values()) == 10, scopes)
 
 # ---- fake server --------------------------------------------------------------------------
-REQS: list[dict[str, Any]] = []
-Responder = Callable[[dict[str, Any]], tuple[int, bytes]]
-STATE: dict[str, Any] = {"resp": None, "models": None}
+
+
+class ImageUrl(TypedDict):
+    url: str
+
+
+class Part(TypedDict):
+    type: str
+    text: NotRequired[str]
+    image_url: NotRequired[ImageUrl]
+
+
+class Message(TypedDict):
+    role: str
+    content: list[Part]
+
+
+class Request(TypedDict):
+    model: str
+    messages: list[Message]
+    max_tokens: int
+    temperature: float
+    top_p: NotRequired[float]
+    top_k: NotRequired[int]
+
+
+REQS: list[Request] = []
+Responder = Callable[[Request], tuple[int, bytes]]
+
+
+class State:
+    resp: Optional[Responder] = None
+    models: Optional[bytes] = None
+
+
+STATE = State()
 
 
 def jbytes(o: object) -> bytes:
@@ -105,7 +138,7 @@ def chat(content: object, finish: str = "stop", usage: object = None) -> tuple[i
 
 
 class H(http.server.BaseHTTPRequestHandler):
-    def log_message(self, *a: object) -> None:
+    def log_message(self, format: str, *args: object) -> None:
         pass
 
     def reply(self, code: int, body: bytes, declared: Optional[int] = None) -> None:
@@ -120,7 +153,8 @@ class H(http.server.BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         req = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
         REQS.append(req)
-        r = STATE["resp"]
+        r = STATE.resp
+        assert r is not None
         res = r(req)
         if res[0] == -1:  # truncated body
             self.reply(200, b'{"a":', declared=5000)
@@ -128,8 +162,8 @@ class H(http.server.BaseHTTPRequestHandler):
             self.reply(*res)
 
     def do_GET(self) -> None:
-        if self.path.endswith("/models") and STATE["models"] is not None:
-            self.reply(200, STATE["models"])
+        if self.path.endswith("/models") and STATE.models is not None:
+            self.reply(200, STATE.models)
         else:
             self.reply(404, b"{}")
 
@@ -157,22 +191,29 @@ open(CL_TAGGED, "w").write(TAGGED)
 open(CL_OLD, "w").write(UNTAGGED)
 
 
-def images_of(req: dict[str, Any]) -> list[str]:
+def images_of(req: Request) -> list[str]:
     out = []
     for part in req["messages"][0]["content"]:
-        if part["type"] == "image_url":
-            raw = base64.b64decode(part["image_url"]["url"].split(",", 1)[1])
+        image = part.get("image_url")
+        if part["type"] == "image_url" and image is not None:
+            raw = base64.b64decode(image["url"].split(",", 1)[1])
             out.append(raw[len(look.PNG_MAGIC):].decode())
     return out
 
 
-def text_of(req: dict[str, Any]) -> str:
-    return str(req["messages"][0]["content"][0]["text"])
+def text_of(req: Request) -> str:
+    return req["messages"][0]["content"][0].get("text", "")
+
+
+def item_of(req: Request, pattern: str) -> str:
+    m = re.search(pattern, text_of(req).split("Item:")[1])
+    assert m is not None
+    return m.group(0)
 
 
 def cli(*args: str, resp: Optional[Responder] = None) -> tuple[int, str, str]:
     REQS.clear()
-    STATE["resp"] = resp
+    STATE.resp = resp
     out, err = io.StringIO(), io.StringIO()
     code = 0
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -183,7 +224,7 @@ def cli(*args: str, resp: Optional[Responder] = None) -> tuple[int, str, str]:
     return code, out.getvalue(), err.getvalue()
 
 
-def all_pass(req: dict[str, Any]) -> tuple[int, bytes]:
+def all_pass(req: Request) -> tuple[int, bytes]:
     return chat("\n".join(f"PASS L{i} — x" for i in range(1, 4)))
 
 
@@ -235,21 +276,21 @@ with open(big, "wb") as f:
 c, _, e = cli("--checklist", CL_OLD, big, resp=all_pass)
 ok(c == 2 and "--ppi" in e and not REQS, (c, e))
 # 7 list-models
-STATE["models"] = jbytes({"data": [{"id": "a/x"}, {"id": "b/y"}]})
+STATE.models = jbytes({"data": [{"id": "a/x"}, {"id": "b/y"}]})
 c, o, _ = cli("--list-models")
 ok(c == 0 and o.split() == ["a/x", "b/y"], (c, o))
-STATE["models"] = None
+STATE.models = None
 c, _, e = cli("--list-models")
 ok(c == 2, (c, e))
-STATE["models"] = jbytes({"oops": 1})
+STATE.models = jbytes({"oops": 1})
 c, _, e = cli("--list-models")
 ok(c == 2 and "shape" in e, (c, e))
 
 
 # 9 per-item
 def per_item_resp(fail: Optional[tuple[str, str]] = None) -> Responder:
-    def r(req: dict[str, Any]) -> tuple[int, bytes]:
-        i = re.search(r"\bL\d+\b(?= (?!—))", text_of(req).split("Item:")[1]).group(0)  # type: ignore[union-attr]
+    def r(req: Request) -> tuple[int, bytes]:
+        i = item_of(req, r"\bL\d+\b(?= (?!—))")
         if fail and fail[0] == i and fail[1] in images_of(req):
             return chat(f"FAIL {i} — clipped at right")
         return chat(f"PASS {i} — fine")
@@ -257,7 +298,7 @@ def per_item_resp(fail: Optional[tuple[str, str]] = None) -> Responder:
 
 
 c, o, e = cli("--checklist", CL_TAGGED, "--per-item", P2, C1, P1, C2, resp=per_item_resp())
-calls = [(re.search(r"\bL\d+\b", text_of(r).split("Item:")[1]).group(0), images_of(r)) for r in REQS]  # type: ignore[union-attr]
+calls = [(item_of(r, r"\bL\d+\b"), images_of(r)) for r in REQS]
 ok(c == 0 and len(REQS) == 4, (c, o, calls))
 ok(calls == [("L1", ["cv-p1-fill1.png", "cv-p2-icon3.png"]),
              ("L2", ["cv-p1.png"]), ("L2", ["cv-p2.png"]),
@@ -275,8 +316,8 @@ ok(images_of(REQS[0]) == ["cv-p1.png"], images_of(REQS[0]))
 c, o, _ = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat("I cannot tell."))
 ok(c == 1 and o.count("no answer from model") == 3, (c, o))
 # per-item: one truncated item -> that item FAIL inconclusive, the others are evaluated, run completes (exit 1)
-def trunc_l2(req: dict[str, Any]) -> tuple[int, bytes]:
-    i = re.search(r"\bL\d+\b(?= (?!—))", text_of(req).split("Item:")[1]).group(0)  # type: ignore[union-attr]
+def trunc_l2(req: Request) -> tuple[int, bytes]:
+    i = item_of(req, r"\bL\d+\b(?= (?!—))")
     return chat(f"PASS {i} — fine", "length" if i == "L2" else "stop")
 
 
@@ -294,9 +335,9 @@ ok(c == 2 and "inconclusive" in e and "truncated at 8192 tokens" in e and o == "
 cli("--checklist", CL_OLD, P1, resp=all_pass)
 ok(REQS[0]["temperature"] == 0 and "top_p" not in REQS[0] and "top_k" not in REQS[0], REQS[0].keys())
 cli("--checklist", CL_OLD, "--temperature", "0.7", "--top-p", "0.9", "--top-k", "40", P1, resp=all_pass)
-ok(REQS[0]["temperature"] == 0.7 and REQS[0]["top_p"] == 0.9 and REQS[0]["top_k"] == 40, REQS[0])
+ok(REQS[0]["temperature"] == 0.7 and REQS[0].get("top_p") == 0.9 and REQS[0].get("top_k") == 40, REQS[0])
 cli("--checklist", CL_OLD, "--per-item", "--temperature", "0.2", "--top-k", "5", P1, resp=per_item_resp())
-ok(all(r["temperature"] == 0.2 and r["top_k"] == 5 and "top_p" not in r for r in REQS) and len(REQS) == 3, REQS[0])
+ok(all(r["temperature"] == 0.2 and r.get("top_k") == 5 and "top_p" not in r for r in REQS) and len(REQS) == 3, REQS[0])
 
 # FAIL final line is never the clean line
 c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — a\nFAIL L2 — b\nPASS L3 — c"))
@@ -327,11 +368,11 @@ CL_CROPS = os.path.join(tmp, "crops.md")
 open(CL_CROPS, "w").write("L1 (crops) Is all text whole?\nL2 (crops:fill) Is every text on a coloured band legible?\n"
                           "L3 (crops:icon) Is every icon whole?\nL4 (page) Is it even?\n")
 c, o, _ = cli("--checklist", CL_CROPS, "--per-item", P1, P2, C2, resp=per_item_resp())
-calls = [(re.search(r"\bL\d+\b", text_of(r).split("Item:")[1]).group(0), images_of(r)) for r in REQS]  # type: ignore[union-attr]
+calls = [(item_of(r, r"\bL\d+\b"), images_of(r)) for r in REQS]
 ok(calls == [("L1", ["cv-p2-icon3.png"]), ("L2", ["cv-p1.png", "cv-p2.png"]), ("L3", ["cv-p2-icon3.png"]),
              ("L4", ["cv-p1.png"]), ("L4", ["cv-p2.png"])] and len(REQS) == 5, calls)
 c, o, _ = cli("--checklist", CL_CROPS, "--per-item", P1, C1, C2, resp=per_item_resp())
-calls = [(re.search(r"\bL\d+\b", text_of(r).split("Item:")[1]).group(0), images_of(r)) for r in REQS]  # type: ignore[union-attr]
+calls = [(item_of(r, r"\bL\d+\b"), images_of(r)) for r in REQS]
 ok(calls[:3] == [("L1", ["cv-p1-fill1.png", "cv-p2-icon3.png"]), ("L2", ["cv-p1-fill1.png"]),
                  ("L3", ["cv-p2-icon3.png"])], calls)
 

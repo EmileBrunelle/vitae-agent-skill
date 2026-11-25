@@ -19,13 +19,14 @@ def fails(results):
     return [m for f, m in results if f]
 
 
-def inside(runs, idx):
+def inside(runs, idx) -> tuple[int, int]:
     """A 2px ink band wholly inside run `idx` (as laid out by run_gate)."""
     y = 50
     for i, r in enumerate(runs):
         if i == idx:
             return (y + 1, y + 3)
         y += r + 100
+    raise IndexError(idx)
 
 
 class TestPreconditions:
