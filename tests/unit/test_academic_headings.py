@@ -1,4 +1,6 @@
 """verify_academic: headings are declared in [headings], never guessed from a language."""
+from typing import Any
+
 import pytest
 import vitae.verify.academic.checks as va_checks
 import vitae.verify.academic.parse as va_parse
@@ -13,7 +15,8 @@ def failures(results):
 
 
 def _full_data(data):
-    counts = {k: 0 for k in ("education", "appointments", "honours", "funding", "supervision", "teaching", "service",
+    # Mirrors the parsed TOML [counts] table: ints, plus nested tables for publications and talks.
+    counts: dict[str, Any] = {k: 0 for k in ("education", "appointments", "honours", "funding", "supervision", "teaching", "service",
                              "knowledge_mobilization", "references")}
     counts["publications"] = {"journal": 0, "conference": 0, "preprint": 0}
     counts["talks"] = {k: 0 for k in ("plenary", "invited", "conference", "seminar", "poster")}
