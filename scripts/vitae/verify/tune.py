@@ -19,7 +19,7 @@ from vitae.core.base import (
 )
 from vitae.core.env import PdfBackend, preflight
 from vitae.verify.pdf import compile_pdf, count_pages, render_pngs
-from vitae.verify.typst import _read_par, _write_par
+from vitae.verify.typst import _count_par_leadings, _read_par, _scale_list_spacing, _write_par
 
 # ---------- auto-tuner: the fill loop, run by bisection instead of by hand ----------
 
@@ -32,7 +32,9 @@ from vitae.verify.typst import _read_par, _write_par
 # `spacing` moves WITH `leading`, keeping the family's own delta between the two: that delta
 # is part of the recipe (a family with a wide paragraph spacing relative to its leading has a
 # different rhythm, not just a different density), and tuning them independently would
-# silently redesign the family.
+# silently redesign the family. The explicit `#set list(spacing:)` scales by the same factor as
+# the leading (new leading / original leading), so the family's leading / list-spacing ratio, the
+# prose-vs-bullet rhythm, survives the tune; a file with no explicit list spacing is left alone.
 #
 # If the fill at L* is still under the target, no leading value reaches it: that is the
 # anti-filler clause (SKILL.md rule 5) speaking, the content does not honestly fill that
@@ -40,12 +42,24 @@ from vitae.verify.typst import _read_par, _write_par
 # real content, or a different page count.
 
 
+def _with_rhythm(text: str, leading: float, spacing: float) -> str:
+    """text with par leading/spacing set and the list spacing scaled by leading / original leading.
+
+    With more than one `#set par(leading:)` the tuner edits the first while the gate reads the last,
+    so both of the gate's values stay untouched and the list spacing is left alone too."""
+    par = _read_par(text)
+    out = _write_par(text, leading, spacing)
+    if not par or par[0] <= 0 or _count_par_leadings(text) > 1:
+        return out
+    return _scale_list_spacing(out, leading / par[0])
+
+
 def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
            use_cli: bool, backend: PdfBackend) -> tuple[bool, int | None]:
     """Compile at (leading, spacing); return (pages_ok, fill_pct or None).
 
     Rewrites `typ` in place on every call: the caller restores the original text."""
-    open(typ, "w", encoding="utf-8").write(_write_par(text, leading, spacing))
+    open(typ, "w", encoding="utf-8").write(_with_rhythm(text, leading, spacing))
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "t.pdf")
         ok, _ = compile_pdf(typ, pdf, use_cli)
@@ -176,7 +190,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                          max(0.40, l0 * 0.65), max(1.40, l0 * 1.60)))
             return 1, footer
         open(typ, "w", encoding="utf-8").write(
-            _write_par(original, best, best + delta))
+            _with_rhythm(original, best, best + delta))
         print("OK    wrote leading %.3fem / spacing %.3fem -> fill %s%% "
               "(target %s-%s%%)" % (best, best + delta, best_fill, fmin, fmax))
         print("      now run the gate itself: verify.py %s %s %s %s"

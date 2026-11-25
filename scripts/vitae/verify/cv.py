@@ -4,6 +4,7 @@ No `import verify`.
 """
 from __future__ import annotations
 
+import functools
 import glob
 import os
 import re
@@ -13,7 +14,13 @@ import sys
 import tempfile
 
 import vitae.fill as measure_fill
-from vitae.core.base import _FOOTER_GATE, LEADING_WARN, LOWERED_FILL_FLOOR
+from vitae.core.base import (
+    _FOOTER_GATE,
+    LEADING_ABS_RATIO_WARN,
+    LEADING_FAMILY_RATIO_WARN,
+    LEADING_WARN,
+    LOWERED_FILL_FLOOR,
+)
 from vitae.core.env import preflight, typst_can_query
 from vitae.core.level import Finding, Level
 from vitae.verify.gates import GATES, make_context
@@ -246,18 +253,38 @@ _LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line p
                  "lower fill and tell the user")
 
 
-# Relative twin of LEADING_WARN: prose leading against bullet spacing.
-LEADING_RATIO_WARN = 1.95   # leading / list spacing; strictly above it the WARN fires (a real 1.0em/0.5em run, ratio 2.00, read double-spaced; highest shipped template is 1.89)
-_LEADING_RATIO_WARN = ("WARN  leading {l:.3f}em vs bullet spacing {s:.3f}em (ratio {r:.2f}, warns above "
-                       "{t:.2f}) — wrapped prose reads DOUBLE-SPACED next to the bullets. Lower the "
-                       "leading (`--tune` downward, or reduce `#set par(leading:)`) or raise the "
-                       "`#set list(spacing:)` so prose and bullets read with the same rhythm")
+_LEADING_ABS_RATIO_WARN = ("WARN  leading {l:.3f}em vs bullet spacing {s:.3f}em (ratio {r:.2f}, warns above "
+                           "{t:.2f}) — wrapped prose reads DOUBLE-SPACED next to the bullets. Lower the "
+                           "leading (`--tune` downward, or reduce `#set par(leading:)`) or raise the "
+                           "`#set list(spacing:)` so prose and bullets read with the same rhythm")
+_LEADING_FAMILY_WARN = ("WARN  the list rhythm no longer matches the paragraph rhythm: leading {l:.3f}em vs "
+                        "bullet spacing {s:.3f}em is {r:.2f}x the ratio of the {f} template "
+                        "({fl:.3f}em / {fs:.3f}em); warns above {t:.2f}x — wrapped prose reads looser than "
+                        "the bullets. Re-run `--tune` (it now moves list spacing with leading), or raise "
+                        "`#set list(spacing:)` / lower `#set par(leading:)` to restore the family ratio. "
+                        "Type size and leading are not padding")
 
 
-def _leading_warn(typ: str) -> str:
-    """The WARN line when cv.typ's document leading is above LEADING_WARN (absolute check), or above
-    LEADING_RATIO_WARN times the explicit top-level list spacing (relative check; the absolute one
-    takes precedence), else ''. A WARN, never a FAIL: the page may be honestly full; the
+@functools.lru_cache(maxsize=None)
+def _family_default(family: str, pages: int) -> tuple[float, float] | None:
+    """(leading, list spacing) in em shipped by templates/families/<family>: resume-2page.typ for
+    pages >= 2 when it exists, else resume.typ; None when unknown or either value is not numeric."""
+    d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "templates", "families", family)
+    for name in (("resume-2page.typ",) if pages >= 2 else ()) + ("resume.typ",):
+        try:
+            lead, lsp = _doc_par_list(open(os.path.join(d, name), encoding="utf-8").read())
+        except OSError:
+            continue
+        if lead and lsp:
+            return lead, lsp
+    return None
+
+
+def _leading_warn(typ: str, pages: int = 1) -> str:
+    """The WARN line when cv.typ's document leading is above LEADING_WARN (absolute check), or when its
+    leading / explicit list spacing ratio is above LEADING_FAMILY_RATIO_WARN times its family's shipped
+    ratio (relative check; LEADING_ABS_RATIO_WARN absolute when the family is unknown; the absolute
+    leading check takes precedence), else ''. A WARN, never a FAIL: the page may be honestly full; the
     message points at the facts to add instead."""
     try:
         lead, lsp = _doc_par_list(open(typ, encoding="utf-8").read())
@@ -269,8 +296,18 @@ def _leading_warn(typ: str) -> str:
         return _LEADING_WARN.format(l=lead, t=LEADING_WARN)
     # Relative check: only when the list spacing is explicit (a list with no
     # `spacing:` follows Typst's own defaults, so the ratio is unknown: silent).
-    if lsp and lsp > 0 and lead / lsp > LEADING_RATIO_WARN + 1e-9:
-        return _LEADING_RATIO_WARN.format(l=lead, s=lsp, r=lead / lsp, t=LEADING_RATIO_WARN)
+    if not (lsp and lsp > 0):
+        return ""
+    family = family_from_path(typ)
+    ref = _family_default(family, pages) if family else None
+    if ref is None:
+        if lead / lsp > LEADING_ABS_RATIO_WARN + 1e-9:
+            return _LEADING_ABS_RATIO_WARN.format(l=lead, s=lsp, r=lead / lsp, t=LEADING_ABS_RATIO_WARN)
+        return ""
+    rel = (lead / lsp) / (ref[0] / ref[1])
+    if rel > LEADING_FAMILY_RATIO_WARN + 1e-9:
+        return _LEADING_FAMILY_WARN.format(l=lead, s=lsp, r=rel, f=family, fl=ref[0], fs=ref[1],
+                                           t=LEADING_FAMILY_RATIO_WARN)
     return ""
 
 
@@ -311,7 +348,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     drawn, drawn_warns = _drawn_fill(typ)
     for w in drawn_warns:
         print(w)
-    lead_warn = _leading_warn(typ)
+    lead_warn = _leading_warn(typ, int(expected) if str(expected).isdigit() else 1)
     if lead_warn:
         print(lead_warn)
     size_warn = _body_size_warn(typ)

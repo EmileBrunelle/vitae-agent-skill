@@ -51,10 +51,10 @@ def leading_warn() -> None:
             _lm = _leading_warn(_lwf)
             assert bool(_lm) == _lwant, (_lv, _lm)
         assert "DOUBLE-SPACED" in _lm and "1.100em" in _lm, _lm
-        # Tuples are (leading, list spacing, expect WARN) around LEADING_RATIO_WARN (1.95, strictly above fires):
+        # Tuples are (leading, list spacing, expect WARN) around LEADING_ABS_RATIO_WARN (1.95, the no-FAMILY fallback; strictly above fires):
         # 1.0/0.5 is the real run (ratio 2.00) that read double-spaced; 0.85/0.45 computes to 1.89, the value
         # verify.py records as the highest shipped template.
-        # Relative check: leading / explicit list spacing, strictly above 1.95.
+        # Relative check: leading / explicit list spacing, strictly above 1.95 (no FAMILY banner in these files).
         for _rl, _rs, _rwant in ((0.942, 0.45, True), (0.90, 0.45, True), (1.0, 0.5, True), (0.85, 0.45, False), (0.839, 0.45, False),
                                  (0.942, 0.55, False), (0.9, 0.5, False)):
             open(_lwf, "w", encoding="utf-8").write(

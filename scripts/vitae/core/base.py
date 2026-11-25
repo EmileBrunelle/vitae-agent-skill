@@ -120,6 +120,16 @@ _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Ad
 # double-spaced while every mechanical check still passes.
 LEADING_WARN = 1.00    # em; strictly above it the WARN fires (largest shipped 0.96)
 
+# Relative twin: prose leading against bullet spacing. The family-relative form compares the file's
+# leading / list-spacing ratio with the same ratio of its family's shipped default (resume.typ, or
+# resume-2page.typ for a 2-page file when the family ships one); strictly above the constant the WARN
+# fires. Calibrated 2026-11: shipped files (resume, resume-pair-b, 2-page, fixtures) score <= 1.050;
+# the five measured post-`--tune` runs score 1.161-1.616 (margin 0.06).
+LEADING_FAMILY_RATIO_WARN = 1.10
+# Fallback with no FAMILY header or an unknown family: absolute leading / list spacing, strictly above
+# it the WARN fires (a real 1.0em/0.5em run, ratio 2.00, read double-spaced; highest shipped is 1.89).
+LEADING_ABS_RATIO_WARN = 1.95
+
 
 # Shared by verify_pdf (render default) and verify_text (hidden-text raster).
 HIDDEN_PPI = 150          # own raster: tiny legit text needs more than the 90 ppi fill scan

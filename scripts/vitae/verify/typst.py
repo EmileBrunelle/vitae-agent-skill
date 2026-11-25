@@ -154,6 +154,54 @@ def _spacing_arg(args: str) -> tuple[bool, re.Match[str] | None]:
 _SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
 
 
+def _count_par_leadings(text: str) -> int:
+    """How many column-0 `#set par(... leading: ...)` rules the text has (the gate reads the LAST one)."""
+    masked = _mask_non_markup(text)
+    count = 0
+    for m in re.finditer(r"^#set\s+par\(", masked, re.M):
+        k, d = m.end(), 1
+        while k < len(masked) and d:
+            d += (masked[k] == "(") - (masked[k] == ")")
+            k += 1
+        count += bool(_LEAD_ARG.search(masked[m.end():k - 1]))
+    return count
+
+
+def _scale_list_spacing(text: str, factor: float) -> str:
+    """text with every top-level `#set list(... spacing: X)` (numeric, em or pt) multiplied by factor
+    (three decimals, unit kept); text with no explicit numeric list spacing comes back unchanged.
+    Same top-level scope as _doc_par_list_size, so a nested `box(spacing:)` is never touched."""
+    masked = _mask_non_markup(text)
+    out, last, depth, i, n = [], 0, 0, 0, len(masked)
+    while i < n:
+        j = masked.find("\n", i)
+        j = n if j < 0 else j
+        line = masked[i:j]
+        m = _SET_RE.match(line) if depth == 0 else None
+        if depth == 0 and not m and line.strip() and not re.match(r"#(set|show|import|let)\b", line):
+            break
+        if m and m.group(1) == "list":
+            k, d = i + m.end(), 1
+            while k < n and d:
+                d += (masked[k] == "(") - (masked[k] == ")")
+                k += 1
+            args = masked[i + m.end():k - 1]
+            _, sp = _spacing_arg(args)
+            if sp:
+                a, b = i + m.end() + sp.start(1), i + m.end() + sp.end(1)
+                out.append(text[last:a])
+                out.append("%.3f" % (float(sp.group(1)) * factor))
+                last = b
+        for ch in line:
+            if ch in "([{":
+                depth += 1
+            elif ch in ")]}" and depth:
+                depth -= 1
+        i = j + 1
+    out.append(text[last:])
+    return "".join(out)
+
+
 def _doc_leading(text: str) -> float | None:
     """The document's paragraph leading in em; see _doc_par_list_size."""
     return _doc_par_list(text)[0]
