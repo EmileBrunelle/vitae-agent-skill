@@ -6,84 +6,84 @@ Full-page renders of the fourteen reference families — see [README.md](README.
 
 International Typographic Style: flush-left grid, accent rule above the title, no colour on text.
 
-![swiss-grid](assets/families/swiss-grid.png)
+![swiss-grid](assets/families/swiss-grid.webp)
 
 ## editorial-serif — classic
 
 Contemporary editorial: serif display over a humanist sans body, short accent bar above the title.
 
-![editorial-serif](assets/families/editorial-serif.png)
+![editorial-serif](assets/families/editorial-serif.webp)
 
 ## color-band — modern
 
 Reversed-out masthead: the heading is knocked out white on a solid accent band.
 
-![color-band](assets/families/color-band.png)
+![color-band](assets/families/color-band.webp)
 
 ## humanist-quiet — neutral
 
 Restraint, no rules at all: one humanist sans, no heading device, whitespace alone carries the boundary.
 
-![humanist-quiet](assets/families/humanist-quiet.png)
+![humanist-quiet](assets/families/humanist-quiet.webp)
 
 ## keyline-corporate — modern
 
 Contemporary corporate report: an accent keyline runs down the left of each title, with a soft rule across each section boundary.
 
-![keyline-corporate](assets/families/keyline-corporate.png)
+![keyline-corporate](assets/families/keyline-corporate.webp)
 
 ## bold-display — modern
 
 Geometric display, heavy contrast: UPPERCASE display title over a heavy rule.
 
-![bold-display](assets/families/bold-display.png)
+![bold-display](assets/families/bold-display.webp)
 
 ## margin-index — classic
 
 Classic marginalia: titles live in a wide left-margin column, serif with old-style figures.
 
-![margin-index](assets/families/margin-index.png)
+![margin-index](assets/families/margin-index.webp)
 
 ## quiet-luxury — neutral
 
 Warm restrained minimalism: warm humanist sans, a short accent tick beside the title.
 
-![quiet-luxury](assets/families/quiet-luxury.png)
+![quiet-luxury](assets/families/quiet-luxury.webp)
 
 ## mono-technical — modern
 
 Technical-documentation aesthetic: filled hue-A/hue-B marker glyphs, monospace throughout.
 
-![mono-technical](assets/families/mono-technical.png)
+![mono-technical](assets/families/mono-technical.webp)
 
 ## engraved-card — classic
 
 Engraved stationery: a rotated accent lozenge, quiet serif, airy margins.
 
-![engraved-card](assets/families/engraved-card.png)
+![engraved-card](assets/families/engraved-card.webp)
 
 ## clause-index — neutral
 
 Numbered-clause standard document: outdented clause numbers, institutional grotesque with tabular figures.
 
-![clause-index](assets/families/clause-index.png)
+![clause-index](assets/families/clause-index.webp)
 
 ## hard-edge — creative
 
 Neo-brutalist: the title is knocked out of a hard black slab; heavy grotesque + document mono.
 
-![hard-edge](assets/families/hard-edge.png)
+![hard-edge](assets/families/hard-edge.webp)
 
 ## avant-poster — creative
 
 Constructivist poster: a heavy accent bar bleeds off the page edge, condensed grotesque display.
 
-![avant-poster](assets/families/avant-poster.png)
+![avant-poster](assets/families/avant-poster.webp)
 
 ## gutter-rail — creative
 
 Themed developer environment: a gutter rail runs down the margin, UI grotesque + mono chrome.
 
-![gutter-rail](assets/families/gutter-rail.png)
+![gutter-rail](assets/families/gutter-rail.webp)
 
 Why the `creative` families are not drawn by default: see [`README.md`](README.md#design-families).

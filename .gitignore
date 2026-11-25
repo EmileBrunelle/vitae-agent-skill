@@ -1,7 +1,5 @@
 *.pdf
 *.png
-!assets/*.png
-!assets/families/*.png
 __pycache__/
 *.pyc
 .venv/
