@@ -48,6 +48,12 @@ max-statements = 50     # ruff default
 "scripts/vitae/verify/typst.py" = ["C901"]
 "tests/backend_equiv.py" = ["C901", "PLR0915"]
 
+[tool.pyright]
+# Mirrors mypy.ini: the minimum supported Python (CI tests 3.11), and scripts/ on the import path the way tests/conftest.py puts it there, so `vitae` and the façades resolve in editors and the CLI.
+pythonVersion = "3.11"
+include = ["scripts"]
+extraPaths = ["scripts"]
+
 [tool.pytest.ini_options]
 # Unmarked tests are pure unit tests. `pytest tests/unit` runs everything; `-m "not integration and not lint"` is the fast loop.
 addopts = "--strict-markers"
