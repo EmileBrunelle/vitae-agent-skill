@@ -45,7 +45,7 @@ Quatorze implémentations de référence, une par famille, se trouvent sous `tem
 
 Le registre `creative` (`hard-edge`, `avant-poster`, `gutter-rail`) n'est jamais tiré par défaut — voir la section « Design families » de [`references/design/core.md`](references/design/core.md#design-families--every-candidate-gets-their-own-look).
 
-[`templates/academic/**`](templates/academic) (le gabarit du mode CV académique) est **hors de cet étalonnage industriel** : les cibles de remplissage, les dispositifs de séparation des sections et la liste des quatorze familles ci-dessus décrivent uniquement les CV du secteur privé et ne disent rien des dossiers académiques.
+[`templates/academic/**`](templates/academic/) (le gabarit du mode CV académique) est **hors de cet étalonnage industriel** : les cibles de remplissage, les dispositifs de séparation des sections et la liste des quatorze familles ci-dessus décrivent uniquement les CV du secteur privé et ne disent rien des dossiers académiques.
 
 ## Installation
 

@@ -45,7 +45,7 @@ Fourteen reference implementations, one per family, live under `templates/famili
 
 The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`) is never drawn by default — see § Design families in [`references/design/core.md`](references/design/core.md#design-families--every-candidate-gets-their-own-look).
 
-[`templates/academic/**`](templates/academic) (the academic-CV mode's gabarit) is **out of this industry calibration**: the fill targets, section-separation devices, and the fourteen-family roster above describe industry résumés only and say nothing about academic dossiers.
+[`templates/academic/**`](templates/academic/) (the academic-CV mode's gabarit) is **out of this industry calibration**: the fill targets, section-separation devices, and the fourteen-family roster above describe industry résumés only and say nothing about academic dossiers.
 
 ## Install
 

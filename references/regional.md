@@ -32,11 +32,11 @@ North America
 - [`regional/north-america/aviation.md`](regional/north-america/aviation.md) — read IN ADDITION when the CV lists a pilot licence, permit, certificate or rating (Transport Canada, FAA)
 - [`regional/north-america/workplace-safety.md`](regional/north-america/workplace-safety.md) — read IN ADDITION when the CV lists a workplace first-aid certificate (Québec), an OSHA 10/30-hour card or forklift training
 - [`regional/north-america/driving.md`](regional/north-america/driving.md) — read IN ADDITION when the job requires driving a heavy or commercial vehicle and the CV lists a commercial licence (US CDL, Canadian or Québec class 1)
-- [`regional/north-america/quebec/outbound-common.md`](regional/north-america/quebec/outbound-common.md) — when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: read it IN ADDITION to the target market's file, plus the file for the target country
-  - [`regional/north-america/quebec/outbound-canada.md`](regional/north-america/quebec/outbound-canada.md) — target English Canada
-  - [`regional/north-america/quebec/outbound-us.md`](regional/north-america/quebec/outbound-us.md) — target USA
-  - [`regional/north-america/quebec/outbound-france.md`](regional/north-america/quebec/outbound-france.md) — target France (includes Québec–France double degrees)
-- [`regional/europe/to-north-america.md`](regional/europe/to-north-america.md) — read IN ADDITION to `common.md` and the target country's file (`canada/market.md` or `us/market.md`) when the TARGET market is USA, Canada or Québec and the candidate's credentials or CV habits are European (the target market wins over the address)
+- [`regional/north-america/quebec/outbound/common.md`](regional/north-america/quebec/outbound/common.md) — when the candidate holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: read it IN ADDITION to the target market's file, plus the file for the target country
+  - [`regional/north-america/quebec/outbound/canada.md`](regional/north-america/quebec/outbound/canada.md) — target English Canada
+  - [`regional/north-america/quebec/outbound/us.md`](regional/north-america/quebec/outbound/us.md) — target USA
+  - [`regional/north-america/quebec/outbound/france.md`](regional/north-america/quebec/outbound/france.md) — target France (includes Québec–France double degrees)
+- [`regional/europe/outbound/north-america.md`](regional/europe/outbound/north-america.md) — read IN ADDITION to `common.md` and the target country's file (`canada/market.md` or `us/market.md`) when the TARGET market is USA, Canada or Québec and the candidate's credentials or CV habits are European (the target market wins over the address)
 
 Europe
 - [`regional/europe/france.md`](regional/europe/france.md) — France (a4; FR; photo declining; 1 p.)
@@ -56,12 +56,12 @@ Outbound credentials
   - [`regional/asia/outbound/south-asia.md`](regional/asia/outbound/south-asia.md) — Pakistani, Bangladeshi or Nepali credentials (one or several)
   - [`regional/asia/outbound/philippines.md`](regional/asia/outbound/philippines.md) — Philippine credentials (K-12, pre-reform degrees)
   - [`regional/asia/outbound/china.md`](regional/asia/outbound/china.md) — Chinese credentials (CHSI, CSSD)
-- [`regional/asia/india/to-anglosphere.md`](regional/asia/india/to-anglosphere.md) — read IN ADDITION to the target market's file when the candidate holds Indian credentials or Indian CV habits (3-year bachelor's, ICAI, NBA, ECA, ACS) and targets USA, Canada, UK, Australia or NZ (not Ireland or continental Europe: see below)
-- [`regional/asia/india/to-europe/common.md`](regional/asia/india/to-europe/common.md) — Indian credentials targeting Germany, Ireland, the Netherlands or France: read it IN ADDITION to the target market's file, plus the target's file only (degree evaluation; Blue Card and carte talent diploma conditions):
-  - [`regional/asia/india/to-europe/germany.md`](regional/asia/india/to-europe/germany.md) — Germany (anabin/ZAB)
-  - [`regional/asia/india/to-europe/ireland.md`](regional/asia/india/to-europe/ireland.md) — Ireland (NARIC Ireland)
-  - [`regional/asia/india/to-europe/netherlands.md`](regional/asia/india/to-europe/netherlands.md) — the Netherlands (Nuffic)
-  - [`regional/asia/india/to-europe/france.md`](regional/asia/india/to-europe/france.md) — France (ENIC-NARIC France)
+- [`regional/asia/india/outbound/anglosphere.md`](regional/asia/india/outbound/anglosphere.md) — read IN ADDITION to the target market's file when the candidate holds Indian credentials or Indian CV habits (3-year bachelor's, ICAI, NBA, ECA, ACS) and targets USA, Canada, UK, Australia or NZ (not Ireland or continental Europe: see below)
+- [`regional/asia/india/outbound/europe-common.md`](regional/asia/india/outbound/europe-common.md) — Indian credentials targeting Germany, Ireland, the Netherlands or France: read it IN ADDITION to the target market's file, plus the target's file only (degree evaluation; Blue Card and carte talent diploma conditions):
+  - [`regional/asia/india/outbound/germany.md`](regional/asia/india/outbound/germany.md) — Germany (anabin/ZAB)
+  - [`regional/asia/india/outbound/ireland.md`](regional/asia/india/outbound/ireland.md) — Ireland (NARIC Ireland)
+  - [`regional/asia/india/outbound/netherlands.md`](regional/asia/india/outbound/netherlands.md) — the Netherlands (Nuffic)
+  - [`regional/asia/india/outbound/france.md`](regional/asia/india/outbound/france.md) — France (ENIC-NARIC France)
 
 Target markets
 - [`regional/asia/east-asia/japan.md`](regional/asia/east-asia/japan.md) — read when the CV goes to a Japanese employer (including a foreign applicant moving to Japan: status-of-residence evidence, HSP points, JLPT wording) or the candidate has Japanese home habits (rirekisho vs shokumu keirekisho); official-source facts only, no full market file
@@ -117,10 +117,10 @@ Oceania, Latin America, Africa
   - [`regional/africa/tunisia/regulated.md`](regional/africa/tunisia/regulated.md) — protected titles: architect, avocat, engineer (registration, penalties)
   - [`regional/africa/tunisia/health.md`](regional/africa/tunisia/health.md) — physician and dentist titles
   - [`regional/africa/tunisia/academic.md`](regional/africa/tunisia/academic.md) — university and school-teaching ranks, exact official names
-- [`regional/africa/maghreb-outbound/common.md`](regional/africa/maghreb-outbound/common.md) — read IN ADDITION to the target market's file when the candidate holds Moroccan, Algerian or Tunisian credentials (alone or mixed with other countries') and targets Québec/Canada or Europe, plus ONE of:
-  - [`regional/africa/maghreb-outbound/to-quebec-canada.md`](regional/africa/maghreb-outbound/to-quebec-canada.md) — target Québec or English Canada (MIFI, IRCC ECA, OIQ)
-  - [`regional/africa/maghreb-outbound/to-europe.md`](regional/africa/maghreb-outbound/to-europe.md) — target France; Belgium, Spain and Germany not covered
-  - [`regional/africa/maghreb-outbound/transnational.md`](regional/africa/maghreb-outbound/transnational.md) — read IN ADDITION when a credential was earned on a campus abroad of a foreign school, delivered under a foreign partnership, or is a double/joint diploma (LaSalle Maroc/Tunis, delocalised Québec AEC, Dauphine Tunis)
+- [`regional/africa/outbound/common.md`](regional/africa/outbound/common.md) — read IN ADDITION to the target market's file when the candidate holds Moroccan, Algerian or Tunisian credentials (alone or mixed with other countries') and targets Québec/Canada or Europe, plus ONE of:
+  - [`regional/africa/outbound/quebec-canada.md`](regional/africa/outbound/quebec-canada.md) — target Québec or English Canada (MIFI, IRCC ECA, OIQ)
+  - [`regional/africa/outbound/europe.md`](regional/africa/outbound/europe.md) — target France; Belgium, Spain and Germany not covered
+  - [`regional/africa/outbound/transnational.md`](regional/africa/outbound/transnational.md) — read IN ADDITION when a credential was earned on a campus abroad of a foreign school, delivered under a foreign partnership, or is a double/joint diploma (LaSalle Maroc/Tunis, delocalised Québec AEC, Dauphine Tunis)
 
 **If the target market has no file, do not infer from training data** — markets outside this set (China, Kuwait, Oman, Bahrain, other Middle East and Asian markets…) do not form a bloc: conventions vary more inside that group than between Europe and North America (China, which has no file, expects photos for domestic employers but not multinationals; Japan, Korea and Taiwan have only official-source facts, in the three [`regional/asia/east-asia/`](regional/asia/east-asia/japan.md) files: the rirekisho has an MHLW sample form with photo and age fields, but MHLW says employers may use other forms; the Gulf and Near East files cover foreign workers, not a CV-custom source). Verify with a current local source or ask, label the assumption in the deliverable — and consider contributing the file. The same warning applies *inside* a multi-market file: Singapore and Thailand are neighbouring markets and disagree on nearly every axis (photo, personal data, formality).
 

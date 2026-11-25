@@ -13,3 +13,11 @@ ignore = [
     "B007",  # unused loop variable: kept for readable tuple unpacking
     "B905",  # zip() without strict=: adding it would change behaviour on unequal lengths
 ]
+
+[tool.pytest.ini_options]
+# Unmarked tests are pure unit tests. `pytest tests/unit` runs everything; `-m "not integration and not lint"` is the fast loop.
+addopts = "--strict-markers"
+markers = [
+    "integration: spawns subprocesses, uses external binaries or real sockets",
+    "lint: repo ratchet over the checked-in files (SKILL.md, Markdown, references), not over code behaviour",
+]

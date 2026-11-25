@@ -1,14 +1,18 @@
 """Reference files follow the format in CONTRIBUTING.md ("Reference file format").
 
-Files that do not comply yet are listed in LEGACY. The list only shrinks: a listed file that
-now complies fails the test (remove it), and a file outside it that violates fails too.
+Strict rule over every in-scope file; the rule logic itself is covered by test_reference_format_rules.py.
 """
 import glob
 import os
 import re
 
+import pytest
+
+pytestmark = pytest.mark.lint
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SCOPE = ("references/regional/", "references/certifications/", "references/fields/")
+MIN_WORDS = 80
 GENRES = (
     "Market", "Education", "Regulated professions", "Health professions", "Academic", "Outbound",
     "Law", "Field pack", "Certifications", "Foreign workers", "Gulf nationalisation", "Gulf credentials",
@@ -16,75 +20,26 @@ GENRES = (
 H1 = re.compile(r"^# (?:%s): \S" % "|".join(GENRES))
 URL = re.compile(r"https?://|\bwww\.")
 QUOTED = re.compile(r"«[^»]*»")
-DATE_VERB = re.compile(r"\b(?:accessed|retrieved)\b|\bconsulté\s+(?:le\s+)?(?:\d{4}\b|\d{1,2}\s)|\bread\s+20\d\d-", re.I)
+# A banned date verb only counts in citation context: the verb followed by a date.
+_DATE = r"(?:\d{4}\b|\d{1,2}\s+\w+\s+\d{4}|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4})"
+DATE_VERB = re.compile(
+    r"\b(?:accessed|retrieved|consulté)\s+(?:(?:le|on)\s+)?%s|\bread\s+\d{4}-\d{2}" % _DATE, re.I
+)
 CONFIDENCE = re.compile(
     r"\b(?:HIGH|MEDIUM)\b|\bunverified\b|\bnot sourced\b|\bLOW confidence\b|\bLOW\b(?!, unsourced)", re.I
 )
 CASE_SENSITIVE = {"HIGH", "MEDIUM", "LOW"}
 
-# Not aligned yet; remove each path when aligned.
-LEGACY = {
-    "references/certifications/finance-accounting.md",
-    "references/certifications/health.md",
-    "references/certifications/languages.md",
-    "references/certifications/project-hr.md",
-    "references/certifications/quality.md",
-    "references/certifications/rules.md",
-    "references/certifications/safety-professional.md",
-    "references/certifications/teaching-english.md",
-    "references/certifications/tech.md",
-    "references/fields/academic.md",
-    "references/fields/software-dev.md",
-    "references/fields/trades.md",
-    "references/regional/africa/maghreb-outbound/common.md",
-    "references/regional/africa/maghreb-outbound/to-europe.md",
-    "references/regional/africa/maghreb-outbound/to-quebec-canada.md",
-    "references/regional/africa/maghreb-outbound/transnational.md",
-    "references/regional/asia/east-asia/japan.md",
-    "references/regional/asia/east-asia/korea.md",
-    "references/regional/asia/east-asia/taiwan.md",
-    "references/regional/asia/outbound/china.md",
-    "references/regional/asia/outbound/common.md",
-    "references/regional/asia/outbound/philippines.md",
-    "references/regional/asia/outbound/south-asia.md",
-    "references/regional/asia/southeast-asia/indonesia.md",
-    "references/regional/asia/southeast-asia/malaysia.md",
-    "references/regional/asia/southeast-asia/philippines.md",
-    "references/regional/asia/southeast-asia/singapore.md",
-    "references/regional/asia/southeast-asia/thailand.md",
-    "references/regional/asia/southeast-asia/vietnam.md",
-    "references/regional/europe/austria.md",
-    "references/regional/europe/france.md",
-    "references/regional/europe/germany.md",
-    "references/regional/europe/ireland.md",
-    "references/regional/europe/spain.md",
-    "references/regional/europe/switzerland.md",
-    "references/regional/europe/to-north-america.md",
-    "references/regional/europe/uk.md",
-    "references/regional/asia/india/market.md",
-    "references/regional/asia/india/to-anglosphere.md",
-    "references/regional/asia/india/to-europe/common.md",
-    "references/regional/asia/india/to-europe/france.md",
-    "references/regional/asia/india/to-europe/germany.md",
-    "references/regional/asia/india/to-europe/ireland.md",
-    "references/regional/asia/india/to-europe/netherlands.md",
-    "references/regional/latin-america/argentina.md",
-    "references/regional/latin-america/brazil.md",
-    "references/regional/latin-america/chile.md",
-    "references/regional/latin-america/colombia.md",
-    "references/regional/latin-america/mexico.md",
-    "references/regional/middle-east/gulf/credentials.md",
-    "references/regional/middle-east/gulf/credentials/saudi-arabia.md",
-    "references/regional/middle-east/gulf/credentials/uae.md",
-    "references/regional/middle-east/gulf/market.md",
-    "references/regional/middle-east/gulf/nationalisation.md",
-    "references/regional/middle-east/gulf/nationalisation/saudi-arabia.md",
-    "references/regional/middle-east/near-east/jordan-foreign-workers.md",
-    "references/regional/middle-east/near-east/outbound.md",
-    "references/regional/middle-east/near-east/turkiye-foreign-workers.md",
-    "references/regional/oceania/australia.md",
-    "references/regional/oceania/new-zealand.md",
-}
+
+def is_exempt(path: str, text: str) -> bool:
+    """Scope exemptions: out of scope dir, *-common.md, overview.md, stubs under MIN_WORDS words."""
+    name = os.path.basename(path)
+    return (
+        not path.startswith(SCOPE)
+        or name.endswith("-common.md")
+        or name == "overview.md"
+        or len(text.split()) < MIN_WORDS
+    )
 
 
 def in_scope_files():
@@ -93,15 +48,7 @@ def in_scope_files():
         for scope in SCOPE
         for p in glob.glob(os.path.join(ROOT, scope, "**", "*.md"), recursive=True)
     )
-    result = []
-    for path in paths:
-        name = os.path.basename(path)
-        if not path.startswith(SCOPE) or name.endswith("-common.md") or name == "overview.md":
-            continue
-        text = read(path)
-        if len(text.split()) >= 80:
-            result.append(path)
-    return result
+    return [p for p in paths if not is_exempt(p, read(p))]
 
 
 def read(path):
@@ -110,7 +57,7 @@ def read(path):
 
 
 def prose(text):
-    """Text outside fenced code blocks."""
+    """Lines outside fenced code blocks."""
     fence = False
     kept = []
     for line in text.split("\n"):
@@ -121,8 +68,11 @@ def prose(text):
     return kept
 
 
-def violations(path):
-    lines = prose(read(path))
+def violations(path: str, text: str) -> list[str]:
+    """Format violations of one reference file; empty for an exempt file."""
+    if is_exempt(path, text):
+        return []
+    lines = prose(text)
     found = []
     heading = next((ln for ln in lines if ln.strip()), "")
     if not H1.match(heading):
@@ -134,7 +84,7 @@ def violations(path):
         h2 = next((ln for ln in lines if ln.startswith("## ")), "")
         if h2.strip() != "## At a glance":
             found.append("first H2 of a Market file is not 'At a glance'")
-    for n, line in enumerate(lines, 1):
+    for line in lines:
         if URL.search(line):
             found.append(f"URL in line text: {line.strip()[:60]}")
         unquoted = QUOTED.sub("", line)
@@ -149,15 +99,29 @@ def violations(path):
 
 
 def test_reference_format():
-    errors = []
     files = in_scope_files()
     assert files, "no in-scope reference files found"
-    for path in files:
-        problems = violations(path)
-        if path in LEGACY and not problems:
-            errors.append(f"{path}: now complies, remove it from LEGACY")
-        elif path not in LEGACY and problems:
-            errors.extend(f"{path}: {p}" for p in problems)
-    stale = LEGACY - set(files)
-    errors.extend(f"{p}: in LEGACY but not an in-scope file" for p in sorted(stale))
+    errors = [f"{path}: {p}" for path in files for p in violations(path, read(path))]
     assert not errors, "\n".join(errors)
+
+
+def outbound_naming_errors(rel: str, first_line: str) -> list[str]:
+    """Naming errors for one regional file (`rel` relative to the repo root, using os.sep)."""
+    name = os.path.basename(rel)
+    errors = []
+    if name.startswith(("to-", "outbound-")):
+        errors.append(f"{rel}: rename by destination without the `to-`/`outbound-` prefix, inside an `outbound/` folder")
+    if first_line.startswith("# Outbound:") and name != "outbound.md" and "outbound" not in rel.split(os.sep)[:-1]:
+        errors.append(f"{rel}: H1 genre is Outbound, so the file must live in an `outbound/` folder or be named `outbound.md`")
+    return errors
+
+
+def test_outbound_naming():
+    """Outbound guides: no `to-*.md` / `outbound-*.md` names; genre Outbound lives in `outbound/` or `outbound.md`."""
+    regional = os.path.join(ROOT, "references", "regional")
+    errors = []
+    for path in sorted(glob.glob(os.path.join(regional, "**", "*.md"), recursive=True)):
+        with open(path, encoding="utf-8") as fh:
+            first = fh.readline()
+        errors.extend(outbound_naming_errors(os.path.relpath(path, ROOT), first))
+    assert not errors, "Outbound naming convention (CONTRIBUTING.md, Reference file format):\n" + "\n".join(errors)

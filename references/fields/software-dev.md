@@ -1,6 +1,6 @@
 # Field pack: software development
 
-Load this file when the candidate targets software roles. It layers dev-market depth on top of the generic method — every rule here was validated through simulated adversarial hiring reviews on a real junior-developer dossier.
+Loaded on demand when the candidate targets software roles. It layers dev-market depth on top of the generic method — every rule here was validated through simulated adversarial hiring reviews on a real junior-developer dossier.
 
 ## Positioning
 
@@ -14,7 +14,7 @@ Load this file when the candidate targets software roles. It layers dev-market d
 - Link it in the header only if there is at least one presentable repo: README with a screenshot, CI badge, deployed link, honest "technical decisions" section. An empty profile linked is worse than no link.
 - Curate projects per target version: pick the few genuinely relevant ones, each as its own entry with its own link — a lumped "school projects" line buries the best work, and an algorithm project that sells a scientific-computing version can be dead weight on a game version.
 - Link each project entry to its EXACT repo (clickable title or visible URL), not just the profile — reviewers unanimously prefer one-click access, and the original CV's copy-pasted-wrong repo link is a classic bug to check.
-- **Verify claimed implementation details in the candidate's public repos**: clone and grep. A claim like "quaternion interpolation (SLERP)" confirmed in the actual source is the strongest anchor that exists — and repos often reveal bonus anchors (unit test files anchor "automated testing" with public proof). Conversely, never let a plausible-sounding technical detail onto the CV unverified when the code is one clone away.
+- **Verify claimed implementation details in the candidate's public repos**: clone and grep. A claim like "quaternion interpolation (SLERP)" confirmed in the actual source is the strongest anchor that exists — and repos often reveal bonus anchors (unit test files anchor "automated testing" with public proof). Conversely, never let a plausible-sounding technical detail onto the CV without verification when the code is one clone away.
 - Minimum viable showcase: one small product with real business logic (not a todo/clone), tests on the logic, a CI pipeline, a free deployment. 30-40 h.
 
 ## Keyword families (each listed item must survive an interview)

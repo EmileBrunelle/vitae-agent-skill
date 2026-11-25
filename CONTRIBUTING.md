@@ -47,9 +47,13 @@ Applies to `references/regional/**`, `references/certifications/**` and `referen
 - H1 is `# <Genre>: <Subject>`; genres: Market, Education, Regulated professions, Health professions, Academic, Outbound, Law, Field pack, Certifications, Foreign workers, Gulf nationalisation, Gulf credentials. Add a genre only if none fits.
 - The first paragraph is `Loaded on demand when <trigger>.`, optionally followed by a `Read together with` sentence linking the parent file and at most one scope sentence.
 - Market files open with `## At a glance` (bullets in this order when present: Paper, Photo, CV language, Personal data, Length, then others).
+- Scope sentences beyond those allowed in the first paragraph go in a `## Scope` section placed right after the first paragraph (after `## At a glance` in Market files, since At a glance must be the first H2).
 - Common section names when the topic exists: `## Protected titles`, `## Application package`, `## Personal data and law`; country-specific sections after.
-- Every sourced fact carries its S### id, in the form `(Publisher, « Title », consulted YYYY-MM-DD, S###)` or plain S### where the sentence already names publisher, title and date. The date verb is `consulted`, never accessed, retrieved, read or consulté.
+- Every sourced fact carries its S### id, in the form `(Publisher, « Title », consulted YYYY-MM-DD, S###)` or plain S### where the sentence already names publisher, title and date. The date verb is `consulted`, never accessed, retrieved, read or consulté. An optional publication or revision date goes before `consulted`, with no verb: `(Publisher, « Title », 2023-05-26, consulted 2026-11-07, S295)`. A source read only through a Wayback capture uses `snapshot YYYY-MM-DD` in place of `consulted YYYY-MM-DD`. When docs/sources.md records no consulted date for an entry, use `consulted 2026-11-07`, the verification date in its header; an undated source keeps `undated` before it.
 - No URLs in `references/` (they live in `docs/sources.md`).
+- Naming: a country with several files gets a folder `<country>/` (`market.md`, `education.md`, ...); a country with one file is `<country>.md`.
+- Outbound guides (candidates from an origin applying abroad) live in an `outbound/` folder directly under the origin's folder, one file per DESTINATION, no `to-`/`outbound-` prefix (`quebec/outbound/france.md`). The shared file is `common.md`, or `<group>-common.md` when only some files of the folder share it (`india/outbound/europe-common.md`).
+- An origin with a single outbound guide uses `<origin>/outbound.md` (`middle-east/near-east/outbound.md`). `test_outbound_naming` enforces the prefix ban and the genre-to-folder rule.
 - Confidence: a sourced fact carries its S###; an unsourced fact kept as a warning carries `LOW, unsourced`; an unchecked point carries `not checked`. No HIGH, MEDIUM, unverified, not sourced, bare LOW or LOW confidence.
 
 ## Where to edit

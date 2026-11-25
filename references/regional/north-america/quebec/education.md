@@ -6,7 +6,7 @@ Loaded on demand when the CV's education section is for a Québec employer (Qué
 - The MIFI issues an « Évaluation comparative des études effectuées hors du Québec »: an expert opinion that names the Québec academic level the foreign studies compare to — explicitly "not an equivalency" (141 $, target 6 months; since 4 Sept 2025 it no longer compares the field of training, only the level). Sources: (Gouvernement du Québec, « Obtenir un avis d’expert pour comprendre un diplôme étranger », consulted 2026-11-07, S9; Gouvernement du Québec, « Preparing your comparative evaluation application », consulted 2026-11-07, S10)
 - On the CV: keep the original diploma name and institution, then quote the level exactly as written on the candidate's evaluation. Illustration only, not MIFI's official wording: « Ingeniería en Sistemas, Universidad Central del Ecuador (études comparables à un baccalauréat au Québec — évaluation comparative du MIFI) ». Never write « équivalent ». Without an evaluation, give the program's real duration and suggest the candidate request one.
 - Regulated professions: the order decides, through its own procedure; the MIFI evaluation does not replace it, and no reserved title may be used before the permit (see Protected titles).
-- Moroccan, Algerian or Tunisian credentials (alone or mixed): also read [`africa/maghreb-outbound/common.md`](../../africa/maghreb-outbound/common.md) and `to-quebec-canada.md`.
+- Moroccan, Algerian or Tunisian credentials (alone or mixed): also read [`africa/outbound/common.md`](../../africa/outbound/common.md) and `quebec-canada.md`.
 
 
 ## Education cases (Québec)

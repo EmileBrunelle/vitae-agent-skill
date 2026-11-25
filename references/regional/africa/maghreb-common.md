@@ -17,4 +17,4 @@ Paper: a4 (all three; convention, LOW, unsourced).
 
 - Rule: write a reserved title only if the candidate confirms the registration the law requires. No text read prescribes a CV wording for the registration line.
 - Per country: Morocco [`regulated`](morocco/regulated.md), [`health`](morocco/health.md), [`academic`](morocco/academic.md); Algeria [`regulated`](algeria/regulated.md), [`health`](algeria/health.md), [`academic`](algeria/academic.md); Tunisia [`regulated`](tunisia/regulated.md), [`health`](tunisia/health.md), [`academic`](tunisia/academic.md).
-- Engineer credentials heading to Québec (OIQ permit, title rules): [`maghreb-outbound/to-quebec-canada.md`](maghreb-outbound/to-quebec-canada.md).
+- Engineer credentials heading to Québec (OIQ permit, title rules): [`outbound/quebec-canada.md`](outbound/quebec-canada.md).

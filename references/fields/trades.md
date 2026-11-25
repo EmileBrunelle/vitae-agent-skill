@@ -1,8 +1,12 @@
 # Field pack: construction and skilled trades (common rules)
 
-Load this file when the candidate targets site-based trade work (construction, industrial or maintenance trades), then load the jurisdiction file: Québec → [`quebec/trades.md`](../regional/north-america/quebec/trades.md), other Canadian provinces → [`canada/trades.md`](../regional/north-america/canada/trades.md), US → [`us/trades.md`](../regional/north-america/us/trades.md). Credential bodies in general: [`../certifications/rules.md`](../certifications/rules.md). Protected professional titles (ingénieur and others): [`../regional/north-america/quebec/market.md`](../regional/north-america/quebec/market.md).
+Loaded on demand when the candidate targets site-based trade work (construction, industrial or maintenance trades). Read together with the jurisdiction file: Québec → [`quebec/trades.md`](../regional/north-america/quebec/trades.md), other Canadian provinces → [`canada/trades.md`](../regional/north-america/canada/trades.md), US → [`us/trades.md`](../regional/north-america/us/trades.md). Credential bodies in general: [`../certifications/rules.md`](../certifications/rules.md).
 
-Every fact in the trades files is what the issuing body's own page says (consulted 2026-11-07). None of the pages read prescribes a CV format; Job Bank's general advice is that a résumé "should generally include details such as your contact information, objective, work experience, education and credentials" (S334).
+## Scope
+
+Protected professional titles (ingénieur and others): [`../regional/north-america/quebec/market.md`](../regional/north-america/quebec/market.md).
+
+Every fact in the trades files is what the issuing body's own page says (consulted 2026-11-07). None of the pages read prescribes a CV format; Job Bank's general advice is that a résumé "should generally include details such as your contact information, objective, work experience, education and credentials" (Job Bank (Government of Canada), « How do I apply for a job? », consulted 2026-11-07, S334).
 
 ## The entry is the job site, the proof is the hours
 
