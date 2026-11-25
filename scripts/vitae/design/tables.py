@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypeAlias, TypedDict
 
-Audacity = Literal["sober", "expressive", "bold"]
-Font = tuple[str, str]               # (family name, provenance)
+Audacity: TypeAlias = Literal["sober", "expressive", "bold"]
+Font: TypeAlias = tuple[str, str]               # (family name, provenance)
 
 class Labels(TypedDict):
     profile: str

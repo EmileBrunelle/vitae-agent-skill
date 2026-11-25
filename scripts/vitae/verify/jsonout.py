@@ -17,6 +17,7 @@ import sys
 from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import TypeAlias
 
 from vitae.core.level import Level
 from vitae.verify import registry
@@ -29,7 +30,7 @@ _BANNER = re.compile(r"^PASS .*mechanical checks")
 _LAYOUT_REVIEW = re.compile(r"^Layout review: (\S.*)$")   # printed by the gates after the PASS line (review_record.layout_report_line)
 _NAME = re.compile(r"^([a-z][a-z0-9 _-]{0,24}?) *(?::|\()")
 _FILL = re.compile(r"to (\d+)%")
-Dispatch = Callable[[list[str]], tuple[int, str | None]]
+Dispatch: TypeAlias = Callable[[list[str]], tuple[int, str | None]]
 
 
 def skill_version() -> str | None:

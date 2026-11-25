@@ -47,12 +47,12 @@ import argparse
 import colorsys
 import hashlib
 import sys
-from typing import Literal, TypedDict, cast
+from typing import TypeAlias, TypedDict, cast
 
 from vitae.core.colour import rel_luminance as _lum
+from vitae.design.tables import Audacity
 
-Audacity = Literal["sober", "expressive", "bold"]
-RGB = tuple[int, int, int]
+RGB: TypeAlias = tuple[int, int, int]
 
 
 class Palette(TypedDict):

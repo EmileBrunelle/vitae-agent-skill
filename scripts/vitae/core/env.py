@@ -18,7 +18,7 @@ import sys
 import sysconfig
 import tempfile
 from types import ModuleType
-from typing import Literal, TextIO, cast
+from typing import Literal, TextIO, TypeAlias, cast
 
 # ---------- dependency preflight ("doctor") ----------
 
@@ -119,7 +119,7 @@ def check_typst() -> tuple[bool, bool]:
     return False, False
 
 
-PdfBackend = Literal["poppler", "pdfium", "pypdf"] | None
+PdfBackend: TypeAlias = Literal["poppler", "pdfium", "pypdf"] | None
 
 
 @functools.lru_cache(maxsize=None)

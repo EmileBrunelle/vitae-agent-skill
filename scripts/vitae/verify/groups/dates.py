@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import Literal, cast
+from typing import TypeGuard
 
 from vitae.core.base import HeadMark, Mark, WordBox, _EntryRecord
 from vitae.core.env import pdf_backend
@@ -20,6 +20,11 @@ from vitae.verify.pdf import _boxes_unavailable, word_boxes
 ENTRY_MARKS = "selector(<vitae-head>).or(<vitae-part>)"
 
 
+def _is_placed(m: Mark) -> TypeGuard[HeadMark]:
+    """A mark that carries its position (page, x, y), as every lib entry head and part mark does."""
+    return "page" in m and "x" in m and "y" in m
+
+
 def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
     """Marks in document order -> one record per entry head:
     {"head": mark, "date": mark|None, "org": mark|None, "date_first": bool}.
@@ -27,17 +32,22 @@ def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
     two was emitted first, since the emission order is what an ATS extraction follows."""
     recs: list[_EntryRecord] = []
     cur: _EntryRecord | None = None
-    for m in cast("list[HeadMark]", marks or []):     # every entry head and part mark carries its x
+    for m in marks or []:
+        if not _is_placed(m):              # a mark without a position cannot be measured: ignored
+            continue
         k = m.get("kind")
         if k == "entry":
             cur = {"head": m, "date": None, "org": None, "date_first": None}
             recs.append(cur)
         elif k in ("date", "org") and cur is not None:
-            part = cast(Literal["date", "org"], k)
-            if cur[part] is None:
-                cur[part] = m
+            if k == "date" and cur["date"] is None:
+                cur["date"] = m
                 if cur["date_first"] is None:
-                    cur["date_first"] = part == "date"
+                    cur["date_first"] = True
+            elif k == "org" and cur["org"] is None:
+                cur["org"] = m
+                if cur["date_first"] is None:
+                    cur["date_first"] = False
         elif k == "skill":
             cur = None                     # other part kinds ("date-col") are ignored
     return recs

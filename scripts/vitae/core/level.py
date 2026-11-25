@@ -8,6 +8,7 @@ and JSON dumps behave as the plain strings they replaced.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TypeAlias
 
 
 class Level(StrEnum):
@@ -17,4 +18,4 @@ class Level(StrEnum):
     INFO = "INFO"
 
 
-Finding = tuple[Level, str]  # one gate line: level, message
+Finding: TypeAlias = tuple[Level, str]  # one gate line: level, message

@@ -5,7 +5,7 @@ import json
 import shutil
 import subprocess
 from collections.abc import Callable, Sequence
-from typing import cast
+from typing import TypeGuard
 
 from vitae.core.base import Mark, Word, _Line
 from vitae.core.env import typst_font_kw, typst_py
@@ -19,27 +19,62 @@ from vitae.verify.pdf import auto_root
 # marks and `typst query` is unavailable it WARNs "not checked" and the agent
 # compares by hand; it never FAILs for that.
 
+def _json_list(text: str) -> list[object] | None:
+    """The JSON array in `text`; None when it parses to anything else (ValueError: not JSON at all)."""
+    data: object = json.loads(text)
+    return list(data) if isinstance(data, list) else None
+
+
+def _is_num(v: object) -> bool:
+    """A JSON number (a bool is not one)."""
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+# The Mark keys other than `text` and the check a value must pass when the key is present.
+_MARK_FIELDS: tuple[tuple[str, Callable[[object], bool]], ...] = (
+    ("kind", lambda v: isinstance(v, str)), ("org", lambda v: isinstance(v, str)),
+    ("page", lambda v: isinstance(v, int) and not isinstance(v, bool)),
+    ("x", _is_num), ("y", _is_num), ("w", _is_num), ("h", _is_num),
+    ("dated", lambda v: isinstance(v, bool)), ("anchor", lambda v: isinstance(v, bool)),
+    ("inline", lambda v: isinstance(v, bool)),
+)
+
+
+def _is_mark(v: object) -> TypeGuard[Mark]:
+    """A JSON object with a str `text` whose other Mark keys, when present, have their declared type."""
+    if not isinstance(v, dict) or not isinstance(v.get("text"), str):
+        return False
+    return all(key not in v or ok(v[key]) for key, ok in _MARK_FIELDS)
+
+
+def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None:
+    """The typst-py route of _typst_values: same query / eval fallback and root as the CLI calls."""
+    mod = typst_py()
+    if mod is None:
+        return None
+    try:
+        comp = mod.Compiler(typ, root=root, **typst_font_kw()) if root else mod.Compiler(typ, **typst_font_kw())
+        fn: Callable[[], object]
+        for fn in (lambda: comp.query(selector, field="value", one=False),
+                   lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json")):
+            try:
+                out = fn()
+                if isinstance(out, str) and out.strip().startswith("["):
+                    vals = _json_list(out)
+                    if vals is not None:
+                        return vals
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return None
+
+
 def _typst_values(typ: str, selector: str, root: str | None = None) -> list[object] | None:
     """JSON list of the values of every element labelled `selector`, or None."""
     root = root or auto_root(typ)
     if not shutil.which("typst"):
-        mod = typst_py()
-        if mod is None:
-            return None
-        try:   # typst-py: same query / eval fallback and root as the CLI calls below
-            comp = mod.Compiler(typ, root=root, **typst_font_kw()) if root else mod.Compiler(typ, **typst_font_kw())
-            fn: Callable[[], object]
-            for fn in (lambda: comp.query(selector, field="value", one=False),
-                       lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json")):
-                try:
-                    out = fn()
-                    if isinstance(out, str) and out.strip().startswith("["):
-                        return cast("list[object]", json.loads(out))
-                except Exception:
-                    continue
-        except Exception:
-            pass
-        return None
+        return _values_py(typ, selector, root)
     rootargs = ["--root", root] if root else []
     for cmd in (["typst", "query", typ, selector, "--field", "value"] + rootargs,
                 ["typst", "eval", f"query({selector}).map(it => it.value)",
@@ -50,16 +85,18 @@ def _typst_values(typ: str, selector: str, root: str | None = None) -> list[obje
             return None
         if r.returncode == 0 and r.stdout.strip().startswith("["):
             try:
-                return cast("list[object]", json.loads(r.stdout))
+                vals = _json_list(r.stdout)
             except ValueError:
                 continue
+            if vals is not None:
+                return vals
     return None
 
 
 def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:
-    """The lib's Mark values (see _typst_values); anything that is not a JSON object is dropped."""
+    """The lib's Mark values (see _typst_values); an entry that is not a well-typed Mark (see _is_mark) is dropped."""
     vals = _typst_values(typ, selector, root)
-    return None if vals is None else cast("list[Mark]", [v for v in vals if isinstance(v, dict)])
+    return None if vals is None else [v for v in vals if _is_mark(v)]
 
 
 def _gnorm(t: str) -> str:

@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import re
 import sys
-from collections.abc import Mapping
-from typing import TypedDict, cast
+from typing import TypedDict
 
 from vitae.design.fonts import _family_usable, _fonts_available, _pick_font
 from vitae.design.tables import (
@@ -158,7 +157,7 @@ def pick(name: str, field: str | None, career: str = "early",
     if "variants" in d:
         variant = d["variants"][_idx(key, len(d["variants"]), "variant|")]
     lab: dict[str, str] = {}
-    for role, default in cast("Mapping[str, str]", d["labels"]).items():
+    for role, default in (("profile", d["labels"]["profile"]), ("skills", d["labels"]["skills"])):
         # the family's own default is in the pool, so it can be drawn back.
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
         lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]

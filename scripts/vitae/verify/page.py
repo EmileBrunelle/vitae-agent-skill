@@ -230,13 +230,16 @@ CROP_PAD_IN = 0.08        # context around every crop
 CROP_CAP = 8              # crops per page; fills first, then icons, both in reading order
 
 
+_NONZERO_LUT = [0] + [255] * 255     # maps any nonzero L value to 255
+
+
 def _components(grid: Image.Image, merge: int = 0) -> list[tuple[int, int, int, int]]:
     """8-connected blobs of the non-zero cells of a small 'L' grid, as (x0, y0, x1, y1) cell
     boxes (inclusive); `merge` cells of dilation first so a glyph's parts read as one blob."""
     if merge:
         grid = grid.filter(ImageFilter.MaxFilter(2 * merge + 1))
     gw, gh = grid.size
-    on = grid.point([0] + [255] * 255).tobytes()
+    on = grid.point(_NONZERO_LUT).tobytes()
     seen = bytearray(gw * gh)
     boxes = []
     for start in range(gw * gh):

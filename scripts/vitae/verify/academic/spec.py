@@ -1,7 +1,7 @@
 """Academic gate: the declared side — section spec, TOML tables, heading set."""
 from __future__ import annotations
 
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypeAlias, TypedDict
 
 
 class Section(TypedDict):
@@ -13,12 +13,12 @@ class Section(TypedDict):
 
 
 # a parsed TOML document (tomllib.load): values are walked with isinstance, never indexed blindly
-Toml = dict[str, object]
+Toml: TypeAlias = dict[str, object]
 # one check result: (check id, passed, message)
-Result = tuple[str, bool, str]
+Result: TypeAlias = tuple[str, bool, str]
 # one line of the flat document stream: (page idx, raw line, stripped, is_entry_start)
-StreamLine = tuple[int, str, str, bool]
-Footer = tuple[int, int] | None
+StreamLine: TypeAlias = tuple[int, str, str, bool]
+Footer: TypeAlias = tuple[int, int] | None
 
 
 # ---------------------------------------------------------------- constants

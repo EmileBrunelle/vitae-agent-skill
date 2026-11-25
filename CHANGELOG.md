@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Types: every module-level alias is an explicit `TypeAlias`; the six `cast` calls in the query, date, academic and design-pick code are replaced by checks. `typst query` entries that are not well-typed marks (no str `text`, or a `page`/`x`/`y`/`w`/`h`/`dated`/`anchor`/`inline`/`kind`/`org` of the wrong type) are now dropped instead of passed through, and a mark without `page`, `x` and `y` is ignored when pairing entry heads with their date and org parts; lib.typ output is unchanged by this.
 - `verify/groups/` step 2 (behaviour unchanged): `check_date_adjacency`, `check_group_proximity`, `measure_groups` and `_page_ink_gap` split into named sub-functions; `Mark` is a total TypedDict (only `text` required, the position keys narrowed to `HeadMark` / `SecMark` where a gate measures them), which clears the pyright `reportTypedDictNotRequiredAccess` errors in the package; ruff now enforces C901 (max 11) and PLR0915 (max 50), with explicit per-file ignores for the modules that predate the rules.
 - `verify.py --json`: a CV heading shaped like a check line with two spaces (`FAIL  SAFE`) no longer becomes a bogus check; the extraction dump is skipped by its recorded line count.
 - Group-proximity gate (poppler backend): page renders live in a `TemporaryDirectory` instead of `mkdtemp` + `atexit`, which leaked a `vitae-prox-*` dir in `/tmp` whenever the process was killed or timed out; the pdfium backend creates none.

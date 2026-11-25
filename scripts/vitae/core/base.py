@@ -6,19 +6,19 @@ run prints last is returned by the mode that computes it (see `_run` in vitae/ve
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypeAlias, TypedDict
 
 # ---------- shapes passed around ----------
 # Geometry, in PDF points unless said otherwise (pdftotext -bbox).
-Box = tuple[float, float, float, float]            # x0, y0, x1, y1
-WordBox = tuple[Box, str]                          # a word and its box
-Word = tuple[float, float, float, float, str]      # x0, y0, x1, y1, text
-Band = tuple[int, int]                             # first, last pixel row of a run
-LineBox = list[float]                              # [x0, x1, y0, y1] of one text line
-GapFn = Callable[[int, LineBox, LineBox], float]   # optical gap (pt) between two lines
+Box: TypeAlias = tuple[float, float, float, float]            # x0, y0, x1, y1
+WordBox: TypeAlias = tuple[Box, str]                          # a word and its box
+Word: TypeAlias = tuple[float, float, float, float, str]      # x0, y0, x1, y1, text
+Band: TypeAlias = tuple[int, int]                             # first, last pixel row of a run
+LineBox: TypeAlias = list[float]                              # [x0, x1, y0, y1] of one text line
+GapFn: TypeAlias = Callable[[int, LineBox, LineBox], float]   # optical gap (pt) between two lines
 # One extracted word of the hidden-text gate: page, word, box, box height (pt),
 # contrast against its own background (None: no raster), off the page.
-HiddenStat = tuple[int, str, Box, float, float | None, bool]
+HiddenStat: TypeAlias = tuple[int, str, Box, float, float | None, bool]
 
 
 class _MarkExtras(TypedDict, total=False):
@@ -105,7 +105,7 @@ class SecRow(TypedDict):
     ratio: float
 
 
-DetailRow = GroupRow | SecRow
+DetailRow: TypeAlias = GroupRow | SecRow
 
 
 # The last lines printed when a run ends on a non-zero exit (see `_run`). A reader (human or

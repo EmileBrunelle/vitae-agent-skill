@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import cast
 
 from vitae.verify.academic.parse import NUM_RE, _canonical_headings, classify, entry_start_re, parse_span
 from vitae.verify.academic.spec import NONDATED_HEADINGS, Footer, Result, Section, StreamLine
@@ -65,15 +64,15 @@ def check_counts_and_chrono(stream: list[StreamLine], sections: list[Section],
 
         dated_entries = entries[prefix:]
         spans = [parse_span(tok) for _, tok in dated_entries]
-        real_spans = cast("list[tuple[int, int]]", spans)
-        if any(s is None for s in spans):
+        real_spans = [s for s in spans if s is not None]
+        if len(real_spans) != len(spans):
             results.append(("B", False,
                              f'{heading}: an entry past the declared undated_prefix '
                              f'({prefix}) has no year'))
             continue
         ok_b = True
         bad_pair: tuple[tuple[int, int], tuple[int, int]] | None = None
-        for i in range(len(spans) - 1):
+        for i in range(len(real_spans) - 1):
             if real_spans[i][1] < real_spans[i + 1][0]:  # prev.end < curr.start: a genuine reversal
                 ok_b = False
                 bad_pair = (real_spans[i], real_spans[i + 1])
