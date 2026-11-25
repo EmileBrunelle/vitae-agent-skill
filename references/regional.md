@@ -147,7 +147,7 @@ Cautions the market files compress: **us-letter is firm only in North America an
 | Other experience | Autre expérience professionnelle | Other Professional Experience |
 | Education | Formation | Education |
 | Skills | Compétences techniques | Technical Skills / Skills |
-| Soft skills | Compétences générales | Core Strengths |
+| Soft skills (only with evidence) | Compétences générales | Core Strengths |
 | Languages | Langues | Languages |
 
 Derive the target-field section name with the same pattern for any field ("Expérience en soins infirmiers", "Nursing Experience"). Keep names close to conventional stems — a qualifier after a conventional stem is safe; fully exotic names risk ATS misclassification.
@@ -158,6 +158,5 @@ Derive the target-field section name with the same pattern for any field ("Expé
 |---|---|---|
 | Profile | Profil · Sommaire | Profile · Summary · Professional Summary |
 | Skills | Compétences techniques · Compétences et outils · Expertise | Technical Skills · Skills & Tools · Skills · Expertise · Technical Stack |
-| Soft skills | Compétences générales · Forces · *(omise)* | Core Strengths · Strengths · Working Style · *(dropped)* |
 
 **Education**, **Languages** and the experience sections do NOT vary: their stems are what ATS section classifiers key on. Where a market file names one convention explicitly, that wins over the draw.

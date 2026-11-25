@@ -57,7 +57,7 @@
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
      #v(-3pt)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
-    text(size: 9pt, fill: muted)[#nb(mk.pin)[City, Region] \
+    text(size: 9pt, fill: muted)[#nb(mk.pin)[\[City, Region\]] \
       #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \
       #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
       #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
@@ -79,30 +79,30 @@
 // Roles and bullets: only as many as the facts give; drop a role or section the facts don't support.
 #section("[Target-field] Experience")[
 
-#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – present",
+#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Achievement from the facts, with its number if the facts give one.]
 - [Action verb] [what, from the facts][, outcome, if stated].
-- [Achievement from the facts, in the verb the facts support.]
-- [Another achievement from the facts.]
-- [Action verb] [what, from the facts].
-- [Further achievement from the facts.]
-- [Achievement from the facts, with its number if the facts give one.]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Achievement from the facts, with its number if the facts give one.]
 - [Action verb] [what, from the facts][, outcome, if stated].
-- [Achievement from the facts, in the verb the facts support.]
-- [Another achievement from the facts.]
-- [Action verb] [what, from the facts].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Achievement from the facts, with its number if the facts give one.]
 - [Action verb] [what, from the facts][, outcome, if stated].
-- [Achievement from the facts, in the verb the facts support.]
-- [Another achievement from the facts.]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 ]
 
 // ---------- Off-target roles: separated, honest, never leading ----------
@@ -110,7 +110,7 @@
 #section("Other Experience")[
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Achievement from the facts, with its number if the facts give one.]
+- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 ]
 

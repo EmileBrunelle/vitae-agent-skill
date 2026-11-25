@@ -85,7 +85,8 @@ SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
 # Default search bounds [0.80 * l0, max(1.30 * l0, 1.10)] and bisection step 0.005em (~7-8 probes):
 # 0.005em changes a 1-page CV's bottom ink row by <0.5% of page height, finer than the 2%-wide fill band.
 def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
-         hi: float | None = None, step: float = 0.005) -> tuple[int, str | None]:
+         hi: float | None = None, step: float = 0.005, *,
+         allow_placeholders: bool = False) -> tuple[int, str | None]:
     """--tune: bisect `#set par(leading:, spacing:)` in `typ` to the largest rhythm that holds
     `expected` pages, and keep it only if the fill lands in fmin-fmax. Returns (exit code, footer): the
     code is 0 won, 1 no value in range, 2 no par line; the footer is the NEXT line the CLI prints last
@@ -94,6 +95,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
     deps_ok, use_cli, backend = preflight()
     if not deps_ok:
         return 1, None
+    allow = " --allow-placeholders" if allow_placeholders else ""   # carried into the printed follow-up commands
     footer = _FOOTER_TUNE
     original = open(typ, encoding="utf-8").read()
     cur = _read_par(original)
@@ -172,29 +174,29 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                       "project, a certification) — never pad. If the facts are not in "
                       "hand, ASK the user for them; never invent. Alternative, only if the "
                       "facts are exhausted: drop to fewer pages or pass a lowered target, "
-                      "`verify.py %s %s FILL_MIN %s` (FILL_MIN = the lowest fill the gate "
+                      "`verify.py %s %s FILL_MIN %s%s` (FILL_MIN = the lowest fill the gate "
                       "prints, not below %d; a page under %d%% has no lowered-target exit: a fact "
                       "is missing, or fewer pages), and say so to the user."
-                      % (cap, shlex.quote(typ), expected, fmax, LOWERED_FILL_FLOOR, LOWERED_FILL_FLOOR))
+                      % (cap, shlex.quote(typ), expected, fmax, allow, LOWERED_FILL_FLOOR, LOWERED_FILL_FLOOR))
             else:
                 if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
                     footer = _FOOTER_TUNE_WIDE
                 print("      no leading in the searched range reaches the target at "
                       "%s page(s). Widen the range by passing the bounds "
                       "positionally after FILL_MAX, e.g.\n"
-                      "        verify.py --tune %s %s %s %s %.2f %.2f\n"
+                      "        verify.py --tune %s %s %s %s %.2f %.2f%s\n"
                       "      or take the space out of the section gap / add real "
                       "content / change the page count (anti-filler clause, "
                       "SKILL.md rule 5)."
                       % (expected, typ, expected, fmin, fmax,
-                         max(0.40, l0 * 0.65), max(1.40, l0 * 1.60)))
+                         max(0.40, l0 * 0.65), max(1.40, l0 * 1.60), allow))
             return 1, footer
         open(typ, "w", encoding="utf-8").write(
             _with_rhythm(original, best, best + delta))
         print("OK    wrote leading %.3fem / spacing %.3fem -> fill %s%% "
               "(target %s-%s%%)" % (best, best + delta, best_fill, fmin, fmax))
-        print("      now run the gate itself: verify.py %s %s %s %s"
-              % (typ, expected, fmin, fmax))
+        print("      now run the gate itself: verify.py %s %s %s %s%s"
+              % (typ, expected, fmin, fmax, allow))
         return 0, footer
     except BaseException:
         # BaseException, not Exception: Ctrl-C mid-probe must not leave a half-tuned file behind

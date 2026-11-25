@@ -12,6 +12,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 import vitae.fill as measure_fill
 from vitae.core.base import (
@@ -23,6 +24,7 @@ from vitae.core.base import (
 )
 from vitae.core.env import preflight, typst_can_query
 from vitae.core.level import Finding, Level
+from vitae.verify import placeholders
 from vitae.verify.gates import GATES, make_context
 from vitae.verify.layout import check_text_clip, check_whitespace
 from vitae.verify.pdf import (
@@ -119,7 +121,16 @@ def is_letter(path: str) -> bool:
         return False
 
 
-def check_all(directory: str) -> int:
+def placeholders_allowed(typ: str) -> bool:
+    """`--allow-placeholders` is honoured only for a file under this skill's own templates/ folder (the shipped
+    templates, and the scratch copies the test runs make inside it), never for a CV the user is delivering."""
+    return Path(typ).resolve().is_relative_to(placeholders.TEMPLATES.resolve())
+
+
+_ALLOW_REFUSED = "FAIL  --allow-placeholders is only for the shipped templates (a file under the skill's templates/ folder)"
+
+
+def check_all(directory: str, allow_placeholders: bool = False) -> int:
     """Run the single-file gate over every .typ under `directory`.
 
     Re-invokes this script per file rather than refactoring main() apart: the
@@ -161,7 +172,7 @@ def check_all(directory: str) -> int:
               f"{'' if m else ' — inferred from the file name, no header'})")
         r = subprocess.run([sys.executable,
                             os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py"), typ]
-                           + args)
+                           + args + (["--allow-placeholders"] if allow_placeholders else []))
         fail |= bool(r.returncode)
     if unchecked:
         print("\nNOTE — page count inferred from the file name, fill not "
@@ -332,7 +343,7 @@ def _body_size_warn(typ: str) -> str:
 
 
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
-              facts: str | None = None) -> tuple[int, str | None]:
+              facts: str | None = None, allow_placeholders: bool = False) -> tuple[int, str | None]:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Returns (exit code,
     footer): 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix; the
     footer is the NEXT line the CLI prints last on a failure, None until preflight passed.
@@ -340,6 +351,10 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     pdf = re.sub(r"\.typ$", "", typ) + ".pdf"
     fail = 0
     footer: str | None = None
+    if allow_placeholders and not placeholders_allowed(typ):
+        print(_ALLOW_REFUSED)
+        allow_placeholders, fail = False, 1
+    allow = " --allow-placeholders" if allow_placeholders else ""
     # The drawn fill target lives in the cv.typ header; the command line may
     # not quietly lower it (a lowered target is a WARN carried to the PASS line).
     # The leading and body-size WARNs print up front and again after PASS, where they are read.
@@ -415,7 +430,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
             fail = 1
         if not (fmin and fmax):
             print("WARN  fill NOT checked (no FILL_MIN FILL_MAX given) — rerun "
-                  f"as scripts/verify.py {shlex.quote(typ)} {expected} FILL_MIN FILL_MAX; "
+                  f"as scripts/verify.py {shlex.quote(typ)} {expected} FILL_MIN FILL_MAX{allow}; "
                   "the targets come from the pick_design.py report "
                   '("fill target : NN-NN%") and differ per family')
         under_fills: list[int] = []
@@ -432,7 +447,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                 y = int(m.group(1))
                 if y < int(fmin) or y > int(fmax):
                     print(f"FAIL  fill: {path}: {result} (target {fmin}-{fmax}%) — "
-                          f"run `scripts/verify.py --tune {shlex.quote(typ)} {expected} {fmin} {fmax}` "
+                          f"run `scripts/verify.py --tune {shlex.quote(typ)} {expected} {fmin} {fmax}{allow}` "
                           "(adjusts leading), or add/cut real content")
                     if y < int(fmin):
                         under_fills.append(y)
@@ -461,7 +476,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         else:
             print("NEXT  if --tune already reported UNDER-FILLED, a fact is missing: add one, or — only "
                   "if the facts are exhausted — pass a lowered target: "
-                  f"`scripts/verify.py {shlex.quote(typ)} {expected} {lowest} {fmax}` (FILL_MIN = the "
+                  f"`scripts/verify.py {shlex.quote(typ)} {expected} {lowest} {fmax}{allow}` (FILL_MIN = the "
                   f"lowest fill the gate prints, not below {LOWERED_FILL_FLOOR}) and tell the user")
     # Clone markers: the template's own accent and its "Category: items" skills block, left in
     # place, make every CV from the skill look alike (references/design/core.md, three clone markers).
@@ -477,7 +492,10 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     txt = extract_text(pdf, backend)
     ctx = make_context(typ, pdf, txt, typ_text, backend, facts=facts, can_query=use_cli or typst_can_query())
     # No `typst query`: the layout gates that need it are skipped with a notice, the rest still run.
-    fail |= run_gates(GATES, ctx)
+    gates = tuple(g for g in GATES if not (allow_placeholders and g.name == "placeholders"))
+    if allow_placeholders:
+        print("WARN  placeholder gate skipped (--allow-placeholders): only for the shipped templates, never a real CV")
+    fail |= run_gates(gates, ctx)
 
     # The extraction is printed last, whatever the verdict: the reading-order check is the
     # agent's, by hand (references/steps/6-verify.md), and needs the text next to the PASS/FAIL.
@@ -485,13 +503,15 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     print(txt)
 
     if fail == 0:
+        skip = "; placeholder gate skipped" if allow_placeholders else ""
+        tag = "(placeholder gate skipped) " if allow_placeholders else " "
         if lowered:
-            print(f"PASS (fill target lowered: {lowered}) all mechanical checks — now LOOK at the PNGs")
+            print(f"PASS (fill target lowered: {lowered}{skip}) all mechanical checks — now LOOK at the PNGs")
             print(_LOWERED_WARN.format(a=lowered.split(" ")[0]))
         elif fmin and fmax:
-            print("PASS  all mechanical checks — now LOOK at the PNGs")
+            print(f"PASS {tag}all mechanical checks — now LOOK at the PNGs")
         else:
-            print("PASS  mechanical checks except fill (no FILL_MIN FILL_MAX "
+            print(f"PASS {tag}mechanical checks except fill (no FILL_MIN FILL_MAX "
                   "given) — rerun with the fill targets from the pick_design.py "
                   "report, then LOOK at the PNGs")
         if lead_warn:        # repeated after PASS so a green run does not bury them

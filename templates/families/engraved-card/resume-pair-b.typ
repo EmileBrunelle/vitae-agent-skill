@@ -82,7 +82,7 @@
     #text(size: 11pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
     #v(-1pt)
     #text(size: 9pt, fill: muted)[
-      City, Region #h(7pt) #link("tel:+15555550100")[(555) 555-0100] #h(7pt)
+      \[City, Region\] #h(7pt) #link("tel:+15555550100")[(555) 555-0100] #h(7pt)
       #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
       #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
       #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
@@ -121,19 +121,19 @@ with the field's key terms in *bold*.]
 // Present tense for a current role; the verb the facts support, not a bigger one.
 #section("[Target-field] Experience")[
 
-#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – present",
+#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Achievement from the facts, with its number if the facts give one.]
-- [Action verb] [what, from the facts], [outcome as stated]
-- [Achievement from the facts, in the verb the facts support.]
-- [Scope or result from the facts]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Achievement from the facts, with its number if the facts give one]
-- [Action verb] [what, from the facts], [outcome as stated]
-- [Achievement from the facts, in the verb the facts support.]
-- [Scope or result from the facts]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 ]
 
 // ---------- Off-target roles: separated, honest, never leading ----------
@@ -141,10 +141,10 @@ with the field's key terms in *bold*.]
 #section("Other Experience")[
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Transferable achievement from the facts.]
-- [Action verb] [what, from the facts], [outcome as stated]
-- [Achievement from the facts, in the verb the facts support.]
-- [Transferable result from the facts, if stated]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 ]
 
 // ---------- Skills: a few rows, one per category the facts support, items as the facts word them (no gloss, no expansion); fewer rows when facts are thin ----------
@@ -154,13 +154,13 @@ with the field's key terms in *bold*.]
 #skill("[Category from the facts]", "[item], [item], [item], [item]")
 ]
 
-// ---------- Soft skills: DROPPED BY THIS FAMILY, on purpose ----------
-// engraved-card ships `soft: None`: the engraved-card register is terse, and
-// an evidence-line soft-skills section is the one section a formal card would
-// not have carried. Dropping a section is a documented option of the label
-// system (core.md § Section labels), not a fill trick — but it is also what
-// buys this family its airy gabarit: with 2cm margins, eight sections of the
-// reference content do not hold one page and seven do (measured both ways).
+// ---------- No soft-skills section, on purpose ----------
+// The engraved-card register is terse, and an evidence-line soft-skills
+// section is the one section a formal card would not have carried. Dropping a
+// section is a documented option of the label system (core.md § Section
+// labels), not a fill trick; it also buys this family its airy gabarit: with
+// 2cm margins, eight sections of the reference content do not hold one page
+// and seven do (measured both ways).
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
 #section("Languages")[

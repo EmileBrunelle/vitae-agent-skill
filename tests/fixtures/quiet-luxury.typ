@@ -61,7 +61,7 @@
 // the reverse of every other family's header order.
 #block(above: 0pt, below: 14pt)[
   #text(size: 8.5pt, fill: muted)[
-    #nb(ic.pin)[City, Region] #h(7pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
+    #nb(ic.pin)[\[City, Region\]] #h(7pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(7pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
     #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
     #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]

@@ -213,7 +213,7 @@
 #let seg(b) = chip(b, fill: wash, extent: 2.2pt, radius: seg-radius)
 #block(above: 0pt, below: 9pt)[
   #text(font: monof, size: 8.5pt, fill: muted)[#{
-    (nb(mk.pin, seg[City, Region]),
+    (nb(mk.pin, seg[\[City, Region\]]),
      nb(mk.phone, seg[#link("tel:+15555550100")[(555) 555-0100]]),
      nb(mk.mail, seg[#link("mailto:me@example.com")[me\@example.com]]),
      nb(mk.li, seg[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]),

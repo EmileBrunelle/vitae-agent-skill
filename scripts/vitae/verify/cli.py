@@ -8,9 +8,9 @@ Windows). Exits non-zero if any check fails. Left to do by hand: the visual PNG 
 accent's contrast, the date-order check, and re-diffing bullets against the fact sheet.
 
 Usage:
-    verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md]
-    verify.py --all DIR
-    verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LEADING_LO LEADING_HI]
+    verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--allow-placeholders]
+    verify.py --all DIR [--allow-placeholders]
+    verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LEADING_LO LEADING_HI] [--allow-placeholders]
     verify.py --doctor
     verify.py --selftest
 
@@ -25,7 +25,7 @@ Gate order for one CV (`_check_cv`; every line is printed as OK, WARN, FAIL or I
 was a FAIL): dependency preflight, lib.typ integrity, compile, page count, then per rendered page the fill, the
 text-clip gate and the whitespace structure; template-default markers; the checks on the extracted text (spaced
 capitals, orphaned dates, no section split across a page break, --facts coverage of years and numbers,
-bullet characters); last, the gates that need `typst query` (hidden text, font fallback,
+bullet characters, template placeholders left in the text); last, the gates that need `typst query` (hidden text, font fallback,
 group proximity, date adjacency, forced line breaks and `~`, duplicate names).
 
 Design principle (scope): the scripts know no language and no country. They make only objective checks: what a PDF, a
@@ -125,10 +125,11 @@ def main() -> tuple[int, str | None]:
     prog = os.path.basename(sys.argv[0])
 
     if argv and argv[0] == "--all":
-        ap = _Parser("usage: verify.py --all DIR", code=1, plain=True)
+        ap = _Parser("usage: verify.py --all DIR [--allow-placeholders]", code=1, plain=True)
         ap.add_argument("dir")
+        allow = "--allow-placeholders" in argv
         # "--" first: every later word is a positional, as before; extras are ignored
-        sys.exit(check_all(ap.parse_known_args(["--"] + argv[1:])[0].dir))
+        sys.exit(check_all(ap.parse_known_args(["--"] + [a for a in argv[1:] if a != "--allow-placeholders"])[0].dir, allow))
     if argv and argv[0] == "--gates":
         # the typst-query gates only, on an already compiled PDF: --gates cv.typ cv.pdf [--root DIR]
         # (the test fixtures import ../../templates, so they need the repo as root)
@@ -190,32 +191,36 @@ def main() -> tuple[int, str | None]:
     if argv and argv[0] == "--tune":
         # verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]; the "--" makes every word a positional
         ap = _Parser("usage: verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX "
-                     "[LEADING_LO LEADING_HI]")
+                     "[LEADING_LO LEADING_HI] [--allow-placeholders]")
         ap.add_argument("typ")
         for name in ("pages", "fill_min", "fill_max"):
             ap.add_argument(name)
         ap.add_argument("lo", nargs="?")
         ap.add_argument("hi", nargs="?")
-        ta = ap.parse_known_args(["--"] + argv[1:])[0]
+        # the placeholder gate is not part of --tune; the flag is only carried into the follow-up commands it prints
+        ta = ap.parse_known_args(["--"] + [a for a in argv[1:] if a != "--allow-placeholders"])[0]
         if not _fill_args_ok(ta.pages, ta.fill_min, ta.fill_max):
             sys.exit(1)
         # LO alone is ignored: the bounds come as a pair or not at all
         bounds = ((float(ta.lo), float(ta.hi)) if ta.hi is not None else (None, None))
         return tune(ta.typ, int(ta.pages), int(ta.fill_min), int(ta.fill_max),
-                    lo=bounds[0], hi=bounds[1])
+                    lo=bounds[0], hi=bounds[1], allow_placeholders="--allow-placeholders" in argv)
 
     # Default mode: the one-file gate. --facts is the only option here, so it is cut out by hand.
+    allow_placeholders = "--allow-placeholders" in argv
+    argv = [a for a in argv if a != "--allow-placeholders"]
     facts_path: str | None = None
     if "--facts" in argv:                   # pulled out first: the parser below treats every word as positional
         i = argv.index("--facts")
         if i + 1 >= len(argv):
-            sys.exit("usage: verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] --facts facts.md")
+            sys.exit("usage: verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] --facts facts.md [--allow-placeholders]")
         facts_path = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
-    ap = _Parser(f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md]\n"
+    ap = _Parser(f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--allow-placeholders]\n"
                  f"         --facts: WARN on every year / numeric month+year / number in the CV absent from the facts file\n"
-                 f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]\n"
-                 f"       {prog} --all DIR\n"
+                 f"         --allow-placeholders: skip the template-placeholder gate; for checking the shipped templates themselves, never a real CV\n"
+                 f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI] [--allow-placeholders]\n"
+                 f"       {prog} --all DIR [--allow-placeholders]\n"
                  f"       {prog} --doctor\n"
                  f"       {prog} --selftest")
     ap.add_argument("typ")
@@ -223,7 +228,7 @@ def main() -> tuple[int, str | None]:
     ap.add_argument("fill_min", nargs="?")
     ap.add_argument("fill_max", nargs="?")
     ca = ap.parse_known_args(["--"] + argv)[0]
-    return _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path)
+    return _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path, allow_placeholders)
 
 
 def _run() -> None:

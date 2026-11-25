@@ -62,7 +62,7 @@
   #text(size: 10.5pt, fill: white, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-4pt)
   #text(size: 9pt, fill: white)[
-    #nb(ic.pin)[City, Region]
+    #nb(ic.pin)[\[City, Region\]]
     #h(6pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(6pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]]
     #h(6pt) #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]

@@ -141,10 +141,10 @@ def main() -> int:
     for f in sorted(FAMILIES):
         a, b = FAMILIES[f]["page"]["fill"].split("-")
         for t in ("resume", "resume-pair-b"):
-            full.append((f"templates/{f}/{t}", [f"templates/families/{f}/{t}.typ", "1", a, b], False))
-    full.append(("templates/swiss-grid/resume-2page", ["templates/families/swiss-grid/resume-2page.typ", "2", "94", "96"], False))
-    full.append(("mustfail/fill-99-100", ["templates/families/swiss-grid/resume.typ", "1", "99", "100"], True))
-    full.append(("mustfail/pages-1-of-2", ["templates/families/swiss-grid/resume-2page.typ", "1", "94", "96"], True))
+            full.append((f"templates/{f}/{t}", [f"templates/families/{f}/{t}.typ", "1", a, b, "--allow-placeholders"], False))
+    full.append(("templates/swiss-grid/resume-2page", ["templates/families/swiss-grid/resume-2page.typ", "2", "94", "96", "--allow-placeholders"], False))
+    full.append(("mustfail/fill-99-100", ["templates/families/swiss-grid/resume.typ", "1", "99", "100", "--allow-placeholders"], True))
+    full.append(("mustfail/pages-1-of-2", ["templates/families/swiss-grid/resume-2page.typ", "1", "94", "96", "--allow-placeholders"], True))
     if quick:
         full = full[:3] + full[-2:]
 

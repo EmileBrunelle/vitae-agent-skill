@@ -21,6 +21,7 @@ from vitae.verify.groups import (
     check_group_proximity,
 )
 from vitae.verify.layout import check_font_fallback
+from vitae.verify.placeholders import check_placeholders
 from vitae.verify.registry import FnGate, Gate
 from vitae.verify.source import check_forced_linebreak, check_literal_tilde, check_no_split
 from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
@@ -42,6 +43,11 @@ def _bad(ctx: VerifyContext, msg: str) -> Finding:
     if ctx.backend != "pypdf":
         return Level.FAIL, msg
     return Level.WARN, msg + " — pypdf extraction is indicative; confirm with pdftotext before believing it"
+
+
+def _placeholders(ctx: VerifyContext) -> list[Finding]:
+    """The placeholder gate under the extraction-gate convention: its FAIL is a WARN on the pypdf fallback."""
+    return [_bad(ctx, msg) if lvl == Level.FAIL else (lvl, msg) for lvl, msg in check_placeholders(ctx)]
 
 
 def _extraction_empty(ctx: VerifyContext) -> list[Finding]:
@@ -173,6 +179,7 @@ EXTRACTION_GATES: tuple[Gate, ...] = (
     FnGate("no-split", _no_split),
     FnGate("facts-coverage", _facts_coverage, _has_facts),
     FnGate("bullet-chars", _bullet_chars),
+    FnGate("placeholders", _placeholders),
 )
 
 # Without `typst query` the grouping / date / duplicate-name gates are skipped, with a notice first.

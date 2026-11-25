@@ -396,7 +396,7 @@ n=0
 tpl_pids=()
 tpl_run() { # tpl_run <family> <file> <pages> <min> <max>: verify, then keep the PDF and a thumbnail
   local f="$1" t="$2" rc=0
-  python3 -I scripts/verify.py "templates/families/$f/$t.typ" "$3" "$4" "$5" || rc=$?
+  python3 -I scripts/verify.py "templates/families/$f/$t.typ" "$3" "$4" "$5" --allow-placeholders || rc=$?
   cp -f "templates/families/$f/$t.pdf" "$out/pdf/$f-$t.pdf" 2>/dev/null || true
   pdftoppm -r 60 -png -singlefile "templates/families/$f/$t.pdf" "$out/pdf/$f-$t" 2>/dev/null || true
   return "$rc"
@@ -440,18 +440,31 @@ lowered_fill() {
   read -r f a b <<< "$(echo "$targets" | head -1)"
   d="templates/families/$f"
   { printf '// vitae: pages=1 fill=%s-%s\n' "$a" "$b"; cat "$d/resume.typ"; } > "$d/_drawn.typ"
-  python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$a" "$b" | grep -q '^PASS ' || { echo "header target did not pass"; return 1; }
+  python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$a" "$b" --allow-placeholders | grep -q '^PASS ' || { echo "header target did not pass"; return 1; }
   local lo=$((a - 6)) log; log="$S/lowered.log"
-  python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$lo" 100 >"$log" || { echo "exit non-zero"; cat "$log"; return 1; }
+  python3 -I scripts/verify.py "$d/_drawn.typ" 1 "$lo" 100 --allow-placeholders >"$log" || { echo "exit non-zero"; cat "$log"; return 1; }
   grep -q '^WARN  fill target lowered below drawn target' "$log" || { echo "no WARN"; return 1; }
   grep -q '^PASS (fill target lowered: ' "$log" || { echo "no PASS summary"; return 1; }
-  python3 -I scripts/verify.py "$d/_drawn.typ" 1 65 100 >"$log" 2>&1 || { echo "65-100 lowered target refused"; cat "$log"; return 1; }
+  python3 -I scripts/verify.py "$d/_drawn.typ" 1 65 100 --allow-placeholders >"$log" 2>&1 || { echo "65-100 lowered target refused"; cat "$log"; return 1; }
   grep -q '^PASS (fill target lowered: ' "$log" || { echo "65 no PASS-lowered"; cat "$log"; return 1; }
-  local bad_rc=0; python3 -I scripts/verify.py "$d/_drawn.typ" 1 50 100 >"$log" 2>&1 || bad_rc=$?
+  local bad_rc=0; python3 -I scripts/verify.py "$d/_drawn.typ" 1 50 100 --allow-placeholders >"$log" 2>&1 || bad_rc=$?
   [ "$bad_rc" -ne 0 ] || { echo "below-floor lowered target exited 0"; cat "$log"; return 1; }
   grep -q '^FAIL  fill target lowered to 50-100% is below the lowered-target floor' "$log" || { echo "no floor FAIL"; cat "$log"; return 1; }
 }
 check lowered-fill-warns lowered_fill
+
+# The shipped templates are full of placeholders: without --allow-placeholders a raw template must FAIL on
+# that gate (so the opt-out used by the template runs above can never become the default).
+raw_template_fails_placeholders() {
+  local f a b rc=0 log="$S/placeholders.log"
+  read -r f a b <<< "$(echo "$targets" | head -1)"
+  local d="templates/families/$f"   # own copy: the background tpl_run of this family reads resume.pdf
+  cp "$d/resume.typ" "$d/_raw.typ"
+  python3 -I scripts/verify.py "$d/_raw.typ" 1 "$a" "$b" >"$log" 2>&1 || rc=$?
+  [ "$rc" -ne 0 ] || { echo "a raw template passed without --allow-placeholders"; return 1; }
+  grep -q '^FAIL  template placeholder left in the text' "$log" || { echo "no placeholder FAIL"; cat "$log"; return 1; }
+}
+check raw-template-fails-placeholders raw_template_fails_placeholders
 
 # --text / --render: the interface the step docs promise, whatever backend is installed.
 facts_years_and_dates() {

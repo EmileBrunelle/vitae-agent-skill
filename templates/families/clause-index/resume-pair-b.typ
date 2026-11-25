@@ -105,9 +105,9 @@
      // three VALUES after them, destroying the label↔value pairing the device
      // exists for. A single-ROW grid is safe when each cell is ONE line; the
      // moment a cell stacks two, the reader sweeps the row before it descends.
-     #text(size: 9pt)[#rcell("Location", [City, Region]) #h(9pt)
-       #rcell("Availability", [Two weeks’ notice]) #h(9pt)
-       #rcell("Authorization", [Authorized to work])]
+     #text(size: 9pt)[#rcell("Location", [\[City, Region\]]) #h(9pt)
+       #rcell("Availability", [\[Two weeks’ notice\]]) #h(9pt)
+       #rcell("Authorization", [\[Authorized to work\]])]
      #v(2pt)
      // SPECIALITIES LINE: the skills the facts support, linear, NO letterspacing
      // (it extracts as "N E X T" and stops matching), each item boxed so it can
@@ -157,26 +157,26 @@ with the field's key terms in *bold*.]
 // Roles and bullets: only as many as the facts give; drop a role or section the facts don't support.
 #section("[Target-field] Experience")[
 
-#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – present",
+#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Achievement from the facts]
-- [Action verb] [what, from the facts]
-- [Achievement from the facts]
-- [Action verb] [what, from the facts]
-- [Achievement from the facts, with its number if the facts give one]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Achievement from the facts]
-- [Action verb] [what, from the facts]
-- [Achievement from the facts, with its number if the facts give one]
-- [Action verb] [what, from the facts]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Achievement from the facts]
-- [Action verb] [what, from the facts]
-- [Achievement from the facts, with its number if the facts give one]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 ]
 
 // ---------- Off-target roles: separated, honest, never leading ----------
@@ -184,9 +184,9 @@ with the field's key terms in *bold*.]
 #section("Other Experience")[
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Transferable achievement from the facts]
-- [Action verb] [what, from the facts]
-- [Transferable achievement from the facts]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Action verb] [what, from the facts][, outcome, if stated].
 ]
 
 // ---------- Education: the SAME entry shape as the jobs (dates right-flush) ----------

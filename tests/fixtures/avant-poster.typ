@@ -117,7 +117,7 @@
   #v(1pt)
   // Contact gaps stay >= 12pt: poppler reads a narrower gap as a column break (1 line per item).
   #text(size: 9pt, fill: muted)[
-    #nb(ic.pin)[City, Region] #h(14pt)
+    #nb(ic.pin)[\[City, Region\]] #h(14pt)
     #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(14pt)
     #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(14pt)
     #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(14pt)

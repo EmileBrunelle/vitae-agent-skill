@@ -82,7 +82,7 @@ The agent will collect facts, pick the regional conventions, draft from the temp
 
 ## Languages
 
-The CV can be in any language Typst can set. The checks that do not depend on the language work everywhere: page count and fill, section breaks (including non-Latin headings), fonts and missing glyphs, hidden or clipped text, bullet characters, spacing and separators, and the figures in `--facts` (years and numbers, numeric dates such as 03/2020 included, with "1.500" read as 1500 or 1.5 and phone numbers ignored). The scripts know no language or country: they measure only objective things, and the language itself is set by Typst `lang` (`pick_design.py --lang`, with `--region` for a market variant). Names, dates, degrees and section titles are left to the agent and the user, who compare them with the facts by hand (see [`references/steps/6-verify.md`](references/steps/6-verify.md)).
+The CV can be in any language Typst can set. The checks that do not depend on the language work everywhere: page count and fill, section breaks (including non-Latin headings), fonts and missing glyphs, hidden or clipped text, bullet characters, template placeholders left in the text, spacing and separators, and the figures in `--facts` (years and numbers, numeric dates such as 03/2020 included, with "1.500" read as 1500 or 1.5 and phone numbers ignored). The scripts know no language or country: they measure only objective things, and the language itself is set by Typst `lang` (`pick_design.py --lang`, with `--region` for a market variant). Names, dates, degrees and section titles are left to the agent and the user, who compare them with the facts by hand (see [`references/steps/6-verify.md`](references/steps/6-verify.md)).
 
 ## Requirements
 

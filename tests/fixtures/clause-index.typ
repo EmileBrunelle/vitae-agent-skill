@@ -106,9 +106,9 @@
      // three VALUES after them, destroying the label↔value pairing the device
      // exists for. A single-ROW grid is safe when each cell is ONE line; the
      // moment a cell stacks two, the reader sweeps the row before it descends.
-     #text(size: 9pt)[#rcell("Location", [City, Region]) #h(9pt)
-       #rcell("Availability", [Two weeks’ notice]) #h(9pt)
-       #rcell("Authorization", [Authorized to work])]
+     #text(size: 9pt)[#rcell("Location", [\[City, Region\]]) #h(9pt)
+       #rcell("Availability", [\[Two weeks’ notice\]]) #h(9pt)
+       #rcell("Authorization", [\[Authorized to work\]])]
      #v(2pt)
      // SPECIALITIES LINE: the skills the facts support, linear, NO letterspacing
      // (it extracts as "N E X T" and stops matching), each item boxed so it can

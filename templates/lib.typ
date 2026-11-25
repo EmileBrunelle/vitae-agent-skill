@@ -369,7 +369,7 @@
   }
 }
 
-// specline — the SPECIALITIES LINE: the 5-7 mastered skills, set under the
+// specline — the SPECIALITIES LINE: the mastered skills the facts support, set under the
 // name/title in the header, before the profile. Two independent real CVs
 // converged on this device; what it buys is that the 30-second scan gets the
 // stack before it gets the prose, and retailoring per application becomes one
@@ -387,7 +387,7 @@
 // The mechanics: emitted linearly, NO `tracking` (letterspacing extracts as
 // "N E X T" and breaks the line for a keyword filter), and each item boxed so
 // it can never be split across a line end. A separator run that WRAPS can
-// scatter in extraction (references/ats.md) — keep it to one line: 5-7 short
+// scatter in extraction (references/ats.md) — keep it to one line: a handful of short
 // items, verified in the extraction at the gate.
 #let specline(items, sep: [ · ], st: it => it) = st(items
   .map(i => box[#i])

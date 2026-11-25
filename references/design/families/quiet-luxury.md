@@ -9,5 +9,5 @@ The 2020s “quiet luxury” current: warmth instead of neutrality, quality sign
 - **Header**: **contacts first** (a small gray letterhead line), then the name, then the role — the reverse of every other family's order. Photo slot = right cell of the header row.
 - **Type**: one warm humanist sans, generous but unshowy, display and body. Pool: `pick_design.py` FONTS `quiet-luxury`.
 - **Accents** (mono harmony): `#5c4632` bark · `#33475b` slate · `#0e6862` teal.
-- **Verified**: leading `0.58em`, spacing `0.68em`, section `above` 20pt (25pt airy), 4pt after the title (5.0:1) → 1 page, fill 96%, white-run ratio 3.85 (2.5% of page height).
+- **Verified**: leading `0.58em`, spacing `0.68em`, section `above` 20pt (25pt airy), 4pt after the title (5.0:1) → 1 page, fill 94%, white-run ratio 4.60 (2.3% of page height).
 - Markets: any; safe for conservative; reads slightly senior/executive. Photo: yes.

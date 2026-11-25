@@ -24,7 +24,7 @@
 #let accent = rgb("#7d2231")
 #let font = ("Carlito", "Noto Sans", "Liberation Sans")
 #let name = "Firstname Lastname"
-#let contact = "me@example.com · (555) 555-0100 · City, Region · linkedin.com/in/handle"
+#let contact = "me@example.com · (555) 555-0100 · [City, Region] · linkedin.com/in/handle"
 
 // ---------- Letterhead (~2.5cm) ----------
 #set page(paper: "us-letter", margin: (x: 2.7cm, top: 2.2cm, bottom: 2.2cm))
@@ -40,7 +40,7 @@
 ]
 
 // ---------- Body ----------
-#text(size: 10.5pt)[September 13, 2026]
+#text(size: 10.5pt)[\[September 13, 2026\]]
 #v(10pt)
 
 #text(size: 10.5pt)[
@@ -50,7 +50,7 @@
 ]
 #v(10pt)
 
-#text(weight: "bold")[Re: Application for the Backend Software Developer position]
+#text(weight: "bold")[\[Re: Application for the Backend Software Developer position\]]
 #v(10pt)
 
 Dear Hiring Manager,
