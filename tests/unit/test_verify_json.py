@@ -21,14 +21,14 @@ def _run(monkeypatch, capsys, *args):
 
 @pytest.fixture
 def both(monkeypatch, capsys):
-    def go(*extra):
-        text = _run(monkeypatch, capsys, TEMPLATE, "1", *extra)
-        js = _run(monkeypatch, capsys, TEMPLATE, "1", *extra, "--json")
+    def go(*extra, pages="1"):
+        text = _run(monkeypatch, capsys, TEMPLATE, pages, *extra)
+        js = _run(monkeypatch, capsys, TEMPLATE, pages, *extra, "--json")
         return text, js
     return go
 
 
-def test_pass_agrees_with_text_mode_and_stdout_is_one_json_object(both):
+def test_pass_agrees_with_text_mode_and_stdout_is_one_json_object(both, template_fonts):
     """Mutation: a wrong verdict/exit_code mapping, or any stray print on stdout, breaks the first lines."""
     (t_rc, _, t_out, _), (j_rc, j_footer, j_out, j_err) = both("--allow-placeholders")
     assert j_out.endswith("\n") and j_out.count("\n") == 1
@@ -41,16 +41,26 @@ def test_pass_agrees_with_text_mode_and_stdout_is_one_json_object(both):
 
 
 def test_fail_agrees_with_text_mode_and_every_fail_and_warn_line_is_a_check(both):
-    (t_rc, _, t_out, _), (j_rc, _, j_out, _) = both()
+    """The FAIL comes from asking for 3 pages of a 1-page template (and the unreplaced samples), so no font is needed."""
+    (t_rc, _, t_out, _), (j_rc, _, j_out, _) = both(pages="3")
     d = json.loads(j_out)
     assert t_rc == 1 and j_rc == 1 and d["verdict"] == "FAIL" and d["exit_code"] == 1
     assert d["footer"] and d["footer"].startswith("NEXT")
-    messages = {(c["level"], c["message"]) for c in d["checks"]}
-    text_lines = [ln for ln in t_out.split("\n") if re.match(r"(FAIL|WARN) +\S", ln)]
-    assert any(ln.startswith("FAIL") for ln in text_lines)
-    for ln in text_lines:
-        lvl, msg = ln.split(None, 1)
-        assert (lvl, msg) in messages, ln
+    by_first_line = {}
+    for c in d["checks"]:
+        by_first_line.setdefault((c["level"], c["message"].split("\n", 1)[0]), []).append(c["message"])
+    lines = t_out.split("\n")
+    heads = [i for i, ln in enumerate(lines) if re.match(r"(FAIL|WARN) +\S", ln)]
+    assert any(lines[i].startswith("FAIL") for i in heads)
+    for i in heads:
+        lvl, msg = lines[i].split(None, 1)
+        cont = []
+        for ln in lines[i + 1:]:                       # continuation lines are indented
+            if not ln.startswith((" ", "\t")) or not ln.strip():
+                break
+            cont.append(ln.strip())
+        assert (lvl, msg) in by_first_line, lines[i]
+        assert any(all(part in full for part in cont) for full in by_first_line[(lvl, msg)]), (lines[i], cont)
     assert any(c["level"] == "FAIL" and c["check"] == "placeholders" for c in d["checks"])
 
 

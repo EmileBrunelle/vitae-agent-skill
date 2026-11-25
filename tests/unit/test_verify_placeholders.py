@@ -339,7 +339,7 @@ def test_stray_bracket_does_not_make_a_huge_warn(tmp_path):
 
 
 @pytest.fixture
-def shipped_resume(skill_copy):
+def shipped_resume(skill_copy, template_fonts):
     """The shipped resume.typ (with its lib/icons) inside the scratch skill: the gate's PDF/PNGs land in the copy."""
     for name in ("resume.typ", "lib.typ", "icons.typ"):
         shutil.copy(TEMPLATES / name, skill_copy / "templates" / name)

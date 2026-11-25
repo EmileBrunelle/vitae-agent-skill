@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Tests: the three tests that run the shipped `resume.typ` through the gate (`test_verify_json.py`, `test_verify_placeholders.py`) skip, with a reason, when Typst cannot see Carlito and Montserrat (the template fits one page only with them); the JSON FAIL test no longer needs them, and compares multi-line messages in full.
 - `verify.py`, `verify_academic.py` and `verify_letter.py` `--help`/`-h` print the usage on stdout and exit 0 (it exited 2, which `SKILL.md`'s "`--help` on each gives the options" read as a failure), also with `--json`; a real usage error still goes to stderr with exit 2.
 
 ## 0.11.0 - 2026-11-25
