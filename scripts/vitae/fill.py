@@ -159,19 +159,22 @@ def gaps(path: str, thr: int = 150) -> tuple[int, list[int]]:
 
 
 class _DocParser(argparse.ArgumentParser):
-    """Any usage error prints the module docstring and exits 1, as the old
-    hand-rolled `sys.exit(__doc__)` did."""
+    """A usage error prints the module docstring on stderr and exits 2."""
 
     def error(self, message: str) -> NoReturn:
-        sys.exit(__doc__)
+        print(__doc__, file=sys.stderr)
+        sys.exit(2)
 
 
 def main() -> None:
+    if any(a in ("-h", "--help") for a in sys.argv[1:]):
+        print(__doc__)
+        sys.exit(0)
     ap = _DocParser(add_help=False, allow_abbrev=False)
     ap.add_argument("paths", nargs="*")
-    args = ap.parse_args(["--"] + sys.argv[1:])   # any argument is a positional, even "-x"
+    args = ap.parse_args(["--"] + sys.argv[1:])   # any other argument is a positional, even "-x"
     if not args.paths:
-        sys.exit(__doc__)
+        ap.error("no image given")
     for path in args.paths:
         print(f"{path}: {measure(path)}")
         h, runs = gaps(path)

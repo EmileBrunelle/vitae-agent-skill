@@ -5,7 +5,8 @@ self-registration), and `run_gates` is the one place that prints a gate line.
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -42,6 +43,20 @@ class FnGate:
         return self.run(ctx)
 
 
+_sink: list[tuple[str, Level, str]] | None = None
+
+
+@contextmanager
+def recording(sink: list[tuple[str, Level, str]]) -> Iterator[None]:
+    """While active, `run_gates` also appends (gate name, level, message) to `sink`: what `--json` reads."""
+    global _sink
+    _sink = sink
+    try:
+        yield
+    finally:
+        _sink = None
+
+
 def run_gates(gates: Sequence[Gate], ctx: VerifyContext) -> int:
     """Print every applicable gate's lines in order; return 1 if any is a FAIL, else 0."""
     fail = 0
@@ -50,5 +65,7 @@ def run_gates(gates: Sequence[Gate], ctx: VerifyContext) -> int:
             continue
         for lvl, msg in gate.check(ctx):
             print(f"{lvl:<5} {msg}")
+            if _sink is not None:
+                _sink.append((gate.name, lvl, msg))
             fail |= lvl == Level.FAIL
     return fail

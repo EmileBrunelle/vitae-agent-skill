@@ -126,6 +126,13 @@ def main() -> tuple[int, str | None]:
     gate modes, which return (exit code, footer): the footer is the NEXT line `_run` prints last
     on a non-zero exit, None until the mode's preflight passed."""
     argv = sys.argv[1:]
+    if "--json" in argv:
+        from vitae.verify.jsonout import run_json  # noqa: PLC0415 -- lazy: only --json needs it
+        return run_json([a for a in argv if a != "--json"], _dispatch)
+    return _dispatch(argv)
+
+
+def _dispatch(argv: list[str]) -> tuple[int, str | None]:
     prog = os.path.basename(sys.argv[0])
 
     if argv and argv[0] == "--all":
@@ -231,6 +238,9 @@ def main() -> tuple[int, str | None]:
                  f"         --facts: WARN on every year / numeric month+year / number in the CV absent from the facts file\n"
                  f"         --allow-placeholders: skip the template-placeholder gate; for checking the shipped templates themselves, never a real CV\n"
                  f"         --rebuild: skip ONLY the review-record check, for the candidate's rebuild.sh; never the agent's final verify\n"
+                 f"         --json: ONE JSON object on stdout, diagnostics on stderr; also for --doctor, other modes exit 2\n"
+                 f"           {{tool, version, file, pages_expected, fill:{{min,max,measured}}, verdict PASS|FAIL, exit_code,\n"
+                 f"            checks:[{{level, check, message}}], footer}}; a usage error is {{verdict:ERROR, exit_code:2, error}}\n"
                  f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI] [--allow-placeholders]\n"
                  f"       {prog} --all DIR [--allow-placeholders] [--rebuild]\n"
                  f"       {prog} --doctor\n"
