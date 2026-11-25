@@ -249,12 +249,12 @@ def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
             drop = 55 if audacity == "sober" else 35
             soft = _mix(_hsl((hue + 180) % 360, max(sat - drop, 8),
                              min(lig + 18, 60)), white, 0.55)
-        ink = _mix((INK_BASE,) * 3, accent, 0.85)
-        dark = _mix((DARK_BASE,) * 3, accent, 0.92)
+        ink = _mix((INK_BASE, INK_BASE, INK_BASE), accent, 0.85)
+        dark = _mix((DARK_BASE, DARK_BASE, DARK_BASE), accent, 0.92)
         # --- duotone: hue B, drawn from the SAME dial ranges (the professional
         # guardrail applies to both hues), one notch calmer than hue A so it
         # stays subordinate — a co-equal second hue is what reads as a flyer.
-        second, roles = None, None
+        second, roles, hsl2 = None, None, None
         if family in DUOTONE:
             rule, roles = DUOTONE[family][0], DUOTONE[family][1:]
             h2 = (hue + (62 if rule == "far-analogous" else 180)) % 360
@@ -276,7 +276,8 @@ def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
             for off in (4, -9, -15, -21, 11, -27, 17):
                 cand = _hsl(h2, s2, max(lmin, min(lig + off, lmax)))
                 if contrast(accent, cand) >= DUOTONE_SEP:
-                    second, l2 = cand, max(lmin, min(lig + off, lmax))
+                    l2 = max(lmin, min(lig + off, lmax))
+                    second, hsl2 = cand, (h2, s2, l2)
                     break
             if second is None:
                 continue                      # hue B cannot separate: re-draw
@@ -296,12 +297,11 @@ def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
             checks["accent2 vs accent (grayscale)"] = (contrast(accent, second),
                                                        DUOTONE_SEP)
         if all(v >= t for v, t in checks.values()):
-            return dict(family=family, audacity=audacity, harmony=harmony,
+            return Palette(family=family, audacity=audacity, harmony=harmony,
                         seed=seed, attempts=attempt + 1,
                         hsl=(hue, sat, lig), accent=accent, soft=soft,
                         ink=ink, dark=dark, checks=checks,
-                        accent2=second, hsl2=None if second is None
-                        else (h2, s2, l2), roles=roles)
+                        accent2=second, hsl2=hsl2, roles=roles)
     raise SystemExit("no valid palette in 64 draws — widen the dial ranges")
 
 
@@ -409,7 +409,7 @@ def selftest() -> None:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("--family")
     ap.add_argument("--seed")
     ap.add_argument("--audacity", default="sober", choices=sorted(DIAL))

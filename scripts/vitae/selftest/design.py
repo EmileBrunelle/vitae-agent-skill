@@ -192,11 +192,11 @@ def selftest() -> None:
         # 3 members is the documented pool minimum (see bold-display above);
         # `mono` is optional and only hard-edge declares one.
         assert set(fp) - {"register", "mono"} == {"display", "body"}, f
-        for role in ("display", "body", "mono"):
-            if role not in fp:
+        for role, pool in (("display", fp["display"]), ("body", fp["body"]), ("mono", fp.get("mono"))):
+            if pool is None:
                 continue
-            assert 3 <= len(fp[role]) <= 5, (f, role)
-            assert len(set(n for n, _ in fp[role])) == len(fp[role]), (f, role)
+            assert 3 <= len(pool) <= 5, (f, role)
+            assert len(set(n for n, _ in pool)) == len(pool), (f, role)
         for n, prov in fp["display"]:
             assert n not in seen, ("display face shared", n, f, seen.get(n))
             seen[n] = f

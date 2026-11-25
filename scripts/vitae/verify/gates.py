@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 
-from vitae.core.base import DetailRow, HiddenStat
+from vitae.core.base import DetailRow, HiddenStat, Mark
 from vitae.core.context import VerifyContext
 from vitae.core.level import Finding, Level
 from vitae.verify.groups import (
@@ -154,7 +154,7 @@ def _source_text(ctx: VerifyContext) -> list[Finding]:
 
 
 def _duplicate_names(ctx: VerifyContext) -> list[Finding]:
-    secs = _typst_query(ctx.typ, "<vitae-sec>", ctx.root)
+    secs: list[Mark] | None = _typst_query(ctx.typ, "<vitae-sec>", ctx.root)
     if not secs:   # no <vitae-sec> marks (a CV that never wrapped `section` in wd-section(), or no query): read the #section("...") calls instead
         secs = [{"text": t} for t in re.findall(r'#section\(\s*"((?:[^"\\]|\\.)*)"', ctx.src)]
     return [(Level.FAIL, "duplicate name: " + msg) for msg in check_duplicate_names(secs, ctx.heads)]

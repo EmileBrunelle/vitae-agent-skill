@@ -30,6 +30,11 @@ class _KMark(SecMark, _MarkExtras):
     x: NotRequired[float]
 
 
+def _dx(m: _KMark, h: HeadMark) -> float:
+    """Horizontal distance from head `h` to mark `m`; a section mark has no x, so it is infinitely far."""
+    return abs(m["x"] - h["x"]) if "x" in m else float("inf")
+
+
 def _org_on_one_line(org: str, line: _Line) -> bool:
     """True when the org text's first and last tokens both sit on `line`: the line under the role is the
     whole org line (a wrapped role pushes the org down, a wrapped org spills onto the next line)."""
@@ -63,7 +68,7 @@ def _next_block(h: HeadMark, hx: float, words: list[Word], marks: list[_KMark],
         # y-centre lands one line too low. If an in-column head opens within
         # that window, THAT is the next block of this column's flow.
         h2 = [x for x in marks if x["_k"] == "h" and x["page"] == h["page"]
-              and abs(x["x"] - h["x"]) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
+              and _dx(x, h) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
         if h2:
             m = min(h2, key=lambda x: x["y"])
             mrun = _find_run(words, m["text"], m["y"])
@@ -133,7 +138,7 @@ def _measure_head(h: HeadMark, marks: list[_KMark], pages_words: list[list[Word]
         return None, True
     # next block head on this page (entry head, skill label or section title)
     later = [m for m in marks if m["page"] == h["page"] and m["y"] > h["y"] + 2
-             and not (m["_k"] == "h" and abs(m["x"] - h["x"]) > 60)]
+             and not (m["_k"] == "h" and _dx(m, h) > 60)]
     if not later:
         return None, False                 # last block on its page: no next head
     nb = _next_block(h, hx, words, marks, later)

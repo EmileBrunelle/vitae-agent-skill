@@ -97,9 +97,10 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "// ---------- Type: %s ----------" % p["font_register"],
           "#let bodyf = %s" % _chain(fp["body"], p["body"], "body", p["have"]),
           "#let dispf = %s" % _chain(fp["display"], p["display"], "display", p["have"])]
-    if p["mono"]:
+    mono_pool = fp.get("mono")
+    if p["mono"] and mono_pool is not None:
         o.append("#let monof = %s   // ALL metadata sits in this face"
-                 % _chain(fp["mono"], p["mono"], "mono", p["have"]))
+                 % _chain(mono_pool, p["mono"], "mono", p["have"]))
     col = _icon_colour(d["icons"])
     o += ["",
           "// ---------- Contact icons + platform marks ----------",

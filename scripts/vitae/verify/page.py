@@ -236,7 +236,7 @@ def _components(grid: Image.Image, merge: int = 0) -> list[tuple[int, int, int, 
     if merge:
         grid = grid.filter(ImageFilter.MaxFilter(2 * merge + 1))
     gw, gh = grid.size
-    on = grid.point(lambda v: 255 if v > 0 else 0).tobytes()
+    on = grid.point([0] + [255] * 255).tobytes()
     seen = bytearray(gw * gh)
     boxes = []
     for start in range(gw * gh):
@@ -296,12 +296,12 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
         else:
             bg = cast(tuple[int, ...], max(colours)[1])
     ink = ImageChops.difference(im, Image.new("RGB", im.size, bg)).convert("L").point(
-        lambda v: 255 if v >= CROP_DELTA else 0)
+        [255 if v >= CROP_DELTA else 0 for v in range(256)])
     k = CROP_SCAN_PPI
     e = CROP_ERODE // 2
     fills: list[tuple[str, tuple[int, int, int, int], int]] = []
     solid = ink.filter(ImageFilter.MinFilter(CROP_ERODE))
-    for x0, y0, x1, y1 in _components(solid.reduce(3).point(lambda v: 255 if v > 64 else 0)):
+    for x0, y0, x1, y1 in _components(solid.reduce(3).point([255 if v > 64 else 0 for v in range(256)])):
         box = (max(0, x0 * 3 - e), max(0, y0 * 3 - e), min(w, x1 * 3 + 3 + e), min(h, y1 * 3 + 3 + e))
         if box[2] - box[0] >= CROP_FILL_MIN_IN[0] * k and box[3] - box[1] >= CROP_FILL_MIN_IN[1] * k:
             area = (box[2] - box[0]) * (box[3] - box[1])

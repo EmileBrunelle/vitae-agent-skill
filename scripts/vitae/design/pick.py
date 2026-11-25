@@ -162,7 +162,7 @@ def pick(name: str, field: str | None, career: str = "early",
         # the family's own default is in the pool, so it can be drawn back.
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
         lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
-    return dict(key=key, family=fam, have=have, offline=offline, eligible=eligible, recipe=d,
+    return Pick(key=key, family=fam, have=have, offline=offline, eligible=eligible, recipe=d,
                 mono=mono, mono_note=mono_note, variant=variant,
                 career=career, domain=dom or "none, full pool", audacity=audacity,
                 accent=d["accents"][ai],

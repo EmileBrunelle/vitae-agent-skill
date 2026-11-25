@@ -101,7 +101,7 @@ from vitae.selftest.design import selftest
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(add_help=True, description=__doc__.split("\n")[0])
+    ap = argparse.ArgumentParser(add_help=True, description=(__doc__ or "").split("\n")[0])
     ap.add_argument("--name")
     ap.add_argument("--field")
     ap.add_argument("--market", default="unspecified")
@@ -168,10 +168,11 @@ def main() -> None:
                       % ("", " ".join(d["accents2"])))
             print("%18s   labels  %s" % ("", d["labels"]))
             print("%18s   type    %s" % ("", FONTS[f]["register"]))
-            for role in ("display", "mono", "body"):
-                if role in FONTS[f]:
+            for role, pool in (("display", FONTS[f]["display"]), ("mono", FONTS[f].get("mono")),
+                               ("body", FONTS[f]["body"])):
+                if pool is not None:
                     print("%18s   %-8s%s" % ("", role, ", ".join(
-                        "%s [%s]" % nv for nv in FONTS[f][role])))
+                        "%s [%s]" % nv for nv in pool)))
     elif a.name and a.field:
         p = pick(a.name, a.field, a.career, a.photo, a.conservative,
                  cast(Audacity, a.audacity), not a.no_font_check, a.creative,

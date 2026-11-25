@@ -125,9 +125,10 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
         src = _sub1(src, lead("monof"), sub(disp_c), "#let monof", fam)
     else:
         src = _sub1(src, lead("dispf"), sub(disp_c), "#let dispf", fam)
-        if p["mono"]:
+        mono_pool = fp.get("mono")
+        if p["mono"] and mono_pool is not None:
             src = _sub1(src, lead("monof"), sub(
-                _chain(fp["mono"], p["mono"], "mono", p["have"])),
+                _chain(mono_pool, p["mono"], "mono", p["have"])),
                 "#let monof", fam)
     if lang != "en" or region:            # worked files ship lang: "en"
         src, n_lang = re.subn(r'(#set text\([^\n]*?)lang: "en"',

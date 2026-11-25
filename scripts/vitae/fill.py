@@ -105,8 +105,8 @@ def bands(path: str, thr: int = 150, rule: float = RULE_FLOOR,
     # ground, and a device is whatever sits CONTRASTED against that ground. The
     # modal luma is the paper — it is the most common pixel on any CV page.
     paper = max(range(256), key=im.histogram().__getitem__)
-    body = im.point(lambda v: 255 if v < thr else 0).tobytes()
-    dev = im.point(lambda v: 255 if v < paper - contrast else 0).tobytes()
+    body = im.point([255 if v < thr else 0 for v in range(256)]).tobytes()
+    dev = im.point([255 if v < paper - contrast else 0 for v in range(256)]).tobytes()
     floor = rule * w
     dark, longest = [], []
     for y in range(ch):
