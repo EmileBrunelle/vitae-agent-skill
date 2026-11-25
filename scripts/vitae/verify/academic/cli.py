@@ -21,9 +21,12 @@ previous attempt at exactly this had to be deleted (commit d7f67da). Every decla
 every extracted count/order comes from the rendered PDF.
 
 Usage:
-    verify_academic.py cv.typ data.toml
+    verify_academic.py cv.typ data.toml [--rebuild]
     verify_academic.py --selftest
     verify_academic.py --doctor
+
+When the five checks hold, the step-7 review record (`review.md` beside the CV) is checked like verify.py does; --rebuild
+skips only that check (the candidate's rebuild.sh, never the agent's final run).
 
 Exit codes: 0 PASS, 1 FAIL, 2 usage error.
 
@@ -43,8 +46,10 @@ import sys
 from typing import NoReturn
 
 from vitae.core.env import preflight
+from vitae.core.level import Level
 from vitae.selftest.academic import selftest
 from vitae.verify.academic.gate import run_gate
+from vitae.verify.review_record import check_review_record
 
 
 class _UsageParser(argparse.ArgumentParser):
@@ -52,7 +57,7 @@ class _UsageParser(argparse.ArgumentParser):
 
     def error(self, message: str) -> NoReturn:
         prog = os.path.basename(sys.argv[0])
-        print(f"usage: {prog} cv.typ data.toml\n"
+        print(f"usage: {prog} cv.typ data.toml [--rebuild]\n"
               f"       {prog} --selftest\n"
               f"       {prog} --doctor", file=sys.stderr)
         sys.exit(2)
@@ -66,7 +71,8 @@ def main() -> None:
     argv = sys.argv[1:]
     # as the old manual argv: only argv[0] is a mode flag (the rest is
     # ignored then); otherwise every argument is a positional, even "-x"
-    argv = argv[:1] if argv and argv[0] in ("--selftest", "--doctor") else ["--"] + argv
+    rebuild = "--rebuild" in argv
+    argv = argv[:1] if argv and argv[0] in ("--selftest", "--doctor") else ["--"] + [a for a in argv if a != "--rebuild"]
     args = ap.parse_args(argv)
 
     if args.selftest:
@@ -90,9 +96,19 @@ def main() -> None:
         print(f"{'FAIL' if is_fail else 'WARN' if is_fail is None else 'OK  '}  {msg}")
     for line in reported:
         print(f"INFO  {line}")
-    if ok:
-        print("PASS  all five checks hold")
-    sys.exit(0 if ok else 1)
+    if not ok:
+        sys.exit(1)
+    record = [] if rebuild else check_review_record(typ, [toml_path], "academic")
+    if any(lvl == Level.FAIL for lvl, _ in record):
+        print("mechanical gates: PASS  all five checks hold")
+        for lvl, msg in record:
+            print(f"{lvl}  {msg}")
+        print("FAIL  not deliverable: the review record is missing or incomplete (step 7)")
+        sys.exit(1)
+    for lvl, msg in record:
+        print(f"{lvl}  {msg}")
+    print("PASS  all five checks hold" + (" (review record skipped: --rebuild, candidate rebuild)" if rebuild else ""))
+    sys.exit(0)
 
 
 if __name__ == "__main__":

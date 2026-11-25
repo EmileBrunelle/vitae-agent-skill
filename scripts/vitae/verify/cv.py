@@ -38,6 +38,7 @@ from vitae.verify.pdf import (
     word_boxes,
 )
 from vitae.verify.registry import run_gates
+from vitae.verify.review_record import check_review_record
 from vitae.verify.source import _drawn_fill, _fill_args_ok
 from vitae.verify.typst import _doc_body_size, _doc_par_list, _strip_typst_comments
 
@@ -130,7 +131,7 @@ def placeholders_allowed(typ: str) -> bool:
 _ALLOW_REFUSED = "FAIL  --allow-placeholders is only for the shipped templates (a file under the skill's templates/ folder)"
 
 
-def check_all(directory: str, allow_placeholders: bool = False) -> int:
+def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = False) -> int:
     """Run the single-file gate over every .typ under `directory`.
 
     Re-invokes this script per file rather than refactoring main() apart: the
@@ -172,7 +173,8 @@ def check_all(directory: str, allow_placeholders: bool = False) -> int:
               f"{'' if m else ' — inferred from the file name, no header'})")
         r = subprocess.run([sys.executable,
                             os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py"), typ]
-                           + args + (["--allow-placeholders"] if allow_placeholders else []))
+                           + args + (["--allow-placeholders"] if allow_placeholders else [])
+                           + (["--rebuild"] if rebuild else []))
         fail |= bool(r.returncode)
     if unchecked:
         print("\nNOTE — page count inferred from the file name, fill not "
@@ -248,6 +250,7 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
                      f"copy it again: {cp}")]
 
 
+_LOOK_CUE = "now LOOK at the PNGs (Visual pass:), then step 7"
 _LOWERED_WARN = ("WARN  fill target lowered below drawn target {a} — allowed ONLY if "
                  "the facts are exhausted; tell the user the page is under-filled and which "
                  "facts would fill it; never pad or invent to reach it (rule 1)")
@@ -342,16 +345,9 @@ def _body_size_warn(typ: str) -> str:
     return ""
 
 
-def _step7_note() -> str:
-    """The line printed under a PASS: the mechanical gate is not delivery, step 7 (adversarial review) follows."""
-    review = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-                          "references", "steps", "7-review.md")
-    return ("NOTE  this mechanical gate is not delivery: step 7 (adversarial multi-persona review) comes next — "
-            f"read {review} before delivering")
-
-
 def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
-              facts: str | None = None, allow_placeholders: bool = False) -> tuple[int, str | None]:
+              facts: str | None = None, allow_placeholders: bool = False,
+              rebuild: bool = False) -> tuple[int, str | None]:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Returns (exit code,
     footer): 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix; the
     footer is the NEXT line the CLI prints last on a failure, None until preflight passed.
@@ -442,14 +438,17 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                   "the targets come from the pick_design.py report "
                   '("fill target : NN-NN%") and differ per family')
         under_fills: list[int] = []
+        fills: list[str] = []
         for i, path in enumerate(pngs):
             result = measure_fill.measure(path)
             if "blank page" in result:
                 print(f"FAIL  fill: {path}: {result}")
                 fail = 1
                 continue
+            m = re.search(r"to (\d+)%", result)
+            if m:
+                fills.append(m.group(1))
             if fmin and fmax:
-                m = re.search(r"to (\d+)%", result)
                 if not m:
                     continue
                 y = int(m.group(1))
@@ -511,20 +510,42 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     print(txt)
 
     if fail == 0:
-        skip = "; placeholder gate skipped" if allow_placeholders else ""
-        tag = "(placeholder gate skipped) " if allow_placeholders else " "
+        # Delivery needs the step-7 review record; the shipped templates, --allow-placeholders runs and --rebuild
+        # (a candidate re-tailoring the .typ, never the agent's final verify) are not checked.
+        record = [] if allow_placeholders or rebuild else check_review_record(typ)
+        record_fail = any(lvl == Level.FAIL for lvl, _ in record)
+        notes = (["placeholder gate skipped"] if allow_placeholders else []) \
+            + (["review record skipped: --rebuild, candidate rebuild"] if rebuild else [])
+        skip = "".join(f"; {n}" for n in notes)
+        tag = f"({'; '.join(notes)}) " if notes else " "
+        if record_fail:
+            if fmin and fmax:
+                shown = "/".join(fills)
+                print(f"mechanical gates: PASS{f' (fill {shown}%)' if fills else ''}"
+                      f"{f' (fill target lowered: {lowered})' if lowered else ''} — {_LOOK_CUE}")
+            else:
+                print(f"mechanical gates: PASS except fill (no FILL_MIN FILL_MAX given) — {_LOOK_CUE}")
+            if lowered:
+                print(_LOWERED_WARN.format(a=lowered.split(" ")[0]))
+            for lvl, msg in record:
+                print(f"{lvl}  {msg}")
+            if lead_warn:
+                print(lead_warn)
+            if size_warn:
+                print(size_warn)
+            print("FAIL  not deliverable: the review record is missing or incomplete (step 7)")
+            return 1, None
+        for lvl, msg in record:
+            print(f"{lvl}  {msg}")
         if lowered:
             print(f"PASS (fill target lowered: {lowered}{skip}) all mechanical checks — now LOOK at the PNGs")
             print(_LOWERED_WARN.format(a=lowered.split(" ")[0]))
-            print(_step7_note())
         elif fmin and fmax:
             print(f"PASS {tag}all mechanical checks — now LOOK at the PNGs")
-            print(_step7_note())
         else:
             print(f"PASS {tag}mechanical checks except fill (no FILL_MIN FILL_MAX "
                   "given) — rerun with the fill targets from the pick_design.py "
                   "report, then LOOK at the PNGs")
-            print(_step7_note())
         if lead_warn:        # repeated after PASS so a green run does not bury them
             print(lead_warn)
         if size_warn:

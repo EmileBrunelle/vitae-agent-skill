@@ -468,6 +468,47 @@ raw_template_fails_placeholders() {
 }
 check raw-template-fails-placeholders raw_template_fails_placeholders
 
+# Delivery needs the step-7 review record: a CV that passes every mechanical gate still exits 1 without review.md
+# (the output ends on FAIL, never on a PASS) and passes once a valid record newer than the .typ sits beside it.
+# The template's samples are filled with plain text first, so the placeholder gate does not decide.
+review_record_required() {
+  local f a b rc=0 d log="$S/review-record.log"
+  read -r f a b <<< "$(echo "$targets" | grep '^swiss-grid ')"   # the sample-filling below is written for this family's source
+  d="templates/families/$f"   # the scratch copy of the templates (cp -r above): nothing is written in the repo
+  python3 -I - "$d/resume.typ" "$d/_drawn_rr.typ" <<'PY' || return 1
+import re, sys
+sys.path.insert(0, "scripts")
+from vitae.verify import placeholders
+src = open(sys.argv[1], encoding="utf-8").read()
+for ph in sorted(placeholders.placeholders_in(src), key=len, reverse=True):
+    if ph.startswith("["):
+        src = re.sub(r"\\?\[" + re.escape(ph[1:-1]) + r"\\?\]", "Sample text", src)
+src = src.replace("Firstname Lastname", "Jane Roe").replace("(555) 555-0100", "(613) 555-0142")
+src = re.sub(r"me\\?@example\.com", r"jane\\@roe.test", src)
+src = src.replace("linkedin.com/in/handle", "linkedin.com/in/janeroe").replace("github.com/handle", "github.com/janeroe")
+open(sys.argv[2], "w", encoding="utf-8").write(src)
+PY
+  python3 -I scripts/verify.py "$d/_drawn_rr.typ" 1 "$a" "$b" >"$log" 2>&1 || rc=$?
+  [ "$rc" -eq 1 ] || { echo "a passing CV without review.md exited $rc"; cat "$log"; return 1; }
+  grep -q '^mechanical gates: PASS' "$log" || { echo "mechanical gates did not pass"; cat "$log"; return 1; }
+  grep -q '^FAIL  review record missing' "$log" || { echo "no review record FAIL"; cat "$log"; return 1; }
+  [ "$(tail -1 "$log" | cut -c1-4)" = "FAIL" ] || { echo "last line is not FAIL"; tail -3 "$log"; return 1; }
+  ! grep -q '^PASS ' "$log" || { echo "PASS printed without a record"; return 1; }
+  printf 'runtime: sub-agents\ncv: _drawn_rr.typ\npersonas: recruiter, hiring manager, ATS\nlayout: subagent haiku\n## Findings\n- ATS: sample finding -> applied\n' >"$d/review.md"
+  rc=0; python3 -I scripts/verify.py "$d/_drawn_rr.typ" 1 "$a" "$b" >"$log" 2>&1 || rc=$?
+  [ "$rc" -eq 0 ] || { echo "valid record: exit $rc"; cat "$log"; return 1; }
+  grep -q '^INFO  review record: runtime sub-agents' "$log" || { echo "no INFO summary"; cat "$log"; return 1; }
+  grep -q '^PASS ' "$log" || { echo "no PASS with a valid record"; cat "$log"; return 1; }
+  # --rebuild skips only the record check, loudly: a stale record (CV touched after it) still passes with the flag.
+  touch "$d/_drawn_rr.typ"
+  rc=0; python3 -I scripts/verify.py "$d/_drawn_rr.typ" 1 "$a" "$b" >"$log" 2>&1 || rc=$?
+  [ "$rc" -eq 1 ] || { echo "stale record without --rebuild exited $rc"; cat "$log"; return 1; }
+  rc=0; python3 -I scripts/verify.py "$d/_drawn_rr.typ" 1 "$a" "$b" --rebuild >"$log" 2>&1 || rc=$?
+  [ "$rc" -eq 0 ] || { echo "--rebuild: exit $rc"; cat "$log"; return 1; }
+  grep -q '^PASS (review record skipped: --rebuild, candidate rebuild)' "$log" || { echo "--rebuild not loud on the verdict"; cat "$log"; return 1; }
+}
+check review-record-required review_record_required
+
 # --text / --render: the interface the step docs promise, whatever backend is installed.
 facts_years_and_dates() {
   python3 -I - <<'PY' || return 1

@@ -346,24 +346,23 @@ def shipped_resume(skill_copy):
     return skill_copy / "scripts" / "verify.py", skill_copy / "templates" / "resume.typ"
 
 
-def test_pass_verdict_points_to_step_7_review_and_a_fail_does_not(shipped_resume):
-    """Dropping the NOTE print fails the first assert."""
+def test_template_run_is_exempt_from_the_review_record_and_a_real_cv_is_not(shipped_resume):
+    """The step-7 NOTE is gone: a template run (--allow-placeholders) neither prints nor needs a record."""
     script, typ = shipped_resume
-    out = _verify(str(typ), "1", "--allow-placeholders", script=script).splitlines()
-    verdict = next(i for i, ln in enumerate(out) if ln.startswith("PASS "))
-    assert "step 7" in out[verdict + 1] and "references/steps/7-review.md" in out[verdict + 1].replace("\\", "/")
+    out = _verify(str(typ), "1", "--allow-placeholders", script=script)
+    assert "PASS " in out and "review record" not in out and "NOTE  this mechanical gate" not in out
     failed = _verify(str(typ), "1", script=script)       # no flag: the template's samples FAIL the placeholder gate
     assert "FAIL  template placeholder left in the text" in failed
-    assert "PASS " not in failed and "7-review.md" not in failed
+    assert "PASS " not in failed and "review record" not in failed    # a mechanical FAIL keeps its behaviour
 
 
-def test_lowered_fill_pass_prints_the_warn_right_under_it_then_the_step_7_note(shipped_resume):
+def test_lowered_fill_pass_prints_the_warn_right_under_the_verdict(shipped_resume):
     script, typ = shipped_resume
     typ.write_text("// vitae: pages=1 fill=94-96\n" + typ.read_text(encoding="utf-8"), encoding="utf-8")
     out = _verify(str(typ), "1", "60", "100", "--allow-placeholders", script=script).splitlines()
     verdict = next(i for i, ln in enumerate(out) if ln.startswith("PASS (fill target lowered"))
     assert out[verdict + 1].startswith("WARN  fill target lowered below drawn target")
-    assert out[verdict + 2].startswith("NOTE  this mechanical gate is not delivery")
+    assert not any(ln.startswith("NOTE  this mechanical gate") for ln in out)
 
 
 def test_tune_refuses_the_flag_outside_the_skill_templates(tmp_path):

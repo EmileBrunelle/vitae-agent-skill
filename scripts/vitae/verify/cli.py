@@ -8,8 +8,8 @@ Windows). Exits non-zero if any check fails. Left to do by hand: the visual PNG 
 accent's contrast, the date-order check, and re-diffing bullets against the fact sheet.
 
 Usage:
-    verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--allow-placeholders]
-    verify.py --all DIR [--allow-placeholders]
+    verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--allow-placeholders] [--rebuild]
+    verify.py --all DIR [--allow-placeholders] [--rebuild]
     verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LEADING_LO LEADING_HI] [--allow-placeholders]
     verify.py --doctor
     verify.py --selftest
@@ -27,6 +27,10 @@ text-clip gate and the whitespace structure; template-default markers; the check
 capitals, orphaned dates, no section split across a page break, --facts coverage of years and numbers,
 bullet characters, template placeholders left in the text); last, the gates that need `typst query` (hidden text, font fallback,
 group proximity, date adjacency, forced line breaks and `~`, duplicate names).
+When all of those pass, the step-7 review record (`review.md` beside the CV, vitae/verify/review_record.py) is checked; the
+--allow-placeholders runs of the shipped templates, --gates and --rebuild skip it. --rebuild is for the candidate's own
+rebuild.sh after re-tailoring the .typ (the edit makes the record stale); it says so on the verdict line, and the agent's
+final verify never uses it.
 
 Design principle (scope): the scripts know no language and no country. They make only objective checks: what a PDF, a
 Typst render, a number or a declared value says on its own. No word list is kept, none is extended, and a check that
@@ -125,11 +129,13 @@ def main() -> tuple[int, str | None]:
     prog = os.path.basename(sys.argv[0])
 
     if argv and argv[0] == "--all":
-        ap = _Parser("usage: verify.py --all DIR [--allow-placeholders]", code=1, plain=True)
+        ap = _Parser("usage: verify.py --all DIR [--allow-placeholders] [--rebuild]", code=1, plain=True)
         ap.add_argument("dir")
         allow = "--allow-placeholders" in argv
+        rebuild = "--rebuild" in argv
         # "--" first: every later word is a positional, as before; extras are ignored
-        sys.exit(check_all(ap.parse_known_args(["--"] + [a for a in argv[1:] if a != "--allow-placeholders"])[0].dir, allow))
+        flags = ("--allow-placeholders", "--rebuild")
+        sys.exit(check_all(ap.parse_known_args(["--"] + [a for a in argv[1:] if a not in flags])[0].dir, allow, rebuild))
     if argv and argv[0] == "--gates":
         # the typst-query gates only, on an already compiled PDF: --gates cv.typ cv.pdf [--root DIR]
         # (the test fixtures import ../../templates, so they need the repo as root)
@@ -212,7 +218,8 @@ def main() -> tuple[int, str | None]:
 
     # Default mode: the one-file gate. --facts is the only option here, so it is cut out by hand.
     allow_placeholders = "--allow-placeholders" in argv
-    argv = [a for a in argv if a != "--allow-placeholders"]
+    rebuild = "--rebuild" in argv
+    argv = [a for a in argv if a not in ("--allow-placeholders", "--rebuild")]
     facts_path: str | None = None
     if "--facts" in argv:                   # pulled out first: the parser below treats every word as positional
         i = argv.index("--facts")
@@ -220,11 +227,12 @@ def main() -> tuple[int, str | None]:
             sys.exit("usage: verify.py cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] --facts facts.md [--allow-placeholders]")
         facts_path = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
-    ap = _Parser(f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--allow-placeholders]\n"
+    ap = _Parser(f"usage: {prog} cv.typ EXPECTED_PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--allow-placeholders] [--rebuild]\n"
                  f"         --facts: WARN on every year / numeric month+year / number in the CV absent from the facts file\n"
                  f"         --allow-placeholders: skip the template-placeholder gate; for checking the shipped templates themselves, never a real CV\n"
+                 f"         --rebuild: skip ONLY the review-record check, for the candidate's rebuild.sh; never the agent's final verify\n"
                  f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI] [--allow-placeholders]\n"
-                 f"       {prog} --all DIR [--allow-placeholders]\n"
+                 f"       {prog} --all DIR [--allow-placeholders] [--rebuild]\n"
                  f"       {prog} --doctor\n"
                  f"       {prog} --selftest")
     ap.add_argument("typ")
@@ -232,7 +240,7 @@ def main() -> tuple[int, str | None]:
     ap.add_argument("fill_min", nargs="?")
     ap.add_argument("fill_max", nargs="?")
     ca = ap.parse_known_args(["--"] + argv)[0]
-    return _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path, allow_placeholders)
+    return _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path, allow_placeholders, rebuild)
 
 
 def _run() -> None:
