@@ -19,7 +19,7 @@ Loaded on demand when the candidate targets software roles. It layers dev-market
 
 ## Keyword families (each listed item must survive an interview)
 
-- Spell both forms: "continuous integration (CI/CD)", "version control (Git)", acronyms AND words — boolean searches hit either.
+- Acronym and long form both count for boolean searches (CI/CD, continuous integration): follow the both-forms rule in [`ats.md`](../ats.md) — never gloss a tool name from memory.
 - Group skills in 5-7 rows: Programming / Frontend / Backend & data / Software quality / Tools & DevOps / Methodologies. The quality row (unit & integration testing, code review, test plans) is an underused differentiator — most juniors cannot prove it; anchor it in experience bullets.
 - Watch the era gaps: TypeScript-first postings, cloud platforms named (Azure/AWS/GCP), container keywords. Never add them unproven — flag the gap to the user with the project-based way to close it instead.
 - Employers verify LinkedIn *and* GitHub. Stack claims must match in all three places.

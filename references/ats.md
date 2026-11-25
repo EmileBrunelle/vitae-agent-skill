@@ -30,7 +30,7 @@ ATS systems and AI screeners index the *extracted text*, not the visual layout. 
 
 ## Keyword rules
 
-- Spell both forms once each: `continuous integration (CI/CD)`, `version control (Git)` — boolean searches hit either.
+- Print both forms of a term (long and acronym) only when the facts themselves give both; otherwise print the facts' form alone, with no synonym, alias, category word or parenthetical the facts lack (SKILL.md rule 1). When the long form would help ATS matching, ask the candidate for it as a question.
 - Include the literal words recruiters search: "bilingual" / « bilingue », the degree name, job-title synonyms.
 - 5-7 skill rows is the sweet spot **when the candidate honestly has that many categories** — with fewer defensible categories, use fewer rows; SKILL.md rule 1 outranks any layout guideline. 8+ near-empty rows read as padding.
 - A keyword in skills but absent from every experience bullet is a liability (SKILL.md rule 2): anchor, demote, or drop. Mechanical check: grep each skill item against the extracted bullet text — every 0-hit item must map to a deliberate demote/anchor decision, not an oversight.
