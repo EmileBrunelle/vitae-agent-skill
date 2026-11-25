@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["typst==0.15.0", "pypdfium2>=5", "Pillow>=11", "pypdf>=5"]
+# ///
 # AGENT: do not read this file — run it. Its printed output is the instruction.
 # Usage: python3 scripts/verify.py <cv.typ> PAGES [FILL_MIN FILL_MAX]
 #        python3 scripts/verify.py --tune <cv.typ> PAGES FILL_MIN FILL_MAX

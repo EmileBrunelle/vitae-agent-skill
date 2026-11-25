@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["typst==0.15.0"]
+# ///
 """Design picker: entry point; code lives in vitae.design.cli."""
 import pathlib
 import sys

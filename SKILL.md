@@ -2,12 +2,12 @@
 name: vitae
 description: Build ATS- and human-optimized résumés/CVs in Typst — exact page control (1-page and 2-page versions), no section ever split across pages, measured page fill, machine-parseable layout, regional and multilingual conventions, adversarial review loop, optional job-search guide. Also builds academic CVs (the exhaustive multi-page genre — publications, funding, teaching, supervision, service) with its own template and gate. Use when the user asks to create, redesign, improve, translate, or tailor a CV/résumé or an academic CV, or to evaluate one against a job posting.
 license: MIT
-compatibility: Requires typst 0.15+ and Python 3 with Pillow (pip-only install of typst pypdfium2 Pillow pypdf). poppler-utils (pdftotext, pdfinfo) recommended but optional - text extraction, the section-separation gate and the text-clip gate (check_text_clip) run on pypdfium2 without it; only academic mode needs poppler. Run python3 scripts/verify.py --doctor to diagnose. Optional - LibreOffice/soffice, only for editable copies (.docx/.odt) derived from the compiled PDF.
+compatibility: Python 3.11+, dependencies declared inline (PEP 723); `uv run scripts/verify.py` installs them, else pip install typst pypdfium2 Pillow pypdf. typst CLI 0.15+ optional (typst-py is the fallback). poppler-utils (pdftotext, pdfinfo) optional, text extraction and the text-clip gate run on pypdfium2; only academic mode needs it. LibreOffice/soffice optional, only for .docx/.odt copies. `scripts/verify.py --doctor` diagnoses.
 metadata:
   author: EmileBrunelle
-  version: "0.10.0"
+  version: "0.11.0"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
-allowed-tools: Bash(python3:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(cp:*) Bash(pdftoppm:*)
+allowed-tools: Bash(python3:*) Bash(uv:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(cp:*) Bash(pdftoppm:*)
 ---
 
 # vitae — résumés that survive both the ATS and the 30-second human scan
@@ -16,7 +16,16 @@ You are building a résumé that will be read twice: once by a parser, once by a
 
 **This skill's repo may be public.** Never commit candidate data: no names, employers, facts, or anecdotes traceable to a person — every lesson gets generalized before it lands in these files.
 
-**Field-agnostic.** The method applies to any profession; software development is the reference case. If `references/fields/<target>.md` exists for the candidate's field (e.g. [`software-dev.md`](references/fields/software-dev.md)), load it in step 4 — it layers market depth on the generic method. For a trades or construction CV, load [`references/fields/trades.md`](references/fields/trades.md) plus the jurisdiction file it routes to (under `references/regional/north-america/`). Also in step 4, if the education includes a degree in progress, stopped studies, a transfer or program change, credit recognition, a bootcamp, an MBA or professional master's, an exchange, a double degree, work-integrated study, or grades or credits from another system, load [`references/education-cases.md`](references/education-cases.md). Also in step 4, if the CV lists a professional certification or designation (CISSP, AWS, PMP, CPA, CFA, CRHA…), load [`references/certifications/rules.md`](references/certifications/rules.md), plus `tech.md` there for security, cloud, networking, CompTIA, OffSec or Kubernetes, `finance-accounting.md` for CPA, CFA or ACCA, `project-hr.md` for PMP or Québec HR designations, `health.md` for resuscitation (HSFC, AHA), CNA, CCRN, NREMT or PTCB, `languages.md` for a language test or diploma (DELF/DALF, TCF, TEF, IELTS, TOEFL, TOEIC, Cambridge), `quality.md` for a Six Sigma belt, ASQ (CQE, CQA), an ISO auditor credential or ASCM/APICS, `teaching-english.md` for CELTA, DELTA, TESL Canada, TEFL or TESOL, `safety-professional.md` for BCSP CSP/ASP (Associate Safety Professional), NEBOSH or CRSP; regulated licences and registrations (nursing, pharmacy, medicine, securities, insurance) are routed through [`references/regional.md`](references/regional.md), not from here. One entry replaces rather than layers: an academic CV is a different genre, not a field — a register that attests, where this method builds a pitch that selects. For one, load [`references/academic-mode.md`](references/academic-mode.md); it overrides the page-count, fill and section-boundary rules with its own, and stacks on top of the candidate's field file when both apply. Otherwise substitute the field everywhere, building the substitutions from four questions: (a) what is this field's portfolio equivalent (GitHub, licenses, publications, a case log)? (b) where do its real keywords live — read 3-5 current postings on the target market's dominant job board (web-search, don't guess)? (c) which titles are protected, per which regulator (health, law, finance, engineering are all regulated somewhere — see [`references/regional.md`](references/regional.md) for the verification method, its list is not exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays; "hiring manager" becomes head nurse, practice owner, …) and the section names ("Nursing Experience").
+**Field-agnostic.** The method applies to any profession; software development is the reference case. Load when:
+
+- Step 4, a `references/fields/<target>.md` exists for the candidate's field → it (e.g. [`software-dev.md`](references/fields/software-dev.md)).
+- Step 4, trades or construction CV → [`references/fields/trades.md`](references/fields/trades.md) plus the jurisdiction file it routes to (under `references/regional/north-america/`).
+- Step 4, the education is non-linear (degree in progress, stopped or transferred studies, credit recognition, bootcamp, MBA, professional master's, exchange, double degree, co-op) or graded or credited in another system → [`references/education-cases.md`](references/education-cases.md).
+- Step 4, the CV lists a professional certification or designation (CISSP, AWS, PMP, CPA, CFA, CRHA…) → [`references/certifications/rules.md`](references/certifications/rules.md); it routes to the per-body file.
+- Regulated licences and registrations (nursing, pharmacy, medicine, securities, insurance) → [`references/regional.md`](references/regional.md), not the certification files.
+- An academic CV → [`references/academic-mode.md`](references/academic-mode.md); it overrides the page-count, fill and section-boundary rules with its own, and stacks on top of the candidate's field file when both apply.
+
+Otherwise substitute the field everywhere, building the substitutions from four questions: (a) what is this field's portfolio equivalent (GitHub, licenses, publications, a case log)? (b) where do its real keywords live — read 3-5 current postings on the target market's dominant job board (web-search, don't guess)? (c) which titles are protected, per which regulator (verification method in [`references/regional.md`](references/regional.md); its list is not exhaustive)? (d) who screens — recast the reviewer personas (recruiter stays; "hiring manager" becomes head nurse, practice owner, …) and the section names ("Nursing Experience").
 
 ## Non-negotiable rules
 
@@ -34,27 +43,62 @@ Files in `scripts/` are run, never opened; `templates/lib.typ` is copied with `c
 
 **Academic mode.** If the document is an academic CV (faculty application, promotion, tenure or qualification dossier, academic nomination), read [`references/academic-mode.md`](references/academic-mode.md) now and follow its workflow instead of the steps below; [`references/fields/academic.md`](references/fields/academic.md) holds the genre knowledge. It replaces rule 5 and step 4; it does not relax them. Everything else in SKILL.md (rules 0-4, steps 0-3 and 5-8) still applies.
 
-Each step below is a skeleton. Before doing anything for a step, read its file in full — the step body lives there, not here. Load step N's file only when you reach step N — do not read ahead.
+Progress (copy, tick as you go):
 
-**0. Check the environment.** Confirm the toolchain (typst, Python, poppler, fonts) before touching any file. → Read [`references/steps/0-env.md`](references/steps/0-env.md) now, before doing anything for this step. `scripts/verify.py --doctor`: run it, never open its source. Ask the user before installing anything. Re-run the gate on any existing deliverables before relying on them (see 0-env.md).
+```
+- [ ] 0 Environment: `verify.py --doctor` clean; existing deliverables re-gated
+- [ ] 1 Facts: provenance-tagged fact sheet
+- [ ] 2 Region and language chosen
+- [ ] 3 Versions decided
+- [ ] 4 Draft: `cv.typ` compiles
+- [ ] 5 Bullets written
+- [ ] 6 Gate: `verify.py` PASS pasted verbatim (only `review record missing` left); `Visual pass:` line
+- [ ] 7 Adversarial review run; `review.md` written; verify PASS
+- [ ] 8 Delivered: PDFs + `.typ` (+ hand-off package for the candidate)
+```
 
-**1. Gather facts.** Collect the source documents and user answers into a provenance-tagged fact sheet. → Read [`references/steps/1-facts.md`](references/steps/1-facts.md) now, before doing anything for this step.
+Each step below is a skeleton; its body lives in the linked file. Read that file in full when you reach the step, before doing anything for it — never ahead.
 
-**2. Pick region and language.** Infer the target market and output language from the source material. → Read [`references/steps/2-region.md`](references/steps/2-region.md) now, before doing anything for this step.
+**0. Check the environment.** Confirm the toolchain (typst, Python, poppler, fonts) before touching any file. → [`0-env.md`](references/steps/0-env.md). Run `scripts/verify.py --doctor`. Ask the user before installing anything.
 
-**3. Decide versions.** Choose the deliverables (1-page, 2-page, cover letter, translations) and the language of the whole package. → Read [`references/steps/3-versions.md`](references/steps/3-versions.md) now, before doing anything for this step.
+**1. Gather facts** into a provenance-tagged fact sheet. → [`1-facts.md`](references/steps/1-facts.md).
 
-**4. Draft from the family's worked file.** Draw the design with one command (pass the CV's `--lang <iso639>`, plus `--region <iso3166>` when the market has a variant, e.g. `--lang en --region gb` for the UK) and fill the generated `cv.typ` with the candidate's facts; deliverable is a compiling `cv.typ`. → Before drafting, read [`references/steps/4-draft/traps.md`](references/steps/4-draft/traps.md). → Read [`references/steps/4-draft.md`](references/steps/4-draft.md) now, before doing anything for this step. `scripts/pick_design.py` and `scripts/gen_palette.py`: run them, never open their source. `templates/lib.typ`: copy it with `cp` (or `pick_design.py --init`), never read or rewrite it.
+**2. Pick region and language.** Infer the target market and output language from the source material. → [`2-region.md`](references/steps/2-region.md).
 
-**5. Write bullets.** Write the evidence-anchored, keyword-bearing bullets from the fact sheet. → Read [`references/steps/5-bullets.md`](references/steps/5-bullets.md) now, before doing anything for this step.
+**3. Decide versions.** Choose the deliverables (1-page, 2-page, cover letter, translations) and the language of the whole package. → [`3-versions.md`](references/steps/3-versions.md).
 
-**6. Verify mechanically.** Loop until every gate passes, re-running after every edit; once the mechanical gates pass, the one `review record missing` FAIL left is cleared by step 7, never by writing `review.md` here; deliverable is the gate's full output pasted verbatim. → Read [`references/steps/6-verify.md`](references/steps/6-verify.md) now, before doing anything for this step. `scripts/verify.py`, `scripts/verify.sh`, `scripts/measure_fill.py`: run them, never open their source. If verify fails, grep [`references/known-traps.md`](references/known-traps.md) for the symptom. The visual pass is never skippable: no vision → subagent, another vision model (`scripts/look.py`), or the user ([`references/look-checklist.md`](references/look-checklist.md)); the report needs a `Visual pass:` line, and delivery (step 8) requires it.
+**4. Draft from the family's worked file.** Draw the design with one command (the CV's `--lang <iso639>`, plus `--region <iso3166>` for a market variant, e.g. `--lang en --region gb`) and fill the generated `cv.typ` with the candidate's facts; deliverable is a compiling `cv.typ`. → [`4-draft/traps.md`](references/steps/4-draft/traps.md) first, then [`4-draft.md`](references/steps/4-draft.md). Copy `templates/lib.typ` with `cp` (or `pick_design.py --init`).
 
-**7. Adversarial review.** Never deliver without this pass. The final verify FAILs without its `review.md` record. → Read [`references/steps/7-review.md`](references/steps/7-review.md) now, before doing anything for this step.
+**5. Write bullets.** Write the evidence-anchored, keyword-bearing bullets from the fact sheet. → [`5-bullets.md`](references/steps/5-bullets.md).
 
-**8. Deliver.** PDFs plus `.typ` sources, and the hand-off package when the recipient is the candidate. → Read [`references/steps/8-deliver.md`](references/steps/8-deliver.md) now, before doing anything for this step.
+**6. Verify mechanically.** Loop until every gate passes, re-running after every edit; once the mechanical gates pass, the one `review record missing` FAIL left is cleared by step 7, never by writing `review.md` here; deliverable is the gate's full output pasted verbatim. → [`6-verify.md`](references/steps/6-verify.md). On FAIL: grep `references/known-traps.md`. The visual pass is never skippable: no vision → subagent, another vision model (`scripts/look.py`), or the user ([`references/look-checklist.md`](references/look-checklist.md)); the report needs a `Visual pass:` line, and delivery (step 8) requires it.
 
+**7. Adversarial review.** Never deliver without this pass. The final verify FAILs without its `review.md` record. → [`7-review.md`](references/steps/7-review.md).
+
+**8. Deliver.** → [`8-deliver.md`](references/steps/8-deliver.md).
+
+
+## Available scripts
+
+`uv run scripts/verify.py …` when uv is installed (dependencies install themselves), else `python3 scripts/verify.py …`; same for each script; `--help` on each gives the options.
+
+- `verify.py cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--json]`: the gate. `--doctor` diagnoses the toolchain, `--tune` bisects spacing to a fill target, `--all DIR` (or `scripts/verify.sh`) re-gates every deliverable in a folder.
+- `verify_academic.py cv.typ data.toml`: the academic-CV gate.
+- `verify_letter.py letter.typ EMPLOYER "EXACT JOB TITLE"`: the cover-letter gate.
+- `pick_design.py --lang <iso> [--region <cc>] [--init FOLDER]`: draws the design family and parameters, and initialises the folder.
+- `measure_fill.py page*.png`: page ink extent and gaps, to check fill by measurement.
+- `look.py --base-url URL --model ID PNG…`: visual pass through a local vision model (OpenAI-compatible endpoint).
 
 ## Known traps
 
-Each trap was verified empirically. When a gate fails or something looks off, grep [`references/known-traps.md`](references/known-traps.md) for the symptom before improvising.
+Seen on graded runs (`docs/models.md`):
+
+- Step 7 skipped after a green gate (bench runs 35-38): the NOTE under the PASS is the step-7 instruction. Run the panel.
+- A WARN pasted and ignored (`WARN not in facts: "75%"`): resolve each one or report why it stays.
+- Glosses are invented claims: "Go (Golang)", "Git (version control)", "personal", "high-volume" when the facts don't say it.
+- Durations are not rounded: "Sep 2022 – Apr 2025" is not "three years".
+- A stale "expected <date>" in the sources: ask whether it still holds.
+- The visual pass is looked at, not recited (line-spacing PASS beside double-spaced bullets). Open the render.
+- Any edit can change the page count or orphan a date: re-run the full gate, never reuse an earlier PASS.
+
+Anything else off: grep [`references/known-traps.md`](references/known-traps.md) before improvising.
