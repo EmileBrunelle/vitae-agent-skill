@@ -64,6 +64,7 @@ class TestFindRun:
     def test_run_of_the_first_four_tokens(self):
         words = self._words("Senior", "Software", "Engineer", "Acme", "Corp", "2020")
         run = groups._find_run(words, "Senior Software Engineer Acme Corp Ltd", 5)
+        assert run is not None
         assert [w[4] for w in run] == ["Senior", "Software", "Engineer", "Acme"]
 
     def test_tokens_after_the_fourth_are_not_compared(self):
@@ -72,11 +73,15 @@ class TestFindRun:
 
     def test_matching_ignores_case_and_punctuation(self):
         words = self._words("Dev,", "Ops")
-        assert [w[4] for w in groups._find_run(words, "DEV OPS", 5)] == ["Dev,", "Ops"]
+        run = groups._find_run(words, "DEV OPS", 5)
+        assert run is not None
+        assert [w[4] for w in run] == ["Dev,", "Ops"]
 
     def test_pure_punctuation_words_are_skipped_inside_the_run(self):
         words = self._words("Dev", "|", "Ops")
-        assert [w[4] for w in groups._find_run(words, "Dev Ops", 5)] == ["Dev", "Ops"]
+        run = groups._find_run(words, "Dev Ops", 5)
+        assert run is not None
+        assert [w[4] for w in run] == ["Dev", "Ops"]
 
     def test_a_mismatch_in_the_run_is_not_a_match(self):
         assert groups._find_run(self._words("Dev", "Lead"), "Dev Ops", 5) is None
@@ -90,7 +95,9 @@ class TestFindRun:
 
     def test_nearest_occurrence_to_the_marker_wins(self):
         words = self._words("Dev", y=0) + self._words("Dev", y=100)
-        assert groups._find_run(words, "Dev", 98)[0][1] == 100
+        run = groups._find_run(words, "Dev", 98)
+        assert run is not None
+        assert run[0][1] == 100
 
     def test_thirty_points_from_the_marker_is_still_found_beyond_is_not(self):
         words = self._words("Dev", y=0)          # centre y = 5

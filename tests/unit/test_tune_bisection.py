@@ -27,7 +27,9 @@ def install(monkeypatch, *, lstar, fill_of=lambda l: round(l * 100), preflight=(
 
 def written_leading(path):
     from vitae.verify.typst import _read_par
-    return _read_par(path.read_text(encoding="utf-8"))[0]
+    par = _read_par(path.read_text(encoding="utf-8"))
+    assert par is not None
+    return par[0]
 
 
 class TestSuccess:

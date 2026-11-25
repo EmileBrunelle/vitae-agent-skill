@@ -111,8 +111,10 @@ class TestDeviceQuorum:
         assert fails(r) == []
 
     def test_furniture_duplicating_an_ink_band_is_counted_once(self, monkeypatch):
-        ink = [inside(self.RUNS, 4)]
-        furn = [(ink[0][0] + 20, ink[0][1] + 20)]
+        band = inside(self.RUNS, 4)
+        assert band is not None
+        ink = [band]
+        furn = [(band[0] + 20, band[1] + 20)]
         r = run_gate(monkeypatch, self.RUNS, ink=ink, furniture=furn)
         assert any("boundaries carry no ink: 1" in m for m in fails(r))
 

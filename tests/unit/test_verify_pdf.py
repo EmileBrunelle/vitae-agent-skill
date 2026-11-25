@@ -181,6 +181,7 @@ class TestWordBoxes:
 
     def test_words_per_page(self, two_page, backend):
         pages = pdf.word_boxes(two_page, with_text=True)
+        assert pages is not None
         assert [[w for _, w in pg] for pg in pages] == [["Hello", "world", "Second", "line"], ["Page", "two"]]
 
     def test_boxes_are_in_points_top_down(self, two_page, backend):
@@ -191,6 +192,7 @@ class TestWordBoxes:
 
     def test_without_text_returns_only_boxes(self, two_page, backend):
         pages = pdf.word_boxes(two_page)
+        assert pages is not None
         assert all(len(b) == 4 for pg in pages for b in pg)
 
     def test_unreadable_pdf_is_none_not_empty(self, tmp_path, backend):

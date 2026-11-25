@@ -40,6 +40,7 @@ class TestTypstQuery:
 
     def test_marks_drop_everything_that_is_not_an_object(self, tmp_path, route):
         marks = groups._typst_query(_typ(tmp_path, MARKS), "<vitae-head>")
+        assert marks is not None
         assert [m["text"] for m in marks] == ["Dev", "Tools"]
 
     def test_no_match_is_an_empty_list_not_none(self, tmp_path, route):
@@ -80,6 +81,7 @@ def _pdf(tmp_path, name, body):
 def _line_boxes(path):
     """[x0, x1, y0, y1] per text line, the way measure_groups hands them to the gap function."""
     wb = pdf.word_boxes(path, with_text=True)
+    assert wb is not None
     lines = groups._lines([(b[0], b[1], b[2], b[3], t) for b, t in wb[0]], 0)
     return [[ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]] for ln in lines]
 
