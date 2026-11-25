@@ -499,10 +499,11 @@ PY
   [ "$rc" -eq 0 ] || { echo "valid record: exit $rc"; cat "$log"; return 1; }
   grep -q '^INFO  review record: runtime sub-agents' "$log" || { echo "no INFO summary"; cat "$log"; return 1; }
   grep -q '^PASS ' "$log" || { echo "no PASS with a valid record"; cat "$log"; return 1; }
-  # --rebuild skips only the record check, loudly: a stale record (CV touched after it) still passes with the flag.
-  touch "$d/_drawn_rr.typ"
+  # --rebuild skips only the record check, loudly: a stale record (older than the CV, fixed in 2000) still passes with the flag.
+  touch -d '2000-01-01' "$d/review.md"
   rc=0; python3 -I scripts/verify.py "$d/_drawn_rr.typ" 1 "$a" "$b" >"$log" 2>&1 || rc=$?
   [ "$rc" -eq 1 ] || { echo "stale record without --rebuild exited $rc"; cat "$log"; return 1; }
+  grep -q 'review record older than' "$log" || { echo "stale record: no 'older than' message"; cat "$log"; return 1; }
   rc=0; python3 -I scripts/verify.py "$d/_drawn_rr.typ" 1 "$a" "$b" --rebuild >"$log" 2>&1 || rc=$?
   [ "$rc" -eq 0 ] || { echo "--rebuild: exit $rc"; cat "$log"; return 1; }
   grep -q '^PASS (review record skipped: --rebuild, candidate rebuild)' "$log" || { echo "--rebuild not loud on the verdict"; cat "$log"; return 1; }

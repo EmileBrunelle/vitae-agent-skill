@@ -108,6 +108,8 @@ def check_review_record(typ: str, sources: tuple[str, ...] | list[str] = (), pan
     cv_name = os.path.basename(typ)
     path = os.path.join(os.path.dirname(os.path.abspath(typ)), RECORD_NAME)
     where = os.path.join(os.path.dirname(typ) or ".", RECORD_NAME)
+    if os.path.exists(path) and not os.path.isfile(path):
+        return [(Level.FAIL, f"review record unreadable: {where} (not a regular file)")]
     if not os.path.isfile(path):
         return [(Level.FAIL, f"review record missing: step 7 is next — read {STEP_7}, run it, write {where}")]
     for src in (typ, *sources):
