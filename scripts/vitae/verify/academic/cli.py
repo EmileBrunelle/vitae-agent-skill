@@ -56,11 +56,15 @@ class _UsageParser(argparse.ArgumentParser):
     """Any usage error prints the old hand-written usage text and exits 2."""
 
     def error(self, message: str) -> NoReturn:
-        prog = os.path.basename(sys.argv[0])
-        print(f"usage: {prog} cv.typ data.toml [--rebuild]\n"
-              f"       {prog} --selftest\n"
-              f"       {prog} --doctor", file=sys.stderr)
+        print(_usage(), file=sys.stderr)
         sys.exit(2)
+
+
+def _usage() -> str:
+    prog = os.path.basename(sys.argv[0])
+    return (f"usage: {prog} cv.typ data.toml [--rebuild]\n"
+            f"       {prog} --selftest\n"
+            f"       {prog} --doctor")
 
 
 def main() -> None:
@@ -69,6 +73,9 @@ def main() -> None:
     ap.add_argument("--doctor", action="store_true")
     ap.add_argument("paths", nargs="*")
     argv = sys.argv[1:]
+    if argv[:1] in (["-h"], ["--help"]):
+        print(_usage())
+        sys.exit(0)
     # as the old manual argv: only argv[0] is a mode flag (the rest is
     # ignored then); otherwise every argument is a positional, even "-x"
     rebuild = "--rebuild" in argv

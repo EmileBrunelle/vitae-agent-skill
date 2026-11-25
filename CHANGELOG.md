@@ -2,6 +2,10 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## Unreleased
+
+- `verify.py`, `verify_academic.py` and `verify_letter.py` `--help`/`-h` print the usage on stdout and exit 0 (it exited 2, which `SKILL.md`'s "`--help` on each gives the options" read as a failure), also with `--json`; a real usage error still goes to stderr with exit 2.
+
 ## 0.11.0 - 2026-11-25
 
 - Entry scripts declare their dependencies inline (PEP 723; `verify*.py`, `measure_fill.py`: typst, pypdfium2, Pillow, pypdf; `pick_design.py`: typst), so `uv run scripts/verify.py` needs no install step and `python3` keeps working; typst-py pinned to 0.15.0 (a bump shifts fill measurements); `gen_palette.py`, `harvest_icons.py`, `look.py` are stdlib-only. `compatibility` rewritten (439 chars, was 477).

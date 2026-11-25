@@ -102,10 +102,14 @@ class _UsageParser(argparse.ArgumentParser):
     """Any usage error prints the old hand-written usage text and exits 2."""
 
     def error(self, message: str) -> NoReturn:
-        prog = os.path.basename(sys.argv[0])
-        print(f"usage: {prog} letter.typ EMPLOYER \"EXACT JOB TITLE\" [--allow-placeholders]\n"
-              f"       {prog} --selftest", file=sys.stderr)
+        print(_usage(), file=sys.stderr)
         sys.exit(2)
+
+
+def _usage() -> str:
+    prog = os.path.basename(sys.argv[0])
+    return (f"usage: {prog} letter.typ EMPLOYER \"EXACT JOB TITLE\" [--allow-placeholders]\n"
+            f"       {prog} --selftest")
 
 
 def main() -> None:
@@ -113,6 +117,9 @@ def main() -> None:
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("args", nargs="*")
     argv = sys.argv[1:]
+    if argv[:1] in (["-h"], ["--help"]):
+        print(_usage())
+        sys.exit(0)
     allow_placeholders = "--allow-placeholders" in argv
     argv = [a for a in argv if a != "--allow-placeholders"]
     # as the old manual argv: only argv[0] is a mode flag (the rest is
