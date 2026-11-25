@@ -168,6 +168,9 @@ class _DocParser(argparse.ArgumentParser):
 
 
 def main() -> None:
+    if sys.argv[1:2] in (["-h"], ["--help"]) and len(sys.argv) == 2:
+        print(__doc__)   # only as the sole argument; a folder named "--help" is "./--help"
+        sys.exit(0)
     ap = _DocParser(add_help=False, allow_abbrev=False)
     ap.add_argument("folder", nargs="*")
     args = ap.parse_args(["--"] + sys.argv[1:])   # any argument is a positional, even "-x"
