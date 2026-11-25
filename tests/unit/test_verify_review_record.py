@@ -680,6 +680,19 @@ def test_layout_report_line_is_the_documented_form_of_the_layout_field(tmp_path,
     assert layout_report_line(str(_cv(tmp_path))) == line
 
 
+def test_layout_report_line_drops_control_characters_and_ansi_escapes(tmp_path):
+    _record(tmp_path, GOOD.replace("subagent haiku", "subagent \x1b[31mhai\x07ku\x1b[0m\x9b"))
+    assert layout_report_line(str(_cv(tmp_path))) == "Layout review: subagent haiku"
+
+
+def test_layout_report_line_caps_a_long_value(tmp_path):
+    _record(tmp_path, GOOD.replace("subagent haiku", "subagent " + "m" * 5000))
+    line = layout_report_line(str(_cv(tmp_path)))
+    assert line == "Layout review: subagent " + "m" * 71 + "…"
+    _record(tmp_path, GOOD.replace("subagent haiku", "subagent " + "m" * 71))
+    assert layout_report_line(str(_cv(tmp_path))) == "Layout review: subagent " + "m" * 71   # exactly 80: untouched
+
+
 def test_layout_report_line_is_none_without_a_readable_record_or_field(tmp_path):
     typ = str(_cv(tmp_path))
     assert layout_report_line(typ) is None                                        # no review.md

@@ -177,6 +177,9 @@ def check_review_record(typ: str, sources: tuple[str, ...] | list[str] = (), pan
 
 
 _LAYOUT_KEYWORD = re.compile(r"subagent|other-model|self|user|not run \(no redesign\)", re.I)
+_ANSI_CSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")      # C0 and C1 (tab/newline are whitespace, collapsed below)
+LAYOUT_VALUE_MAX = 80
 
 
 def layout_report_line(typ: str) -> str | None:
@@ -187,7 +190,10 @@ def layout_report_line(typ: str) -> str | None:
         lines = Path(os.path.join(os.path.dirname(os.path.abspath(typ)), RECORD_NAME)).read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError):
         return None
-    value = " ".join((_field(lines, "layout") or "").split())
+    raw = _CONTROL.sub("", _ANSI_CSI.sub("", _field(lines, "layout") or ""))
+    value = " ".join(raw.split())
+    if len(value) > LAYOUT_VALUE_MAX:
+        value = value[:LAYOUT_VALUE_MAX].rstrip() + "…"
     m = _LAYOUT_KEYWORD.match(value)
     if not m:
         return None
