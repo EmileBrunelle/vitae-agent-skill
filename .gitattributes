@@ -1,0 +1,2 @@
+# Keep the skill-test fixtures and answer keys out of release archives (git archive)
+evals/ export-ignore

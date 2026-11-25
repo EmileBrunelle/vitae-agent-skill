@@ -1,0 +1,22 @@
+{"skill_name":"vitae","queries":[
+{"id":"p1","split":"train","should_trigger":true,"query":"my application for the nursing job at CHUM is due friday, can you make my experience fit on one page? it's in ~/docs/exp_infirmiere.txt"},
+{"id":"p2","split":"train","should_trigger":true,"query":"j'ai un entretien de subvention CRSH la semaine prochaine, il me faut mon CV à jour avec mes publications et mes bourses"},
+{"id":"p3","split":"train","should_trigger":true,"query":"Senior Electrician - Hydro-Québec. Requirements: 5+ years industrial wiring, CCQ card, bilingual. Here's my background: 8 yrs commercial electrician at Groupe Roy, CCQ journeyman, FR/EN. tailor this to the posting please"},
+{"id":"p4","split":"train","should_trigger":true,"query":"can you redo my resume? the one in ~/Documents/cv_marie_final_v3.docx looks like garbage and the recruiter said ATS cant read it"},
+{"id":"p5","split":"train","should_trigger":true,"query":"Fais-moi un CV d'une page pour un poste de technicienne en laboratoire, j'ai fini mon DEC en chimie analytique en mai et fait deux stages chez Merck"},
+{"id":"p6","split":"train","should_trigger":true,"query":"translate my cv into french for a job in montreal, keep it 2 pages max and dont break sections across pages"},
+{"id":"p7","split":"validation","should_trigger":true,"query":"I'm applying for a postdoc in marine ecology and need an academic CV with my 14 papers, 3 grants, TA experience and the students I supervised"},
+{"id":"p8","split":"validation","should_trigger":true,"query":"je cherche une job comme comptable agréé, mon curiculum est rendu vieux pis trop long, peux-tu le rafraichir pis le couper à 2 pages?"},
+{"id":"p9","split":"validation","should_trigger":true,"query":"Here's the job ad for a Marketing Manager at Lululemon [pasted below]. Does my current resume match it? what should I change?\n\nMarketing Manager, Vancouver. 5+ yrs brand marketing, own campaign P&L, lead team of 4."},
+{"id":"p10","split":"validation","should_trigger":true,"query":"teacher here, 12 years in elementary, switching to an instructional designer role. need a resume that doesn't scream 'teacher' - typst would be great if you can"},
+{"id":"n1","split":"train","should_trigger":false,"query":"write me a cover letter for a barista position at Café Olimpico, I'm friendly and punctual. just the letter, I already have my resume done"},
+{"id":"n2","split":"train","should_trigger":false,"query":"Can you rewrite the 'About' section of my LinkedIn profile? I'm a project manager in construction and want it to sound less stiff"},
+{"id":"n3","split":"train","should_trigger":false,"query":"Make a conference poster in Typst, A0 portrait, 3 columns, for our paper on graph neural networks. Logos go in the header."},
+{"id":"n4","split":"train","should_trigger":false,"query":"I'm writing an ATS in Python. How should I parse resume PDFs into structured fields (name, skills, employers)? pdfminer vs spaCy?"},
+{"id":"n5","split":"train","should_trigger":false,"query":"I have a job interview at Desjardins tomorrow for a data analyst role. What are the most common behavioural questions and how should I answer them?"},
+{"id":"n6","split":"validation","should_trigger":false,"query":"fais-moi un résumé de ce PDF en 10 lignes: ~/Téléchargements/rapport_annuel_2025.pdf"},
+{"id":"n7","split":"validation","should_trigger":false,"query":"In Word, how do I change the page numbering to start at 3 in my .docx report? I'm editing ~/Documents/rapport.docx"},
+{"id":"n8","split":"train","should_trigger":false,"query":"écris un courriel pour négocier mon salaire, on m'offre 68 000$ et je veux 75 000$, j'ai 6 ans d'expérience"},
+{"id":"n9","split":"validation","should_trigger":false,"query":"Help me typeset this proof in Typst: for all n, sum of i from 1 to n equals n(n+1)/2. I need numbered equations and a theorem environment."},
+{"id":"n10","split":"validation","should_trigger":false,"query":"je dois bâtir un curriculum de 12 semaines pour un cours d'introduction à la biologie au cégep, avec objectifs d'apprentissage par semaine"}
+]}
