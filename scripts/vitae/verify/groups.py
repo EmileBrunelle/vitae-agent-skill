@@ -4,7 +4,6 @@ No `import verify`.
 """
 from __future__ import annotations
 
-import atexit
 import json
 import os
 import shutil
@@ -150,9 +149,8 @@ def _page_ink_gap(pdf: str) -> GapFn:
     between the two lines splits the gap, and the longest part is returned (a
     title bar is what separates the title from the block above). With no
     raster, the gap is the pdftotext box gap (lower top - upper bottom)."""
-    # per-call state: rasters are rendered lazily, once per page, into one temp dir
+    # per-call state: rasters are rendered lazily, once per page
     cache: dict[int, Image.Image | None] = {}
-    tmp: list[str] = []
     pbg: dict[int, int] = {}
     met: dict[tuple[float, ...], tuple[int, int] | None] = {}
     k = INK_DPI / 72.0
@@ -161,21 +159,19 @@ def _page_ink_gap(pdf: str) -> GapFn:
         if page not in cache:
             cache[page] = None
             try:
-                if not tmp:
-                    tmp.append(tempfile.mkdtemp(prefix="vitae-prox-"))
-                    # a 300 dpi page raster is ~9 MB: remove the directory at exit, even on a crash
-                    atexit.register(shutil.rmtree, tmp[0], True)
-                pre = os.path.join(tmp[0], f"p{page}")
                 if pdf_backend() == "pdfium":
                     cache[page] = _pdfium_render(pdf, INK_DPI, gray=True, pages=[page])[0]
                     return cache[page]
-                r = subprocess.run(["pdftoppm", "-r", str(INK_DPI), "-gray", "-singlefile",
-                                    "-f", str(page), "-l", str(page), pdf, pre],
-                                   capture_output=True)
-                if r.returncode == 0:
-                    gray = Image.open(pre + ".pgm").convert("L")
-                    cache[page] = gray
-                    gray.load()
+                # a 300 dpi page raster is ~9 MB: one scoped temp dir per page, removed even on a crash
+                with tempfile.TemporaryDirectory(prefix="vitae-prox-") as d:
+                    pre = os.path.join(d, f"p{page}")
+                    r = subprocess.run(["pdftoppm", "-r", str(INK_DPI), "-gray", "-singlefile",
+                                        "-f", str(page), "-l", str(page), pdf, pre],
+                                       capture_output=True)
+                    if r.returncode == 0:
+                        gray = Image.open(pre + ".pgm").convert("L")
+                        cache[page] = gray
+                        gray.load()
             except (OSError, ValueError, RuntimeError):
                 cache[page] = None
         return cache[page]
