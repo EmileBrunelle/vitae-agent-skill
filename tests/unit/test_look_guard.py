@@ -20,9 +20,9 @@ def test_public_addresses(addr):
     assert not look._is_local_host([addr])
 
 
-def test_empty_and_mixed():
-    assert not look._is_local_host([])
-    assert not look._is_local_host(["192.168.1.1", "8.8.8.8"])
+@pytest.mark.parametrize("addrs", [[], ["192.168.1.1", "8.8.8.8"]], ids=["empty", "mixed-private-and-public"])
+def test_empty_or_mixed_is_not_local(addrs):
+    assert not look._is_local_host(addrs)
 
 
 @pytest.mark.parametrize("url", [
@@ -54,29 +54,52 @@ def test_mixed_private_and_public_refused():
     assert look._check_remote("http://dual.example/v1", False, res("192.168.1.2", "8.8.8.8"))
 
 
-def test_allow_remote_accepts_and_is_remote_flags_it():
+def test_allow_remote_accepts_a_public_url():
     assert look._check_remote("http://8.8.8.8/v1", True, lambda h: [h]) is None
-    assert look.is_remote("http://8.8.8.8/v1", lambda h: [h])
-    assert not look.is_remote("http://127.0.0.1/v1", lambda h: [h])
+
+
+@pytest.mark.parametrize("url, remote", [("http://8.8.8.8/v1", True), ("http://127.0.0.1/v1", False)],
+                         ids=["public", "loopback"])
+def test_is_remote(url, remote):
+    assert look.is_remote(url, lambda h: [h]) is remote
 
 
 def test_no_host_is_an_error():
     assert look._check_remote("not a url", True, res("127.0.0.1"))
 
 
-def test_main_refuses_before_any_request(tmp_path, capsys):
-    png = tmp_path / "cv-p1.png"
-    png.write_bytes(look.PNG_MAGIC + b"x")
+@pytest.fixture
+def png(tmp_path):
+    p = tmp_path / "cv-p1.png"
+    p.write_bytes(look.PNG_MAGIC + b"x")
+    return p
+
+
+def test_main_refuses_before_any_request(png, capsys, monkeypatch):
+    def no_network(*a, **k):
+        raise AssertionError("network call attempted")
+
+    monkeypatch.setattr(look, "_open", no_network)
+    monkeypatch.setattr(look.urllib.request, "urlopen", no_network)
+    monkeypatch.setattr(look, "ask", no_network)
     with pytest.raises(SystemExit) as e:
         look.main(["--base-url", "http://8.8.8.8:1/v1", "--model", "m", str(png)])
     assert e.value.code == 2
     assert "--allow-remote" in capsys.readouterr().err
 
 
-def test_help_lists_flag(capsys):
+def test_allow_remote_lets_main_reach_the_request(png, capsys, monkeypatch):
+    reached = []
+
+    def fake_ask(*a, **k):
+        reached.append(a[0])
+        raise RuntimeError("stop here")
+
+    monkeypatch.setattr(look, "ask", fake_ask)
     with pytest.raises(SystemExit):
-        look.main(["--help"])
-    assert "--allow-remote" in capsys.readouterr().out
+        look.main(["--allow-remote", "--base-url", "http://8.8.8.8:1/v1", "--model", "m", str(png)])
+    assert reached == ["http://8.8.8.8:1/v1"]
+    assert "WARNING" in capsys.readouterr().err
 
 
 # --- proxy environment variables: local requests bypass them, --allow-remote keeps them ---
@@ -88,6 +111,7 @@ def _dead_proxy(monkeypatch):
     monkeypatch.delenv("NO_PROXY", raising=False)
 
 
+@pytest.mark.integration  # real localhost socket
 def test_local_request_ignores_proxy_env(monkeypatch):
     import http.server
     import threading

@@ -124,25 +124,23 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                   % (lo, expected, expected, typ, expected, fmin, fmax))
             return 1, footer
         best, best_fill = lo, fill_lo
-        # The top of the feasible interval is not always the ANSWER: the last value before the
-        # page breaks can overshoot fmax (the fill target has a ceiling too: ink must not reach
-        # into the bottom margin). So remember the largest probe that landed INSIDE the target
-        # and prefer it over the interval's top end.
-        in_target = None
-        while hi - lo > step:             # bisect for the top of the interval
+        # Fill grows with leading while the page count holds, so the target band is a window
+        # of leading values. Bisect on "pages hold AND fill <= fmax": that boundary is the top
+        # of the window, so the answer is the largest probe that does not overshoot (also when
+        # the page breaks above an fmax-overshooting stretch, where bisecting for the page
+        # break alone would step over a narrow window).
+        while hi - lo > step:
             mid = (lo + hi) / 2
             ok, fill = _probe(typ, original, mid, mid + delta, expected,
                               use_cli, backend)
             print("  leading %.3fem -> %s" % (
                 mid, ("fill %s%%" % fill) if ok else "page count off"))
-            if ok:
-                lo, best, best_fill = mid, mid, fill
-                if fill is not None and fmin <= fill <= fmax:
-                    in_target = (mid, fill)
+            if ok and (fill is None or fill <= fmax):
+                lo = mid                  # an unmeasured fill still moves the bound...
+                if fill is not None:      # ...but never replaces a measured best
+                    best, best_fill = mid, fill
             else:
                 hi = mid
-        if in_target and not (best_fill is not None and fmin <= best_fill <= fmax):
-            best, best_fill = in_target
         won = best_fill is not None and fmin <= best_fill <= fmax
         if not won:
             # A losing value is worse than no value: it silently replaces a rhythm the family was

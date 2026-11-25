@@ -203,16 +203,6 @@ def near_boundary(band: Band, white: list[Band], med: float) -> bool:
     return False
 
 
-# sRGB channel value (0-255) to linear light, the table behind WCAG relative luminance.
-_LIN = [((c / 255) / 12.92 if c / 255 <= 0.04045 else (((c / 255) + 0.055) / 1.055) ** 2.4)
-        for c in range(256)]
-
-
-def _lum(rgb: Sequence[int]) -> float:
-    """WCAG relative luminance of an sRGB colour: 0 for black, 1 for white."""
-    return 0.2126 * _LIN[rgb[0]] + 0.7152 * _LIN[rgb[1]] + 0.0722 * _LIN[rgb[2]]
-
-
 # Tunables of crop_candidates and of the crops cut from its boxes. Sizes ending in `_IN` are inches, pixel counts
 # are at CROP_SCAN_PPI. Where a value has no comment of its own, no calibration is recorded for it.
 CROP_PPI = 300             # crops are cut from their own 300 ppi render (the page PNGs stay at --ppi)

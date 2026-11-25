@@ -2,19 +2,19 @@
 
 A plain (unquoted) scalar may not contain ": " or " #" — `(pip-only: typst …)` in
 `compatibility:` broke GitHub's rendering from 0.7.x to 0.9.1. The plain-scalar rule is
-checked without PyYAML (not a dependency); a full parse also runs when PyYAML is present.
+checked textually, then the whole block is parsed with PyYAML (a hard test dependency: it is in the CI pip line).
 """
-import os
 import re
 
 import pytest
+import yaml
+from _paths import SKILL_MD
 
-SKILL = os.path.join(os.path.dirname(__file__), "..", "..", "SKILL.md")
+pytestmark = pytest.mark.lint
 
 
 def _frontmatter() -> str:
-    with open(SKILL, encoding="utf-8") as fh:
-        text = fh.read()
+    text = SKILL_MD.read_text(encoding="utf-8")
     assert text.startswith("---\n"), "SKILL.md must open with a --- frontmatter block"
     return text[4:text.index("\n---", 4)]
 
@@ -30,6 +30,5 @@ def test_plain_scalars_have_no_mapping_or_comment_markers() -> None:
 
 
 def test_parses_as_yaml() -> None:
-    yaml = pytest.importorskip("yaml")
     data = yaml.safe_load(_frontmatter())
     assert {"name", "description", "metadata"} <= set(data)

@@ -1,5 +1,9 @@
-"""Make scripts/verify.py importable as `verify` (importing it has no side effect: main() is behind __main__)."""
-import sys
-from pathlib import Path
+"""Put scripts/ on sys.path so tests import the façades (`verify`, `look`, ...) and the `vitae` package.
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+Importing these modules has no side effect: main() is behind __main__. Shared path constants live in `_paths`.
+"""
+import sys
+
+from _paths import SCRIPTS
+
+sys.path.insert(0, str(SCRIPTS))

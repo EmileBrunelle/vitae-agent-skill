@@ -1,26 +1,11 @@
 """--band: opt-in accent band. Text-free, so extraction is unchanged; excluded families ignore it."""
 import shutil
 import subprocess
-import sys
-from pathlib import Path
 
 import pytest
+from _pick_design_cli import family, init, report
 
-ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "scripts" / "pick_design.py"
-
-
-def init(folder, name, field, *extra):
-    return subprocess.run(
-        [sys.executable, str(SCRIPT), "--name", name, "--field", field, "--market", "ca",
-         "--no-font-check", "--init", str(folder), *extra], capture_output=True, text=True)
-
-
-def family(name, field):
-    out = subprocess.run([sys.executable, str(SCRIPT), "--name", name, "--field", field,
-                          "--no-font-check"], capture_output=True, text=True).stdout
-    return next(ln.split(":")[1].split()[0] for ln in out.splitlines()
-                if ln.startswith("design family"))
+pytestmark = pytest.mark.integration
 
 
 def text(pdf, *flags):
@@ -38,15 +23,10 @@ def build(folder):
     return pdf
 
 
-def report(*extra):
-    return subprocess.run([sys.executable, str(SCRIPT), "--name", "Jane Roe", "--field", "accounting",
-                           "--no-font-check", *extra], capture_output=True, text=True).stdout
-
-
 def test_band_does_not_change_the_draw():
     # the report carries family, accent, fonts, marker, labels: all identical with --band
-    base = report()
-    assert "humanist-quiet" in base and base == report("--band")
+    base = report("Jane Roe", "accounting")
+    assert "humanist-quiet" in base and base == report("Jane Roe", "accounting", "--band")
 
 
 def test_band_text_extraction_identical(tmp_path):

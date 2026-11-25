@@ -49,6 +49,8 @@ import hashlib
 import sys
 from typing import Literal, TypedDict, cast
 
+from vitae.core.colour import rel_luminance as _lum
+
 Audacity = Literal["sober", "expressive", "bold"]
 RGB = tuple[int, int, int]
 
@@ -157,14 +159,6 @@ DUOTONE: dict[str, tuple[str, str, str]] = {
 }
 
 INK_BASE, DARK_BASE = 95, 25          # the skill's muted / body-ink grays
-
-
-def _lum(rgb: RGB) -> float:
-    def f(v: float) -> float:
-        v /= 255
-        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
-    r, g, b = (f(c) for c in rgb)
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
 def contrast(a: RGB, b: RGB) -> float:

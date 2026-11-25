@@ -16,11 +16,11 @@ from typing import cast
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
+from vitae.core.colour import rel_luminance as _lum
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
 from vitae.verify.lang import _is_latin, _strip_latin_marks
-from vitae.verify.page import _lum
 from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png
 
 # Date and number patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
