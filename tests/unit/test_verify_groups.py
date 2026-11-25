@@ -318,7 +318,7 @@ class TestCheckGroupProximity:
         rows = [{"kind": "group", "text": "t", "page": 1, "n": 2, "gaps": [1], "internal": 1.0,
                  "between": float("nan"), "ratio": float("nan"), "ls": [], "pair_in": ("a", "b"),
                  "pair_btw": ("c", "d"), "next_sec": False, "head_gap": None, "pitch": None}]
-        monkeypatch.setattr(groups, "measure_groups", lambda *a, **k: (rows, 0))
+        monkeypatch.setattr(groups.proximity, "measure_groups", lambda *a, **k: (rows, 0))
         out = groups.check_group_proximity("", "", heads=heads, secs=[], pages=[words])
         assert out[-1][0] is Level.FAIL
 
@@ -343,22 +343,22 @@ class TestCheckGroupProximity:
         assert out[0][0] is Level.WARN and "no lib entry()/srow() heads" in out[0][1]
 
     def test_unavailable_typst_query_is_not_checked(self, monkeypatch):
-        monkeypatch.setattr(groups, "_typst_query", lambda *a, **k: None)
-        monkeypatch.setattr(groups, "pdf_backend", lambda: "poppler")
+        monkeypatch.setattr(groups.proximity, "_typst_query", lambda *a, **k: None)
+        monkeypatch.setattr(groups.proximity, "pdf_backend", lambda: "poppler")
         out = groups.check_group_proximity("cv.typ", "cv.pdf", pages=[[]])
         assert out == [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
 
     def test_unavailable_pdfium_words_name_the_reason(self, monkeypatch):
-        monkeypatch.setattr(groups, "pdf_backend", lambda: "pdfium")
-        monkeypatch.setattr(groups, "_boxes_unavailable", lambda pdf: "WHY")
-        monkeypatch.setattr(groups, "word_boxes", lambda pdf, with_text=False: None)
+        monkeypatch.setattr(groups.proximity, "pdf_backend", lambda: "pdfium")
+        monkeypatch.setattr(groups.proximity, "_boxes_unavailable", lambda pdf: "WHY")
+        monkeypatch.setattr(groups.proximity, "word_boxes", lambda pdf, with_text=False: None)
         out = groups.check_group_proximity("", "x.pdf", heads=[head("A", 0)], secs=[])
         assert len(out) == 1 and "WHY" in out[0][1] and out[0][0] is Level.WARN
 
     def test_word_boxes_are_flattened_when_pages_are_not_given(self, monkeypatch):
         heads, words = _two_lines_then_next(20)
         wb = [[((w[0], w[1], w[2], w[3]), w[4]) for w in words]]
-        monkeypatch.setattr(groups, "word_boxes", lambda pdf, with_text=False: wb)
+        monkeypatch.setattr(groups.proximity, "word_boxes", lambda pdf, with_text=False: wb)
         out = groups.check_group_proximity("", "", heads=heads, secs=[])
         assert [lv for lv, _ in out] == [Level.OK]
 
@@ -586,8 +586,8 @@ class TestCheckDateAdjacency:
         assert stats["measured"] == 1
 
     def test_unavailable_word_positions_are_a_note(self, monkeypatch):
-        monkeypatch.setattr(groups, "word_boxes", lambda pdf, with_text=False: None)
-        monkeypatch.setattr(groups, "pdf_backend", lambda: "poppler")
+        monkeypatch.setattr(groups.dates, "word_boxes", lambda pdf, with_text=False: None)
+        monkeypatch.setattr(groups.dates, "pdf_backend", lambda: "poppler")
         warns = []
         assert groups.check_date_adjacency("", "x.pdf", marks=[H, D, O], warns=warns) == []
         assert warns == ["pdftotext unavailable (word positions needed)"]
@@ -621,12 +621,12 @@ class TestCheckDateAdjacency:
         assert "already runs its org line under the date" in msg
 
     def test_words_are_read_from_the_pdf_when_not_given(self, monkeypatch):
-        monkeypatch.setattr(groups, "word_boxes", lambda pdf, with_text=False: [[DEV, DATE, ACME]])
+        monkeypatch.setattr(groups.dates, "word_boxes", lambda pdf, with_text=False: [[DEV, DATE, ACME]])
         assert groups.check_date_adjacency("", "x.pdf", marks=[H, D, O]) == []
 
     def test_marks_come_from_typst_query_when_not_given(self, monkeypatch):
         seen = []
-        monkeypatch.setattr(groups, "_typst_query", lambda typ, sel, root=None: seen.append(sel) or [H, D, O])
+        monkeypatch.setattr(groups.dates, "_typst_query", lambda typ, sel, root=None: seen.append(sel) or [H, D, O])
         groups.check_date_adjacency("cv.typ", "", words=[[DEV, DATE, ACME]])
         assert seen == [groups.ENTRY_MARKS]
 
