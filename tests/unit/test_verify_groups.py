@@ -10,7 +10,7 @@ import pytest
 from vitae.core.base import DetailRow, GroupRow, Mark, SecRow, _Line
 from vitae.core.level import Level
 from vitae.verify import groups
-from vitae.verify.groups import dates, proximity
+from vitae.verify.groups import dates, proximity, query
 
 PROX_THRESHOLDS = (groups.PROX_FAIL, groups.PROX_WARN)
 
@@ -225,8 +225,10 @@ class TestMeasureGroups:
         # the cut is "more than 2 pt below"; a mark that close but past it opens the next block
         words = [line("A", 0), line("B", 12), line("C", 24)]
         rows, _ = groups.measure_groups([head("A", 0), head("C", 2.5)], [], [words])
-        assert [(r["text"], r["pair_btw"]) for r in rows if r["kind"] == "group" and r["text"] == "A"] == [
-            ("A", ("B", "C"))]
+        got = [r for r in rows if r["text"] == "A"]
+        assert [(r["kind"], r["text"], r["pair_btw"]) for r in got if r["kind"] == "group"] == [
+            ("group", "A", ("B", "C"))]
+        assert all(r["kind"] == "group" for r in got)
 
     def test_in_flow_title_starting_left_of_an_indented_head_is_read_in_the_flow(self):
         # gutter-rail style: the head is indented (x=30) and its next block, a title, starts just left of it
@@ -438,7 +440,7 @@ class TestSectionProximity:
 # ---------------------------------------------------------------- _entry_records
 
 def mk(kind: str, text: str = "") -> Mark:
-    return Mark(kind=kind, text=text)
+    return Mark(kind=kind, text=text, page=1, x=0.0, y=0.0)
 
 
 class TestEntryRecords:
@@ -726,3 +728,43 @@ class TestDuplicateNames:
     def test_each_clashing_row_is_reported(self):
         heads: list[Mark] = [{"kind": "skill", "text": "A"}, {"kind": "skill", "text": "B"}]
         assert len(groups.check_duplicate_names([{"text": "a"}, {"text": "b"}], heads)) == 2
+
+
+# ---------------------------------------------------------------- mark validation at the typst boundary
+
+class TestMarkValidation:
+    def test_valid_marks_pass_through_unchanged(self, monkeypatch):
+        vals = [{"text": "Dev", "kind": "entry", "org": "X", "page": 1, "x": 10, "y": 20.5,
+                 "dated": True, "anchor": True},
+                {"text": "EDU"},
+                {"kind": "date", "text": "", "page": 2, "x": 1.0, "y": 2.0, "w": 3, "h": 4.5, "inline": False}]
+        monkeypatch.setattr(query, "_typst_values", lambda *a, **k: vals)
+        assert query._typst_query("cv.typ", "sel") == vals
+
+    def test_malformed_entries_are_dropped_and_valid_ones_kept(self, monkeypatch):
+        good = {"text": "ok", "page": 1, "x": 1.0, "y": 2.0}
+        bad = [{"kind": "entry"},                     # no text
+               {"text": 3},                           # text not a str
+               {"text": "a", "x": "10"},              # x a str
+               {"text": "a", "page": 1.5},            # page not an int
+               {"text": "a", "page": True},           # a bool is not a number
+               {"text": "a", "dated": 1},             # dated not a bool
+               "entry", 7, None, ["text"]]            # not objects
+        monkeypatch.setattr(query, "_typst_values", lambda *a, **k: [*bad, good])
+        assert query._typst_query("cv.typ", "sel") == [good]
+
+    def test_none_stays_none(self, monkeypatch):
+        monkeypatch.setattr(query, "_typst_values", lambda *a, **k: None)
+        assert query._typst_query("cv.typ", "sel") is None
+
+    def test_json_list_accepts_only_arrays(self):
+        assert query._json_list('[1, {"a": 2}]') == [1, {"a": 2}]
+        assert query._json_list('{"a": 1}') is None
+        with pytest.raises(ValueError):
+            query._json_list("[1,")
+
+    def test_unplaced_marks_are_ignored_by_entry_records(self):
+        unplaced = Mark(kind="entry", text="a")
+        placed = Mark(kind="entry", text="b", page=1, x=0.0, y=0.0)
+        recs = groups._entry_records([unplaced, placed])
+        assert [r["head"]["text"] for r in recs] == ["b"]

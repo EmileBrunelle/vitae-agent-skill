@@ -194,15 +194,17 @@ open(CL_OLD, "w").write(UNTAGGED)
 def images_of(req: Request) -> list[str]:
     out = []
     for part in req["messages"][0]["content"]:
-        image = part.get("image_url")
-        if part["type"] == "image_url" and image is not None:
-            raw = base64.b64decode(image["url"].split(",", 1)[1])
+        if part["type"] == "image_url":
+            assert "image_url" in part, f"image_url part without image_url: {part}"
+            raw = base64.b64decode(part["image_url"]["url"].split(",", 1)[1])
             out.append(raw[len(look.PNG_MAGIC):].decode())
     return out
 
 
 def text_of(req: Request) -> str:
-    return req["messages"][0]["content"][0].get("text", "")
+    part = req["messages"][0]["content"][0]
+    assert "text" in part, f"first part has no text: {part}"
+    return part["text"]
 
 
 def item_of(req: Request, pattern: str) -> str:
