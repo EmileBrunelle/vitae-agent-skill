@@ -12,7 +12,7 @@ Run reviews as parallel subagents, one per persona (never merge personas into on
 
 ## Market-segment panel (always — part of the first pass)
 
-One reviewer per target segment; each *invents a complete realistic job posting* for a fictional employer in that segment, then judges the CV against it requirement-by-requirement (met / partial / not met, with evidence quoted from the CV) and issues an interview verdict per CV version. Segments that proved revealing: product/SaaS company, startup, consulting firm, big regulated employer (bank/gov), plus one deliberately bad-fit posting to confirm the CV doesn't oversell.
+One reviewer per target segment, and one more for the bad-fit posting: every posting is its own persona and its own agent (never one agent inventing two postings), listed separately in `personas:`. Each *invents one complete realistic job posting* for a fictional employer in its segment, then judges the CV against it requirement-by-requirement (met / partial / not met, with evidence quoted from the CV) and issues an interview verdict per CV version. Segments that proved revealing: product/SaaS company, startup, consulting firm, big regulated employer (bank/gov), plus one deliberately bad-fit posting (its own reviewer) to confirm the CV doesn't oversell. The report's reviewer count is the number of persona agents spawned.
 
 ## Layout reviewer (after any redesign)
 
