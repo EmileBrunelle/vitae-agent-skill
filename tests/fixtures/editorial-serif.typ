@@ -23,11 +23,16 @@
 #let ic-col = accent
 #let ic = icons-line(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.631em, spacing: 0.711em)
+#set par(justify: false, leading: 0.764em, spacing: 0.844em)
 
 // device: short heavy accent bar 20 a large serif title (magazine kicker rule)
 #let section(t, body, airy: false) = block(breakable: false,
@@ -48,14 +53,14 @@
 // skills: serif bold label, thin accent tick (vector), sans items
 #let skill(cat, items) = srow([#text(font: dispf, size: 11pt, weight: "bold")[#cat] #box(width: 3pt, height: 3pt, fill: accent, baseline: -2pt)], items)
 
-#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.545em, body-indent: 6pt)
 
 // header: oversized serif name, then role line left / contact column right (photo slot)
 #block(above: 0pt, below: 12pt)[
   #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
     [#text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
      #v(-2pt)
-     #text(size: 10.5pt, fill: accent, weight: "semibold")[Backend Software Developer — B.Sc. in Computer Science]],
+     #text(size: 10.5pt, fill: accent, weight: "semibold")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #nb(ic.pin)[City, Region] \
       #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
       #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
@@ -67,7 +72,10 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 
 // ---------- spacing-measurement body (neutral fake content) ----------
 #section("Experience")[

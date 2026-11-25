@@ -7,7 +7,7 @@ The numbering-of-divisions convention of technical standards and specification d
 - **Accent role**: the numbers, section and sub-clause. That is the whole budget — which is why the icons are gray here.
 - **Icons**: **line** style in the **metadata gray**, never the accent; the platform marks follow, in the same gray.
 - **Header**: **two zones over a reference row**. Identity block left (name 22pt, role line), contact column right (also the photo slot), and inside the left zone a **reference row** of run-in label/value pairs — Location, Availability, Authorization — then the **specialities line** in the label register, so it reads as a data row and not as a slogan. The reference row and the specialities line stay *inside* the left zone deliberately: spanning the full measure under a two-zone header pulled the rightmost pair into the contact cluster in extraction ([`ats.md`](../../ats.md)).
-- **Section order**: *skills-forward hybrid* — Summary, **Skills & Tools**, target-field experience, other experience, Education, Strengths, Languages.
+- **Section order**: *skills-forward hybrid* — Summary, **Skills & Tools**, target-field experience, other experience, Education, Strengths (only if the facts give evidence), Languages.
 - **Type**: an institutional grotesque with tabular figures. Pool: `pick_design.py` FONTS `clause-index`.
 - **Accents** (mono harmony): `#33475b` slate · `#1f3a5f` navy · `#0f4c5c` petrol.
 - **Gabarit**: dense — 1.5cm x, 1.2cm y, body 10.5pt, fill **94-96%**. The widest measure of the roster, and the reason its leading is the loosest (core.md § Gabarit).

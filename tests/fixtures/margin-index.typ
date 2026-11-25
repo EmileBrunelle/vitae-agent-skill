@@ -29,7 +29,7 @@
 // its own content. Single-ROW grid per section (safe: ats.md), title cell first
 // so the extraction order stays heading → body.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 35pt } else { 30pt }, below: 0pt)[
+  above: if airy { 36pt } else { 31pt }, below: 0pt)[
   #if workday [
     // parse copy: title ABOVE the body, so the extraction order stays heading → body
     // (a margin column wraps the title and is read before the header contacts)
@@ -56,7 +56,7 @@
 // jump does the separating (nobody else uses italic as the skills device)
 #let skill(cat, items) = srow(text(style: "italic")[#cat], items)
 
-#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.85em, body-indent: 6pt)
 
 // header: name and role in the content column, contacts on one line under it;
 // the margin column stays empty here (extraction keeps the name first)
@@ -65,7 +65,7 @@
     [],
     [#text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname] \
      #v(-4pt)
-     #text(size: 10.5pt, style: "italic")[Backend Software Developer — B.Sc. in Computer Science] \
+     #text(size: 10.5pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]] \
      #v(-3pt)
      #text(size: 9pt, fill: muted)[#nb(mk.pin)[City, Region] #h(7pt) #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
        #h(7pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
@@ -77,6 +77,8 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
 
 // ---------- spacing-measurement body (neutral fake content) ----------

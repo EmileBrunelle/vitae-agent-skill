@@ -21,25 +21,20 @@ class _Flags(TypedDict, total=False):
     creative: bool
 
 def selftest() -> None:
-    # --init: starter headings are exactly the drawn labels; a drawn soft=None
-    # leaves no soft-skills section behind (every family, every variant).
+    # --init: starter headings are exactly the drawn labels (every family,
+    # every variant).
     _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     for _f, _d in FAMILIES.items():
         _fs = open(os.path.join(_root, "templates", "families", _f, "resume.typ"),
                    encoding="utf-8").read()
-        for _role in ("profile", "skills", "soft"):
+        for _role in ("profile", "skills"):
             _dl = _d["labels"][_role]
-            if _dl is None:
-                continue
             for _new in LABEL_VARIANTS[_role]:
                 _o = _apply_labels(_fs, _d["labels"],
                                    dict(_d["labels"], **{_role: _new}), _f)
                 _h = re.findall(r'^#section\("([^"]*)"', _o, re.M)
-                if _new is None:
-                    assert _dl not in _h, (_f, _role, _h)
-                else:
-                    assert _new in _h and (_new == _dl or _dl not in _h), \
-                        (_f, _role, _new, _h)
+                assert _new in _h and (_new == _dl or _dl not in _h), \
+                    (_f, _role, _new, _h)
     # _installed: plain name wins; "X <n>pt" variant resolves to the full
     # installed name, smallest n numerically; no false prefix matches.
     assert _installed("DM Sans", {"DM Sans", "DM Sans 9pt"}) == "DM Sans"
@@ -181,7 +176,6 @@ def selftest() -> None:
         assert set(o) <= set(ORDER_ROLES), (f, set(o) - set(ORDER_ROLES))
         assert len(set(o)) == len(o), (f, "duplicate section role")
         assert o[0] == "profile", (f, o)
-        assert ("soft" in o) == (d["labels"]["soft"] is not None), (f, o)
     n_spec = sum(1 for d in FAMILIES.values() if d["spec"])
     assert n_spec == 4, n_spec        # a TRAIT, not a house style
     # a family's variant axis: drawn deterministically, always one of its own,
@@ -209,22 +203,22 @@ def selftest() -> None:
             assert prov, (f, n)
     # labels: every drawn variant stays inside the documented pools, and the
     # family default is always reachable
-    triples: dict[tuple[str | None, ...], str] = {}
+    pairs: dict[tuple[str, str], list[str]] = {}
     for f, d in FAMILIES.items():
         for role, default in d["labels"].items():
-            assert default is None or default in LABEL_VARIANTS[role], (f, role)
-        # no two families ship the SAME default triple, over all fourteen:
-        # three of them used to default to "Profile / Technical Skills / Core
-        # Strengths", which is exactly the lexical fingerprint core.md
-        # denounces
-        t = tuple(d["labels"][r] for r in ("profile", "skills", "soft"))
-        assert t not in triples, ("duplicate default labels", t, f, triples[t])
-        triples[t] = f
+            assert default in LABEL_VARIANTS[role], (f, role)
+        pairs.setdefault((d["labels"]["profile"], d["labels"]["skills"]), []).append(f)
+    # the default (profile, skills) pair is the lexical fingerprint core.md
+    # denounces. With the soft-skills label gone the two pools allow only a
+    # handful of pairs, so the floor is 11 distinct pairs over the fourteen
+    # (it was 14 distinct triples), and no pair may be shared by more than three.
+    assert len(pairs) >= 11, ("default label pairs collapsed", len(pairs), pairs)
+    assert all(len(v) <= 3 for v in pairs.values()), pairs
     spread: dict[str, int] = {}
     for i in range(400):
         p = pick("Person %03d" % i, "software", career="mid", check_fonts=False)
         spread[p["family"]] = spread.get(p["family"], 0) + 1
-        for role in ("profile", "skills", "soft"):
+        for role in ("profile", "skills"):
             assert p["labels"][role] in LABEL_VARIANTS[role], p["labels"]
     assert len(spread) >= MIN_POOL, spread
     n_var = sum(1 for d in FAMILIES.values() if "variants" in d)

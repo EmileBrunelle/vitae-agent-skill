@@ -56,7 +56,7 @@
   #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
      #v(-3pt)
-     #text(size: 10.5pt, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]],
+     #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#nb(mk.pin)[City, Region] \
       #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \
       #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
@@ -68,74 +68,77 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
 #section("Profile")[
-Role and degree in one clause, then the strongest verifiable fact (X years
-shipping production code at A, B, C). One sentence covering the stack with
-2-3 bolded keywords (*Python/Django*, *TypeScript*, #box[*CI/CD*] — box keeps
-fragile tokens unbroken). One closing trait sentence, no clichés
-("seeking opportunities…" is dead weight).
+[Role and field, as the facts state them.] [Strongest verifiable fact from the facts, with its number if the facts give one.] [One sentence the facts support, with the field's key terms in *bold*.]
 ]
 
 // ---------- Experience in the target field FIRST ----------
-#section("Software Development Experience")[
+// Roles and bullets: only as many as the facts give; drop a role or section the facts don't support.
+#section("[Target-field] Experience")[
 
-#job("Current Role Title", "Employer", "Mar 2024 – present",
-  "City · what the employer is, in one clause · full-time, hybrid")
-- Current role in the present tense — every tense convention agrees on that.
-- Action verb first; one bolded tech (*Python (Django)*); outcome or scope,
-  no invented numbers.
-- Contribution verbs (collaborated, strengthened, participated) unless the
-  candidate truly owned the outcome — inflated verbs die in interviews.
+#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – present",
+  "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
+- [Achievement from the facts, with its number if the facts give one.]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Achievement from the facts, in the verb the facts support.]
+- [Another achievement from the facts.]
+- [Action verb] [what, from the facts].
+- [Further achievement from the facts.]
+- [Achievement from the facts, with its number if the facts give one.]
 
-#job("Earlier Role", "Employer 2", "Jul 2021 – Feb 2024",
-  "City · descriptor · full-time, on-site")
-- Month+year date ranges always — year-only breaks ATS duration math.
-- One strong keyword bolded per bullet, two at most — a wall of bold is none.
+#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
+  "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
+- [Achievement from the facts, with its number if the facts give one.]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Achievement from the facts, in the verb the facts support.]
+- [Another achievement from the facts.]
+- [Action verb] [what, from the facts].
+
+#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
+  "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
+- [Achievement from the facts, with its number if the facts give one.]
+- [Action verb] [what, from the facts][, outcome, if stated].
+- [Achievement from the facts, in the verb the facts support.]
+- [Another achievement from the facts.]
 ]
 
 // ---------- Off-target roles: separated, honest, never leading ----------
-#section("Other Professional Experience")[
-#job("Off-Target Earlier Role", "Employer 3", "Sep 2019 – Jun 2021",
-  "City · descriptor · part-time alongside studies")
-- Keep 1-2 transferable bullets; the section label does the explaining.
+// Roles and bullets: only as many as the facts give; drop a role or section the facts don't support.
+#section("Other Experience")[
+#job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
+  "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
+- [Achievement from the facts, with its number if the facts give one.]
+- [Action verb] [what, from the facts][, outcome, if stated].
 ]
 
 // ---------- Education: the SAME entry shape as the jobs (dates right-flush) ----------
 // The institution+descriptor line under the entry is what keeps the date from
 // being orphaned at the end of the extraction (verified: ats.md date trap).
 #section("Education")[
-#job("Degree Name (Abbrev.)", "Institution", "2015 – 2019",
-  "City · relevant coursework noted · institution glossed for readers")
+#job("[Credential, as printed]", "[Institution]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
+  "[City] · [one real fact the facts give: course, mention or grade — or ask] · [second fact the facts give, if any]")
 ]
 
-// ---------- Skills: 5-7 linear rows, every keyword defensible ----------
+// ---------- Skills: a few rows, one per category the facts support, items as the facts word them (no gloss, no expansion); fewer rows when facts are thin ----------
 #section("Technical Skills")[
-#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
-#skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
-#skill("Frontend", "React, accessibility-minded interface work")
-#skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")
-#skill("Software quality", "unit and integration testing, test plans, code review")
-#skill("Methodologies", "Agile / Scrum, technical documentation")
+#skill("[Category from the facts]", "[item], [item], [item], [item], [item]")
+#skill("[Category from the facts]", "[item], [item], [item], [item], [item], [item]")
+#skill("[Category from the facts]", "[item], [item], [item], [item]")
 ]
 
-// ---------- Soft skills: only with evidence drawn from this CV ----------
-#section("Strengths")[
-#skill("Label", "evidence drawn from the CV itself, never a bare adjective")
-#skill("Mentoring", "e.g. \u{201c}onboarded two junior developers\u{201d} — only if a bullet above backs it")
-#skill("Communication", "e.g. \u{201c}wrote the team’s API documentation\u{201d} — same rule")
-]
-
-// ---------- Languages (spell out the boolean-search words: "bilingual") ----------
+// ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
 #section("Languages")[
-Bilingual English / French (fluent) #h(8pt)#drawn-marker("dot", accent)#h(8pt) Third language (native)
+[Language] ([level as stated]) #h(8pt)#drawn-marker("dot", accent)#h(8pt) [Language] ([level as stated])
 ]
 
 // ---------- 2-page version recipe ----------
-// 1. Under Profile, add a highlights block: 2 linear lines (never a grid),
-//    two "– item" chips per line separated by #h(14pt).
-// 2. Fuller bullets (3-4 per role), evidence-based "Core Strengths" lines
-//    ("Label — evidence from this CV"), languages with levels.
+// 1. Under Profile, optionally a highlights block: linear lines (never a grid),
+//    "– item" chips separated by #h(14pt), only items that repeat nothing.
+// 2. Fuller bullets (as many as the facts give per role), languages with the
+//    levels as stated.
 // 3. Place a deliberate #pagebreak() at the section boundary that leaves
 //    page 1 fullest (typically after Education); page assignment must be
 //    deterministic, never left to auto-flow.

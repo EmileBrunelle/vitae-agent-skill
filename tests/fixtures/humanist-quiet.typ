@@ -25,8 +25,12 @@
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.665em, spacing: 0.765em)
+#set par(justify: false, leading: 0.850em, spacing: 0.950em)
 #show link: set text(fill: accent)
 
 // device: none — whitespace and a size/weight step do all the delimiting
@@ -45,13 +49,16 @@
 #let skill(cat, items) = srow([#drawn-marker("dash", accent, bold: true)#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.45em, body-indent: 6pt)
+  spacing: 0.575em, body-indent: 6pt)
 
 // header: name + subtitle left, contacts on two left-aligned lines below
 #block(above: 0pt, below: 12pt)[
+  // Header lines keep a tight pitch whatever the body leading: poppler splits a looser
+  // contact row into one line per item or reads its second line before the first.
+  #set par(leading: 0.665em, spacing: 0.765em)
   #text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname]
   #v(-3pt)
-  #text(size: 10.5pt)[Backend Software Developer — B.Sc. in Computer Science]
+  #text(size: 10.5pt)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-4pt)
   #text(size: 9pt, fill: muted)[
     #nb(mk.pin)[City, Region] #h(5pt)#drawn-marker("mid", auto)#h(5pt) #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
@@ -64,7 +71,10 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 
 // ---------- spacing-measurement body (neutral fake content) ----------
 #section("Experience")[

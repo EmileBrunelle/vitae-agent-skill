@@ -29,13 +29,14 @@
 #let ic-col = accent2
 #let ic = icons-solid(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 // GABARIT: dense — 1.6cm margins, a wide measure, 10.5pt body. Fill target
 // derives from the 1.3cm bottom margin: (100 - 4.7) - 0..2%.
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.3cm))
 #set page(..wd-page-x(1.6cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.762em, spacing: 0.852em)
+#set par(justify: false, leading: 0.905em, spacing: 0.995em)
 
 // DEVICE: the title KNOCKED OUT of a hard black slab, the slab only as wide as
 // its own title — nothing full-width anywhere in the document. Square corners,
@@ -81,8 +82,8 @@
 // The tag is a PAINTED chip (`highlight`), not a `box`, and that is mechanical,
 // not stylistic. MEASURED on this very page shape (ats.md, lib.typ § chip): the
 // label set in a bordered `box(stroke:)` tore the first two labels off their
-// values and emitted them at the END of the section ("… METHODOLOGIES Agile /
-// Scrum … / LANGUAGES / BACKEND & DATA"). A box around the label is the same
+// values and emitted them at the END of the section ("… [LABEL] [items] …
+// [LABEL] [items] … / [LABEL]"). A box around the label is the same
 // separate-text-cluster failure as a box around each item. `highlight` paints
 // the field behind the same text run, so the row stays one text cluster and
 // extracts byte-identically to a plain linear row.
@@ -94,8 +95,8 @@
 // read from print instead of from a component library.
 // The tag hugs its label: `extent: 1pt`, and the gap to the first item is the
 // paragraph's OWN word space. VERIFIED TRAP: an `h(4pt)` between the tag and
-// the items — the obvious way to widen that gap — tore `LANGUAGES` and
-// `MENTORING` off their values and emitted them at the end of the section, the
+// the items — the obvious way to widen that gap — tore two labels
+// off their values and emitted them at the end of the section, the
 // same separate-text-cluster failure as a `box` around the label. Explicit
 // spacing next to a `highlight` breaks the run; a plain word space does not.
 #let stag(cat) = chip(
@@ -107,7 +108,7 @@
 // List marker: a hard-bordered SQUARE OUTLINE, drawn (emits no text). Nobody
 // else uses an outlined marker — mono-technical's is filled.
 #set list(marker: box(width: 4pt, height: 4pt, baseline: -0.5pt,
-    stroke: 1pt + accent2), indent: 10pt, spacing: 0.45em, body-indent: 7pt)
+    stroke: 1pt + accent2), indent: 10pt, spacing: 0.535em, body-indent: 7pt)
 
 // HEADER: MONOGRAM + TWO ZONES. A hard-bordered square holds the initials
 // reversed out of hue A, the name sits beside it, then the specialities line
@@ -125,16 +126,16 @@
      #box(baseline: 12pt)[
        #text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
        #v(-5pt)
-       #text(font: monof, size: 9pt, fill: muted)[Backend Software Developer — B.Sc. in Computer Science]]],
+       #text(font: monof, size: 9pt, fill: muted)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]]],
     [], cols: (auto, 1fr), gutter: 0pt,
     align-cells: (left + top, left + top), above: 0pt, below: 5pt)
-  // SPECIALITIES LINE — the 5-7 mastered skills, in hue A, mono, uppercase,
+  // SPECIALITIES LINE — the mastered skills, in hue A, mono, uppercase,
   // pipe-separated. NO `tracking`: letterspacing extracts as "N E X T" and
   // stops matching. Each item boxed, so none can break across a line end.
   // Every item is CONTENT: SKILL.md rule 2 applies to it in the most prominent
   // position on the page — a specialities line is not a decoration strip.
   #text(font: monof, size: 8.5pt, weight: "bold", fill: accent)[#specline(
-    ("PYTHON", "DJANGO", "POSTGRESQL", "TYPESCRIPT", "REACT", "DOCKER", "CI/CD"),
+    ("[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]"),
     sep: [ | ])]
   #v(2pt)
   #text(font: monof, size: 8.5pt, fill: muted)[
@@ -153,7 +154,10 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 
 // ---------- spacing-measurement body (neutral fake content) ----------
 #section("Experience")[

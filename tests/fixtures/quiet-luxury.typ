@@ -20,9 +20,14 @@
 #let ic-col = ink
 #let ic = icons-line(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.2cm))
 #set page(..wd-page-x(1.6cm)) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.580em, spacing: 0.680em)
 
@@ -63,12 +68,14 @@
   #v(3pt)
   #text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname]
   #v(-4pt)
-  #text(size: 10.5pt, fill: ink)[Backend Software Developer — B.Sc. in Computer Science]
+  #text(size: 10.5pt, fill: ink)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
 ]
 
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
 
 // ---------- spacing-measurement body (neutral fake content) ----------

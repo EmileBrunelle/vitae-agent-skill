@@ -32,14 +32,14 @@ ATS systems and AI screeners index the *extracted text*, not the visual layout. 
 
 - Print both forms of a term (long and acronym) only when the facts themselves give both; otherwise print the facts' form alone, with no synonym, alias, category word or parenthetical the facts lack (SKILL.md rule 1). When the long form would help ATS matching, ask the candidate for it as a question.
 - Include the literal words recruiters search: "bilingual" / « bilingue », the degree name, job-title synonyms.
-- 5-7 skill rows is the sweet spot **when the candidate honestly has that many categories** — with fewer defensible categories, use fewer rows; SKILL.md rule 1 outranks any layout guideline. 8+ near-empty rows read as padding.
+- As many skill rows as the facts have real categories; no target number (SKILL.md rule 1 outranks any layout guideline). Each listed item is a skill the facts give, with no qualifier or gloss added (`X (Y)` only under the both-forms rule above). A detail inside a bullet (a tool used once, a protocol) is not promoted to a skill.
 - A keyword in skills but absent from every experience bullet is a liability (SKILL.md rule 2): anchor, demote, or drop. Mechanical check: grep each skill item against the extracted bullet text — every 0-hit item must map to a deliberate demote/anchor decision, not an oversight.
 
 ## Harvested devices — verdicts
 
 Device-level calls gathered from a survey of published CVs, template galleries and recruiter commentary — flagged as harvested-from-the-wild, not measured here, except where noted.
 
-- **Specialities line** under the name (5-7 mastered skills, small caps, separator-joined): safe, plain text, high 30-second-scan value; verified in extraction as whole words with separators intact. NO letterspacing (extracts as `N E X T`). It is CONTENT: rule 2 of SKILL.md applies to every item on it.
+- **Specialities line** under the name (the skills the facts support, small caps, separator-joined): safe, plain text, high 30-second-scan value; verified in extraction as whole words with separators intact. NO letterspacing (extracts as `N E X T`). It is CONTENT: rule 2 of SKILL.md applies to every item on it.
 - **Language proficiency as plain CEFR/ILR-coded text** (`French — conversational (B1)`) beats every graphic meter: progress bars, dot ratings and donut meters are frequently unreadable to extraction and are named by recruiters as a template tell. Prefer the words.
 - **Condensed "Early career" line** for roles past the detailed decade: safe and recommended — the mechanic that makes it safe is role first and years last IN THE SAME paragraph, so text always precedes the date and the orphan-date trap above cannot fire (unlike a bullet-less grid entry).
 - **Location + availability/timezone line**: safe when inline in the body flow; a real trap when placed in an actual page `header:`/`footer:` field, because many parsers skip those regions entirely — anything load-bearing there is a bug, not a device. Same for contact info and dates.

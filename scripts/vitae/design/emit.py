@@ -133,8 +133,8 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "",
           "// ---------- The rest of the recipe (NOT emitted, on purpose) "
           "----------",
-          "// section labels : profile=%r  skills=%r  soft=%r"
-          % (p["labels"]["profile"], p["labels"]["skills"], p["labels"]["soft"]),
+          "// section labels : profile=%r  skills=%r"
+          % (p["labels"]["profile"], p["labels"]["skills"]),
           "//                  Education / Languages / the experience sections "
           "keep their",
           "//                  conventional stems (regional.md, ats.md).",
@@ -142,11 +142,8 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "// section order  : %s" % " → ".join(d["order"]),
           "//                  the family DEFAULT — a target market's own "
           "convention overrides it.",
-          *(["//                  soft=None for this draw: drop `soft` from "
-             "that order."] if p["labels"]["soft"] is None
-            and "soft" in d["order"] else []),
-          "// specialities   : %s" % ("YES — 5-7 mastered skills in the header, "
-                                      "small caps, separator-joined, no"
+          "// specialities   : %s" % ("YES — the skills the facts support, "
+                                      "in the header, small caps, separator-joined, no"
                                       if d["spec"] else "no — this family "
                                       "carries no specialities line."),
           ]

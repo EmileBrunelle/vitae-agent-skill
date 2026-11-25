@@ -94,7 +94,7 @@
 #set page(paper: "us-letter", fill: paper, margin: (x: 1.5cm, top: 1.5cm, bottom: 1.5cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.761em, spacing: 0.851em)
+#set par(justify: false, leading: 0.890em, spacing: 0.980em)
 
 // DEVICE: a GUTTER RAIL. Each section carries a 0.9pt hue-A rule running down
 // the margin beside it, for exactly the height of that section and no further —
@@ -180,7 +180,7 @@
 // vocabulary instead of inventing a second one). Emits no text. The roster's
 // other drawn markers are a filled square, an outlined square and a circle.
 #set list(marker: box(width: 1.5pt, height: 5.4pt, fill: accent2,
-    baseline: -0.6pt), indent: 10pt, spacing: 0.45em, body-indent: 7pt)
+    baseline: -0.6pt), indent: 10pt, spacing: 0.526em, body-indent: 7pt)
 
 // HEADER: a STATUSLINE STRIP first, then the identity. The contacts ride the top
 // of the page as a run of discrete segments — the bar of a themed desktop, or
@@ -222,7 +222,7 @@
   #v(5pt)
   #text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]
   #v(-4pt)
-  #text(size: 10.5pt, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]
+  #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
 ]
 
 // SECTION ORDER (this family's default): skills-forward hybrid — the profile,
@@ -232,7 +232,10 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 
 // ---------- spacing-measurement body (neutral fake content) ----------
 #section("Experience")[

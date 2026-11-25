@@ -26,6 +26,7 @@
 #let ic-col = accent2
 #let ic = icons-solid(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 // GABARIT: mid — 1.8cm margins, 10.5pt body. The margin is what the bars bleed
 // into, so it has to be real. Fill target derives from the 1.6cm bottom margin:
@@ -34,7 +35,7 @@
 #set page(paper: "us-letter", margin: (x: mx, top: 1.3cm, bottom: 1.6cm))
 #set page(..wd-page-x(mx)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.548em, spacing: 0.638em)
+#set par(justify: false, leading: 0.675em, spacing: 0.765em)
 
 // DEVICE: a heavy hue-A BAR THAT BLEEDS OFF THE LEFT PAGE EDGE and stops at the
 // section title, with the title set on the bar's OWN LINE, to its right. Not a
@@ -78,7 +79,7 @@
 // marker of the roster — a constructivist page is bars and circles.
 #set list(marker: box(width: 3.4pt, height: 3.4pt, baseline: -0.6pt,
     circle(radius: 1.7pt, fill: accent2)),
-  indent: 10pt, spacing: 0.45em, body-indent: 7pt)
+  indent: 10pt, spacing: 0.555em, body-indent: 7pt)
 
 // HEADER: A MASTHEAD BAR COMPOSITION. A full-bleed hue-A bar across the top of
 // page 1, the name oversized under it, the role line, the specialities line,
@@ -98,24 +99,28 @@
 #place(top + left, dx: -mx, dy: -1.3cm,
   rect(width: 100% + 2 * mx, height: 0.5cm, fill: accent))
 #block(above: 0pt, below: 11pt)[
+  // Header lines keep a tight pitch whatever the body leading: poppler splits a looser
+  // contact row into one line per item or reads its second line before the first.
+  #set par(leading: 0.548em, spacing: 0.638em)
   #text(font: dispf, size: 30pt, weight: "bold")[Firstname Lastname]
   #v(-6pt)
-  #text(size: 10.5pt, weight: "medium", fill: accent2)[Backend Software Developer — B.Sc. in Computer Science]
+  #text(size: 10.5pt, weight: "medium", fill: accent2)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-1pt)
-  // SPECIALITIES LINE — the 5-7 mastered skills, in the display face, hue A,
+  // SPECIALITIES LINE — the skills the facts support, in the display face, hue A,
   // bar-separated. NO `tracking`: letterspacing extracts as "N E X T" and stops
   // matching. Each item boxed, so none can break across a line end. Every item
   // is CONTENT: SKILL.md rule 2 applies to it in the most prominent position on
   // the page.
   #text(font: dispf, size: 9pt, weight: "bold", fill: accent)[#specline(
-    ("PYTHON", "DJANGO", "POSTGRESQL", "TYPESCRIPT", "REACT", "DOCKER", "CI/CD"),
+    ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
     sep: [ \/ ])]
   #v(1pt)
+  // Contact gaps stay >= 12pt: poppler reads a narrower gap as a column break (1 line per item).
   #text(size: 9pt, fill: muted)[
-    #nb(ic.pin)[City, Region] #h(8pt)
-    #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(8pt)
-    #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(8pt)
-    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(8pt)
+    #nb(ic.pin)[City, Region] #h(14pt)
+    #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(14pt)
+    #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(14pt)
+    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(14pt)
     #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
 ]
 
@@ -129,7 +134,10 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 
 // ---------- spacing-measurement body (neutral fake content) ----------
 #section("Experience")[

@@ -30,8 +30,8 @@ def report(p: Pick, market: str) -> str:
         "platform marks  : email · LinkedIn · GitHub · site — in EVERY family; "
         "mail/web/phone/pin glyphs from the drawn mark set: %s (%s); "
         "LinkedIn/GitHub always Simple Icons, CC0" % p["markset"],
-        "section labels  : profile=%r  skills=%r  soft=%r"
-        % (p["labels"]["profile"], p["labels"]["skills"], p["labels"]["soft"]),
+        "section labels  : profile=%r  skills=%r"
+        % (p["labels"]["profile"], p["labels"]["skills"]),
         "                  (Education / Languages / the experience sections keep"
         " their conventional stems — regional.md)",
         "type register    : %s" % p["font_register"],
@@ -93,8 +93,8 @@ def report(p: Pick, market: str) -> str:
     if d["spec"]:
         lines += [
             "specialities    : this family CARRIES a specialities line in the "
-            "header (5-7 mastered",
-            "                  skills, small caps, separator-joined, no "
+            "header (the skills the facts support,",
+            "                  small caps, separator-joined, no "
             "letterspacing). SKILL.md rule 2",
             "                  applies to EVERY item on it.",
         ]

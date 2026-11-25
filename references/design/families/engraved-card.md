@@ -7,7 +7,7 @@ The engraved-letterhead and social-stationery tradition (the Crane-school statio
 - **Accent role**: the section lozenges and the short rule under the name. Two jobs. Dates and organizations stay `ink`/`dark`.
 - **Icons**: **no generic icon, by principle** — engraving bolted no ornament on. The platform marks ride the contact line in `ink`, never competing with the centred axis.
 - **Header**: **fully centred** — name 23pt in the display serif, a 56pt centred accent **hairline** (0.6pt) under it, the italic role line, then the contacts on one centred line. No photo slot: a centred card has no side cell, and that is the point. The hairline is the point of the family: engraving made a clean thin line the expensive part, so 1.2pt over 34pt read as a stubby dash sitting on the name and 0.6pt over 56pt reads as an engraver's rule.
-- **Section order**: *credential-led* — Summary, **Education**, target-field experience, other experience, Skills, Languages. Ships `soft: None`.
+- **Section order**: *credential-led* — Summary, **Education**, target-field experience, other experience, Skills, Languages.
 - **Type**: one quiet serif for display and body, engraved-letterform lineage. Pool: `pick_design.py` FONTS `engraved-card`.
 - **Accents** (mono harmony): `#5c1f3a` garnet · `#2f4858` deep petrol · `#3d3550` aubergine.
 - **Gabarit**: the airiest — 2.0cm x, 1.6cm y, body 10.5pt, fill target **92-94%**.

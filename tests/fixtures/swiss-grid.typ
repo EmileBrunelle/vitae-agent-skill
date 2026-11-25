@@ -25,6 +25,10 @@
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.618em, spacing: 0.678em)
 
@@ -53,7 +57,7 @@
   #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
      #v(-3pt)
-     #text(size: 10.5pt, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]],
+     #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#nb(mk.pin)[City, Region] \
       #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \
       #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
@@ -65,6 +69,8 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
 
 // ---------- spacing-measurement body (neutral fake content) ----------

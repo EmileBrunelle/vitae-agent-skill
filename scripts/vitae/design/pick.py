@@ -40,7 +40,7 @@ class Pick(TypedDict):
     accent2: str | None
     marker: str
     markset: tuple[str, str]
-    labels: dict[str, str | None]
+    labels: dict[str, str]
     font_register: str
     display: Font
     display_wanted: Font | None
@@ -157,14 +157,9 @@ def pick(name: str, field: str | None, career: str = "early",
     variant = None
     if "variants" in d:
         variant = d["variants"][_idx(key, len(d["variants"]), "variant|")]
-    lab: dict[str, str | None] = {}
-    for role, default in cast("Mapping[str, str | None]", d["labels"]).items():
+    lab: dict[str, str] = {}
+    for role, default in cast("Mapping[str, str]", d["labels"]).items():
         # the family's own default is in the pool, so it can be drawn back.
-        # A family whose default is None DROPS that section as a trait (its
-        # `order` has no slot for it): no variant is drawn back in.
-        if default is None:
-            lab[role] = None
-            continue
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
         lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
     return dict(key=key, family=fam, have=have, offline=offline, eligible=eligible, recipe=d,

@@ -39,7 +39,7 @@
 #set text(font: ("Carlito", "Noto Sans", "Liberation Sans"), size: 10.5pt,
   lang: "en", fill: dark, hyphenate: false)
 // Primary fill-tuning knobs ↓ (±0.01-0.03em steps)
-#set par(justify: false, leading: 0.62em, spacing: 0.70em)
+#set par(justify: false, leading: 0.724em, spacing: 0.804em)
 
 // ---------- Primitives ----------
 // One unbreakable block per section: never split across pages.
@@ -71,11 +71,11 @@
 // Linear skill line — NEVER a data grid (ATS extracts grids column-by-column).
 // French: use [#cat~:] for the non-breaking space before the colon.
 // Markup (*bold*, #box) inside items only works if you pass [content],
-// e.g. #skill("Programming", [Python, *TypeScript*]) — a "string" renders it literally.
+// e.g. #skill("Programming", [item, *item*]) — a "string" renders it literally.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.5em, body-indent: 6pt)
+  spacing: 0.584em, body-indent: 6pt)
 
 // ---------- Header (centered; platform marks only, no generic icons) ----------
 // The marks are vector and emit no text; the readable URL beside each one is
@@ -84,8 +84,8 @@
   #text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
     size: 23pt, weight: "bold")[Firstname Lastname]
   #v(-2pt)
-  // Unregulated role name + degree — the degree carries the signal legally.
-  #text(size: 11pt, fill: accent, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]
+  // Title and degree only as the facts state them; check protected titles (rule 4).
+  #text(size: 11pt, fill: accent, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-4pt)
   #text(size: 9.5pt, fill: muted)[
     City, Region
@@ -99,37 +99,51 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 #section("Profile")[
-Role and degree in one clause, then the strongest verifiable fact (X years
-shipping production code at A, B, C). One sentence covering the stack with
-2-3 bolded keywords (*Python/Django*, *TypeScript*, #box[*CI/CD*] — box keeps
-fragile tokens unbroken). One closing trait sentence, no clichés
-("seeking opportunities…" is dead weight).
+[Role and field, as the facts state them.] [Strongest verifiable fact from the
+facts, with its number if the facts give one.] [One sentence the facts support,
+with the field's key terms in *bold*.]
 ]
 
 // ---------- Experience in the target field FIRST ----------
-#section("Software Development Experience")[
+// Roles and bullets: only as many as the facts give; drop a role or section the facts don't support.
+#section("[Target-field] Experience")[
 
-#job("Current Role Title", "Employer", "Mar 2024 – present",
-  "City · what the employer is, in one clause · full-time, hybrid")
-- Current role in the present tense — every tense convention agrees on that.
-- Action verb first; one bolded tech (*Python (Django)*); outcome or scope,
-  no invented numbers.
-- Contribution verbs (collaborated, strengthened, participated) unless the
-  candidate truly owned the outcome — inflated verbs die in interviews.
+#job("[Role]", "[Employer]", "[Mon YYYY] – present",
+  "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
+- [Achievement from the facts]
+- [Action verb] [what, from the facts]
+- [Achievement from the facts, in the verb the facts support]
+- [Action verb] [what, from the facts]
+- [Achievement from the facts, with its number if the facts give one]
+- [Action verb] [what, from the facts]
 
-#job("Earlier Role", "Employer 2", "Jul 2021 – Feb 2024",
-  "City · descriptor · full-time, on-site")
-- Month+year date ranges always — year-only breaks ATS duration math.
-- One strong keyword bolded per bullet, two at most — a wall of bold is none.
+#job("[Role]", "[Employer]", "[Mon YYYY] – [Mon YYYY]",
+  "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
+- [Achievement from the facts]
+- [Action verb] [what, from the facts]
+- [Achievement from the facts, with its number if the facts give one]
+- [Action verb] [what, from the facts]
+
+#job("[Role]", "[Employer]", "[Mon YYYY] – [Mon YYYY]",
+  "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
+- [Achievement from the facts]
+- [Action verb] [what, from the facts]
+- [Achievement from the facts, with its number if the facts give one]
 ]
 
 // ---------- Off-target roles: separated, honest, never leading ----------
-#section("Other Professional Experience")[
-#job("Off-Target Earlier Role", "Employer 3", "Sep 2019 – Jun 2021",
-  "City · descriptor · part-time alongside studies")
-- Keep 1-2 transferable bullets; the section label does the explaining.
+// Roles and bullets: only as many as the facts give; drop a role or section the facts don't support.
+#section("Other Experience")[
+#job("[Role]", "[Employer]", "[Mon YYYY] – [Mon YYYY]",
+  "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
+- [Transferable achievement from the facts]
+- [Action verb] [what, from the facts]
+- [Transferable achievement from the facts]
 ]
 
 // ---------- Education: the SAME entry shape as the jobs (dates right-flush) ----------
@@ -143,37 +157,27 @@ fragile tokens unbroken). One closing trait sentence, no clichés
 // ways). Never un-align the date to fix that trap. Re-run the date grep after
 // any layout change.
 #section("Education")[
-#job("Degree Name (Abbrev.)", "Institution", "2015 – 2019",
-  "City · anchor unproven-but-real skills here (e.g. statistics-heavy coursework) · gloss local institutions for foreign readers")
+#job("[Credential, as printed]", "[Institution]", "[YYYY] – [YYYY]",
+  "[City] · [one real fact the facts give: course, mention or grade] · [second fact the facts give, if any]")
 ]
 
-// ---------- Skills: 5-7 linear rows, every keyword defensible ----------
+// ---------- Skills: a few rows, one per category the facts support, items as the facts word them (no gloss, no expansion); fewer rows when facts are thin ----------
 #section("Technical Skills")[
-#skill("Programming", "Python, TypeScript, SQL, JavaScript, Bash")
-#skill("Backend & data", "Django, PostgreSQL, REST APIs, message queues")
-#skill("Frontend", "React, accessibility-minded interface work")
-#skill("Tools & DevOps", "Git (version control), Docker, AWS (EC2, S3), continuous integration (CI/CD: GitHub Actions)")
-#skill("Software quality", "unit and integration testing, test plans, code review")
-#skill("Methodologies", "Agile / Scrum, technical documentation")
+#skill("[Category from the facts]", "[item], [item], [item], [item], [item]")
+#skill("[Category from the facts]", "[item], [item], [item], [item]")
+#skill("[Category from the facts]", "[item], [item], [item], [item], [item], [item]")
 ]
 
-// ---------- Soft skills: only with evidence drawn from this CV ----------
-#section("Core Strengths")[
-#skill("Label", "evidence drawn from the CV itself, never a bare adjective")
-#skill("Mentoring", "e.g. \u{201c}onboarded two junior developers\u{201d} — only if a bullet above backs it")
-#skill("Communication", "e.g. \u{201c}wrote the team’s API documentation\u{201d} — same rule")
-]
-
-// ---------- Languages (spell out the boolean-search words: "bilingual") ----------
+// ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
 #section("Languages")[
-Bilingual English / French (fluent) #h(8pt)#drawn-marker("dot", accent)#h(8pt) Third language (native)
+[Language] ([level as stated]) #h(8pt)#drawn-marker("dot", accent)#h(8pt) [Language] ([level as stated])
 ]
 
 // ---------- 2-page version recipe ----------
-// 1. Under Profile, add a highlights block: 2 linear lines (never a grid),
-//    two "– item" chips per line separated by #h(14pt).
-// 2. Fuller bullets (3-4 per role), evidence-based "Core Strengths" lines
-//    ("Label — evidence from this CV"), languages with levels.
+// 1. Under Profile, optionally a highlights block: linear lines (never a grid),
+//    "– item" chips separated by #h(14pt), only items that repeat nothing.
+// 2. Fuller bullets (as many as the facts give per role), languages with the
+//    levels as stated.
 // 3. Place a deliberate #pagebreak() at the section boundary that leaves
 //    page 1 fullest (typically after Education); page assignment must be
 //    deterministic, never left to auto-flow.

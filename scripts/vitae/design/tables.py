@@ -10,7 +10,6 @@ Font = tuple[str, str]               # (family name, provenance)
 class Labels(TypedDict):
     profile: str
     skills: str
-    soft: str | None
 
 
 class Page(TypedDict):
@@ -50,8 +49,8 @@ class FontPool(TypedDict):
 #   `creative` is NEVER in the default pool: see the pool rules in pick().
 # icons: the family's contact-icon style (none is itself a design statement).
 # labels: the family's DEFAULT section names (the lexical skeleton is a
-#   fingerprint too: fourteen families that all say "Profile / Technical Skills
-#   / Core Strengths" still read as one tool). Variants in LABEL_VARIANTS.
+#   fingerprint too: fourteen families that all say "Profile / Technical
+#   Skills" still read as one tool). Variants in LABEL_VARIANTS.
 # header: the order of the header block — another per-family marker.
 # accents2: duotone families only — hue B, paired 1:1 with `accents` (same
 #   index: the pair was validated together, never mix indexes).
@@ -62,7 +61,7 @@ class FontPool(TypedDict):
 # order: the family's DEFAULT section order, from the 7 legal role names only
 #   (see ORDER_ROLES). A target market's own convention (references/regional.md
 #   § Section order) ALWAYS overrides it.
-# spec: does the header carry a SPECIALITIES LINE (the 5-7 mastered skills,
+# spec: does the header carry a SPECIALITIES LINE (the skills the facts support,
 #   small caps, separator-joined, no letterspacing)? A family TRAIT, true on
 # variants: a family's OWN variant axis, where its current documents one (only
 #   gutter-rail: the square-vs-pill segment binary). Drawn from the same hash.
@@ -71,14 +70,12 @@ class FontPool(TypedDict):
 #   fourteen would be a new fingerprint for the tool, which is the opposite of
 #   what the roster exists for. Where it is true, SKILL.md rule 2 applies to
 #   every item on the line.
-ORDER_ROLES = ("profile", "skills", "experience", "other", "education", "soft",
-               "languages")
+ORDER_ROLES = ("profile", "skills", "experience", "other", "education", "languages")
 STD_PAGE = Page(margin="x: 1.5cm, top: 1.2cm, bottom: 1.2cm", body="10.5pt",
                 fill="94-96")
-CHRONO = ("profile", "experience", "other", "education", "skills", "soft",
-          "languages")
+CHRONO = ("profile", "experience", "other", "education", "skills", "languages")
 SKILLS_FIRST = ("profile", "skills", "experience", "other", "education",
-                "soft", "languages")
+                "languages")
 FAMILIES: dict[str, Family] = {
     "avant-poster": Family(
         register="creative",
@@ -87,8 +84,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#b3261e", "#8c3b00", "#72191f"],
         accents2=["#1f3a5f", "#0e6862", "#2f4858"],
         markers=["● (vector circle, hue B)", "•"],
-        labels=Labels(profile="Summary", skills="Technical Stack",
-                    soft="Working Style"),
+        labels=Labels(profile="Summary", skills="Technical Stack"),
         header="full-bleed masthead bar, oversized name, specialities "
                "line, contacts on one line (NO diagonal)",
         photo_ok=True, conservative_ok=False,
@@ -105,8 +101,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#8c3b00", "#0e6862", "#3b3486", "#b3261e"],
         accents2=["#105a90", "#72191f", "#7d3312", "#1a6265"],
         markers=["▪", "•"],
-        labels=Labels(profile="Profile", skills="Technical Stack",
-                    soft="Core Strengths"),
+        labels=Labels(profile="Profile", skills="Technical Stack"),
         header="oversized hue-A name, role line, contacts on two wide-gap lines",
         photo_ok=False, conservative_ok=False,
         page=STD_PAGE, order=CHRONO, spec=True,
@@ -119,8 +114,7 @@ FAMILIES: dict[str, Family] = {
               "reserved for the numbers)",
         accents=["#33475b", "#1f3a5f", "#0f4c5c"],
         markers=["–", "▪"],
-        labels=Labels(profile="Summary", skills="Skills & Tools",
-                    soft="Strengths"),
+        labels=Labels(profile="Summary", skills="Skills & Tools"),
         header="two zones: identity + DIN-676 reference row + specialities "
                "line left, contact column right",
         photo_ok=True, conservative_ok=True,
@@ -136,8 +130,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#1f3a5f", "#1e5631", "#3b3486", "#0f4c5c"],
         accents2=["#502d66", "#2b4b5d", "#733b6c", "#2c1a66"],
         markers=["•", "▪"],
-        labels=Labels(profile="Profile", skills="Skills & Tools",
-                    soft="Core Strengths"),
+        labels=Labels(profile="Profile", skills="Skills & Tools"),
         header="full-width hue-A band: name + role + contacts reversed out",
         photo_ok=True, conservative_ok=False,
         page=STD_PAGE, order=CHRONO, spec=False,
@@ -159,7 +152,7 @@ FAMILIES: dict[str, Family] = {
         # rather than as a colour. Measured on 300dpi crops — references/design/families/gutter-rail.md.
         accents2=["#6a2f4d", "#983e6a", "#2e6b24", "#1b6a63"],
         markers=["▎ (vector change-bar, hue B)", "▎"],
-        labels=Labels(profile="Profile", skills="Skills", soft="Working Style"),
+        labels=Labels(profile="Profile", skills="Skills"),
         header="a STATUSLINE STRIP of painted segments across the top "
                "(contacts), then the name and the role line under it",
         # the one variant axis: the harvested square-vs-pill binary of the
@@ -180,8 +173,7 @@ FAMILIES: dict[str, Family] = {
         icons="line: thin stroke + rounded, accent",
         accents=["#1f3a5f", "#5b2a5e", "#72191f"],
         markers=["–", "·"],
-        labels=Labels(profile="Summary", skills="Technical Skills",
-                    soft="Core Strengths"),
+        labels=Labels(profile="Summary", skills="Technical Skills"),
         header="one grid row: serif name + accent role line left, contacts right",
         photo_ok=True, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
@@ -193,13 +185,13 @@ FAMILIES: dict[str, Family] = {
         icons="no generic icon (engraving carried none); platform marks in ink",
         accents=["#5c1f3a", "#2f4858", "#3d3550"],
         markers=["–", "·"],
-        labels=Labels(profile="Summary", skills="Skills", soft=None),
+        labels=Labels(profile="Summary", skills="Skills"),
         header="fully CENTRED: name, a short accent rule under it, role line, "
                "contacts on one centred line",
         photo_ok=False, conservative_ok=True,
         page=Page(margin="x: 2.0cm, top: 1.6cm, bottom: 1.6cm",
                   body="10.5pt", fill="92-94"),
-        # credential-led: education raised, and NO soft section at all
+        # credential-led: education raised
         order=("profile", "education", "experience", "other", "skills",
                "languages"),
         spec=False,
@@ -212,8 +204,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#b3261e", "#1e5631", "#3b3486"],
         accents2=["#0f4c5c", "#5c1f3a", "#8c3b00"],
         markers=["▫ (vector outlined square, hue B)", "▫"],
-        labels=Labels(profile="Profile", skills="Technical Stack",
-                    soft="Strengths"),
+        labels=Labels(profile="Profile", skills="Technical Stack"),
         header="monogram block + name, then the specialities line, then one "
                "mono contact line",
         photo_ok=False, conservative_ok=False,
@@ -229,7 +220,7 @@ FAMILIES: dict[str, Family] = {
         icons="no generic icon (its device is absence); platform marks in the accent",
         accents=["#0e6862", "#33475b", "#8c3b00"],
         markers=["–", "•"],
-        labels=Labels(profile="Profile", skills="Skills", soft="Core Strengths"),
+        labels=Labels(profile="Profile", skills="Skills"),
         header="name + role left, contacts on two left-aligned lines below",
         photo_ok=False, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
@@ -240,8 +231,7 @@ FAMILIES: dict[str, Family] = {
         icons="line: thin stroke + rounded, accent",
         accents=["#33475b", "#1f3a5f", "#0f4c5c", "#5b2a5e"],
         markers=["–", "·"],
-        labels=Labels(profile="Professional Summary", skills="Technical Skills",
-                    soft="Core Strengths"),
+        labels=Labels(profile="Professional Summary", skills="Technical Skills"),
         header="one grid row: name + role left, contacts right, soft hairline under",
         photo_ok=True, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
@@ -252,7 +242,7 @@ FAMILIES: dict[str, Family] = {
         icons="no generic icon (marginalia bolts none on); platform marks in ink",
         accents=["#4a2f10", "#1f3a5f", "#5b2a5e"],
         markers=["—", "·"],
-        labels=Labels(profile="Summary", skills="Expertise", soft="Strengths"),
+        labels=Labels(profile="Summary", skills="Expertise"),
         header="name + italic role in the content column, contacts on one line "
                "below (photo slot = the margin column)",
         photo_ok=True, conservative_ok=True,
@@ -270,8 +260,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#1f3a5f", "#33475b", "#0f4c5c", "#5b2a5e"],
         accents2=["#8f2d3f", "#8a2f2a", "#66291a", "#3c633a"],
         markers=["▪ (vector square, hue B)", "▪"],
-        labels=Labels(profile="Profile", skills="Technical Stack",
-                    soft="Working Style"),
+        labels=Labels(profile="Profile", skills="Technical Stack"),
         header="name, role, then one mono contact line",
         photo_ok=False, conservative_ok=False,
         # NOT STD_PAGE: the spec-sheet look needs a roomier measure than the
@@ -287,8 +276,7 @@ FAMILIES: dict[str, Family] = {
         icons="line: thin stroke + rounded, metadata gray (never the accent)",
         accents=["#5c4632", "#33475b", "#0e6862"],
         markers=["·", "–"],
-        labels=Labels(profile="Professional Summary", skills="Skills & Tools",
-                    soft="Working Style"),
+        labels=Labels(profile="Professional Summary", skills="Skills & Tools"),
         header="CONTACTS FIRST (letterhead line), then the name, then the role "
                "(photo slot = right cell)",
         photo_ok=True, conservative_ok=True,
@@ -305,8 +293,7 @@ FAMILIES: dict[str, Family] = {
         icons="no generic icon (typographic purism); platform marks in the body ink",
         accents=["#b3261e", "#33475b", "#0f4c5c"],
         markers=["▪", "–"],
-        labels=Labels(profile="Profile", skills="Technical Skills",
-                    soft="Strengths"),
+        labels=Labels(profile="Profile", skills="Technical Skills"),
         header="one grid row: name 24pt + role left, 5-line contact column right",
         photo_ok=True, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
@@ -490,12 +477,10 @@ FONTS: dict[str, FontPool] = {
 # language, references/ats.md): a conventional stem, optionally qualified —
 # never an exotic name. "Education", "Languages" and the experience sections
 # are NOT variable: their stems are what ATS section classifiers key on.
-# soft=None means the family drops the soft-skills section entirely.
-LABEL_VARIANTS: dict[str, list[str | None]] = dict(
+LABEL_VARIANTS: dict[str, list[str]] = dict(
     profile=["Profile", "Summary", "Professional Summary"],
     skills=["Technical Skills", "Skills & Tools", "Skills", "Expertise",
             "Technical Stack"],
-    soft=["Core Strengths", "Strengths", "Working Style", None],
 )
 
 # Career stage → preferred registers, then the widening tier if the preferred

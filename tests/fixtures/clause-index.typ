@@ -19,14 +19,19 @@
 #let ic-col = ink
 #let ic = icons-line(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 // GABARIT: dense, the specification-document register — 1.5cm margins, the
 // widest measure of the roster, 10.5pt body, tight rhythm. Fill target derives
 // from the 1.2cm bottom margin: (100 - 4.3) - 0..2%.
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.849em, spacing: 0.929em)
+#set par(justify: false, leading: 0.88em, spacing: 0.96em)
 
 // DEVICE: an OUTDENTED CLAUSE NUMBER. The numbering-of-divisions convention of
 // technical standards (ISO 2145, DIN 1421): the division number hangs in a
@@ -72,7 +77,7 @@
    #text(weight: "bold")[#cat]], items)
 
 #set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.45em, body-indent: 6pt)
+  spacing: 0.529em, body-indent: 6pt)
 
 // HEADER: TWO ZONES over a REFERENCE ROW. The identity block left, the contact
 // block right (that right cell is also the photo slot), and under both a
@@ -93,7 +98,7 @@
   #hrow(
     [#text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname] \
      #v(-3pt)
-     #text(size: 10.5pt, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]
+     #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
      #v(2pt)
      // REFERENCE ROW — one flowing paragraph, never a grid of stacked cells.
      // MEASURED TRAP (new): as a single-ROW grid whose three cells each stacked
@@ -105,12 +110,12 @@
        #rcell("Availability", [Two weeks’ notice]) #h(9pt)
        #rcell("Authorization", [Authorized to work])]
      #v(2pt)
-     // SPECIALITIES LINE: the 5-7 mastered skills, linear, NO letterspacing
+     // SPECIALITIES LINE: the skills the facts support, linear, NO letterspacing
      // (it extracts as "N E X T" and stops matching), each item boxed so it can
      // never break across a line end. Every item is CONTENT: SKILL.md rule 2
      // applies to it, in the most prominent position on the page.
      #text(size: 8.5pt, weight: "bold", fill: accent)[#specline(
-       ("PYTHON", "DJANGO", "POSTGRESQL", "TYPESCRIPT", "REACT", "DOCKER", "CI/CD"),
+       ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
        sep: [ · ])]],
     text(size: 9pt, fill: muted)[
       #nb(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] \
@@ -132,7 +137,10 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 
 // ---------- spacing-measurement body (neutral fake content) ----------
 #section("Experience")[

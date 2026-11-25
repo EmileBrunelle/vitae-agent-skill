@@ -2,7 +2,7 @@
 import pytest
 from vitae.core.base import LEADING_ABS_RATIO_WARN, LEADING_FAMILY_RATIO_WARN
 from vitae.verify import tune as T
-from vitae.verify.cv import _family_default, _leading_warn
+from vitae.verify.cv import LEADING_WARN, _family_default, _leading_warn
 from vitae.verify.typst import _doc_par_list, _scale_list_spacing
 
 _L, _S = _family_default("color-band", 1)
@@ -26,7 +26,10 @@ class TestFamilyRelative:
         assert bool(out) == warns, out
 
     def test_message_names_the_fix(self, tmp_path):
-        out = _leading_warn(cv(tmp_path, _S * BAND * 1.5, _S))
+        # the absolute leading check takes precedence, so keep the leading well under
+        # LEADING_WARN whatever the shipped color-band values are: only the ratio is off
+        lsp = min(_S, LEADING_WARN / (BAND * 1.5) / 2)
+        out = _leading_warn(cv(tmp_path, lsp * BAND * 1.5, lsp))
         assert "list rhythm no longer matches" in out and "--tune" in out and "color-band" in out
 
     def test_real_run_numbers(self, tmp_path):

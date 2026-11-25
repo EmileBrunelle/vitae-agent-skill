@@ -25,11 +25,16 @@
 #let ic-col = accent2
 #let ic = icons-solid(ic-col)
 #let mk = marks(ic-col)
+#let ic = gate-icons(ic, mk)   // drawn icons follow marks' all-or-nothing
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
+// opt-in accent band (pick_design.py --band flips this): a text-free strip in the
+// left margin, drawn in the page background (lib.typ accent-band)
+#let band = false
+#set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.536em, spacing: 0.616em)
+#set par(justify: false, leading: 0.719em, spacing: 0.799em)
 
 // device: oversized dark title over a heavy accent underline as wide as the title
 #let section(t, body, airy: false) = block(breakable: false,
@@ -49,22 +54,22 @@
 #let skill(cat, items) = srow(box[#text(weight: "bold")[#cat]#h(12pt)], items)
 
 #set list(marker: drawn-marker("square", accent2, bold: true), indent: 10pt,
-  spacing: 0.45em, body-indent: 6pt)
+  spacing: 0.604em, body-indent: 6pt)
 
 // header: oversized accent name left, contacts on one line below
 #block(above: 0pt, below: 12pt)[
   #text(font: dispf, size: 29pt, weight: "bold", fill: accent)[Firstname Lastname]
   #v(-3pt)
-  #text(size: 11pt, weight: "medium")[Backend Software Developer — B.Sc. in Computer Science]
+  #text(size: 11pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-1pt)
-  // SPECIALITIES LINE — the 5-7 mastered skills, before the profile prose, so
+  // SPECIALITIES LINE — the skills the facts support, before the profile prose, so
   // the 30-second scan gets the stack first and retailoring per application is
   // one line. NO `tracking`: letterspacing extracts as "N E X T" and stops
   // matching. Each item boxed so none can break across a line end. Every item
   // is CONTENT — SKILL.md rule 2 applies to it in the most prominent position
   // on the page.
   #text(font: dispf, size: 8.5pt, weight: "bold", fill: accent2)[#specline(
-    ("PYTHON", "DJANGO", "POSTGRESQL", "TYPESCRIPT", "REACT", "DOCKER", "CI/CD"),
+    ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
     sep: [ #box(width: 3pt, height: 3pt, fill: accent2) ])]
   #v(-3pt)
   #text(size: 9pt, fill: muted)[
@@ -78,7 +83,10 @@
 // ---------- Profile ----------
 // Workday mode (--input workday=1): drops Profile/Summary, tracks the section name.
 #let section = wd-section(section)
+// Profile: only what the facts state (role, field, level, outcome); length follows
+// the facts; no trait sentence.
 
+// Tip: #box[*[term]*] keeps a fragile token unbroken.
 
 // ---------- spacing-measurement body (neutral fake content) ----------
 #section("Experience")[
