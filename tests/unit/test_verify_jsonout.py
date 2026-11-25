@@ -6,7 +6,7 @@ import sys
 
 import pytest
 from vitae.core.level import Level
-from vitae.verify import jsonout
+from vitae.verify import jsonout, registry
 
 
 def _run(capsys, argv, dispatch):
@@ -253,3 +253,49 @@ def test_doctor_may_exit_with_its_own_verdict(capsys, code, verdict):
 def test_doctor_exiting_with_another_code_is_an_error(capsys):
     rc, d, _ = _run(capsys, ["--doctor"], _exit(2))
     assert rc == 2 and d["verdict"] == "ERROR"
+
+
+# --- the extraction dump: a heading in two-space shape ---------------------------------------------------------------
+
+def _dumping(dump_lines, after=("WARN  review record incomplete",), note=True):
+    def dispatch(argv):
+        print("OK    pages: 1")
+        print("──── extraction (check reading order) ────")
+        print("\n".join(dump_lines))
+        if note:
+            registry.note_extraction("\n".join(dump_lines))
+        for ln in after:
+            print(ln)
+        print("PASS (x) all mechanical checks")
+        return 0, None
+    return dispatch
+
+
+def test_a_two_space_heading_in_the_dump_is_not_a_check(capsys):
+    """Mutation: skipping fewer/more dump lines, or ignoring the recorded length, turns `FAIL  SAFE` into a check."""
+    _, d, err = _run(capsys, ["x.typ"], _dumping(["FAIL  SAFE", "INFO  SYSTEMS", "", "OK  Computer"]))
+    assert [c["message"] for c in d["checks"]] == ["pages: 1", "review record incomplete"]
+    assert [c["level"] for c in d["checks"]] == ["OK", "WARN"]
+    assert "FAIL  SAFE" in err and "INFO  SYSTEMS" in err and "OK  Computer" in err
+
+
+def test_a_check_line_right_after_a_dump_ending_in_a_blank_line_is_kept(capsys):
+    _, d, _ = _run(capsys, ["x.typ"], _dumping(["Jane Doe", ""], after=("FAIL  not deliverable",)))
+    assert [c["message"] for c in d["checks"]] == ["pages: 1", "not deliverable"]
+
+
+def test_without_a_recorded_dump_length_only_the_two_space_shape_counts_after_the_dump(capsys):
+    _, d, _ = _run(capsys, ["x.typ"], _dumping(["INFO SYSTEMS"], note=False))
+    assert [c["message"] for c in d["checks"]] == ["pages: 1", "review record incomplete"]
+
+
+def test_run_gates_fails_when_any_line_fails_even_if_later_lines_pass(capsys):
+    ctx = object()
+    gates = [
+        registry.FnGate("a", lambda c: [(Level.OK, "fine")]),
+        registry.FnGate("b", lambda c: [(Level.FAIL, "bad"), (Level.OK, "after")]),
+        registry.FnGate("c", lambda c: [(Level.WARN, "late")]),
+    ]
+    assert registry.run_gates(gates, ctx) == 1  # type: ignore[arg-type]
+    assert registry.run_gates(gates[:1] + gates[2:], ctx) == 0  # type: ignore[arg-type]
+    assert "FAIL  bad" in capsys.readouterr().out

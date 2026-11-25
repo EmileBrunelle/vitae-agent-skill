@@ -42,10 +42,15 @@ def skill_version() -> str | None:
     return m.group(1) if m else None
 
 
-def _checks(text: str, sink: list[tuple[str, Level, str]]) -> tuple[list[dict[str, str]], str | None]:
+def _checks(text: str, sink: list[tuple[str, Level, str]], dump_len: int | None = None) -> tuple[list[dict[str, str]], str | None]:
     """(checks, the PASS banner line) from the captured stdout; every other line goes to stderr."""
     lines, checks, banner, i, k, dumped = text.split("\n"), [], None, 0, 0, False
     while i < len(lines):
+        if dumped and dump_len:     # the dump's length is known: its lines are CV text, whatever shape they have
+            for ln in lines[i:i + dump_len]:
+                print(ln, file=sys.stderr)
+            i, dumped, dump_len = i + dump_len, False, None
+            continue
         if k < len(sink):
             name, lvl, msg = sink[k]
             n = f"{lvl:<5} {msg}".count("\n") + 1
@@ -53,9 +58,14 @@ def _checks(text: str, sink: list[tuple[str, Level, str]]) -> tuple[list[dict[st
                 checks.append({"level": str(lvl), "check": name, "message": msg})
                 i, k = i + n, k + 1
                 continue
-        dumped = dumped or lines[i].startswith(_DUMP)
-        # Past the dump, a line is a check only in the two-space shape cv.py prints; a CV heading such as
-        # "INFO SYSTEMS" is not. (The dump has no end marker: a heading with two spaces would still pass.)
+        if lines[i].startswith(_DUMP):
+            dumped = True
+            if dump_len:
+                print(lines[i], file=sys.stderr)
+                i += 1
+                continue
+        # Past the dump, when its length is unknown, a line is a check only in the two-space shape cv.py prints;
+        # a CV heading such as "INFO SYSTEMS" is not (the length is known for the real gate: see registry.note_extraction).
         m = _LINE.match(lines[i]) if not dumped or _AFTER_DUMP.match(lines[i]) else None
         if m:
             nm = _NAME.match(m.group(2))
@@ -127,7 +137,7 @@ def run_json(argv: list[str], dispatch: Dispatch) -> tuple[int, None]:
                "error": (err.getvalue().strip() or "usage error")})
         return 2, None
     sys.stderr.write(err.getvalue())
-    checks, banner = _checks(out.getvalue(), sink)
+    checks, banner = _checks(out.getvalue(), sink, registry.extraction_lines())
     obj: dict[str, object] = {"tool": "doctor" if mode == "--doctor" else "verify"}
     if (v := skill_version()) is not None:
         obj["version"] = v

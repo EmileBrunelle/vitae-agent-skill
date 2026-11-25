@@ -37,7 +37,7 @@ from vitae.verify.pdf import (
     render_pngs,
     word_boxes,
 )
-from vitae.verify.registry import run_gates
+from vitae.verify.registry import note_extraction, run_gates
 from vitae.verify.review_record import check_review_record, layout_report_line
 from vitae.verify.source import _drawn_fill, _fill_args_ok
 from vitae.verify.typst import _doc_body_size, _doc_par_list, _strip_typst_comments
@@ -507,6 +507,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     # The extraction is printed last, whatever the verdict: the reading-order check is the
     # agent's, by hand (references/steps/6-verify.md), and needs the text next to the PASS/FAIL.
     print("──── extraction (check reading order, orphaned dates, intact skill lines) ────")
+    note_extraction(txt)
     print(txt)
 
     if fail == 0:

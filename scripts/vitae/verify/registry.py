@@ -44,17 +44,31 @@ class FnGate:
 
 
 _sink: list[tuple[str, Level, str]] | None = None
+_dump_lines: int | None = None
 
 
 @contextmanager
 def recording(sink: list[tuple[str, Level, str]]) -> Iterator[None]:
     """While active, `run_gates` also appends (gate name, level, message) to `sink`: what `--json` reads."""
-    global _sink
-    _sink = sink
+    global _sink, _dump_lines
+    _sink, _dump_lines = sink, None
     try:
         yield
     finally:
         _sink = None
+
+
+def note_extraction(text: str) -> None:
+    """The caller is about to print `text` (the PDF extraction): remember how many lines it takes, so `--json` can
+    tell where the dump ends (it has no end marker) and read the report lines after it."""
+    global _dump_lines
+    if _sink is not None:
+        _dump_lines = len(text.split("\n"))
+
+
+def extraction_lines() -> int | None:
+    """Line count noted by `note_extraction` in the last `recording` block, None if there was none."""
+    return _dump_lines
 
 
 def run_gates(gates: Sequence[Gate], ctx: VerifyContext) -> int:
