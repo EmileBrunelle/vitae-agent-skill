@@ -63,7 +63,7 @@ def _next_block(h: HeadMark, hx: float, words: list[Word], marks: list[_KMark],
         # y-centre lands one line too low. If an in-column head opens within
         # that window, THAT is the next block of this column's flow.
         h2 = [x for x in marks if x["_k"] == "h" and x["page"] == h["page"]
-              and abs(x.get("x", 0.0) - h["x"]) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
+              and abs(x["x"] - h["x"]) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
         if h2:
             m = min(h2, key=lambda x: x["y"])
             mrun = _find_run(words, m["text"], m["y"])
@@ -133,7 +133,7 @@ def _measure_head(h: HeadMark, marks: list[_KMark], pages_words: list[list[Word]
         return None, True
     # next block head on this page (entry head, skill label or section title)
     later = [m for m in marks if m["page"] == h["page"] and m["y"] > h["y"] + 2
-             and not (m["_k"] == "h" and abs(m.get("x", 0.0) - h["x"]) > 60)]
+             and not (m["_k"] == "h" and abs(m["x"] - h["x"]) > 60)]
     if not later:
         return None, False                 # last block on its page: no next head
     nb = _next_block(h, hx, words, marks, later)

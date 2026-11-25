@@ -221,6 +221,16 @@ class TestMeasureGroups:
         (r,) = [r for r in rows if r["kind"] == "group"]
         assert r["pair_btw"][1] == "Next"
 
+    def test_rail_title_whose_in_column_head_is_not_located_is_skipped(self):
+        # the in-column head opening in the rail title's window has no words at its position: the group is
+        # skipped (counted), not measured against the title
+        words = [line("A", 0, x=100), line("B", 12, x=100), line("RAIL", 40, x=10, w=30),
+                 line("Next", 80, x=100)]
+        rows, skipped = groups.measure_groups([head("A", 0, x=100), head("Next", 42, x=100)],
+                                              [sec("RAIL", 40, x=10)], [words])
+        assert [r for r in rows if r["kind"] == "group"] == []
+        assert skipped == 2      # A (its next block is not located) and Next (not located itself)
+
     def test_section_rows_measure_gap_above_and_below_the_title(self):
         words = [line("A", 0), line("B", 12), line("EDU", 40), line("Item", 62)]
         rows, _ = groups.measure_groups([head("A", 0)], [sec("EDU", 40)], [words])
