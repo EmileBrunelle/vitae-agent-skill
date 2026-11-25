@@ -174,3 +174,21 @@ def check_review_record(typ: str, sources: tuple[str, ...] | list[str] = (), pan
     out.append((Level.INFO, f"review record: runtime {runtime}, {len(personas)} personas, "
                             f"{applied} finding(s) applied, {rejected} rejected"))
     return out
+
+
+_LAYOUT_KEYWORD = re.compile(r"subagent|other-model|self|user|not run \(no redesign\)", re.I)
+
+
+def layout_report_line(typ: str) -> str | None:
+    """The `Layout review: …` report line (step 7) for the record beside `typ`, read from its `layout:` field; None
+    when the record or the field cannot be read. Called by the gates only after `check_review_record` passed, so the
+    gate output the agent pastes carries the line and it never has to be retyped."""
+    try:
+        lines = Path(os.path.join(os.path.dirname(os.path.abspath(typ)), RECORD_NAME)).read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return None
+    value = " ".join((_field(lines, "layout") or "").split())
+    m = _LAYOUT_KEYWORD.match(value)
+    if not m:
+        return None
+    return f"Layout review: {m.group(0).lower()}{value[m.end():]}"

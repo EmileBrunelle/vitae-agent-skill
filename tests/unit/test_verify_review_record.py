@@ -8,7 +8,7 @@ import sys
 import pytest
 from vitae.core.level import Level
 from vitae.verify import cv
-from vitae.verify.review_record import check_review_record
+from vitae.verify.review_record import check_review_record, layout_report_line
 
 GOOD = """runtime: sub-agents
 cv: cv.typ
@@ -625,7 +625,7 @@ def test_academic_with_a_valid_record_passes(academic, tmp_path, capsys):
     _record(tmp_path, ACADEMIC)
     assert academic() == 0
     out = capsys.readouterr().out
-    assert "INFO  review record: runtime sub-agents" in out and out.splitlines()[-1] == "PASS  all five checks hold"
+    assert "INFO  review record: runtime sub-agents" in out and "PASS  all five checks hold" in out.splitlines()
 
 
 def test_academic_rebuild_skips_only_the_record(academic, tmp_path, capsys):
@@ -663,3 +663,142 @@ def test_failure_messages_read_as_the_instruction_the_agent_acts_on(tmp_path):
     (msg,) = _fails(_check(tmp_path, GOOD.replace("subagent haiku", "self")))
     assert msg == ("review record: `layout:` with `runtime: sub-agents` must be subagent <model> | other-model <model> | "
                    "user — the layout reviewer always runs on the full path (got 'self')")
+
+
+# ------------------------------------------------------------------ the `Layout review:` report line, from the record
+
+@pytest.mark.parametrize("layout,line", [
+    ("subagent haiku", "Layout review: subagent haiku"),
+    ("Subagent   Haiku 4.5", "Layout review: subagent Haiku 4.5"),
+    ("other-model qwen3-vl", "Layout review: other-model qwen3-vl"),
+    ("user", "Layout review: user"),
+    ("SELF", "Layout review: self"),
+    ("Not Run (no redesign)", "Layout review: not run (no redesign)"),
+])
+def test_layout_report_line_is_the_documented_form_of_the_layout_field(tmp_path, layout, line):
+    _record(tmp_path, GOOD.replace("subagent haiku", layout))
+    assert layout_report_line(str(_cv(tmp_path))) == line
+
+
+def test_layout_report_line_is_none_without_a_readable_record_or_field(tmp_path):
+    typ = str(_cv(tmp_path))
+    assert layout_report_line(typ) is None                                        # no review.md
+    _record(tmp_path, GOOD.replace("layout: subagent haiku\n", ""))
+    assert layout_report_line(typ) is None                                        # no layout field
+    _record(tmp_path, GOOD.replace("subagent haiku", "later"))
+    assert layout_report_line(typ) is None                                        # not a documented form
+    (tmp_path / "review.md").write_bytes(b"\xff\xfe layout: self")
+    assert layout_report_line(typ) is None                                        # unreadable
+
+
+def test_layout_report_line_reads_the_record_beside_the_cv_not_the_working_directory(tmp_path, monkeypatch):
+    other = tmp_path / "elsewhere"
+    other.mkdir()
+    (other / "review.md").write_text(GOOD.replace("subagent haiku", "user"), encoding="utf-8")
+    _record(tmp_path)
+    monkeypatch.chdir(other)
+    assert layout_report_line(str(_cv(tmp_path))) == "Layout review: subagent haiku"
+
+
+LAYOUT_LINE = "Layout review: subagent haiku"
+
+
+def test_gate_output_carries_the_layout_line_right_after_the_pass_line(gate, tmp_path, capsys):
+    typ = _cv(tmp_path)
+    _record(tmp_path)
+    rc, _ = gate(typ, "60", "100")
+    lines = _lines(capsys)
+    pass_at = next(i for i, ln in enumerate(lines) if ln.startswith("PASS  all mechanical checks"))
+    assert rc == 0 and lines[pass_at + 1] == LAYOUT_LINE and lines.count(LAYOUT_LINE) == 1
+
+
+def test_gate_layout_line_follows_a_lowered_fill_pass_too(gate, tmp_path, capsys):
+    typ = _cv(tmp_path)
+    typ.write_text("// vitae: pages=1 fill=70-80\n" + typ.read_text(encoding="utf-8"), encoding="utf-8")
+    os.utime(typ, (1_000, 1_000))
+    _record(tmp_path, GOOD.replace("runtime: sub-agents", "runtime: none").replace("subagent haiku", "self"))
+    rc, _ = gate(typ, "60", "100")
+    lines = _lines(capsys)
+    pass_at = next(i for i, ln in enumerate(lines) if ln.startswith("PASS (fill target lowered"))
+    assert rc == 0 and "Layout review: self" in lines[pass_at + 1:]
+
+
+@pytest.mark.parametrize("runtime,layout", [("none", "not run (no redesign)"), ("none", "self"), ("sub-agents", "user")])
+def test_gate_layout_line_maps_every_documented_layout_value(gate, tmp_path, capsys, runtime, layout):
+    _record(tmp_path, GOOD.replace("runtime: sub-agents", f"runtime: {runtime}").replace("subagent haiku", layout))
+    rc, _ = gate(_cv(tmp_path), "60", "100")
+    assert rc == 0 and f"Layout review: {layout}" in _lines(capsys)
+
+
+def test_gate_prints_no_layout_line_without_a_record(gate, tmp_path, capsys):
+    rc, _ = gate(_cv(tmp_path), "60", "100")
+    assert rc == 1 and not any(ln.startswith("Layout review") for ln in _lines(capsys))
+
+
+def test_gate_prints_no_layout_line_for_an_invalid_record(gate, tmp_path, capsys):
+    _record(tmp_path, GOOD.replace("recruiter, ", ""))                        # personas lack the recruiter: FAIL
+    rc, _ = gate(_cv(tmp_path), "60", "100")
+    out = capsys.readouterr().out
+    assert rc == 1 and "FAIL  review record: `personas:` lacks recruiter" in out and "Layout review" not in out
+
+
+def test_gate_prints_no_layout_line_when_the_record_is_skipped(gate, tmp_path, capsys, monkeypatch):
+    _record(tmp_path)                                                         # a valid record is there, but skipped
+    rc, _ = gate(_cv(tmp_path), "60", "100", rebuild=True)
+    assert rc == 0 and "Layout review" not in capsys.readouterr().out
+    monkeypatch.setattr(cv, "placeholders_allowed", lambda typ: True)
+    rc, _ = gate(_cv(tmp_path), "60", "100", allow_placeholders=True)
+    assert rc == 0 and "Layout review" not in capsys.readouterr().out
+
+
+def test_gates_mode_prints_no_layout_line_even_with_a_valid_record(gate, tmp_path, capsys, monkeypatch):
+    from vitae.verify import cli
+    typ = _cv(tmp_path)
+    _record(tmp_path)
+    monkeypatch.setattr(cli, "pdf_backend", lambda: None)
+    monkeypatch.setattr(cli, "extract_text", lambda pdf, backend: "")
+    monkeypatch.setattr(cli, "make_context", lambda *a, **k: None)
+    monkeypatch.setattr(cli, "run_gates", lambda gates, ctx: 0)
+    monkeypatch.setattr(sys, "argv", ["verify.py", "--gates", str(typ), str(tmp_path / "cv.pdf")])
+    rc, _ = cli.main()
+    assert rc == 0 and "Layout review" not in capsys.readouterr().out
+
+
+def test_gate_json_exposes_the_layout_review_and_does_not_count_it_as_a_check(gate, tmp_path, capsys, monkeypatch):
+    import json
+
+    from vitae.verify import cli
+    _record(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["verify.py", str(_cv(tmp_path)), "1", "60", "100", "--json"])
+    rc, _ = cli.main()
+    cap = capsys.readouterr()
+    d = json.loads(cap.out)
+    assert rc == 0 and d["verdict"] == "PASS" and d["layout_review"] == "subagent haiku"
+    assert not any("Layout review" in c["message"] for c in d["checks"])
+    assert LAYOUT_LINE in cap.err                                             # a non-check line goes to stderr
+
+
+def test_gate_json_has_no_layout_review_without_a_valid_record(gate, tmp_path, capsys, monkeypatch):
+    import json
+
+    from vitae.verify import cli
+    monkeypatch.setattr(sys, "argv", ["verify.py", str(_cv(tmp_path)), "1", "60", "100", "--json"])
+    rc, _ = cli.main()
+    d = json.loads(capsys.readouterr().out)
+    assert rc == 1 and d["verdict"] == "FAIL" and "layout_review" not in d
+
+
+def test_academic_layout_line_is_the_last_line_after_the_pass_line(academic, tmp_path, capsys):
+    _cv(tmp_path)
+    _record(tmp_path, ACADEMIC)
+    assert academic() == 0
+    assert _lines(capsys)[-2:] == ["PASS  all five checks hold", LAYOUT_LINE]
+
+
+def test_academic_prints_no_layout_line_when_the_record_is_missing_or_skipped(academic, tmp_path, capsys):
+    _cv(tmp_path)
+    assert academic() == 1
+    assert "Layout review" not in capsys.readouterr().out
+    _record(tmp_path, ACADEMIC)
+    assert academic("--rebuild") == 0
+    assert "Layout review" not in capsys.readouterr().out

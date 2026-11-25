@@ -49,7 +49,7 @@ from vitae.core.env import preflight
 from vitae.core.level import Level
 from vitae.selftest.academic import selftest
 from vitae.verify.academic.gate import run_gate
-from vitae.verify.review_record import check_review_record
+from vitae.verify.review_record import check_review_record, layout_report_line
 
 
 class _UsageParser(argparse.ArgumentParser):
@@ -115,6 +115,8 @@ def main() -> None:
     for lvl, msg in record:
         print(f"{lvl}  {msg}")
     print("PASS  all five checks hold" + (" (review record skipped: --rebuild, candidate rebuild)" if rebuild else ""))
+    if record and (layout := layout_report_line(typ)):   # step-7 report line from review.md: pasted, never retyped
+        print(layout)
     sys.exit(0)
 
 

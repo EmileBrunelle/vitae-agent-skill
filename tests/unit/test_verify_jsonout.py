@@ -143,6 +143,48 @@ def test_pass_object_carries_the_skill_version_and_the_banner(capsys):
     assert d["summary"] == "PASS 1 mechanical checks" and d["verdict"] == "PASS" and d["footer"] is None
 
 
+def _layout_dispatch(*lines, rc=0):
+    def dispatch(argv):
+        print("\n".join(lines))
+        return rc, None
+    return dispatch
+
+
+def test_layout_review_is_the_line_printed_under_the_pass_line_and_is_no_check(capsys):
+    d = _run(capsys, ["x.typ"], _layout_dispatch("OK    fine", "PASS all mechanical checks", "Layout review: other-model qwen3-vl"))
+    _, obj, err = d
+    assert obj["layout_review"] == "other-model qwen3-vl"
+    assert [c["message"] for c in obj["checks"]] == ["fine"]
+    assert "Layout review: other-model qwen3-vl" in err
+
+
+def test_layout_review_is_found_when_the_pass_line_is_the_first_line_and_warnings_follow(capsys):
+    """The gate repeats the lead/size warnings after the PASS line, so more lines can follow the report line."""
+    _, d, _ = _run(capsys, ["x.typ"], _layout_dispatch("PASS all mechanical checks", "Layout review: self", "WARN  late"))
+    assert d["layout_review"] == "self"
+
+
+def test_layout_review_is_absent_when_the_gate_printed_none(capsys):
+    _, d, _ = _run(capsys, ["x.typ"], _layout_dispatch("OK    fine", "PASS all mechanical checks"))
+    assert "layout_review" not in d
+
+
+def test_layout_review_is_absent_on_a_fail_even_if_the_text_has_such_a_line(capsys):
+    _, d, _ = _run(capsys, ["x.typ"], _layout_dispatch("PASS x", "Layout review: self", "FAIL  nope", rc=1))
+    assert d["verdict"] == "FAIL" and "layout_review" not in d
+
+
+def test_layout_review_ignores_a_line_of_the_cv_text_above_the_pass_line(capsys):
+    """The extraction dump comes before the verdict; a CV line that looks like the report line is not read."""
+    _, d, _ = _run(capsys, ["x.typ"], _layout_dispatch("Layout review: self", "PASS all mechanical checks"))
+    assert "layout_review" not in d
+
+
+def test_layout_review_needs_a_value(capsys):
+    _, d, _ = _run(capsys, ["x.typ"], _layout_dispatch("PASS all mechanical checks", "Layout review: ", "Layout review:"))
+    assert "layout_review" not in d
+
+
 def test_fail_object_keeps_the_footer(capsys):
     rc, d, _ = _run(capsys, ["x.typ"], lambda argv: (1, "NEXT fix it"))
     assert (rc, d["verdict"], d["exit_code"], d["footer"]) == (1, "FAIL", 1, "NEXT fix it")

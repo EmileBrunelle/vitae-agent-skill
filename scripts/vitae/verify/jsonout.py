@@ -26,6 +26,7 @@ _LINE = re.compile(r"^(OK|INFO|WARN|FAIL|NEXT) +(\S.*)$")
 _DUMP = "──── extraction"    # cv.py prints this line, then the raw PDF text, with no end marker
 _AFTER_DUMP = re.compile(r"^(OK|INFO|WARN|FAIL|NEXT)  \S")   # what cv.py prints after the dump uses two spaces
 _BANNER = re.compile(r"^PASS .*mechanical checks")
+_LAYOUT_REVIEW = re.compile(r"^Layout review: (\S.*)$")   # printed by the gates after the PASS line (review_record.layout_report_line)
 _NAME = re.compile(r"^([a-z][a-z0-9 _-]{0,24}?) *(?::|\()")
 _FILL = re.compile(r"to (\d+)%")
 Dispatch = Callable[[list[str]], tuple[int, str | None]]
@@ -66,6 +67,18 @@ def _checks(text: str, sink: list[tuple[str, Level, str]]) -> tuple[list[dict[st
             print(lines[i], file=sys.stderr)
         i += 1
     return checks, banner
+
+
+def _layout_review(text: str) -> str | None:
+    """The `<kind> [<model>]` of the `Layout review:` line the gate printed under its PASS line, None without one."""
+    lines = text.split("\n")
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].startswith("PASS "):
+            for ln in lines[i + 1:]:
+                if m := _LAYOUT_REVIEW.match(ln):
+                    return m.group(1)
+            return None
+    return None
 
 
 def _positionals(argv: list[str]) -> list[str]:
@@ -130,5 +143,7 @@ def run_json(argv: list[str], dispatch: Dispatch) -> tuple[int, None]:
                footer=footer if rc else None)   # as in text mode, the footer is only for a failure
     if banner:
         obj["summary"] = banner
+    if rc == 0 and (layout := _layout_review(out.getvalue())):
+        obj["layout_review"] = layout
     _emit(obj)
     return rc, None

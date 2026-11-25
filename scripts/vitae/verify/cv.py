@@ -38,7 +38,7 @@ from vitae.verify.pdf import (
     word_boxes,
 )
 from vitae.verify.registry import run_gates
-from vitae.verify.review_record import check_review_record
+from vitae.verify.review_record import check_review_record, layout_report_line
 from vitae.verify.source import _drawn_fill, _fill_args_ok
 from vitae.verify.typst import _doc_body_size, _doc_par_list, _strip_typst_comments
 
@@ -546,6 +546,9 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
             print(f"PASS {tag}mechanical checks except fill (no FILL_MIN FILL_MAX "
                   "given) — rerun with the fill targets from the pick_design.py "
                   "report, then LOOK at the PNGs")
+        layout = layout_report_line(typ) if record else None   # step-7 report line from review.md: pasted, never retyped
+        if layout:
+            print(layout)
         if lead_warn:        # repeated after PASS so a green run does not bury them
             print(lead_warn)
         if size_warn:
