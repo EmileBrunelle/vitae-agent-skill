@@ -39,7 +39,7 @@
   #line(length: 100%, stroke: 0.8pt + accent)
 ]
 
-// ---------- Corps ----------
+// ---------- Body ----------
 #text(size: 10.5pt)[September 13, 2026]
 #v(10pt)
 
