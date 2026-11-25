@@ -5,6 +5,8 @@
 # `src/` would change ruff's first-party detection).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# a SIGKILLed previous run leaves the symlink (the trap never ran): drop it, but never a real dir/file
+[ -L src ] && rm src
 [ -e src ] && { echo "src/ exists; remove it first" >&2; exit 2; }
 ln -s scripts src
 trap 'rm -f src' EXIT

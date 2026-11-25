@@ -2,12 +2,9 @@
 captured text, the error objects, and the version read from SKILL.md. (The real gate through `cli.main` is in
 test_verify_json.py.)"""
 import json
-import re
 import sys
-from pathlib import Path
 
 import pytest
-from _paths import SKILL_MD
 from vitae.core.level import Level
 from vitae.verify import jsonout
 
@@ -23,38 +20,37 @@ def _ok(argv):
     return 0, None
 
 
-def _skill_md(monkeypatch, text):
-    real = Path.read_text
-    monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: text if self.name == "SKILL.md" else real(self, *a, **k))
+def _skill_md(monkeypatch, tmp_path, text):
+    """Point skill_version at a temporary SKILL.md: it reads <module>/../../.. / SKILL.md, so fake the module location."""
+    (tmp_path / "SKILL.md").write_text(text, encoding="utf-8")
+    monkeypatch.setattr(jsonout, "__file__", str(tmp_path / "a" / "b" / "c" / "jsonout.py"))
 
 
 # --- skill_version -----------------------------------------------------------------------------------------------
 
-def test_skill_version_is_the_one_in_the_shipped_frontmatter():
-    declared = re.search(r'^\s+version:\s*"?([^"\s]+)"?\s*$', SKILL_MD.read_text(encoding="utf-8").split("\n---", 2)[0], re.M)
-    assert declared and jsonout.skill_version() == declared.group(1)
-
-
 @pytest.mark.parametrize("line", ['  version: "1.2.3"', "  version: 1.2.3", '  version:   "1.2.3"  '])
-def test_skill_version_reads_quoted_or_bare_values(monkeypatch, line):
-    _skill_md(monkeypatch, f"---\nname: x\nmetadata:\n{line}\n---\nbody\n")
+def test_skill_version_reads_quoted_or_bare_values(monkeypatch, tmp_path, line):
+    _skill_md(monkeypatch, tmp_path, f"---\nname: x\nmetadata:\n{line}\n---\nbody\n")
     assert jsonout.skill_version() == "1.2.3"
 
 
-def test_skill_version_ignores_a_version_line_in_the_body(monkeypatch):
-    _skill_md(monkeypatch, "---\nname: x\n---\nbody\n  version: 9.9.9\n\n---\n\n---\nmore\n")
+def test_skill_version_is_none_when_the_frontmatter_has_no_version(monkeypatch, tmp_path):
+    _skill_md(monkeypatch, tmp_path, "---\nname: x\n---\nbody\n")
     assert jsonout.skill_version() is None
 
 
-def test_skill_version_prefers_the_frontmatter_over_the_body(monkeypatch):
-    _skill_md(monkeypatch, '---\nmetadata:\n  version: "1.0.0"\n---\nbody\n  version: 9.9.9\n')
+def test_skill_version_ignores_a_version_line_in_the_body(monkeypatch, tmp_path):
+    _skill_md(monkeypatch, tmp_path, "---\nname: x\n---\nbody\n  version: 9.9.9\n\n---\n\n---\nmore\n")
+    assert jsonout.skill_version() is None
+
+
+def test_skill_version_prefers_the_frontmatter_over_the_body(monkeypatch, tmp_path):
+    _skill_md(monkeypatch, tmp_path, '---\nmetadata:\n  version: "1.0.0"\n---\nbody\n  version: 9.9.9\n')
     assert jsonout.skill_version() == "1.0.0"
 
 
-def test_skill_version_is_none_when_the_file_cannot_be_read(monkeypatch):
-    def boom(self, *a, **k):
-        raise OSError("gone")
-    monkeypatch.setattr(Path, "read_text", boom)
+def test_skill_version_is_none_when_the_file_is_missing(monkeypatch, tmp_path):
+    monkeypatch.setattr(jsonout, "__file__", str(tmp_path / "a" / "b" / "c" / "jsonout.py"))
     assert jsonout.skill_version() is None
 
 

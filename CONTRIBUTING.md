@@ -31,7 +31,7 @@ Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow, 
 
 ### Mutation testing (local, not in CI)
 
-`pip install mutmut` (3.8.1 used; into any env, it is not a dependency of the skill), then from the repository root:
+`pip install mutmut` (3.8.1 used; into any env, it is not a dependency of the skill), then from the repository root (the wrapper is bash: WSL on Windows):
 
 ```
 tests/mutmut.sh run --max-children 4     # ~3 min; then: tests/mutmut.sh results | show <mutant> | browse
