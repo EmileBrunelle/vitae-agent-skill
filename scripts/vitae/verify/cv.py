@@ -24,6 +24,7 @@ from vitae.core.base import (
 )
 from vitae.core.env import preflight, typst_can_query
 from vitae.core.level import Finding, Level
+from vitae.design.libapi import OLD_LIB_NOTE, is_old_lib
 from vitae.verify import placeholders
 from vitae.verify.gates import GATES, make_context
 from vitae.verify.layout import check_text_clip, check_whitespace
@@ -187,6 +188,11 @@ def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = 
     return fail
 
 
+def lib_text(path: str) -> str:
+    """The text of a lib file."""
+    return _normalised(path).decode("utf-8", errors="replace")
+
+
 def _normalised(f: str) -> bytes:
     """A lib file's bytes, BOM and CRLF normalised, so a copy re-saved on Windows still compares equal."""
     with open(f, "rb") as fh:
@@ -246,7 +252,8 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
         return [(Level.FAIL, f"{shown} is imported but missing — copy it: {cp}")]
     if _normalised(lib) == _normalised(ref):
         return []
-    return [(Level.FAIL, "lib.typ differs from the skill's (older release or edited): "
+    old = OLD_LIB_NOTE + "; " if is_old_lib(lib_text(lib)) else ""
+    return [(Level.FAIL, f"lib.typ differs from the skill's (older release or edited): {old}"
                      f"copy it again: {cp}")]
 
 

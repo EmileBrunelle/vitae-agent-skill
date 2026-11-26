@@ -10,6 +10,15 @@ from pathlib import Path
 _DEF = re.compile(r"^#let ([A-Za-z][\w-]*)(\()?", re.M)
 _OPEN, _CLOSE = "([{", ")]}"
 
+OLD_LIB_NOTE = ("an OLD lib.typ (defines `nb` but not `contact`): header contacts and bullet markers are not "
+                "tagged, so the contact-line and bullet-runts gates cannot see them")
+
+
+def is_old_lib(src: str) -> bool:
+    """A lib.typ from before `contact()`: it defines `nb` and no `contact`."""
+    names = {m.group(1) for m in _DEF.finditer(src)}
+    return "nb" in names and "contact" not in names
+
 
 def _params(src: str, start: int) -> list[str] | None:
     """Parameter texts of the definition whose '(' sits just before `start`; None if unbalanced.

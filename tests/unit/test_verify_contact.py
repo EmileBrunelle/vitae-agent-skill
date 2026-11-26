@@ -136,3 +136,30 @@ def test_every_header_contact_item_is_tagged(tmp_path, rel):
     from vitae.verify.groups.query import _typst_values
     vals = _typst_values(str(TEMPLATES / rel), "<vitae-contact>", str(ROOT))
     assert vals is not None and len(vals) == 5
+
+
+def test_contact_is_recognised_by_its_explicit_kind_only(tmp_path, monkeypatch):
+    """A value shaped like a contact item but without `kind` is a (malformed) mark, never a contact item."""
+    from vitae.verify.groups import query
+    shaped = {"text": "", "page": 1, "x": 5.0, "y": 10.0}
+    tagged = {"kind": "contact", "text": "", "page": 1, "x": 5.0, "y": 10.0}
+    decl = {"kind": "contact-rows", "rows": 2}
+    monkeypatch.setattr(query, "_typst_values", lambda *a, **k: [shaped, tagged, decl, {"page": 1, "y": 3.0}])
+    marks, note, contact = query._typst_marks_and_contact("x.typ", "sel")
+    assert contact is not None
+    assert contact.items == [tagged]
+    assert contact.rows == [decl]
+    assert marks == [shaped]
+    assert note is not None and "malformed" in note
+
+
+def test_contact_rows_accepts_a_whole_number_float(tmp_path):
+    body = "#contact(none)[a] \\\\ #contact(none)[b]"
+    assert _check(tmp_path, body, rows="2.0")[0][0] == Level.OK
+
+
+def test_contact_rows_declaration_unreadable_is_warn():
+    items = [{"kind": "contact", "page": 1, "y": 10.0}]
+    for bad in (2.5, 0, "2", None):
+        out = check_contact_line(items, [{"kind": "contact-rows", "rows": bad}])
+        assert out[0][0] == Level.WARN and "contact-rows" in out[0][1]

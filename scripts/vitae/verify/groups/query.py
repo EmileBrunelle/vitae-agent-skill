@@ -133,17 +133,16 @@ def _typst_query_checked(typ: str, selector: str, root: str | None = None) -> tu
     return _check_marks(vals)
 
 
-def _is_contact_value(v: object) -> bool:
-    """A <vitae-contact> item: lib `contact` writes an empty `text` with page/x/y and no `kind`, which every
-    other lib mark carries."""
-    return isinstance(v, dict) and "kind" not in v and v.get("text", "") == ""
+def _kind_of(v: object) -> object:
+    """The `kind` of a lib metadata value, None when it is not a dict or has none."""
+    return v.get("kind") if isinstance(v, dict) else None
 
 
 def _typst_marks_and_contact(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None, ContactValues | None]:
     """ONE query for the marks and the contact labels: `selector` selects all of them (Typst `.or`), and the
-    values are split by shape since a query drops the label. A <vitae-contact-rows> value is a bare integer, a
-    <vitae-contact> item a dict with an empty `text` and no `kind`; everything else goes through _check_marks as before.
-    All three are None when the query is unavailable."""
+    values are split by their explicit `kind` since a query drops the label: "contact" is a <vitae-contact> item,
+    "contact-rows" a <vitae-contact-rows> declaration; everything else goes through _check_marks as before
+    (a value with neither kind is never counted as contact). All three are None when the query is unavailable."""
     vals = _typst_values(typ, selector, root)
     if vals is None:
         return None, None, None
@@ -151,7 +150,8 @@ def _typst_marks_and_contact(typ: str, selector: str, root: str | None = None) -
     items: list[object] = []
     rest: list[object] = []
     for v in vals:
-        (rows if isinstance(v, int) and not isinstance(v, bool) else items if _is_contact_value(v) else rest).append(v)
+        kind = _kind_of(v)
+        (rows if kind == "contact-rows" else items if kind == "contact" else rest).append(v)
     marks, note = _check_marks(rest)
     return marks, note, ContactValues(items=items, rows=rows)
 
