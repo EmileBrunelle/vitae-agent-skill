@@ -1,10 +1,11 @@
 """Every template against its fill target: 14 families x {resume, resume-pair-b} on 1 page, plus the 2-page variants.
 
 The families come from vitae.design.tables.FAMILIES and templates/families (discovered in conftest, never listed here); the
-fill range is FAMILIES[f]['page']['fill']. The checks run concurrently in the `template_results` fixture; each test asserts
-on its own result. --quick: the first 3 only.
+fill range is FAMILIES[f]['page']['fill']. One test per template (run in parallel with `pytest -n auto`). --quick: the first 3 only.
 """
 from __future__ import annotations
+
+from collections.abc import Callable
 
 import pytest
 from harness import QUICK_TEMPLATES, ROOT, TWO_PAGE_FILL, CheckResult, Template, assert_passed, discover_templates
@@ -21,7 +22,7 @@ def test_every_family_has_its_templates() -> None:
     assert two == set(TWO_PAGE_FILL), f"resume-2page.typ without a declared fill target (or target without file): {sorted(two ^ set(TWO_PAGE_FILL))}"
 
 
-def test_template(template: Template, template_results: dict[str, CheckResult], quick: bool) -> None:
+def test_template(template: Template, run_template: Callable[[Template], CheckResult], quick: bool) -> None:
     if quick and discover_templates().index(template) >= QUICK_TEMPLATES:
         pytest.skip("--quick: first 3 templates only")
-    assert_passed(template_results[template.check_name])
+    assert_passed(run_template(template))

@@ -1,4 +1,4 @@
-"""Helpers shared by the integration checks: run a subprocess check into a log, apply the PASS rule, run a batch in parallel.
+"""Helpers shared by the integration checks: run a subprocess check into a log, apply the PASS rule.
 
 The rule is run_all.sh's: a check PASSES only if it exits 0 AND prints no line starting with "FAIL" (verify.py's verdict
 is its last line; a wrapper that swallows the exit code must not turn a FAIL into a PASS).
@@ -10,8 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Callable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -61,21 +60,6 @@ def run_check(name: str, argv: Sequence[str | int | os.PathLike[str]], cwd: Path
 
 def assert_passed(r: CheckResult) -> None:
     assert r.passed, f"FAIL {r.name} (exit {r.rc}; see {r.log})\n{r.tail()}"
-
-
-def jobs() -> int:
-    """Pool size: $VITAE_JOBS (as run_all.sh), else the CPU count; anything unusable means 1."""
-    raw = os.environ.get("VITAE_JOBS")
-    if raw is None:
-        return os.cpu_count() or 2
-    return int(raw) if raw.isdigit() and int(raw) > 0 else 1
-
-
-def run_parallel(thunks: Mapping[str, Callable[[], CheckResult]]) -> dict[str, CheckResult]:
-    """Run the checks concurrently (subprocess-bound, so threads are enough); results keyed like the input."""
-    with ThreadPoolExecutor(max_workers=jobs()) as pool:
-        futures = {k: pool.submit(t) for k, t in thunks.items()}
-        return {k: f.result() for k, f in futures.items()}
 
 
 # The first 3 templates only under --quick.

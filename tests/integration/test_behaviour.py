@@ -13,7 +13,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from harness import CheckResult, discover_templates, grep, typst_compile
+from harness import CheckResult, Template, discover_templates, grep, typst_compile
 
 Check = Callable[..., CheckResult]
 
@@ -161,11 +161,13 @@ def test_language_facts(lang: str, check: Check, py: str, scratch: Path) -> None
 
 
 @pytest.fixture
-def a_template_pdf(template_results: dict[str, CheckResult], out_dir: Path) -> Path:
-    """The first PDF the template runs kept in <out>/pdf."""
-    pdfs = sorted((out_dir / "pdf").glob("*.pdf"))
-    assert pdfs, "no PDF from the template runs"
-    return pdfs[0]
+def a_template_pdf(run_template: Callable[[Template], CheckResult], scratch: Path) -> Path:
+    """The PDF of the first template (its run also keeps it in <out>/pdf)."""
+    t = discover_templates()[0]
+    run_template(t)
+    pdf = scratch / "templates" / "families" / t.family / f"{t.name}.pdf"
+    assert pdf.is_file(), "no PDF from the template run"
+    return pdf
 
 
 def test_text_render(a_template_pdf: Path, check: Check, py: str, scratch: Path) -> None:

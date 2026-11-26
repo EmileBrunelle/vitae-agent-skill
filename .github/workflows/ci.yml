@@ -41,7 +41,7 @@ jobs:
       - name: Python dependencies
         # typst + pypdfium2 are what the integration suite's backend comparison and the equivalence bench
         # need next to the CLI/poppler; typst-py is pinned to its own PyPI version.
-        run: pip install Pillow pypdf pyyaml==6.0.4 mypy==2.4.1 ruff==0.17.6 pytest==9.2.0 pypdfium2 "typst==$TYPST_PY_VERSION"
+        run: pip install Pillow pypdf pyyaml==6.0.4 mypy==2.4.1 ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 pypdfium2 "typst==$TYPST_PY_VERSION"
 
       - name: Typst ${{ env.TYPST_VERSION }}
         if: matrix.python-version == '3.x'
@@ -83,11 +83,11 @@ jobs:
         run: ruff check scripts tests evals
 
       - name: Unit tests (tests/unit)
-        run: python -m pytest -q tests/unit
+        run: python -m pytest -q -n auto tests/unit
 
       - name: Integration checks (tests/integration)
         if: matrix.python-version == '3.x'
-        run: python -m pytest -q tests/integration --vitae-out "$RUNNER_TEMP/out"
+        run: python -m pytest -q -n auto tests/integration --vitae-out "$RUNNER_TEMP/out"
 
       # Same inputs through poppler vs pypdfium2 and typst CLI vs typst-py: gate VERDICTS must match
       # (the bench needs the CLI and poppler, so it lives in this job, not in pure-python).
@@ -126,9 +126,9 @@ jobs:
 
       - name: Lint (pyproject.toml)
         run: |
-          pip install ruff==0.17.6 pytest==9.2.0 pyyaml==6.0.4
+          pip install ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 pyyaml==6.0.4
           ruff check scripts tests evals
-          python -m pytest -q tests/unit
+          python -m pytest -q -n auto tests/unit
 
       - uses: ./.github/actions/fonts
 
@@ -148,4 +148,4 @@ jobs:
           for t in typst pdftotext pdfinfo pdftoppm; do ! command -v "$t" || { echo "$t is installed"; exit 1; }; done
 
       - name: Integration checks (tests/integration)
-        run: python -m pytest -q tests/integration --vitae-out "$RUNNER_TEMP/out"
+        run: python -m pytest -q -n auto tests/integration --vitae-out "$RUNNER_TEMP/out"
