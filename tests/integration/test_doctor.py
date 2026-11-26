@@ -167,7 +167,7 @@ def test_doctor_minimal_fonts(doc: Callable[..., CheckResult]) -> None:
 def test_doctor_full_fonts(doc: Callable[..., CheckResult]) -> None:
     """A font list covering every font pick_design knows: no DEGRADED fonts line."""
     from vitae.design.tables import FONTS
-    fams = sorted({f[0] for fp in FONTS.values() for role in ("display", "body", "mono") for f in fp.get(role, [])})
+    fams = sorted({f[0] for fp in FONTS.values() for f in [*fp["display"], *fp["body"], *fp.get("mono", [])]})
     r = doc("doctor-sim4", shim=fams)
     assert grep(r.output, r"^OK    fonts"), f"expected OK fonts line\n{r.output}"
     assert not grep(r.output, r"^DEGRADED  fonts"), "unexpected DEGRADED fonts"

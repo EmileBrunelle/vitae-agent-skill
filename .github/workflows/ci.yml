@@ -39,7 +39,7 @@ jobs:
           cache-dependency-path: .github/workflows/ci.yml
 
       - name: Python dependencies
-        # typst + pypdfium2 are what run_all's compare_backends step and the equivalence bench
+        # typst + pypdfium2 are what the integration suite's backend comparison and the equivalence bench
         # need next to the CLI/poppler; typst-py is pinned to its own PyPI version.
         run: pip install Pillow pypdf pyyaml==6.0.4 mypy==2.4.1 ruff==0.17.6 pytest==9.2.0 pypdfium2 "typst==$TYPST_PY_VERSION"
 
@@ -85,9 +85,9 @@ jobs:
       - name: Unit tests (tests/unit)
         run: python -m pytest -q tests/unit
 
-      - name: Run all checks
+      - name: Integration checks (tests/integration)
         if: matrix.python-version == '3.x'
-        run: tests/run_all.sh "$RUNNER_TEMP/out"
+        run: python -m pytest -q tests/integration --vitae-out "$RUNNER_TEMP/out"
 
       # Same inputs through poppler vs pypdfium2 and typst CLI vs typst-py: gate VERDICTS must match
       # (the bench needs the CLI and poppler, so it lives in this job, not in pure-python).
@@ -147,5 +147,5 @@ jobs:
         run: |
           for t in typst pdftotext pdfinfo pdftoppm; do ! command -v "$t" || { echo "$t is installed"; exit 1; }; done
 
-      - name: Run all checks
-        run: tests/run_all.sh "$RUNNER_TEMP/out"
+      - name: Integration checks (tests/integration)
+        run: python -m pytest -q tests/integration --vitae-out "$RUNNER_TEMP/out"

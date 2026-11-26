@@ -9,6 +9,7 @@ from __future__ import annotations
 import shutil
 import sys
 from collections.abc import Callable
+from functools import partial
 from pathlib import Path
 
 import pytest
@@ -100,7 +101,7 @@ def template_results(scratch: Path, out_dir: Path, quick: bool) -> dict[str, Che
     """Every template check, run concurrently once; keyed by check name."""
     ts = discover_templates()
     ts = ts[:QUICK_TEMPLATES] if quick else ts
-    return run_parallel({t.check_name: (lambda t=t: _tpl_run(t, scratch, out_dir)) for t in ts})
+    return run_parallel({t.check_name: partial(_tpl_run, t, scratch, out_dir) for t in ts})
 
 
 @pytest.fixture(scope="session")
@@ -120,9 +121,8 @@ def fixture_results(scratch: Path, out_dir: Path, log_dir: Path) -> dict[str, Ch
         nm = typ.stem
         pdf = fx / f"{nm}.pdf"
         if pdf.is_file():
-            jobs[f"gates/{nm}"] = lambda nm=nm, typ=typ, pdf=pdf: run_check(
-                f"gates/{nm}", [sys.executable, "-I", "scripts/verify.py", "--gates", typ.relative_to(scratch), pdf,
-                                "--root", "."], scratch, None, log_dir)
+            jobs[f"gates/{nm}"] = partial(run_check, f"gates/{nm}", [sys.executable, "-I", "scripts/verify.py", "--gates",
+                                                                    typ.relative_to(scratch), pdf, "--root", "."], scratch, None, log_dir)
         else:
             results[f"gates/{nm}"] = CheckResult(f"gates/{nm}", 1, f"FAIL gates/{nm} (no PDF rendered)", None)
     results.update(run_parallel(jobs))

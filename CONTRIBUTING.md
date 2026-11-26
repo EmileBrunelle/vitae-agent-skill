@@ -21,9 +21,9 @@ Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow, 
 
 1. Everything except spec validation, in one command:
    ```
-   tests/run_all.sh            # add --quick for selftests + 3 templates
+   python -m pytest -q tests/integration    # add --quick for 3 templates and no fixtures
    ```
-   It runs both self-tests, the 29 templates against their fill targets (`pick_design.FAMILIES[f]['page']['fill']`; `swiss-grid/resume-2page.typ` at `2 94 96`) and the spacing fixtures with their gates, on a scratch copy so the repo stays clean. It prints one `PASS`/`FAIL` line per check, keeps going after a failure and exits non-zero if any failed. Every line must be `PASS`. CI runs the same script on every PR and attaches the 29 PDFs and PNGs as an artifact.
+   It runs both self-tests, the SKILL.md gates, the 29 templates against their fill targets (`pick_design.FAMILIES[f]['page']['fill']`; `swiss-grid/resume-2page.typ` at `2 94 96`), the `--doctor` simulations, the verify behaviour checks and the spacing fixtures with their gates (and that the fixtures match `tests/fixtures/gen.py`), on a scratch copy so the repo stays clean. It needs `pytest`; checks whose tool is missing are skipped with a reason. `--vitae-out DIR` keeps the template PDFs and PNGs in `DIR/pdf` and every check's log in `DIR/log` (default: a temp dir); `VITAE_JOBS=N` sets how many slow checks run in parallel (default: CPU count, 1 = sequential). Every test must pass. CI runs the same command on every PR and attaches the 29 PDFs and PNGs as an artifact. Ruff, mypy and `tests/unit` are separate steps (`ruff check scripts tests evals`, `python -m mypy`, `python -m pytest -q tests/unit`).
 2. Spec validation, from a directory named `vitae` (the validator requires the directory name to match the skill name):
    ```
    npx skills-ref validate .
@@ -68,7 +68,7 @@ Applies to `references/regional/**`, `references/certifications/**` and `referen
 
 ## Where to edit
 
-[`SKILL.md`](SKILL.md) is a slim entry point and `tests/run_all.sh` fails above 13000 bytes. Add or change step detail in `references/steps/N-<slug>.md` (academic mode in [`references/academic-mode.md`](references/academic-mode.md), traps in [`references/known-traps.md`](references/known-traps.md)); keep `SKILL.md` to the rules and the per-step skeleton. Every `references/`, `scripts/` or `templates/` path cited must exist (also gated).
+[`SKILL.md`](SKILL.md) is a slim entry point and `tests/integration` fails above 13000 bytes. Add or change step detail in `references/steps/N-<slug>.md` (academic mode in [`references/academic-mode.md`](references/academic-mode.md), traps in [`references/known-traps.md`](references/known-traps.md)); keep `SKILL.md` to the rules and the per-step skeleton. Every `references/`, `scripts/` or `templates/` path cited must exist (also gated).
 
 - Markdown prose is not hard-wrapped: one paragraph or list item per line.
 

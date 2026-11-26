@@ -35,7 +35,7 @@ class CheckResult:
         return "\n".join(self.output.splitlines()[-n:])
 
 
-def run_check(name: str, argv: Sequence[str | os.PathLike[str]], cwd: Path,
+def run_check(name: str, argv: Sequence[str | int | os.PathLike[str]], cwd: Path,
               env: Mapping[str, str] | None = None, log_dir: Path | None = None,
               timeout: float = 600) -> CheckResult:
     """Run `argv` in `cwd` (stdout+stderr merged, written to `log_dir/<name>.log`). `env` is added to os.environ

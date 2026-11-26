@@ -123,7 +123,7 @@ scripts/                      # Python, stdlib-first
   look.py, measure_fill.py    #   visual check helper; ink-coverage measurement
   gen_palette.py              #   contrast-validated palettes
   harvest_icons.py            #   fetches icon paths into the CV folder's icons.typ at build time
-tests/                        # run_all.sh (gate suite), unit/, backend_equiv.py, fixtures
+tests/                        # integration/ (gate suite), unit/, backend_equiv.py, fixtures
 docs/                         # sources.md, models.md (tested agents and models)
 assets/                       # README example image, badges, family previews
 ```
