@@ -2,21 +2,24 @@
 """look.py - local-vision-model route of the visual pass (stdlib only).
 
 usage: look.py --base-url http://host:1234/v1 --model ID [--checklist references/look-checklist.md]
-               [--max-tokens 8192] [--temperature 0] [--top-p P] [--top-k K] [--timeout 600] [--label TEXT]
+               [--max-tokens 8192] [--temperature T] [--top-p P] [--top-k K] [--timeout 600] [--label TEXT]
                [--per-item] PNG...
        look.py --base-url http://host:1234/v1 --list-models
 
 Sends the PNG(s) (base64 data URLs) + the checklist to an OpenAI-compatible /chat/completions
-endpoint (LM Studio, ollama) and prints one normalized line per checklist item:
+endpoint (LM Studio, ollama) with a strict `response_format` json_schema and prints one normalized line per
+checklist item:
     PASS|FAIL <id> — <zone>
-A missing, unparsable or self-contradicting item counts FAIL. Last line, all PASS only:
+The reply must be JSON, {"items": [{"id": "L<n>", "verdict": "PASS"|"FAIL", "zone": "<free text>"}]}: the server's
+grammar admits no other verdict token, so the script carries no verdict words and reads no free text or table. A
+missing or self-contradicting (PASS and FAIL for one id) item counts FAIL. Last line, all PASS only:
 `<label>: other-model <model>` (--label default `Visual pass`; the layout reviewer passes
 `--label "Layout review"`). On any FAIL the last line is instead
 `<label>: FAIL other-model <model> (<n> items: L…)`, which is NOT a reportable line: fix and re-run.
-Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output in a single call, and an answer in which
-no line reads as a verdict: `unparseable verdicts`, nothing counted). Verdict words are read in English, French, Spanish and
-German as well (ÉCHEC / RÉUSSI, FALLO / APROBADO, FEHLGESCHLAGEN / BESTANDEN); the output is always PASS|FAIL.
---temperature (default 0), --top-p and --top-k (LM Studio extension) go into the request; the last two only when given.
+Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output in a single call, and a reply that
+is not the schema's JSON or answers an id that is not a checklist item: `unparseable verdicts`, nothing counted; the usual
+cause is a server or model that ignores `response_format`: update LM Studio/ollama or pick another model).
+--temperature, --top-p and --top-k (LM Studio extension) go into the request only when given (Claude's endpoint refuses non-default sampling values on recent models).
 --per-item: a response cut off at --max-tokens (finish_reason=length) makes that item `FAIL … inconclusive
 (truncated at <n> tokens)`; the run continues with the remaining items and exits 1.
 
@@ -40,6 +43,8 @@ The check resolves the host NAME only (no connection); --list-models sends no im
 agents should run it in the background or with a long Bash timeout. --list-models prints the ids
 served at <base-url>/models (exit 0, or 2 if unreachable).
 """
+from __future__ import annotations
+
 import argparse
 import base64
 import http.client
@@ -49,12 +54,15 @@ import os
 import re
 import socket
 import sys
-import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Sequence
-from typing import IO, NamedTuple, NoReturn
+from typing import IO, TYPE_CHECKING, Literal, NamedTuple, NoReturn, TypedDict
+
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import TypeIs
 
 DEFAULT_CHECKLIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "references", "look-checklist.md")
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
@@ -62,53 +70,61 @@ MAX_IMAGE_BYTES = 20 * 1024 * 1024
 ITEM_RE = re.compile(r"^[\s>*#\-|`_\d.)]*(L\d+)\b", re.M)
 ITEM_LINE_RE = re.compile(
     r"^[\s>*#\-|`_\d.)]*\*{0,2}(L\d+)\*{0,2}[\s*]*(?:\((pages?|crops(?::(?:fill|icon))?)\))?[\s*:]*(.*?)\s*$", re.I)
-LEAD_RE = re.compile(r"^[\s>#|*_\-]*(?:\d+[.)]\s+)?[\s>#|*_\-]*")
-# LANGUAGE DATA: the verdict words a model may answer in. The prompt asks for PASS|FAIL, but a model told to
-# answer "in the user's language" (or a French/Spanish/German checklist) says ÉCHEC / FALLO / FEHLGESCHLAGEN.
-# Folded to PASS or FAIL when read; the output of this script stays PASS|FAIL.
-VERDICT_WORDS = {
-    "PASS": ("pass", "passed", "réussi", "réussie", "réussis", "succès", "aprobado", "aprobada", "correcto", "superado",
-             "bestanden", "superato", "aprovado", "aprovada"),
-    "FAIL": ("fail", "failed", "échec", "échoué", "échouée", "raté", "fallo", "suspendido", "fehlgeschlagen",
-             "nicht bestanden", "durchgefallen", "fallito", "reprovado", "falhou"),
-}
-
-
-def _fold_word(w: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFKD", w.casefold()) if not unicodedata.combining(c))
-
-
-_VERDICT_CANON = {_fold_word(w): k for k, ws in VERDICT_WORDS.items() for w in ws}
-_V = "|".join(re.escape(w) for w in sorted((w for ws in VERDICT_WORDS.values() for w in ws), key=len, reverse=True))
-ANS_A = re.compile(r"^(%s)\b[\s:\-–—]*L0*(\d+)\b\s*(?:\([^)]*\))?\s*(?:[—–:\-]+\s*)?(.*)$" % _V, re.I)
-ANS_B = re.compile(r"^L0*(\d+)\b\s*(?:\([^)]*\))?\s*[:\-–—]*\s*(%s)\b\s*(?:[—–:\-]+\s*)?(.*)$" % _V, re.I)
-CELL_ID = re.compile(r"^L0*(\d+)$", re.I)
-CELL_VERDICT = re.compile(r"^(%s)$" % _V, re.I)
-
-
-def canon_verdict(word: str) -> str:
-    """PASS or FAIL for any accepted verdict word (case and accents ignored)."""
-    return _VERDICT_CANON[_fold_word(word)]
-CLOSED_THINK_RE = re.compile(r"<think(?:ing)?>.*?</think(?:ing)?>", re.S | re.I)
-OPEN_THINK_RE = re.compile(r"<think(?:ing)?>.*\Z", re.S | re.I)
-STRAY_CLOSE_RE = re.compile(r"</think(?:ing)?>", re.I)
 PAGE_RE = re.compile(r"^.+-p(\d+)\.png$", re.I)
 STEM_RE = re.compile(r"^(.+?)(?:-p\d+(?:-(?:fill|icon)\d+)?)?\.png$", re.I)
 CROP_RE = re.compile(r"^.+-p(\d+)-(?:fill|icon)\d+\.png$", re.I)
 
 PROMPT = (
     "You are checking rendered page image(s) of a résumé for visual defects. Look at the image(s), "
-    "then evaluate EVERY checklist item below. Answer with exactly one line per item, in the "
-    "form `PASS <id> — <zone>` or `FAIL <id> — <zone>`, where <zone> names the place on the page "
-    "(for a FAIL, say what is wrong there). No other text.\n\nChecklist:\n\n"
+    "then evaluate EVERY checklist item below. Reply with the JSON object the response format asks for: "
+    "one entry in `items` per checklist item, with `id` (the item's L<n>), `verdict` (PASS = the statement is "
+    "true, FAIL = it is not) and `zone` (free text naming the place on the page; for a FAIL, say what is "
+    "wrong there).\n\nChecklist:\n\n"
 )
 CROPS_NOTE = "\n\nSome of the images are zoomed crops of parts of the pages; use them for fine detail.\n"
 ITEM_PROMPT = (
     "You are checking rendered image(s) of a résumé for ONE visual defect. Look at the image(s), "
     "then judge only the checklist item below (PASS = the statement is true; when unsure, FAIL). "
-    "Answer with exactly one line, `PASS {id} — <zone>` or `FAIL {id} — <zone>`, where <zone> names the "
-    "place on the page (for a FAIL, say what is wrong there). No other text.\n\nItem:\n\n{id} {text}\n"
+    "Reply with the JSON object the response format asks for: `items` holds exactly one entry, with `id` "
+    "(`{id}`), `verdict` (PASS or FAIL) and `zone` (free text naming the place on the page; for a FAIL, say "
+    "what is wrong there).\n\nItem:\n\n{id} {text}\n"
 )
+ID_RE = re.compile(r"L[0-9]+")
+
+
+class Verdict(TypedDict):
+    id: str
+    verdict: Literal["PASS", "FAIL"]
+    zone: str
+
+
+class Reply(TypedDict):
+    items: list[Verdict]
+
+
+def response_format() -> dict[str, object]:
+    """The strict json_schema sent as `response_format`; the verdict is an enum, so no other token can be produced.
+    Portable subset only (object / array / string / enum, required, additionalProperties false): no pattern, no
+    minItems/maxItems, which strict structured-output implementations (Claude's among them) restrict; the id
+    format and the item count are checked by `is_reply`."""
+    items: dict[str, object] = {"type": "array", "items": {
+        "type": "object", "additionalProperties": False, "required": ["id", "verdict", "zone"],
+        "properties": {"id": {"type": "string"},
+                       "verdict": {"type": "string", "enum": ["PASS", "FAIL"]},
+                       "zone": {"type": "string"}}}}
+    return {"type": "json_schema", "json_schema": {"name": "checklist_verdicts", "strict": True, "schema": {
+        "type": "object", "additionalProperties": False, "required": ["items"], "properties": {"items": items}}}}
+
+
+def is_verdict(v: object) -> TypeIs[Verdict]:
+    return (isinstance(v, dict) and set(v) == {"id", "verdict", "zone"}
+            and isinstance(v["id"], str) and ID_RE.fullmatch(v["id"]) is not None
+            and v["verdict"] in ("PASS", "FAIL") and isinstance(v["zone"], str))
+
+
+def is_reply(v: object) -> TypeIs[Reply]:
+    return (isinstance(v, dict) and set(v) == {"items"} and isinstance(v["items"], list) and bool(v["items"])
+            and all(is_verdict(x) for x in v["items"]))
 
 
 class Item(NamedTuple):
@@ -169,44 +185,33 @@ def content_text(content: object) -> str:
     raise TypeError("content is neither a string nor an array")
 
 
-def clean_content(content: object) -> str:
-    text = CLOSED_THINK_RE.sub("", content_text(content))
-    if STRAY_CLOSE_RE.search(text):  # unopened think block: keep what follows
-        text = STRAY_CLOSE_RE.split(text)[-1]
-    text = OPEN_THINK_RE.sub("", text)  # unclosed think = truncated reasoning: nothing usable after it
-    return text.strip()
+class ReplyError(Exception):
+    """The reply is not the schema's JSON, or answers an id the checklist does not have."""
 
 
-def _answer(line: str) -> tuple[str, str, str] | None:
-    """One line -> (id, PASS|FAIL, zone) or None."""
-    raw = line.strip()
-    if raw.startswith("|"):
-        cells = [c.strip().replace("**", "").replace("`", "").strip() for c in raw.strip("|").split("|")]
-        vi = next((k for k, c in enumerate(cells) if CELL_VERDICT.match(c)), None)
-        ii = next((k for k, c in enumerate(cells) if CELL_ID.match(c)), None)
-        if vi is None or ii is None:
-            return None
-        m = CELL_ID.match(cells[ii])
-        assert m
-        zone = " | ".join(c for k, c in enumerate(cells) if k not in (vi, ii) and c)
-        return "L" + str(int(m.group(1))), canon_verdict(cells[vi]), zone
-    s = LEAD_RE.sub("", raw.replace("**", "").replace("`", ""))
-    m = ANS_A.match(s)
-    if m:
-        return "L" + str(int(m.group(2))), canon_verdict(m.group(1)), m.group(3).strip(" *_`")
-    m = ANS_B.match(s)
-    if m:
-        return "L" + str(int(m.group(1))), canon_verdict(m.group(2)), m.group(3).strip(" *_`")
-    return None
+IGNORED_HINT = ("the server ignored response_format (structured output) or leaked reasoning into the content: update "
+                "LM Studio/ollama, enable reasoning separation (reasoning_content), or pick another model. Nothing was counted")
 
 
 def parse_verdicts(content: object, ids: Sequence[str]) -> dict[str, tuple[str, str]]:
-    """-> {id: (PASS|FAIL, zone)}. Repeated answers: all-agreeing -> the last; PASS and FAIL mixed -> FAIL."""
+    """-> {id: (PASS|FAIL, zone)}. Repeated answers: all-agreeing -> the last; PASS and FAIL mixed -> FAIL.
+    An id absent from the reply is absent from the result (render counts it FAIL); raises ReplyError on a reply
+    that is not valid JSON of the schema's shape, or that names an id outside `ids`."""
+    text = content_text(content).strip()
+    try:
+        data: object = json.loads(text)
+    except json.JSONDecodeError:
+        raise ReplyError(f'unparseable verdicts: the reply is not JSON (first chars: "{text[:80]}"); {IGNORED_HINT}') from None
+    if not is_reply(data):
+        raise ReplyError(f"unparseable verdicts: the reply does not match the json_schema "
+                         f"{{items: [{{id, verdict: PASS|FAIL, zone}}]}} ({text[:120]!r}); {IGNORED_HINT}")
     seen: dict[str, list[tuple[str, str]]] = {}
-    for line in clean_content(content).splitlines():
-        a = _answer(line)
-        if a and a[0] in ids:
-            seen.setdefault(a[0], []).append((a[1], a[2]))
+    for it in data["items"]:
+        i = norm_id(it["id"])
+        if i not in ids:
+            raise ReplyError(f"unparseable verdicts: the model answered {it['id']!r}, which is not a checklist item "
+                             f"({', '.join(ids)}). Nothing was counted — re-run")
+        seen.setdefault(i, []).append((it["verdict"], it["zone"].strip()))
     out: dict[str, tuple[str, str]] = {}
     for i, vs in seen.items():
         verdicts = {v for v, _ in vs}
@@ -218,6 +223,13 @@ def parse_verdicts(content: object, ids: Sequence[str]) -> dict[str, tuple[str, 
     return out
 
 
+def read_reply(content: object, ids: Sequence[str]) -> dict[str, tuple[str, str]]:
+    try:
+        return parse_verdicts(content, ids)
+    except ReplyError as e:
+        die(str(e))
+
+
 def render(ids: Sequence[str], verdicts: dict[str, tuple[str, str]], model: str,
            label: str = "Visual pass") -> tuple[list[str], int]:
     lines: list[str] = []
@@ -225,7 +237,7 @@ def render(ids: Sequence[str], verdicts: dict[str, tuple[str, str]], model: str,
     for i in ids:
         v = verdicts.get(i)
         if v is None:
-            lines.append(f"FAIL {i} — no answer from model (missing or unparsable)")
+            lines.append(f"FAIL {i} — no answer from model (missing from the reply)")
             bad += 1
         else:
             lines.append(f"{v[0]} {i} — {v[1] or '(no zone given)'}")
@@ -354,7 +366,7 @@ class Truncated(Exception):
 
 
 def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens: int,
-        timeout: float, temperature: float = 0, top_p: float | None = None,
+        timeout: float, temperature: float | None = None, top_p: float | None = None,
         top_k: int | None = None) -> tuple[str, int, int]:
     """One chat call -> (answer text, prompt_tokens, completion_tokens). Dies (exit 2) on any anomaly
     except truncation, which raises Truncated."""
@@ -364,7 +376,10 @@ def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens:
             b64 = base64.b64encode(f.read()).decode()
         content.append({"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}})
     payload: dict[str, object] = {"model": model, "messages": [{"role": "user", "content": content}],
-                               "max_tokens": max_tokens, "temperature": temperature}
+                               "max_tokens": max_tokens,
+                               "response_format": response_format()}
+    if temperature is not None:
+        payload["temperature"] = temperature
     if top_p is not None:
         payload["top_p"] = top_p
     if top_k is not None:
@@ -390,9 +405,9 @@ def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens:
         raise Truncated(f"inconclusive: output truncated at {max_tokens} tokens (finish_reason=length); a reasoning "
                         f"model likely ran out of tokens - raise --max-tokens (now {max_tokens}); "
                         f"tokens spent: prompt {pt}, completion {ct}", pt, ct)
-    if not clean_content(text):
+    if not text.strip():
         die(f"model returned empty content (finish_reason={finish}); a reasoning model likely ran out of "
-            f"tokens or never closed its <think> block - raise --max-tokens (now {max_tokens})")
+            f"tokens - raise --max-tokens (now {max_tokens})")
     return text, pt, ct
 
 
@@ -451,7 +466,7 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
                 return ("FAIL", f"inconclusive (truncated at {a.max_tokens} tokens)"), ""
             tp += p
             tc += c
-            return parse_verdicts(text, [item_id]).get(item_id), text
+            return read_reply(text, [item_id]).get(item_id), text
 
         if it.scope == "page":
             fails: list[str] = []
@@ -459,7 +474,7 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
             for lab, path in pages:
                 v, _ = one([path])
                 if v is None:
-                    fails.append(f"{lab}: no answer from model (missing or unparsable)")
+                    fails.append(f"{lab}: no answer from model (missing from the reply)")
                 elif v[0] == "FAIL":
                     fails.append(f"{lab}: {v[1] or '(no zone given)'}")
                 else:
@@ -490,7 +505,7 @@ def _main(argv: Sequence[str] | None = None) -> None:
     ap.add_argument("--model")
     ap.add_argument("--checklist", default=DEFAULT_CHECKLIST)
     ap.add_argument("--max-tokens", type=int, default=8192)
-    ap.add_argument("--temperature", type=float, default=0, help="sampling temperature (default 0)")
+    ap.add_argument("--temperature", type=float, default=None, help="sampling temperature, sent only when given (the server default applies otherwise)")
     ap.add_argument("--top-p", type=float, default=None, help="top_p, sent only when given")
     ap.add_argument("--top-k", type=int, default=None, help="top_k (non-standard, LM Studio), sent only when given")
     ap.add_argument("--timeout", type=float, default=600, help="seconds per HTTP call (default 600); run in the "
@@ -536,13 +551,7 @@ def _main(argv: Sequence[str] | None = None) -> None:
                                a.max_tokens, a.timeout, a.temperature, a.top_p, a.top_k)
         except Truncated as e:
             die(str(e))
-        verdicts = parse_verdicts(text, ids)
-        if not verdicts and clean_content(text):
-            # an answer with no recognisable line is not "every item failed": say what was read, count nothing
-            first = clean_content(text).splitlines()[0][:80]
-            die(f'unparseable verdicts: no line of the model answer reads as "PASS|FAIL L<n>" (also read: ÉCHEC / RÉUSSI, '
-                f'FALLO / APROBADO, FEHLGESCHLAGEN / BESTANDEN); first line: "{first}". Nothing was counted — '
-                "re-run, or answer the checklist by hand", 2)
+        verdicts = read_reply(text, ids)
         calls = "single call"
     lines, bad = render(ids, verdicts, a.model, a.label)
     print("\n".join(lines))

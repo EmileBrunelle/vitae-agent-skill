@@ -44,37 +44,63 @@ def check(name: str, content: object, want_bad: int, want_lines: list[str]) -> N
         ok(lines[-1] == "Visual pass: other-model m", lines[-1])
 
 
-# ---- parser -------------------------------------------------------------------------------
-check("clean", "PASS L1 — header\nPASS L2 — body\nPASS L3 — footer", 0, ["PASS L1 — header"])
-check("think block", "<think>FAIL L1 — nope\nreasoning</think>\nPASS L1 — a\nPASS L2 — b\nPASS L3 — c", 0, ["PASS L1 — a"])
-check("unopened think", "reasoning...\n</think>\nPASS L1 — a\nPASS L2 — b\nPASS L3 — c", 0, [])
-check("unclosed think is empty", "<think>\nPASS L1 — a\nPASS L2 — b\nPASS L3 — c", 3, [])
-check("missing item", "PASS L1 — a\nPASS L3 — c", 1, ["FAIL L2 — no answer from model (missing or unparsable)"])
-check("chatter+markdown", "Sure!\n**FAIL** L1 - band: text clipped\n- PASS L2 — body\n`PASS L3` — foot\nHope", 1,
-      ["FAIL L1 — band: text clipped", "PASS L2 — body", "PASS L3 — foot"])
-check("unknown id ignored", "PASS L1 — a\nPASS L2 — b\nPASS L3 — c\nFAIL L9 — x", 0, [])
-check("no zone", "PASS L1\nPASS L2\nFAIL L3", 1, ["FAIL L3 — (no zone given)", "PASS L1 — (no zone given)"])
-check("garbage", "I can't see any image.", 3, [])
-check("dup FAIL then PASS -> FAIL", "PASS L1 — a\nPASS L2 — b\nFAIL L3 — bad\nPASS L3 — fine", 1, [])
-check("dup PASS then FAIL -> FAIL", "PASS L1 — a\nPASS L2 — b\nPASS L3 — fine\nFAIL L3 — bad", 1, [])
-check("dup agreeing -> last", "PASS L1 — a\nPASS L1 — a2\nPASS L2 — b\nPASS L3 — c", 0, ["PASS L1 — a2"])
-check("numbered list", "1. PASS L1 — x\n2. PASS L2 — y\n3) FAIL L3 — z", 1, ["PASS L1 — x", "FAIL L3 — z"])
-check("paren header", "PASS L1 (header) — x\nPASS L2 (body) — y\nPASS L3 (foot) — z", 0, ["PASS L1 — x"])
-check("id first", "L1: PASS — x\nL2: PASS — y\nL3: FAIL — z", 1, ["PASS L1 — x", "FAIL L3 — z"])
-check("dash id", "PASS - L1 — x\nPASS - L2 — y\nPASS - L3 — z", 0, ["PASS L1 — x"])
-check("table", "| id | verdict | zone |\n|---|---|---|\n| L1 | PASS | top |\n| L2 | PASS | mid |\n| L3 | FAIL | low |",
-      1, ["PASS L1 — top", "FAIL L3 — low"])
-check("table verdict first", "| PASS | L1 | top |\n| PASS | L2 | mid |\n| **FAIL** | **L3** | low |", 1, ["FAIL L3 — low"])
-check("L01", "PASS L01 — a\nPASS L02 — b\nPASS L03 — c", 0, ["PASS L1 — a"])
-check("lowercase", "pass L1 — a\nfail l2 — b\npass L3 — c", 1, ["FAIL L2 — b"])
-check("french verdicts", "RÉUSSI L1 — a\nÉCHEC L2 — b\nRéussie L3 — c", 1, ["PASS L1 — a", "FAIL L2 — b", "PASS L3 — c"])
-check("spanish verdicts", "Aprobado L1 — a\nFALLO L2 — b\nAPROBADO L3 — c", 1, ["FAIL L2 — b"])
-check("german verdicts", "BESTANDEN L1 — a\nL2: nicht bestanden — b\nFehlgeschlagen L3 — c", 2, ["PASS L1 — a", "FAIL L2 — b", "FAIL L3 — c"])
-check("localized table", "| id | verdict | zone |\n|---|---|---|\n| L1 | Réussi | top |\n| L2 | ÉCHEC | mid |\n| L3 | Fallo | low |", 2,
-      ["PASS L1 — top", "FAIL L2 — mid"])
-check("passed/failed", "PASSED L1 — a\nFAILED L2 — b\nPASSED L3 — c", 1, ["FAIL L2 — b"])
-check("mixed languages conflict -> FAIL", "RÉUSSI L1 — a\nPASS L2 — b\nPASS L3 — c\nÉCHEC L3 — d", 1, [])
-check("content parts", [{"type": "text", "text": "PASS L1 — a\nPASS L2 — b"}, {"type": "text", "text": "PASS L3 — c"}], 0, [])
+def jr(*rows: tuple[str, str, str]) -> str:
+    return json.dumps({"items": [{"id": i, "verdict": v, "zone": z} for i, v, z in rows]})
+
+
+def jall(v: str = "PASS", zone: str = "x") -> str:
+    return jr(*[(i, v, zone) for i in IDS])
+
+
+def raises(content: object, ids: list[str] = IDS) -> str:
+    try:
+        look.parse_verdicts(content, ids)
+    except look.ReplyError as e:
+        return str(e)
+    raise AssertionError(f"no ReplyError for {content!r}")
+
+
+# ---- parser: the reply is the schema's JSON, nothing else ------------------------------------
+check("clean", jr(("L1", "PASS", "header"), ("L2", "PASS", "body"), ("L3", "PASS", "footer")), 0, ["PASS L1 — header"])
+check("missing item", jr(("L1", "PASS", "a"), ("L3", "PASS", "c")), 1, ["FAIL L2 — no answer from model (missing from the reply)"])
+check("fail zone", jr(("L1", "FAIL", "band: text clipped"), ("L2", "PASS", "b"), ("L3", "PASS", "c")), 1, ["FAIL L1 — band: text clipped"])
+check("no zone", jr(("L1", "PASS", ""), ("L2", "PASS", ""), ("L3", "FAIL", "")), 1, ["FAIL L3 — (no zone given)", "PASS L1 — (no zone given)"])
+check("zone in any language", jr(("L1", "FAIL", "texte coupé à droite — ÉCHEC visuel"), ("L2", "PASS", "b"), ("L3", "PASS", "c")), 1,
+      ["FAIL L1 — texte coupé à droite — ÉCHEC visuel"])
+check("dup FAIL then PASS -> FAIL", jr(("L1", "PASS", "a"), ("L2", "PASS", "b"), ("L3", "FAIL", "bad"), ("L3", "PASS", "fine")), 1,
+      ["FAIL L3 — conflicting verdicts from the model for L3 (bad)"])
+check("dup PASS then FAIL -> FAIL", jr(("L1", "PASS", "a"), ("L2", "PASS", "b"), ("L3", "PASS", "fine"), ("L3", "FAIL", "bad")), 1, [])
+check("dup agreeing -> last", jr(("L1", "PASS", "a"), ("L1", "PASS", "a2"), ("L2", "PASS", "b"), ("L3", "PASS", "c")), 0, ["PASS L1 — a2"])
+check("L01", jr(("L01", "PASS", "a"), ("L2", "PASS", "b"), ("L3", "PASS", "c")), 0, ["PASS L1 — a"])
+check("content parts", [{"type": "text", "text": jall()}], 0, [])
+# loud outcomes: never counted as a pile of FAIL
+ok("unparseable verdicts" in raises("I can't see any image.") and "ignored response_format" in raises("I can't see any image."))
+ok("not JSON" in raises("PASS L1 — a\nPASS L2 — b\nPASS L3 — c") and "update LM Studio/ollama" in raises("FAIL L1 — a"))
+# reasoning leaked into the content is not stripped: the reply is not JSON, loudly, with its first chars
+for leak in ("<think>checking\nreasoning</think>\n" + jall(), "reasoning...\n</think>\n" + jall(), "<think>\n" + jall()):
+    m = raises(leak)
+    ok("not JSON" in m and "leaked reasoning" in m and "reasoning_content" in m and "update LM Studio/ollama" in m and leak[:20] in m, m)
+ok("not a checklist item" in raises(jr(("L1", "PASS", "a"), ("L9", "FAIL", "x"))))
+# any verdict outside the enum (translated token, lowercase, other word) is rejected, never mapped
+for bad_v in ("RÉUSSI", "ÉCHEC", "pass", "Fail", "FALLO", "OK", "", "PASSED"):
+    ok("does not match the json_schema" in raises(jr(("L1", bad_v, "a"), ("L2", "PASS", "b"), ("L3", "PASS", "c"))), bad_v)
+for bad_o in ('{"items": []}', '{"items": [1]}', "[]", "[1, 2]", "null", '"PASS"', "{}",
+              '{"items": [{"id": "L1", "verdict": "PASS"}]}',
+              '{"items": [{"id": "L1", "verdict": "PASS", "zone": "a", "extra": 1}]}',
+              '{"items": [{"id": "L1", "verdict": "PASS", "zone": 3}]}',
+              '{"items": [{"id": "1", "verdict": "PASS", "zone": "a"}]}',
+              '{"items": [{"id": "Lx", "verdict": "PASS", "zone": "a"}]}',
+              '{"items": [{"id": " L1", "verdict": "PASS", "zone": "a"}]}',
+              '{"items": [{"id": 1, "verdict": "PASS", "zone": "a"}]}',
+              '{"items": [{"id": "L1", "verdict": true, "zone": "a"}]}',
+              '{"items": [{"id": "L1", "verdict": "PASS", "zone": "a"}], "more": 1}'):
+    ok("does not match the json_schema" in raises(bad_o), bad_o)
+# the schema itself: strict, verdict enum, portable subset
+rf = look.response_format()
+sch = rf["json_schema"]
+ok(rf["type"] == "json_schema" and isinstance(sch, dict) and sch["strict"] is True, rf)
+ok(json.dumps(rf).count('"enum": ["PASS", "FAIL"]') == 1 and json.dumps(rf).count('"additionalProperties": false') == 2, rf)
+ok(not any(k in json.dumps(rf) for k in ("pattern", "minItems", "maxItems")), rf)
 ok(look.checklist_ids("1. **L1** a\nL2: b\n- L3 c\nL1 again\nL04 x") == ["L1", "L2", "L3", "L4"])
 
 # ---- checklists: tagged and old untagged --------------------------------------------------
@@ -112,7 +138,8 @@ class Request(TypedDict):
     model: str
     messages: list[Message]
     max_tokens: int
-    temperature: float
+    temperature: NotRequired[float]
+    response_format: dict[str, object]
     top_p: NotRequired[float]
     top_k: NotRequired[int]
 
@@ -228,41 +255,66 @@ def cli(*args: str, resp: Responder | None = None) -> tuple[int, str, str]:
 
 
 def all_pass(req: Request) -> tuple[int, bytes]:
-    return chat("\n".join(f"PASS L{i} — x" for i in range(1, 4)))
+    return chat(jall())
 
 
 # 1 duplicates (server level)
-c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("FAIL L3 — first\nPASS L1 — a\nPASS L2 — b\nPASS L3 — c"))
+c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L3", "FAIL", "first"), ("L1", "PASS", "a"), ("L2", "PASS", "b"), ("L3", "PASS", "c"))))
 ok(c == 1 and "FAIL L3" in o, c, o)
-c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — a\nPASS L2 — b\nPASS L3 — c\nFAIL L3 — d"))
+c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L1", "PASS", "a"), ("L2", "PASS", "b"), ("L3", "PASS", "c"), ("L3", "FAIL", "d"))))
 ok(c == 1, c, o)
 # happy path + label + other-model + crops sent
 c, o, e = cli("--checklist", CL_OLD, "--label", "Layout review", P1, C1, resp=all_pass)
 ok(c == 0 and o.splitlines()[-1] == "Layout review: other-model m", (c, o))
 ok(images_of(REQS[0]) == ["cv-p1.png", "cv-p1-fill1.png"] and len(REQS) == 1, images_of(REQS[0]))
 ok("zoomed crops" in text_of(REQS[0]) and "tokens" in e and "total 15" in e, e)
+# the request carries the strict json_schema with the verdict enum; no sampling value unless asked
+rq = REQS[0]
+ok(rq["response_format"] == look.response_format(), rq["response_format"])
+rs = json.dumps(rq["response_format"])
+ok('"strict": true' in rs and '"enum": ["PASS", "FAIL"]' in rs and '"json_schema"' in rs, rs)
+ok("temperature" not in rq and "top_p" not in rq and "top_k" not in rq, rq.keys())
 c, o, _ = cli("--checklist", CL_OLD, P1, resp=all_pass)
 ok(o.splitlines()[-1] == "Visual pass: other-model m" and "zoomed crops" not in text_of(REQS[0]))
 # 2 truncation
-c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("<think>draft\n" + "PASS L1 — a\nPASS L2 — b\nPASS L3 — c", "length"))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jall()[:20], "length"))
 ok(c == 2 and "--max-tokens" in e and o == "", (c, e))
-c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — a\nPASS L2 — b\nPASS L3 — c", "length"))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jall(), "length"))
 ok(c == 2 and "--max-tokens" in e, (c, e))
-c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("<think>unclosed\nPASS L1 — a\nPASS L2 — b\nPASS L3 — c"))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(""))
 ok(c == 2 and "empty" in e, (c, e))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("<think>why</think>\n" + jall()))
+ok(c == 2 and "not JSON" in e and "leaked reasoning" in e and "<think>why</think>" in e and o == "", (c, o, e))
 # 3 exit-2 anomalies
-c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat([{"type": "text", "text": "PASS L1 — a\nPASS L2 — b\nPASS L3 — c"}]))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat([{"type": "text", "text": jall()}]))
 ok(c == 0, (c, e))
-# an answer with no recognisable verdict line: one clear error, nothing counted as FAIL
-c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("Je ne vois aucune image, désolé.\nVoici mon analyse."))
-ok(c == 2 and "unparseable verdicts" in e and "Je ne vois aucune image" in e and "FAIL L" not in o and o == "", (c, o, e))
-c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("ÉCHEC L1 — a\nRÉUSSI L2 — b\nRÉUSSI L3 — c"))
-ok(c == 1 and "FAIL L1 — a" in o and "PASS L2 — b" in o, (c, o))
+# free text (server ignored response_format): one loud error naming the likely cause, nothing counted
+for free in ("Je ne vois aucune image, désolé.\nVoici mon analyse.", "PASS L1 — a\nPASS L2 — b\nPASS L3 — c",
+             "| id | verdict |\n|---|---|\n| L1 | PASS |"):
+    c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r, free=free: chat(free))
+    ok(c == 2 and "unparseable verdicts" in e and "ignored response_format" in e and "update LM Studio/ollama" in e
+       and o == "", (c, o, e))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("Je ne vois aucune image"))
+ok("Je ne vois aucune image" in e, e)
+# translated verdict token: the grammar forbids it; a server that emits it anyway is rejected (exit 2), not mapped
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L1", "ÉCHEC", "a"), ("L2", "RÉUSSI", "b"), ("L3", "RÉUSSI", "c"))))
+ok(c == 2 and "json_schema" in e and o == "", (c, o, e))
+# unknown id: loud, exit 2
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L1", "PASS", "a"), ("L2", "PASS", "b"), ("L3", "PASS", "c"), ("L9", "PASS", "d"))))
+ok(c == 2 and "L9" in e and "not a checklist item" in e and o == "", (c, o, e))
+# missing id: FAIL (exit 1); empty items: rejected (exit 2)
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L1", "PASS", "a"), ("L3", "PASS", "c"))))
+ok(c == 1 and "FAIL L2 — no answer from model (missing from the reply)" in o, (c, o))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat('{"items": []}'))
+ok(c == 2 and "unparseable verdicts" in e and o == "", (c, o, e))
+# duplicate, conflicting -> FAIL, exit 1
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L1", "PASS", "a"), ("L1", "FAIL", "b"), ("L2", "PASS", "b"), ("L3", "PASS", "c"))))
+ok(c == 1 and "FAIL L1 — conflicting verdicts from the model for L1 (b)" in o, (c, o))
 c, _, e = cli("--checklist", CL_OLD, P1, resp=lambda r: (200, b"\xff\xfe\xfa"))
 ok(c == 2 and "UTF-8" in e, (c, e))
 c, _, e = cli("--checklist", CL_OLD, P1, resp=lambda r: (-1, b""))
 ok(c == 2 and "Traceback" not in e, (c, e))
-c, _, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — a\nPASS L2 — b\nPASS L3 — c", usage="x"))
+c, _, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jall(), usage="x"))
 ok(c == 2 and "usage" in e, (c, e))
 c, _, e = cli("--checklist", CL_OLD, P1, resp=lambda r: (200, jbytes([1, 2])))
 ok(c == 2, (c, e))
@@ -295,8 +347,8 @@ def per_item_resp(fail: tuple[str, str] | None = None) -> Responder:
     def r(req: Request) -> tuple[int, bytes]:
         i = item_of(req, r"\bL\d+\b(?= (?!—))")
         if fail and fail[0] == i and fail[1] in images_of(req):
-            return chat(f"FAIL {i} — clipped at right")
-        return chat(f"PASS {i} — fine")
+            return chat(jr((i, "FAIL", "clipped at right")))
+        return chat(jr((i, "PASS", "fine")))
     return r
 
 
@@ -316,12 +368,18 @@ ok(c == 0 and len(REQS) == 3 and all(images_of(r) == ["cv-p1.png", "cv-p2.png"] 
 c, o, _ = cli("--checklist", CL_TAGGED, "--per-item", P1, resp=per_item_resp())
 ok(images_of(REQS[0]) == ["cv-p1.png"], images_of(REQS[0]))
 # per-item: missing answer -> FAIL; truncated call -> exit 2
-c, o, _ = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat("I cannot tell."))
-ok(c == 1 and o.count("no answer from model") == 3, (c, o))
+c, o, e = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat("I cannot tell."))
+ok(c == 2 and "unparseable verdicts" in e and "ignored response_format" in e and o == "", (c, o, e))
+# per-item: the reply names another id than the one asked -> loud; a request is one fresh call per item
+c, o, e = cli("--checklist", CL_OLD, "--per-item", P1, resp=lambda r: chat(jr(("L1", "PASS", "x"))))
+ok(c == 2 and "not a checklist item" in e, (c, o, e))
+c, o, e = cli("--checklist", CL_OLD, "--per-item", P1, resp=per_item_resp())
+ok(c == 0 and len(REQS) == 3 and all(r["response_format"] == look.response_format() for r in REQS)
+   and all("temperature" not in r for r in REQS), (c, o))
 # per-item: one truncated item -> that item FAIL inconclusive, the others are evaluated, run completes (exit 1)
 def trunc_l2(req: Request) -> tuple[int, bytes]:
     i = item_of(req, r"\bL\d+\b(?= (?!—))")
-    return chat(f"PASS {i} — fine", "length" if i == "L2" else "stop")
+    return chat(jr((i, "PASS", "fine")), "length" if i == "L2" else "stop")
 
 
 c, o, e = cli("--checklist", CL_OLD, "--per-item", "--max-tokens", "77", P1, resp=trunc_l2)
@@ -329,21 +387,21 @@ ok(c == 1 and len(REQS) == 3, (c, len(REQS)))
 ok("FAIL L2 — inconclusive (truncated at 77 tokens)" in o and "PASS L1 — fine" in o and "PASS L3 — fine" in o, o)
 ok(o.splitlines()[-1] == "Visual pass: FAIL other-model m (1 items: L2)", o)
 # per-item, page scope: truncation on one page of three -> item FAIL, other pages still asked
-c, o, e = cli("--checklist", CL_TAGGED, "--per-item", P1, P2, resp=lambda r: chat("PASS L2 — x", "length") if "cv-p2.png" in images_of(r) and len(images_of(r)) == 1 else per_item_resp()(r))
+c, o, e = cli("--checklist", CL_TAGGED, "--per-item", P1, P2, resp=lambda r: chat(jr(("L2", "PASS", "x")), "length") if "cv-p2.png" in images_of(r) and len(images_of(r)) == 1 else per_item_resp()(r))
 ok(c == 1 and "p2: inconclusive (truncated at 8192 tokens)" in o and len(REQS) >= 4, (c, o))
 # single call truncation stays exit 2, clear message
-c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — x", "length"))
+c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L1", "PASS", "x")), "length"))
 ok(c == 2 and "inconclusive" in e and "truncated at 8192 tokens" in e and o == "", (c, e))
 # sampling params
 cli("--checklist", CL_OLD, P1, resp=all_pass)
-ok(REQS[0]["temperature"] == 0 and "top_p" not in REQS[0] and "top_k" not in REQS[0], REQS[0].keys())
+ok("temperature" not in REQS[0] and "top_p" not in REQS[0] and "top_k" not in REQS[0], REQS[0].keys())
 cli("--checklist", CL_OLD, "--temperature", "0.7", "--top-p", "0.9", "--top-k", "40", P1, resp=all_pass)
-ok(REQS[0]["temperature"] == 0.7 and REQS[0].get("top_p") == 0.9 and REQS[0].get("top_k") == 40, REQS[0])
+ok(REQS[0].get("temperature") == 0.7 and REQS[0].get("top_p") == 0.9 and REQS[0].get("top_k") == 40, REQS[0])
 cli("--checklist", CL_OLD, "--per-item", "--temperature", "0.2", "--top-k", "5", P1, resp=per_item_resp())
-ok(all(r["temperature"] == 0.2 and r.get("top_k") == 5 and "top_p" not in r for r in REQS) and len(REQS) == 3, REQS[0])
+ok(all(r.get("temperature") == 0.2 and r.get("top_k") == 5 and "top_p" not in r for r in REQS) and len(REQS) == 3, REQS[0])
 
 # FAIL final line is never the clean line
-c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("PASS L1 — a\nFAIL L2 — b\nPASS L3 — c"))
+c, o, _ = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(jr(("L1", "PASS", "a"), ("L2", "FAIL", "b"), ("L3", "PASS", "c"))))
 ok(c == 1 and o.splitlines()[-1] == "Visual pass: FAIL other-model m (1 items: L2)" and "Visual pass: other-model" not in o, o)
 # invalid base url -> exit 2, no traceback
 REQS.clear()
