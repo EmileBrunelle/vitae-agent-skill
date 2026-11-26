@@ -73,6 +73,20 @@ class TestFontsAvailable:
         self._no_cli(monkeypatch, exc)
         assert fonts._fonts_available() is None
 
+    @pytest.mark.parametrize("fake_attrs", [{}, {"Fonts": "TypeError"}], ids=["no-Fonts", "other-signature"])
+    def test_old_typst_py_is_unknown_not_a_crash(self, monkeypatch, fake_attrs):
+        import sys
+        calls: list[dict[str, object]] = []
+
+        def fonts_ctor(**kw: object) -> object:
+            calls.append(kw)
+            raise TypeError("unexpected keyword")
+        fake = types.SimpleNamespace(**({"Fonts": fonts_ctor} if fake_attrs else {}))
+        monkeypatch.setitem(sys.modules, "typst", fake)
+        monkeypatch.setattr(fonts.subprocess, "run", _raiser(FileNotFoundError("typst")))
+        assert fonts._fonts_available() is None
+        assert bool(calls) == bool(fake_attrs)   # the fake really was the module in use
+
     def test_a_bug_is_not_swallowed(self, monkeypatch):
         self._no_cli(monkeypatch, KeyError("boom"))
         with pytest.raises(KeyError):
@@ -254,11 +268,18 @@ class TestTextGates:
         self._use(monkeypatch, exc)
         assert text._text_runs("x.pdf") == ([], [], False, type(exc).__name__)
 
+    def test_pypdf_rejecting_a_readable_pdf_is_reported_not_a_clean_pass(self, monkeypatch):
+        monkeypatch.setattr(text, "pdf_unreadable", lambda pdf: False)
+        self._use(monkeypatch, _PyPdfError("LZW stream corrupt"))
+        assert text._text_runs("x.pdf") == ([], [], False, "_PyPdfError")
+
     def test_hidden_text_gate_warns_when_the_pypdf_scan_crashed(self, monkeypatch):
         self._use(monkeypatch, NotImplementedError("unsupported"))
         monkeypatch.setattr(text, "_boxes_unavailable", lambda pdf: "")
         monkeypatch.setattr(text, "_bbox_pages", lambda pdf: [])
         monkeypatch.setattr(text, "_render_pages_png", lambda *a, **k: [])
         msgs = text.check_hidden_text("x.pdf")
-        assert any(lvl is text.Level.WARN and "pypdf scan failed: NotImplementedError" in m for lvl, m in msgs)
+        monkeypatch.setattr(text, "check_pdf_metadata", lambda pdf: [])
+        assert any(lvl is text.Level.WARN and m.startswith("hidden-text pypdf scan failed: NotImplementedError")
+                   for lvl, m in msgs)
         assert not any("PASS" in m or "no hidden" in m for _, m in msgs)

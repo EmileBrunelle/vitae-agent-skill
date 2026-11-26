@@ -17,9 +17,11 @@ def _fonts_available() -> set[str] | None:
         try:
             import importlib
             typst = importlib.import_module("typst")
+            if not hasattr(typst, "Fonts"):   # an old typst-py without Fonts
+                return None
             fp = [d for d in os.environ.get("TYPST_FONT_PATHS", "").split(os.pathsep) if d]
             return set(typst.Fonts(include_system_fonts=True, **({"font_paths": fp} if fp else {})).families())
-        except (ImportError, OSError, RuntimeError):   # typst-py missing, or its Fonts() failing (pyo3 errors are RuntimeError)
+        except (ImportError, OSError, RuntimeError, TypeError):   # typst-py missing, or its Fonts() failing (pyo3 errors are RuntimeError; TypeError: another signature)
             return None
     except (OSError, subprocess.SubprocessError):
         return None

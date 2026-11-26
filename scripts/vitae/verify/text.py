@@ -21,7 +21,7 @@ from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
 from vitae.core.pixels import colour_counts
 from vitae.verify.lang import _is_latin, _strip_latin_marks
-from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png
+from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png, pdf_unreadable
 
 # Date and number patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
@@ -400,8 +400,11 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
                         else:
                             tiny.append((pno, t, sz, i))
         return off, [(p_, t, sz) for p_, t, sz, _ in tiny], True, ""
-    except (OSError, ValueError, pypdf.errors.PyPdfError):
-        # a file pypdf cannot read counts as "ran, found nothing" (the other gates fail an unreadable PDF)
+    except (OSError, ValueError, pypdf.errors.PyPdfError) as e:
+        if not pdf_unreadable(pdf):
+            # the primary backend reads this PDF but pypdf rejects it: say the off-page/tiny-text scan did not run
+            return [], [], False, type(e).__name__
+        # unreadable overall: the other gates already FAIL it, so "ran, found nothing" adds no false pass
         return [], [], True, ""
     except Exception as e:   # broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
         return [], [], False, type(e).__name__
