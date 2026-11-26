@@ -4,6 +4,7 @@ Compile, page count, text and word-box extraction, and raster/crop rendering.
 """
 from __future__ import annotations
 
+import ctypes
 import glob
 import html
 import importlib
@@ -14,13 +15,14 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Sequence
+from types import ModuleType
 from typing import Literal, overload
 
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
 from vitae.core.env import PdfBackend, _importable, pdf_backend, typst_font_kw, typst_py
-from vitae.core.pdfium import PdfiumDoc, PdfiumPage
+from vitae.core.pdfium import PdfiumDoc, PdfiumPage, PdfiumTextPage
 from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
 from vitae.verify.typst import _strip_typst_comments
 
@@ -377,6 +379,25 @@ def _boxes_unavailable(pdf: str) -> str:
     return "pdftotext not found (install poppler-utils)"
 
 
+def _font_span(pdfium_raw: ModuleType, tp: PdfiumTextPage, i: int, size: float) -> tuple[float, float] | None:
+    """(bottom, top) in PDF space of character `i` from its font's declared ascent and descent around the baseline,
+    which is what poppler's word boxes span. pdfium's loose box follows the embedded face instead, about 10% shorter
+    for Libertinus, and the line height the runt gate scales its windows by would then differ per backend.
+    None when the font gives no metrics: the loose box stands."""
+    obj = pdfium_raw.FPDFText_GetTextObject(tp, i)
+    font = pdfium_raw.FPDFTextObj_GetFont(obj) if obj else None
+    if not font or size <= 0:
+        return None
+    asc, desc, ox, oy = ctypes.c_float(), ctypes.c_float(), ctypes.c_double(), ctypes.c_double()
+    if not (pdfium_raw.FPDFFont_GetAscent(font, size, ctypes.byref(asc))
+            and pdfium_raw.FPDFFont_GetDescent(font, size, ctypes.byref(desc))
+            and pdfium_raw.FPDFText_GetCharOrigin(tp, i, ctypes.byref(ox), ctypes.byref(oy))):
+        return None
+    if asc.value - desc.value <= 0:
+        return None
+    return oy.value + desc.value, oy.value + asc.value
+
+
 def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]]] | None, str | None]:
     """`_bbox_pages` on pypdfium2: words are runs of non-space characters, each box the union of its loose character
     boxes (top-down, like pdftotext). LOOSE boxes, because pdfium's tight ones are ink extents and vary with the
@@ -416,6 +437,9 @@ def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]
                 l, b, r, t = tp.get_charbox(i, loose=True)
                 if r <= l or t <= b:
                     continue
+                span = _font_span(pdfium_raw, tp, i, float(pdfium_raw.FPDFText_GetFontSize(tp, i)))
+                if span is not None:
+                    b, t = span
                 chars.append(ch)
                 size[0] = max(size[0], float(pdfium_raw.FPDFText_GetFontSize(tp, i)))
                 if box:
