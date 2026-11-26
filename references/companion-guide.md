@@ -22,7 +22,7 @@ An optional multi-page PDF delivered alongside the CVs. Offer it once the CVs ar
 
 ## Authoring at scale (multi-agent)
 
-- One chapter per parallel subagent, each on the cheapest model your runtime offers — up to 7 chapters inheriting an expensive main-loop model is a budget incident. With no subagents available, write the chapters one at a time; the guide is unaffected, only the wall-clock. Each gets: the candidate fact sheet (immutable, "invent nothing"), the chapter outline, and a STRICT output format: `## ` sections, `### ` subsections, `- ` bullets, `*bold*`, no tables, no code blocks, no emojis. That format converts mechanically.
+- One chapter per parallel subagent, each on the cheapest model your runtime offers — up to 7 chapters inheriting an expensive main-loop model is a budget incident. Each gets: the candidate fact sheet (immutable, "invent nothing"), the chapter outline, and a STRICT output format: `## ` sections, `### ` subsections, `- ` bullets, `*bold*`, no tables, no code blocks, no emojis. That format converts mechanically.
 - Chapters citing the outside world (employer lists, salary ranges) must web-verify and still be labeled "starting points, revalidate when applying".
 - Templates written in the candidate's voice (letters, About) contain claims the candidate must validate — list them explicitly in your final message.
 

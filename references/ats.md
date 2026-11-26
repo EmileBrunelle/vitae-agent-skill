@@ -81,8 +81,6 @@ python3 scripts/verify.py --text cv.pdf | grep -n "20[0-9][0-9]"   # every date 
 
 Red flags in the extraction: a lone year floating at the end (grid entry without bullets — see trap above), skill labels grouped apart from their values, spaced-out headings ("S O F T WA R E"), fragments of one line interleaved into the next section (wrapped separator line).
 
-Without poppler (e.g. bare Windows): page count = number of files produced by `typst compile cv.typ p{p}.png`, or `pypdf`: `python3 -c "import pypdf,sys; print(len(pypdf.PdfReader(sys.argv[1]).pages))" cv.pdf`. For text extraction `pypdf` is a *degraded* fallback: verified on a real CV, it injects spurious spaces inside words ("FORMA TION") that poppler does not — indicative only; poppler's `pdftotext` is the reference extractor.
-
 Without a typst binary at all: `pip install typst` ships no CLI but the Python API compiles both formats (verified): `python3 -c "import typst; typst.compile('cv.typ', output='cv.pdf')"` and `typst.compile('cv.typ', output='p.png', format='png')` for the fill check.
 
 ## Human-scan rules (the other 30 seconds)
