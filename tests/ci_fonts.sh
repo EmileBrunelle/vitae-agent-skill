@@ -20,11 +20,16 @@ font_paths="$CACHE"
 # Hide the host's font directories; tmpfs only on paths that exist (bwrap would create the rest).
 # The cached set is mounted inside the first hidden directory, where CI has it (a system font directory),
 # so typst-py, which ignores TYPST_FONT_PATHS, finds it too.
-hide=(); mnt=
+hide=(); hidden=(); mnt=
 for d in /usr/share/fonts /usr/local/share/fonts "$HOME/.local/share/fonts" "$HOME/.fonts"; do
-  if [ -d "$d" ]; then hide+=(--tmpfs "$d"); [ -n "$mnt" ] || mnt=$d; fi
+  if [ -d "$d" ]; then hide+=(--tmpfs "$d"); hidden+=("$d"); [ -n "$mnt" ] || mnt=$d; fi
 done
-[ -z "$mnt" ] || hide+=(--ro-bind "$CACHE" "$mnt/vitae")
+[ -n "$mnt" ] || die "no system font directory to mount the fonts in (none of /usr/share/fonts, /usr/local/share/fonts, ~/.local/share/fonts, ~/.fonts exists)"
+cache_real=$(realpath -m "$CACHE")
+for d in "${hidden[@]}"; do
+  case "$cache_real/" in "$(realpath -m "$d")"/*) die "font cache $CACHE lies inside $d, which is hidden; set VITAE_CI_FONTS elsewhere" ;; esac
+done
+hide+=(--ro-bind "$CACHE" "$mnt/vitae")
 
 exec bwrap --bind / / --dev-bind /dev /dev "${hide[@]}" \
   --setenv FONTCONFIG_FILE /dev/null \
