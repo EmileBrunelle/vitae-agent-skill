@@ -20,8 +20,13 @@ Libertinus Serif
 Montserrat
 Nimbus Roman
 Nimbus Sans
+Noto Naskh Arabic
 Noto Sans
+Noto Sans Arabic
+Noto Sans Devanagari
+Noto Sans Hebrew
 Noto Sans Mono
+Noto Sans Thai
 Noto Serif
 Onest
 Open Sans

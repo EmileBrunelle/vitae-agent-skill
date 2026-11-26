@@ -9,7 +9,8 @@
 # Cantarell) from the Debian .deb on snapshot.debian.org (byte-stable URL; GNOME publishes no binaries).
 # Every fetched file is covered by FONTS_DIGEST (sha256 over the sorted per-file sha256 list), and
 # the tarball and STIX files by their own sha256. After changing a pin, run the script once: it
-# prints the new digest on a mismatch; paste it below. Needs: curl, git, tar, sha256sum, ar.
+# prints the new digest on a mismatch; paste it below. Needs: curl, git, tar, xz, sha256sum, ar.
+# DEST is replaced only when it is empty or holds this script's .pins marker (nothing else is deleted).
 # Typst embeds DejaVu Sans Mono and Libertinus Serif, so they are not fetched.
 set -euo pipefail
 
@@ -29,6 +30,7 @@ GOOGLE_FAMILIES=(
   bigshouldersdisplay redhatdisplay redhattext redhatmono
   notosans notoserif notosansmono opensans caladea carlito vazirmatn montserrat
   sourcecodepro
+  notonaskharabic notosansarabic notosanshebrew notosansthai notosansdevanagari
 )
 # sha256 of the eight STIX Two Text otf files at STIX_SHA (raw.githubusercontent serves them by commit).
 STIX_SUMS=(
@@ -41,7 +43,7 @@ STIX_SUMS=(
   "Bold 7ef76c666a6704f76ed3fa27bcdda55b36e558b5c2c93b49b03d854db96bdeb5"
   "BoldItalic 90e88f2ac79d6c00a5ce2d8446bfdf9457aed6afc1159cde33262979d82c8586"
 )
-FONTS_DIGEST=c96a0eb2ac0ae3884c8c4dd12da351ef548b161b0b5c73d1664377cea103816b
+FONTS_DIGEST=58ff0565ad79d10788e3c9ea064fce9d3a5d28b2fb065123000eecec24499e3e
 
 # Pin hash: the pins AND this script's own hash, so a change to the family lists or the copy logic
 # refetches too.
@@ -58,12 +60,19 @@ DEST=$1
 PINS=$(pin_hash)
 if [ "$(cat "$DEST/.pins" 2>/dev/null || true)" = "$PINS" ]; then exit 0; fi
 
-for t in curl git tar sha256sum ar; do command -v "$t" >/dev/null || die "$t not found"; done
+for t in curl git tar xz sha256sum ar; do command -v "$t" >/dev/null || die "$t not found"; done
+# Refuse before fetching anything if DEST holds something that is not ours.
+if [ -e "$DEST" ] || [ -L "$DEST" ]; then
+  [ -d "$DEST" ] && [ ! -L "$DEST" ] || die "$DEST exists and is not a directory: refusing to replace it"
+  [ -z "$(ls -A "$DEST")" ] || [ -f "$DEST/.pins" ] || die "$DEST is not empty and has no .pins marker (not a fonts directory of this script): refusing to replace it"
+fi
+echo "fetch_fonts.sh: fetching CI fonts into $DEST …" >&2
 CURL=(curl -fsSL --retry 3 --max-time 300)
 mkdir -p "$(dirname "$DEST")"
+# Two siblings of DEST (same parent, so the final mv is a rename): scratch space and the new fonts dir.
 tmp=$(mktemp -d "$DEST.tmp.XXXXXX")
-trap 'rm -rf "$tmp"' EXIT
-fonts="$tmp/fonts"; mkdir -p "$fonts"
+fonts=$(mktemp -d "$DEST.new.XXXXXX"); chmod 755 "$fonts"
+trap 'rm -rf "$tmp" "$fonts"' EXIT
 
 # git_pin NAME URL SHA PATH...: sparse, shallow checkout of one pinned commit into $tmp/NAME.
 git_pin() {
@@ -72,7 +81,7 @@ git_pin() {
   git -C "$tmp/$name" remote add origin "$url"
   git -C "$tmp/$name" config core.sparseCheckout true
   printf '%s\n' "$@" > "$tmp/$name/.git/info/sparse-checkout"
-  git -C "$tmp/$name" fetch -q --depth 1 origin "$sha"
+  git -C "$tmp/$name" fetch -q --depth 1 --filter=blob:none origin "$sha"
   git -C "$tmp/$name" checkout -q FETCH_HEAD
 }
 

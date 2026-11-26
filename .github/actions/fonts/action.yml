@@ -7,7 +7,10 @@ runs:
   steps:
     - name: Font pins
       shell: bash
-      run: echo "FONTS_KEY=$("$GITHUB_ACTION_PATH/../../../tests/fetch_fonts.sh" --key)" >> "$GITHUB_ENV"
+      run: |
+        key=$("$GITHUB_ACTION_PATH/../../../tests/fetch_fonts.sh" --key)
+        [ -n "$key" ] || { echo "fetch_fonts.sh --key printed nothing" >&2; exit 1; }
+        echo "FONTS_KEY=$key" >> "$GITHUB_ENV"
 
     - name: Restore fonts
       id: fonts-cache
@@ -23,4 +26,5 @@ runs:
 
     - name: Refresh the font cache
       shell: bash
-      run: fc-cache -f
+      # Typst scans ~/.local/share/fonts itself; fontconfig is only refreshed when the runner has it.
+      run: if command -v fc-cache >/dev/null; then fc-cache -f; fi

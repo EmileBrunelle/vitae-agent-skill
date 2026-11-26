@@ -17,7 +17,7 @@ SCRIPTS = {
               "adding indexes so the whole report now finishes well inside the maintenance window each night.",
               "ms.", False),
     # Non-Latin: forced line breaks (a backslash), every line well under the measure (at most about 60 % of it, so no plausible
-    # font wraps one on its own); the fonts are ones CI installs (noto-core), the test skips where Typst lacks them.
+    # font wraps one on its own); the Noto script faces are fetched by tests/fetch_fonts.sh (CJK is not: that case skips on CI), the test skips where Typst lacks them.
     "arabic": ("Noto Naskh Arabic", "قمت بتقليل زمن التقرير بعد تحليل الاستعلامات البطيئة",
                "وأضفت الفهارس اللازمة للتقرير الليلي", "ثانية.", True),
     "cjk": ("Noto Sans CJK JP", "遅いクエリを分析してインデックス \\ を追加し処理時間を短縮しました",
