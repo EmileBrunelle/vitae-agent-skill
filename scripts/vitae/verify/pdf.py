@@ -130,6 +130,9 @@ def ensure_icons(typ: str) -> None:
     if auto_root(typ):                 # reference family file: lib.typ/icons.typ live in templates/
         return
     d = os.path.dirname(os.path.abspath(typ))
+    skill = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    if os.path.commonpath([d, skill]) == skill:   # a file inside the skill (templates/...): a gate never writes there
+        return
     dst = os.path.join(d, "icons.typ")
     if os.path.islink(dst):            # never write through a symlink
         if not os.path.exists(dst):
@@ -137,8 +140,7 @@ def ensure_icons(typ: str) -> None:
                   f"replace it with a regular file")
         return
     if not os.path.exists(dst):
-        src = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.abspath(__file__))))), "templates", "icons.typ")
+        src = os.path.join(skill, "templates", "icons.typ")
         if not os.path.exists(src):    # no repo fallback (nothing to copy)
             return
         fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL

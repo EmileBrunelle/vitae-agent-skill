@@ -434,6 +434,14 @@ class TestCompile:
 # ---------------------------------------------------------------- ensure_icons
 
 class TestEnsureIcons:
+    def test_never_writes_into_the_skill_tree(self):
+        skill = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        d = os.path.join(skill, "templates", "academic")
+        before = sorted(os.listdir(d))
+        pdf.ensure_icons(os.path.join(d, "cv.typ"))
+        assert sorted(os.listdir(d)) == before
+        assert not os.path.exists(os.path.join(d, "icons.typ"))
+
     def test_copies_the_fallback_when_missing(self, tmp_path):
         typ = tmp_path / "cv.typ"
         typ.write_text("x", encoding="utf-8")
