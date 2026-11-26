@@ -76,11 +76,11 @@ class TestRhythmPhase:
 
     def test_rhythm_hits_the_bottom_then_leading_comes_down(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
-        install(monkeypatch)                                   # r = 0.85 -> fill 82, still over fmax 80
-        code, _ = T.tune(str(p), 1, 78, 80)
+        install(monkeypatch)                                   # r = RHYTHM_LO -> fill 89, still over fmax 86
+        code, _ = T.tune(str(p), 1, 84, 86)
         r, (lead, _), _ = state(p)
-        assert code == 0 and r is not None and r == pytest.approx(0.85, abs=T.RHYTHM_STEP) and lead < 0.8
-        assert 78 <= round(50 * r + 50 * lead) <= 80
+        assert code == 0 and r is not None and r == pytest.approx(T.RHYTHM_LO, abs=T.RHYTHM_STEP) and lead < 0.8
+        assert 84 <= round(50 * r + 50 * lead) <= 86
 
     def test_spacing_cap_stops_the_rhythm(self, tmp_path, monkeypatch):
         text = RHYTHM_FILE.replace("spacing: 0.900em", "spacing: 1.100em").replace("leading: 0.800em", "leading: 0.900em")

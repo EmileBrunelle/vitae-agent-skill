@@ -125,7 +125,11 @@ SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
 # together, and the vertical hierarchy survives. Leading stays at its designed value; only when the
 # rhythm range cannot reach the target does phase 2 (the leading bisection below) take over, at the
 # rhythm bound phase 1 hit.
-RHYTHM_LO, RHYTHM_HI, RHYTHM_STEP = 0.85, 1.30, 0.005
+# RHYTHM_LO is the smallest rhythm at which all 14 shipped families stay clean on the real gates (measured
+# 2026-11-26, rhythm line, par spacing and list spacing scaled together): the family leading / list-spacing
+# ratio WARN (LEADING_FAMILY_RATIO_WARN 1.10) fires below r = 0.909, and the group-proximity WARN (entries
+# barely separated) fires for keyline-corporate and clause-index below r ~ 0.98 (0.975 warned, 0.98 clean).
+RHYTHM_LO, RHYTHM_HI, RHYTHM_STEP = 0.98, 1.30, 0.005
 
 
 def _rhythm_phase(typ: str, original: str, expected: int, fmax: int, use_cli: bool,

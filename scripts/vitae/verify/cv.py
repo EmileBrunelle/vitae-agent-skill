@@ -281,7 +281,7 @@ _LEADING_ABS_RATIO_WARN = ("WARN  leading {l:.3f}em vs bullet spacing {s:.3f}em 
 _LEADING_FAMILY_WARN = ("WARN  the list rhythm no longer matches the paragraph rhythm: leading {l:.3f}em vs "
                         "bullet spacing {s:.3f}em is {r:.2f}x the ratio of the {f} template "
                         "({fl:.3f}em / {fs:.3f}em); warns above {t:.2f}x — wrapped prose reads looser than "
-                        "the bullets. Re-run `--tune` (it now moves list spacing with leading), or raise "
+                        "the bullets. Re-run `--tune` (its rhythm phase scales list spacing with the rhythm and keeps leading; its leading phase scales list spacing with leading), or raise "
                         "`#set list(spacing:)` / lower `#set par(leading:)` to restore the family ratio. "
                         "Type size and leading are not padding")
 
