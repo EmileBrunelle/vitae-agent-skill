@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 from collections import defaultdict
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import ModuleType
@@ -82,10 +83,8 @@ def run_one(adapter: ModuleType, workdir: Path, query: str) -> str | None:
     return None
 
 
-def main(argv: list[str]) -> int:
-    if not argv:
-        print(__doc__)
-        return 2
+def _parse_args(argv: list[str]) -> tuple[str, int, int, re.Pattern[str]] | None:
+    """(adapter name, runs, jobs, query pattern) from argv and the environment; None after a usage error."""
     name = argv[0]
     try:
         runs = int(argv[1]) if len(argv) > 1 else 3
@@ -94,35 +93,36 @@ def main(argv: list[str]) -> int:
             raise ValueError
     except ValueError:
         print("RUNS and JOBS must be positive integers", file=sys.stderr)
-        return 2
+        return None
     try:
         pattern = re.compile(os.environ.get("QUERY", "."))
     except re.error as exc:
         print(f"QUERY is not a valid regex: {exc}", file=sys.stderr)
-        return 2
+        return None
+    return name, runs, jobs, pattern
+
+
+def _load_adapter(name: str) -> ModuleType | None:
+    """Import the adapter and check it is configured before any run; None after a usage error."""
     try:
         adapter = importlib.import_module(f"adapters.{name}")
     except ImportError as exc:
         print(f"no adapter {name!r}: {exc}", file=sys.stderr)
-        return 2
+        return None
     try:  # fail before any run if the adapter is not configured (missing env var, unfilled template)
         getattr(adapter, "env", dict)()
         adapter.command("probe", Path("."))
     except KeyError as exc:
         print(f"adapter {name!r} is not configured: missing environment variable {exc}", file=sys.stderr)
-        return 2
+        return None
     except (NotImplementedError, AttributeError, TypeError) as exc:
         print(f"adapter {name!r} is incomplete: {exc!r}", file=sys.stderr)
-        return 2
-    detect = getattr(adapter, "triggered", None) or default_triggered
-    queries: list[dict[str, Any]] = [
-        q for q in json.loads((HERE / "triggers.json").read_text(encoding="utf-8"))["queries"]
-        if pattern.search(q["id"])
-    ]  # fmt: skip
-    if not queries:
-        print("QUERY matches no query id", file=sys.stderr)
-        return 2
-    work = Path(os.environ.get("WORK") or tempfile.mkdtemp(prefix="vitae-triggers-"))
+        return None
+    return adapter
+
+
+def _run_all(adapter: ModuleType, queries: list[dict[str, Any]], runs: int, jobs: int, work: Path) -> dict[tuple[str, int], str]:
+    """Run every query `runs` times in a pool; the one-line error of each run that failed."""
     errors: dict[tuple[str, int], str] = {}
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         futures = {
@@ -136,6 +136,12 @@ def main(argv: list[str]) -> int:
                 error = f"{type(exc).__name__}: {exc}"
             if error:
                 errors[key] = error
+    return errors
+
+
+def _report(queries: list[dict[str, Any]], runs: int, errors: dict[tuple[str, int], str],
+            detect: Callable[[str], bool], work: Path) -> int:
+    """Print the per-query verdicts, the per-split scores and the errors; the exit code."""
     agg: dict[str, list[bool]] = defaultdict(list)
     for q in queries:
         good = [r for r in range(1, runs + 1) if (q["id"], r) not in errors]
@@ -160,6 +166,30 @@ def main(argv: list[str]) -> int:
             print(f"  {qid}/{r}: {why}")
         return 1
     return 0
+
+
+def main(argv: list[str]) -> int:
+    if not argv:
+        print(__doc__)
+        return 2
+    parsed = _parse_args(argv)
+    if parsed is None:
+        return 2
+    name, runs, jobs, pattern = parsed
+    adapter = _load_adapter(name)
+    if adapter is None:
+        return 2
+    detect = getattr(adapter, "triggered", None) or default_triggered
+    queries: list[dict[str, Any]] = [
+        q for q in json.loads((HERE / "triggers.json").read_text(encoding="utf-8"))["queries"]
+        if pattern.search(q["id"])
+    ]  # fmt: skip
+    if not queries:
+        print("QUERY matches no query id", file=sys.stderr)
+        return 2
+    work = Path(os.environ.get("WORK") or tempfile.mkdtemp(prefix="vitae-triggers-"))
+    errors = _run_all(adapter, queries, runs, jobs, work)
+    return _report(queries, runs, errors, detect, work)
 
 
 if __name__ == "__main__":

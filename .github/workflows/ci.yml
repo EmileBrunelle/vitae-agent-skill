@@ -80,7 +80,7 @@ jobs:
         run: python -m mypy
 
       - name: Lint (pyproject.toml)
-        run: ruff check scripts tests
+        run: ruff check scripts tests evals
 
       - name: Unit tests (tests/unit)
         run: python -m pytest -q tests/unit
@@ -127,7 +127,7 @@ jobs:
       - name: Lint (pyproject.toml)
         run: |
           pip install ruff==0.17.6 pytest==9.2.0 pyyaml==6.0.4
-          ruff check scripts tests
+          ruff check scripts tests evals
           python -m pytest -q tests/unit
 
       - uses: ./.github/actions/fonts
