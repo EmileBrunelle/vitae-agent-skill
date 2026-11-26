@@ -155,7 +155,7 @@ def _write_par(text: str, leading: float, spacing: float) -> str:
                                text[m.end(4):])
 
 
-_RHYTHM_LINE = re.compile(r"^#let\s+rhythm\b.*$", re.M)
+_RHYTHM_LINE = re.compile(r"^#let\s+rhythm(?![\w-]).*$", re.M)
 _RHYTHM_RE = re.compile(r"(#let rhythm = )([0-9]*\.?[0-9]+)[ \t\r]*;?[ \t\r]*")
 
 

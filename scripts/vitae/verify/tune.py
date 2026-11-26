@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import re
 import shlex
+import signal
 import tempfile
 
 import vitae.fill as measure_fill
@@ -170,7 +171,7 @@ def _rhythm_phase(typ: str, original: str, expected: int, fmax: int, use_cli: bo
 
 # Default search bounds [0.80 * l0, max(1.30 * l0, 1.10)] and bisection step 0.005em (~7-8 probes):
 # 0.005em changes a 1-page CV's bottom ink row by <0.5% of page height, finer than the 2%-wide fill band.
-def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
+def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
          hi: float | None = None, step: float = 0.005, *,
          allow_placeholders: bool = False) -> tuple[int, str | None]:
     """--tune: bisect `#set par(leading:, spacing:)` in `typ` to the largest rhythm that holds
@@ -318,3 +319,29 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
         # first probe write, between the phases included, must not leave a half-tuned file behind)
         _write(typ, original)
         raise
+
+
+class _Terminated(BaseException):
+    """Raised by the SIGTERM / SIGHUP handler so the restore path of `_tune` runs (BaseException, like
+    KeyboardInterrupt: no `except Exception` in between may swallow it)."""
+
+
+def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
+         hi: float | None = None, step: float = 0.005, *,
+         allow_placeholders: bool = False) -> tuple[int, str | None]:
+    """`_tune` with SIGTERM and SIGHUP (a closed terminal, a `timeout`, a kill) turned into an exception for
+    the duration of the call, so the CV is restored as it is on Ctrl-C instead of keeping a probe."""
+    def on_signal(signum: int, _frame: object) -> None:
+        raise _Terminated(signal.Signals(signum).name)
+
+    saved: list[tuple[signal.Signals, signal.Handlers | int | None]] = []
+    try:
+        for sig in (signal.SIGTERM, signal.SIGHUP):
+            saved.append((sig, signal.signal(sig, on_signal)))
+    except ValueError:      # not the main thread: no handler can be installed, nothing to restore
+        pass
+    try:
+        return _tune(typ, expected, fmin, fmax, lo, hi, step, allow_placeholders=allow_placeholders)
+    finally:
+        for sig, old in saved:
+            signal.signal(sig, old if old is not None else signal.SIG_DFL)

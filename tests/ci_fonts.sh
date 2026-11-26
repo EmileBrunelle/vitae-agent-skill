@@ -14,6 +14,17 @@ ADWAITA_FONTS_SHA=0c79765f2bef25b38902fd8497616ac28185254c # tag 51.0
 STIX_SHA=744a22a4dd626cd14d75728aef34fc8ad7c85db0           # stipub/stixfonts v2.13b171
 SCP_URL=https://github.com/adobe-fonts/source-code-pro/releases/download/2.042R-u/1.062R-i/1.026R-vf/OTF-source-code-pro-2.042R-u_1.062R-i.zip
 SCP_SHA=754a2e3ebb945ae905d720ac5896b3b34acc9546dd6551ef9536869788629dae
+# sha256 of the eight STIX Two Text otf files at STIX_SHA (raw.githubusercontent serves them by commit).
+STIX_SUMS=(
+  "Regular c4864ca6ec071c2d31d0d8309001faa1ee3517fffb53a31a405a697b71f52ca1"
+  "Italic cd64481fd10b69469074a3a8172fb5a22cb4116941d8aceafb8c77756b563df8"
+  "Medium 9cc9f870852a46d708907b96ed024b8d0067a05276d939bfe0b7e89752afc8d9"
+  "MediumItalic cc6e00147828e7b1f1aeaae928cabdbf14f5bffefb4e19b0ba2c46ce56292f4e"
+  "SemiBold 896d80fbfd67e86ead7e2d593d631eab9bb142ee96dcd8e7aa8dff95ddda0f2a"
+  "SemiBoldItalic 93d337715289b8e3ba8757cff89d29ff95630a1d08581dd46123d4c1ad1a7e2c"
+  "Bold 7ef76c666a6704f76ed3fa27bcdda55b36e558b5c2c93b49b03d854db96bdeb5"
+  "BoldItalic 90e88f2ac79d6c00a5ce2d8446bfdf9457aed6afc1159cde33262979d82c8586"
+)
 CURL=(curl -fsSL --retry 3 --max-time 300)
 UBUNTU=http://archive.ubuntu.com/ubuntu
 # Ubuntu rotates its pool/: a 404 on a .deb below means the pinned version left the archive. Update the
@@ -46,7 +57,7 @@ fetch() {
   TMP_DIR=$tmp   # removed by the EXIT trap, also after die or Ctrl-C
   mkdir -p "$tmp/fonts" "$tmp/x"
 
-  local entry path sum deb
+  local entry path sum deb w
   for entry in "${DEBS[@]}"; do
     read -r path sum <<<"$entry"
     deb="$tmp/$(basename "$path")"
@@ -72,10 +83,11 @@ fetch() {
   git -C "$tmp/ad" checkout -q FETCH_HEAD
   find "$tmp/ad/sans" "$tmp/ad/mono" -name '*.ttf' -exec cp {} "$tmp/fonts/" \;
 
-  local w
-  for w in Regular Italic Medium MediumItalic SemiBold SemiBoldItalic Bold BoldItalic; do
+  for entry in "${STIX_SUMS[@]}"; do
+    read -r w sum <<<"$entry"
     "${CURL[@]}" -o "$tmp/fonts/STIXTwoText-$w.otf" \
       "https://raw.githubusercontent.com/stipub/stixfonts/$STIX_SHA/fonts/static_otf/STIXTwoText-$w.otf"
+    echo "$sum  $tmp/fonts/STIXTwoText-$w.otf" | sha256sum -c --quiet - || die "checksum mismatch: STIX Two Text $w"
   done
   "${CURL[@]}" -o "$tmp/scp.zip" "$SCP_URL"
   echo "$SCP_SHA  $tmp/scp.zip" | sha256sum -c --quiet - || die "checksum mismatch: Source Code Pro zip"
@@ -91,8 +103,10 @@ fetch() {
   rm -rf "$tmp"; TMP_DIR=   # the script ends in exec, which skips the EXIT trap
 }
 
-# Cache key: a hash of the whole pin set, so editing any entry, version or hash refetches.
-PINS=$(printf '%s\n' "$GOOGLE_FONTS_SHA" "$ADWAITA_FONTS_SHA" "$STIX_SHA" "$SCP_URL" "$SCP_SHA" "$UBUNTU" "${DEBS[@]}" | sha256sum | cut -d' ' -f1)
+# Cache key: the pins AND this script's own hash, so the family lists, the copy logic and any edit
+# to fetch() refetch too (a pin-only key left a stale cache after a change to what is copied).
+PINS=$(printf '%s\n' "$GOOGLE_FONTS_SHA" "$ADWAITA_FONTS_SHA" "$STIX_SHA" "$SCP_URL" "$SCP_SHA" "$UBUNTU" \
+  "${DEBS[@]}" "${STIX_SUMS[@]}" "$(sha256sum < "${BASH_SOURCE[0]}")" | sha256sum | cut -d' ' -f1)
 if [ "$(cat "$CACHE/pins" 2>/dev/null || true)" != "$PINS" ]; then
   echo "ci_fonts.sh: fetching the CI font set into $CACHE" >&2
   mkdir -p "$(dirname "$CACHE")"

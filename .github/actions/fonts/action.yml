@@ -17,7 +17,7 @@ runs:
         } >> "$GITHUB_ENV"
 
     # Distro-packaged faces (references/fonts.md, "Prefer the distro package").
-    # Not packaged on Ubuntu 24.04: Libertinus Serif (embedded in Typst),
+    # Not packaged on Ubuntu 26.04 (checked against its resolute package index): Libertinus Serif (embedded in Typst),
     # Fira, PT Sans (Ubuntu's is the older PTF build), STIX Two Text (Ubuntu's
     # fonts-stix is STIX 1) and Source Code Pro; those come from pinned
     # downloads below, the same files as the maintainer's Fedora packages.

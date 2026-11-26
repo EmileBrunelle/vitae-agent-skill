@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   templates:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -108,7 +108,7 @@ jobs:
   # No apt poppler, no Typst CLI: everything goes through typst-py and pypdfium2, the path a
   # user with `pip install` only gets. Fonts are the same as the full job, so fill targets hold.
   pure-python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     env:
       TYPST_PY_VERSION: "0.15.2"

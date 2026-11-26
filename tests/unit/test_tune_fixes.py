@@ -1,6 +1,9 @@
 """--tune robustness: the rule's comments survive, line endings and the original survive every exit,
 rhythm edge values, and which `#let rhythm` line is edited. The probe is injected (fake page height
 `50 * rhythm + 50 * leading`)."""
+import os
+import signal
+
 import pytest
 from vitae.verify import tune as T
 from vitae.verify.typst import _read_par, _read_rhythm, _rhythm_unparsed, _write_par, _write_rhythm
@@ -141,3 +144,31 @@ def test_interrupt_between_the_phases_restores_original(tmp_path, monkeypatch):
     with pytest.raises(KeyboardInterrupt):
         T.tune(str(p), 1, 106, 108)
     assert p.read_bytes() == orig
+
+
+@pytest.mark.parametrize("sig", [signal.SIGTERM, signal.SIGHUP])
+def test_termination_signal_mid_probe_restores_original(tmp_path, monkeypatch, sig):
+    p = put(tmp_path, BASE.replace("\n", "\r\n"))
+    orig = p.read_bytes()
+    before = signal.getsignal(sig)
+    calls = [0]
+
+    def kill_on_third(_candidate):
+        calls[0] += 1
+        if calls[0] == 3:
+            os.kill(os.getpid(), sig)       # the handler raises right here, with a probe on disk
+        return False
+    install(monkeypatch, raise_if=kill_on_third, breakat=105)
+    with pytest.raises(BaseException) as ei:
+        T.tune(str(p), 1, 74, 76)
+    assert not isinstance(ei.value, Exception) and calls[0] == 3
+    assert p.read_bytes() == orig                   # no probe left in the CV
+    assert signal.getsignal(sig) == before          # handler restored afterwards
+
+
+def test_a_longer_identifier_is_not_the_rhythm_line():
+    """`#let rhythm-big = 2` is another binding (Typst identifiers allow `-`), not the rhythm."""
+    text = "#let rhythm = 1.000\n#let rhythm-big = 2\n" + BODY
+    assert not _rhythm_unparsed(text) and _read_rhythm(text) == 1.0
+    assert _read_rhythm("#let rhythm-big = 2\n" + BODY) is None
+    assert not _rhythm_unparsed("#let rhythm-big = 2\n" + BODY)
