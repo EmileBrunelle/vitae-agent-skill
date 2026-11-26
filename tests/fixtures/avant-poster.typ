@@ -35,7 +35,7 @@
 #set page(paper: "us-letter", margin: (x: mx, top: 1.3cm, bottom: 1.6cm))
 #set page(..wd-page-x(mx)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.561em, spacing: 0.651em)
+#set par(justify: false, leading: 0.552em, spacing: 0.642em)
 
 // DEVICE: a heavy hue-A BAR THAT BLEEDS OFF THE LEFT PAGE EDGE and stops at the
 // section title, with the title set on the bar's OWN LINE, to its right. Not a
@@ -73,13 +73,13 @@
 // different scales instead of inventing a second language.
 #let skill(cat, items) = srow(
   [#text(font: dispf, weight: "bold", fill: accent)[#cat]
-   #box(width: 1.5pt, height: 8pt, baseline: 1pt, fill: accent2)], items)
+   #box(width: 1.5pt, height: 8pt, baseline: 1pt, fill: accent2)], items, above: 0.86em)
 
 // List marker: a filled hue-B CIRCLE, drawn (emits no text). The only circular
 // marker of the roster — a constructivist page is bars and circles.
 #set list(marker: bullet-marked(box(width: 3.4pt, height: 3.4pt, baseline: -0.6pt,
     circle(radius: 1.7pt, fill: accent2))),
-  indent: 10pt, spacing: 0.731em, body-indent: 7pt)
+  indent: 10pt, spacing: 0.719em, body-indent: 7pt)
 
 // HEADER: A MASTHEAD BAR COMPOSITION. A full-bleed hue-A bar across the top of
 // page 1, the name oversized under it, the role line, the specialities line,

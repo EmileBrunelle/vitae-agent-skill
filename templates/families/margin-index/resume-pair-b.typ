@@ -22,7 +22,7 @@
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 11pt, lang: "en", fill: dark, hyphenate: false,
   number-type: "old-style", number-width: "proportional")
-#set par(justify: false, leading: 0.723em, spacing: 0.963em)
+#set par(justify: false, leading: 0.718em, spacing: 0.958em)
 
 // device: NO rule, NO bar — the title hangs in the left margin column beside
 // its own content. Single-ROW grid per section (safe: ats.md), title cell first
@@ -47,7 +47,7 @@
 
 // dates right-flush; the institution/descriptor line under the entry is what
 // keeps the date anchored in the extraction (ats.md, orphaned-date trap)
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note) = entry(role, org, dates, note, above: 1.40em,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it))
 
@@ -55,7 +55,7 @@
 // jump does the separating (nobody else uses italic as the skills device)
 #let skill(cat, items) = srow(text(style: "italic")[#cat], items)
 
-#set list(marker: list-marker("emdash", accent), indent: 9pt, spacing: 0.955em, body-indent: 6pt)
+#set list(marker: list-marker("emdash", accent), indent: 9pt, spacing: 0.949em, body-indent: 6pt)
 
 // header: name and role in the content column, contacts on one line under it;
 // the margin column stays empty here (extraction keeps the name first)
