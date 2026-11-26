@@ -77,7 +77,7 @@ def measure(L, bullet: str, role: str):
     col = sorted((l for l in L if bx - 25 <= l[2] < bxmax and l[3] <= bxmax + 40), key=lambda l: (l[0], l[1]))
     rows: list[tuple[int, float, float, float, str]] = []     # one row per baseline: role + date, number + title
     for l in col:
-        if rows and rows[-1][0] == l[0] and abs(rows[-1][1] - l[1]) < 1.0:
+        if rows and rows[-1][0] == l[0] and abs(rows[-1][1] - l[1]) < 1.5:
             r = rows[-1]
             rows[-1] = (r[0], r[1], min(r[2], l[2]), max(r[3], l[3]), r[4] + " " + l[4] if l[2] > r[2] else l[4] + " " + r[4])
         else:

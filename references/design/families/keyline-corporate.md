@@ -9,5 +9,5 @@
 - **Header**: one grid ROW — name 24pt bold + role line left, contact column right (photo slot = right cell), closed by a `soft` hairline.
 - **Type**: a clean grotesque; weight and size do the contrast, no second typeface needed. Pool: `pick_design.py` FONTS `keyline-corporate`.
 - **Accents** (analogous harmony): `#33475b` slate · `#1f3a5f` navy · `#0f4c5c` petrol · `#5b2a5e` plum (bronze `#6e4a1f` dropped — muddy-hue veto).
-- **Verified**: leading `0.709em`, spacing `0.789em`, section `above` 16.5pt (20.5pt airy), 5pt after the title (4.6:1) → 1 page, fill 96%, white-run ratio 4.17 (resume.typ) / 9.33 (resume-pair-b.typ: the median intra-section run is only 3px, so the boundary rule carries it and the ratio reads high).
+- **Verified**: leading `0.544em`, spacing `0.624em`, list spacing `0.698em`, section `above` 16.5pt (20.5pt airy), 5pt after the title (4.6:1) → 1 page, fill 96%, white-run ratio 4.17 (resume.typ) / 9.33 (resume-pair-b.typ: the median intra-section run is only 3px, so the boundary rule carries it and the ratio reads high).
 - Markets: law, finance, consulting, public sector, DACH. Safe for conservative. Photo: yes.
