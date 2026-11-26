@@ -67,7 +67,7 @@ Each step below is a skeleton; its body lives in the linked file. Read that file
 
 **3. Decide versions.** Choose the deliverables (1-page, 2-page, cover letter, translations) and the language of the whole package. → [`3-versions.md`](references/steps/3-versions.md).
 
-**4. Draft from the family's worked file.** Draw the design with one command (the CV's `--lang <iso639>`, plus `--region <iso3166>` for a market variant) and fill the generated `cv.typ` with the candidate's facts; deliverable is a compiling `cv.typ`. → [`4-draft/traps.md`](references/steps/4-draft/traps.md) first, then [`4-draft.md`](references/steps/4-draft.md). Gate once a first draft compiles; follow its NEXT line.
+**4. Draft from the family's worked file.** Draw the design with one command (the CV's `--lang <iso639>`, plus `--region <iso3166>` for a market variant) and fill the generated `cv.typ` with the candidate's facts; deliverable is a compiling `cv.typ`. → [`4-draft/traps.md`](references/steps/4-draft/traps.md) first, then [`4-draft.md`](references/steps/4-draft.md). Full draft compiles → `--tune`, gate, follow NEXT.
 
 **5. Write bullets.** Write the evidence-anchored, keyword-bearing bullets from the fact sheet. → [`5-bullets.md`](references/steps/5-bullets.md).
 

@@ -5,7 +5,7 @@ Loaded on demand when the target market is Québec. Québec-specific rules only;
 ## At a glance
 - **Paper:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md)
 - **Photo:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md)
-- **CV language:** not checked as a general rule; `DEC, Informatique de Gestion` survives better from a French CV (ATS keyword matching); English-CV renderings in [`outbound/common.md`](outbound/common.md)
+- **CV language:** not checked as a general rule; `DEC, Informatique de Gestion` survives better from a French CV (ATS keyword matching); for an English CV only, the English names and gloss of DEC/DEP/AEC/DES are in [`outbound/common.md`](outbound/common.md) § Education and § Gloss for readers outside Québec
 - **Personal data:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md)
 - **Length:** no page-length rule in this file (not checked); the « Length and verbs » section below covers verb style, month format and Québec academic calendars
 - **Verbs and dates:** infinitive action verbs are a convention taught by university career services, not a provincial norm; « Juin 2026 – présent », never « Depuis juin 2026 »
@@ -27,7 +27,7 @@ Loaded on demand when the target market is Québec. Québec-specific rules only;
 - Voluntary designations are not reserved titles: CIPS's I.S.P. is legislated in six provinces but not in Québec (CIPS, « CIPS Provincial Societies », consulted 2026-11-07, S8) — list it under certifications if held.
 
 ## ATS notes
-- **Québec DEC / DEP** survive better from a French CV (`DEC, Informatique de Gestion`): this is about keyword matching, not abbreviation style. English-CV renderings: [`north-america/quebec/outbound/common.md`](outbound/common.md).
+- **Québec DEC / DEP** survive better from a French CV (`DEC, Informatique de Gestion`): this is about keyword matching, not abbreviation style. Only when the CV is in English: the English names and gloss are in [`outbound/common.md`](outbound/common.md) § Education and § Gloss for readers outside Québec (those two sections; the rest of that file is for other target markets).
 
 ## Diploma names and abbreviations (OQLF)
 - Default to full diploma names: « Évitez les sigles… BACC OU DÉC. Écrivez plutôt Baccalauréat ou Diplôme d'études collégiales. » (UQAM ESG, Centre de gestion de carrière, « Le CV et la lettre de présentation », consulted 2026-11-07, S14). The OQLF forms below are acceptable when space is tight; never « BACC » / « DÉC ». In running text, diploma names are written out in lowercase (« un baccalauréat en informatique »). OQLF generic abbreviations: B., M., D., C., L., dipl.; points and a (non-breaking) space between elements, with accents: B. Sc., M. Sc., B. Éd., B. Ing., M. Ing.; sigles without spaces or accents: DEC (or D.E.C.), DEP, AEC, DES; Latin forms: LL. B., Ph. D., M.D.; M.B.A. or MBA admitted. Institution names are proper nouns (« Université Laval »). (OQLF, Banque de dépannage linguistique, « Abréviation des noms de diplômes et de grades universitaires » (2018), consulted 2026-11-07, S12).
