@@ -71,7 +71,7 @@ Each step below is a skeleton; its body lives in the linked file. Read that file
 
 **5. Write bullets.** Write the evidence-anchored, keyword-bearing bullets from the fact sheet. → [`5-bullets.md`](references/steps/5-bullets.md).
 
-**6. Verify mechanically.** Loop until every gate passes, re-running after every edit; once the mechanical gates pass, the one `review record missing` FAIL left is cleared by step 7, never by writing `review.md` here; deliverable is the gate's full output pasted verbatim. → [`6-verify.md`](references/steps/6-verify.md). On FAIL: grep `references/known-traps.md`. The visual pass is never skippable: no vision → subagent, another vision model (`scripts/look.py`), or the user ([`references/look-checklist.md`](references/look-checklist.md)); the report needs a `Visual pass:` line, and delivery (step 8) requires it.
+**6. Verify mechanically.** Loop until every gate passes, re-running after every edit; once the mechanical gates pass, the one `review record missing` FAIL left is cleared by step 7, never by writing `review.md` here; deliverable is the gate's full output pasted verbatim. → [`6-verify.md`](references/steps/6-verify.md). On FAIL: grep `references/known-traps.md`. The visual pass is never skippable: no vision → subagent, or the user ([`references/look-checklist.md`](references/look-checklist.md)); the report needs a `Visual pass:` line, and delivery (step 8) requires it.
 
 **7. Adversarial review.** Never deliver without this pass. The final verify FAILs without its `review.md` record. → [`7-review.md`](references/steps/7-review.md).
 
@@ -87,7 +87,6 @@ Each step below is a skeleton; its body lives in the linked file. Read that file
 - `verify_letter.py letter.typ EMPLOYER "EXACT JOB TITLE"`: the cover-letter gate.
 - `pick_design.py --lang <iso> [--region <cc>] [--init FOLDER]`: draws the design family and parameters, and initialises the folder.
 - `measure_fill.py page*.png`: page ink extent and gaps, to check fill by measurement.
-- `look.py --base-url URL --model ID PNG…`: visual pass through a local vision model (OpenAI-compatible endpoint).
 
 ## Known traps
 

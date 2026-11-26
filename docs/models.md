@@ -97,18 +97,6 @@ Notes on the rows:
 - The test facts file was thin, which capped the fill at about 86-91 % in the earlier series. "Autonomous" was therefore unreachable there: every capable run exhausted the facts and had to lower the target (the 2026-11-24 definitions allow that when the missing facts are raised as questions). The later runs kept the 94-96 target, but the advice stands: enrich the facts file before the next series. Only Neon run 1 and Claude Code Opus 5.5 run 34 are Autonomous under the aligned definitions.
 - Earlier runs on skill 0.6.6 and 0.7.0 (a Claude Code Web session cut short, a Vibe run that invented facts and dates, a harness that did not discover the skill, a 503 from the provider) are not graded here: the skill has changed since.
 
-## Route 3: the visual checker
-
-Route 3 is the optional visual pass done by a separate vision model through `scripts/look.py`. Recommendation: use a remote model. Three local models were tried as the checker on five test pages (one control, four with a known defect: low contrast, a clipped icon, a word split by a forced break, an extra gap above a heading), all on an AMD RX 9070 with LM Studio (ROCm), n=1 per page and mode, at temperature 0 (`--temperature 0`; pass it explicitly for reproducible local runs, since it is not the default: Claude's endpoint rejects temperature < 1).
-
-| Local model | Completed runs | Defects detected | False FAILs | Verdict |
-|---|---|---|---|---|
-| Gemma 4 12B QAT | single 2 of 5, per-item 0 of 5 (8 of 10 runs truncated at 16384 tokens, reasoning loop; retries are deterministic) | 0 of 4 | 0 (control correctly all PASS) | not usable: truncates, and missed the one defect it finished on (the split word) |
-| Bonsai 27B Q1_0 | 10 of 10, no truncation (single about 8-9.5k tokens, 60-90 s; per-item about 65-71k tokens, 10-11 min) | 1 of 8 defect runs | 7 of 10 runs | not usable |
-| Devstral Small 2 Q3_K_L (single call only) | 5 of 5 (10-15 s, about 4.8k tokens) | 0 of 4 | 5 of 5 | not usable: 4 of 5 pages got the byte-identical answer, so it does not look at the page |
-
-Durations above come from the RX 9070 machine. The only local detection (Bonsai on the clipped icon) is not trustworthy, since the same finding also appeared as a false FAIL on the control page. The three models' prompts and settings are in the bench logs, not reproduced here.
-
 ## Platform notes
 
 - claude.ai: the skill zip must not contain symlinks. The first import of an archive with symlinks is refused ("Zip file contains a symbolic link"). Fixed in 0.7.1.

@@ -92,7 +92,7 @@ Notes par plateforme :
 - **Linux / macOS** : fonctionne tel quel (Apple Silicon pris en charge).
 - **Windows** (référence : Windows 11+, à jour) : `python scripts\verify.py --doctor` s'exécute directement; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` ou `scoop install poppler`. Ailleurs, `python3 scripts/verify.py`.
 - **Environnements pip seul** (aucun gestionnaire de paquets, aucun droit admin) : `pip install typst pypdfium2 Pillow pypdf` couvre tout sauf le mode académique (qui requiert poppler) : il compile le PDF (`typst` via son API Python), mesure le remplissage des pages, produit les PNG de pages et exécute les contrôles d'adjacence des dates, de proximité des groupes, de texte caché et de texte coupé (text-clip) (`pypdfium2` pour les comptes de pages, les boîtes de mots et le rendu, `pypdf` pour le contrôle du texte minuscule), et `python3 scripts/verify.py --doctor` affiche `OK (Python)`; l'extraction de texte ATS n'est qu'indicative. Avec `pypdf` seul (sans `pypdfium2`), ces quatre contrôles sont sautés (WARN) et `--doctor` affiche `DEGRADED` en les nommant. Pour une extraction de qualité poppler (et le mode académique), installez `poppler-utils` (ou `poppler`) avec le gestionnaire de paquets du système; `pip install typst==0.15.2` fournit typst sans droits admin (`--user` ou un venv). Lancez `python3 scripts/verify.py --doctor` pour les indications d'installation (voir [`references/steps/0-env.md`](references/steps/0-env.md)); voir [`references/ats.md`](references/ats.md) pour la mise en garde connue au sujet de pypdf.
-- **Agents et modèles testés** : voir [`docs/models.md`](docs/models.md) pour le verdict par plateforme (essais uniques, n=1), les notes sur le bac à sable hors ligne et l'import par zip, et les modèles utilisables comme vérificateur visuel.
+- **Agents et modèles testés** : voir [`docs/models.md`](docs/models.md) pour le verdict par plateforme (essais uniques, n=1), les notes sur le bac à sable hors ligne et l'import par zip.
 
 ## Organisation
 
@@ -120,7 +120,7 @@ scripts/                      # Python, stdlib d'abord
   pick_design.py              #   tirage déterministe du design (famille, polices, libellés, puces) ; --emit-typ imprime le préambule
   verify.py                   #   gate + doctor + --tune
   verify_*.py                 #   modules de gate sortis de verify.py
-  look.py, measure_fill.py    #   aide au contrôle visuel ; mesure de couverture d'encre
+  measure_fill.py              #   mesure de couverture d'encre
   gen_palette.py              #   palettes validées en contraste
   harvest_icons.py            #   récupère les tracés d'icônes dans l'icons.typ du dossier du CV, à la construction
 tests/                        # integration/ (suite de gates), unit/, backend_equiv.py, fixtures
@@ -132,7 +132,7 @@ assets/                       # image d'exemple du README, badges, aperçus des 
 
 Liste factuelle, pas un bac à sable : le skill est un ensemble d'instructions et de scripts Python que votre agent exécute avec vos permissions, et rien ici ne les confine.
 
-- **Réseau.** `scripts/harvest_icons.py` ne contacte que `https://api.iconify.design`, trois requêtes par build, avec des noms d'icônes et aucune donnée personnelle; hors ligne, il écrit des marques vides (voir Tiers plus bas). `scripts/verify.py` ne fait aucun appel réseau, et `--doctor` affiche les commandes d'installation sans les exécuter. `scripts/look.py` est le seul script qui peut envoyer des données personnelles : il poste les pages du CV rendues (PNG) et une liste de contrôle au `--base-url` que vous fournissez (LM Studio, ollama, tout point d'accès compatible OpenAI; le `http://` en clair est accepté). Il n'y a pas d'URL par défaut. Il refuse un hôte qui n'est ni loopback ni sur un réseau privé sauf si vous passez `--allow-remote`, et l'agent doit obtenir votre accord avant de l'utiliser. Un hôte local contourne toujours les variables d'environnement de proxy (`http_proxy`, `https_proxy`, `all_proxy`), peu importe les options; un hôte distant (accessible seulement avec `--allow-remote`) conserve vos paramètres de proxy.
+- **Réseau.** `scripts/harvest_icons.py` ne contacte que `https://api.iconify.design`, trois requêtes par build, avec des noms d'icônes et aucune donnée personnelle; hors ligne, il écrit des marques vides (voir Tiers plus bas). `scripts/verify.py` ne fait aucun appel réseau, et `--doctor` affiche les commandes d'installation sans les exécuter. Aucun script n'envoie de données personnelles.
 - **Processus.** `typst`, `pdfinfo`, `pdftotext`, `pdftoppm` et `pdfdetach` sont appelés avec des listes d'arguments, jamais via un shell.
 - **Fichiers.** Écrits dans le dossier du CV (PDF, `icons.typ`) et dans le dossier temporaire du système (dossiers `vitae-*`). `verify.py --render` sans `--out` rend dans un nouveau dossier `vitae-render-*` sous le dossier temporaire du système et ne le supprime pas : les PNG de pages de votre CV y restent jusqu'à ce que vous les retiriez.
 - **Hors ligne.** Possible : une roue typst que vous fournissez (étape 0), des polices depuis des fichiers locaux ([`references/fonts.md`](references/fonts.md), route 2) et le `icons.typ` vide de repli.

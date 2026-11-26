@@ -92,7 +92,7 @@ Platform notes:
 - **Linux / macOS**: works as-is (Apple Silicon handled).
 - **Windows** (baseline: Windows 11+, up to date): `python scripts\verify.py --doctor` runs directly; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` or `scoop install poppler`. Elsewhere, `python3 scripts/verify.py`.
 - **pip-only environments** (no package manager, no admin rights): `pip install typst pypdfium2 Pillow pypdf` covers everything except academic mode (which needs poppler): it compiles the PDF (`typst` via its Python API), measures page fill, renders page PNGs, and runs the date-adjacency, group-proximity, hidden-text and text-clip gates (`pypdfium2` for page counts, word boxes and rendering, `pypdf` for the tiny-text check), and `python3 scripts/verify.py --doctor` prints `OK (Python)`; ATS text extraction is indicative only. With `pypdf` alone (no `pypdfium2`) those four gates are skipped (WARN) and `--doctor` prints `DEGRADED` and names them. For poppler-grade extraction (and academic mode), install `poppler-utils` (or `poppler`) with the system package manager; `pip install typst==0.15.2` gives typst (Python API) without root (`--user` or a venv). Run `python3 scripts/verify.py --doctor` for install hints (see [`references/steps/0-env.md`](references/steps/0-env.md)); see [`references/ats.md`](references/ats.md) for the known pypdf caveat.
-- **Tested agents and models**: see [`docs/models.md`](docs/models.md) for the verdict per platform (n=1 runs), the offline-sandbox and zip-import notes, and which models are usable as the visual checker.
+- **Tested agents and models**: see [`docs/models.md`](docs/models.md) for the verdict per platform (n=1 runs), the offline-sandbox and zip-import notes.
 
 ## Layout
 
@@ -120,7 +120,7 @@ scripts/                      # Python, stdlib-first
   pick_design.py              #   deterministic design draw (family, fonts, labels, markers); --emit-typ prints the preamble
   verify.py                   #   gate + doctor + --tune
   verify_*.py                 #   gate modules split out of verify.py
-  look.py, measure_fill.py    #   visual check helper; ink-coverage measurement
+  measure_fill.py              #   ink-coverage measurement
   gen_palette.py              #   contrast-validated palettes
   harvest_icons.py            #   fetches icon paths into the CV folder's icons.typ at build time
 tests/                        # integration/ (gate suite), unit/, backend_equiv.py, fixtures
@@ -132,7 +132,7 @@ assets/                       # README example image, badges, family previews
 
 This is a factual list, not a sandbox: the skill is instructions plus Python scripts that your agent runs with your permissions, and nothing here confines them.
 
-- **Network.** `scripts/harvest_icons.py` contacts only `https://api.iconify.design`, three requests per build, carrying icon names and no personal data; offline it writes empty marks (see Third-party below). `scripts/verify.py` makes no network call, and `--doctor` prints install commands without running them. `scripts/look.py` is the one script that can send personal data: it posts the rendered CV pages (PNG) and a checklist to the `--base-url` you give it (LM Studio, ollama, any OpenAI-compatible endpoint; plain `http://` is accepted). There is no default URL. It refuses a host that is not loopback or private-network unless you pass `--allow-remote`, and the agent must ask for your agreement before using it. Local hosts always bypass proxy environment variables (`http_proxy`, `https_proxy`, `all_proxy`), whatever the flags; a remote host (only reachable with `--allow-remote`) keeps your proxy settings.
+- **Network.** `scripts/harvest_icons.py` contacts only `https://api.iconify.design`, three requests per build, carrying icon names and no personal data; offline it writes empty marks (see Third-party below). `scripts/verify.py` makes no network call, and `--doctor` prints install commands without running them. No script sends personal data.
 - **Processes.** `typst`, `pdfinfo`, `pdftotext`, `pdftoppm` and `pdfdetach` are called with argument lists, never through a shell.
 - **Files.** Written in the CV folder (PDFs, `icons.typ`) and in the system temp directory (`vitae-*` folders). `verify.py --render` without `--out` renders into a new `vitae-render-*` folder under the system temp directory and does not delete it, so page PNGs of your CV stay there until you remove them.
 - **Offline.** Possible: a typst wheel you supply (step 0), fonts from local files ([`references/fonts.md`](references/fonts.md), route 2), and the empty fallback `icons.typ`.

@@ -6,7 +6,7 @@ Judge the images only, no source. One yes/no question per item. Answer with exac
 
 Zone = where you looked (e.g. "header", "Experience, 2nd entry", "bottom third", "page 2 top"). A missing item counts as FAIL. When unsure, FAIL. Exit rule: after two fix-and-recheck rounds on the same item with no visible change, stop and report that item to the user instead of looping.
 
-Each item is `L<n> (<scope>) <question>`. Answer yes = PASS, no = FAIL. Scope tells `look.py --per-item` what to send: `page` = judge each page alone, `pages` = needs all pages together, `crops` = judge on all 300 ppi crops, `crops:fill` = only the fill/band crops, `crops:icon` = only the icon crops (each falls back to the pages when no crop of that type exists).
+Each item is `L<n> (<scope>) <question>`. Answer yes = PASS, no = FAIL. Scope = which images to judge on: `page` = judge each page alone, `pages` = needs all pages together, `crops` = judge on all 300 ppi crops, `crops:fill` = only the fill/band crops, `crops:icon` = only the icon crops (each falls back to the pages when no crop of that type exists).
 
 L1 (crops:fill) Is all text fully visible, with none cut off, overlapped or hidden behind a coloured band or another element?
 L2 (crops:fill) Is every text on a coloured band or fill clearly legible against it (no pale-on-pale, no dark-on-dark)?

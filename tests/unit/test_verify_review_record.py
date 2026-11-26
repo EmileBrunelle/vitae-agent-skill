@@ -197,20 +197,20 @@ def test_layout_line_is_required(tmp_path, line):
     assert "`layout:`" in msg and "(got 'nothing')" in msg
 
 
-@pytest.mark.parametrize("layout", ["subagent", "other-model", "selfish", "user please", "not run", "later",
+@pytest.mark.parametrize("layout", ["subagent", "other-model", "other-model gemini", "selfish", "user please", "not run", "later",
                                     "not run (no redesign) maybe"])
 def test_layout_must_be_a_whole_documented_form(tmp_path, layout):
     """Mutation: a prefix match (`startswith`) accepts all of these and fails this test."""
     assert any("`layout:`" in m for m in _fails(_check(tmp_path, COMPACT.replace("not run (no redesign)", layout))))
 
 
-@pytest.mark.parametrize("layout", ["self", "subagent opus", "other-model gemini", "user", "not run (no redesign)",
+@pytest.mark.parametrize("layout", ["self", "subagent opus", "user", "not run (no redesign)",
                                     "SELF", "Subagent Opus  "])
 def test_every_documented_layout_form_is_accepted_without_sub_agents(tmp_path, layout):
     _passes(_check(tmp_path, COMPACT.replace("not run (no redesign)", layout)))
 
 
-@pytest.mark.parametrize("layout", ["subagent opus", "other-model gemini", "user"])
+@pytest.mark.parametrize("layout", ["subagent opus", "user"])
 def test_sub_agents_accept_a_real_layout_review(tmp_path, layout):
     _passes(_check(tmp_path, GOOD.replace("subagent haiku", layout)))
 
@@ -658,10 +658,10 @@ def test_failure_messages_read_as_the_instruction_the_agent_acts_on(tmp_path):
     assert msg == ("review record: the Findings section has text but no parseable finding — one bullet per finding "
                    "(`-`, `*` or `1.`), each ending `→ applied` or `→ rejected: <reason>`")
     (msg,) = _fails(_check(tmp_path, GOOD.replace("subagent haiku", "later")))
-    assert msg == ("review record: `layout:` must be one of subagent <model> | self | other-model <model> | user | "
+    assert msg == ("review record: `layout:` must be one of subagent <model> | self | user | "
                    "not run (no redesign) (got 'later')")
     (msg,) = _fails(_check(tmp_path, GOOD.replace("subagent haiku", "self")))
-    assert msg == ("review record: `layout:` with `runtime: sub-agents` must be subagent <model> | other-model <model> | "
+    assert msg == ("review record: `layout:` with `runtime: sub-agents` must be subagent <model> | "
                    "user — the layout reviewer always runs on the full path (got 'self')")
 
 
@@ -670,7 +670,6 @@ def test_failure_messages_read_as_the_instruction_the_agent_acts_on(tmp_path):
 @pytest.mark.parametrize("layout,line", [
     ("subagent haiku", "Layout review: subagent haiku"),
     ("Subagent   Haiku 4.5", "Layout review: subagent Haiku 4.5"),
-    ("other-model qwen3-vl", "Layout review: other-model qwen3-vl"),
     ("user", "Layout review: user"),
     ("SELF", "Layout review: self"),
     ("Not Run (no redesign)", "Layout review: not run (no redesign)"),

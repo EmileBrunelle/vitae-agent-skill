@@ -62,7 +62,7 @@ def scratch(out_dir: Path) -> Path:
     (s / "tests").mkdir()
     for d in ("fixtures", "font_fallback", "language"):
         shutil.copytree(ROOT / "tests" / d, s / "tests" / d, ignore=ignore)
-    for f in ("compare_backends.py", "test_look.py"):
+    for f in ("compare_backends.py",):
         shutil.copy2(ROOT / "tests" / f, s / "tests" / f)
     if (ROOT / "SKILL.md").is_file():
         shutil.copy2(ROOT / "SKILL.md", s)

@@ -15,7 +15,7 @@ from vitae.core.level import Finding, Level
 RECORD_NAME = "review.md"
 STEP_7 = Path(__file__).resolve().parents[3] / "references" / "steps" / "7-review.md"
 
-_LAYOUT = re.compile(r"(?:(?:subagent|other-model)\s+(?!(?:skipped|none|n/a|na|not run|no|-)\s*$)\S.*|self|user|not run \(no redesign\))\s*", re.I)
+_LAYOUT = re.compile(r"(?:subagent\s+(?!(?:skipped|none|n/a|na|not run|no|-)\s*$)\S.*|self|user|not run \(no redesign\))\s*", re.I)
 # core persona -> (stem a normalized name must start with, as whole words; words allowed after it, None = any).
 # reviews.md: "Recruiter, 30-second scan", "Hiring manager of the field", "ATS / parsing expert". A name containing
 # `segment` ("nurse recruiter segment", "fintech hiring manager segment") is a market-segment persona, never a core one
@@ -144,10 +144,10 @@ def check_review_record(typ: str, sources: tuple[str, ...] | list[str] = (), pan
                      f"got {', '.join(covered) or 'nothing'})")
     layout = _field(lines, "layout") or ""
     if not _LAYOUT.fullmatch(layout):
-        fails.append("review record: `layout:` must be one of subagent <model> | self | other-model <model> | user | "
+        fails.append("review record: `layout:` must be one of subagent <model> | self | user | "
                      f"not run (no redesign) (got {layout or 'nothing'!r})")
     elif runtime == "sub-agents" and layout.lower().startswith(("self", "not run")):
-        fails.append("review record: `layout:` with `runtime: sub-agents` must be subagent <model> | other-model <model> | "
+        fails.append("review record: `layout:` with `runtime: sub-agents` must be subagent <model> | "
                      f"user — the layout reviewer always runs on the full path (got {layout!r})")
 
     block = _findings_block(lines)
@@ -176,7 +176,7 @@ def check_review_record(typ: str, sources: tuple[str, ...] | list[str] = (), pan
     return out
 
 
-_LAYOUT_KEYWORD = re.compile(r"subagent|other-model|self|user|not run \(no redesign\)", re.I)
+_LAYOUT_KEYWORD = re.compile(r"subagent|self|user|not run \(no redesign\)", re.I)
 _ANSI_CSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")      # C0 and C1 (tab/newline are whitespace, collapsed below)
 LAYOUT_VALUE_MAX = 80

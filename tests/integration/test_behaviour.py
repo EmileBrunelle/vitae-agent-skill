@@ -1,5 +1,5 @@
 """verify.py / pick_design behaviour checks on the scratch copy, ported from run_all.sh (drawn header, --all, lowered fill,
-placeholders, review record, facts, --text/--render/--crops, look parser, font fallback).
+placeholders, review record, facts, --text/--render/--crops, font fallback).
 
 Every assertion is run_all's, with its strictness: where the bash read stdout alone (`$(...)` without 2>&1, `>"$log"`) the test
 reads `.stdout`; where it merged stderr it reads `.output`.
@@ -199,12 +199,6 @@ def test_text_render_bad(a_template_pdf: Path, check: Check, py: str, scratch: P
     assert r.rc == 0, r.output
     assert not (o / f"{stem}-p9.png").exists(), "stale page kept"
     assert (o / "keep.png").exists() and (o / f"{stem}x-p9.png").exists(), "removed an unrelated file"
-
-
-def test_look_parser(check: Check, py: str) -> None:
-    """scripts/look.py: offline parser tests (no model endpoint needed)."""
-    r = check("look-parser", [py, "-I", "tests/test_look.py"])
-    assert r.passed, r.output
 
 
 def _typ(d: Path, name: str, body: str) -> Path:

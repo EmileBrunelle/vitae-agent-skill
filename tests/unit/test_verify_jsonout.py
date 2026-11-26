@@ -147,11 +147,11 @@ def _layout_dispatch(*lines, rc=0):
 
 
 def test_layout_review_is_the_line_printed_under_the_pass_line_and_is_no_check(capsys):
-    d = _run(capsys, ["x.typ"], _layout_dispatch("OK    fine", "PASS all mechanical checks", "Layout review: other-model qwen3-vl"))
+    d = _run(capsys, ["x.typ"], _layout_dispatch("OK    fine", "PASS all mechanical checks", "Layout review: subagent qwen3-vl"))
     _, obj, err = d
-    assert obj["layout_review"] == "other-model qwen3-vl"
+    assert obj["layout_review"] == "subagent qwen3-vl"
     assert [c["message"] for c in obj["checks"]] == ["fine"]
-    assert "Layout review: other-model qwen3-vl" in err
+    assert "Layout review: subagent qwen3-vl" in err
 
 
 def test_layout_review_is_found_when_the_pass_line_is_the_first_line_and_warnings_follow(capsys):
