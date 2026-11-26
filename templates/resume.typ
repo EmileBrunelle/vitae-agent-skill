@@ -85,10 +85,10 @@
 #align(center)[
   #text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
     size: 23pt, weight: "bold")[Firstname Lastname]
-  #v(-2pt * rhythm)
+  #v(-2pt)
   // Title and degree only as the facts state them; check protected titles (rule 4).
   #text(size: 11pt, fill: accent, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-4pt * rhythm)
+  #v(-4pt)
   #text(size: 9.5pt, fill: muted)[
     #contact(none)[\[City, Region\]]
     #h(5pt)#drawn-marker("dot", auto)#h(5pt) #contact(none)[#link("tel:+15555550100")[(555) 555-0100]]

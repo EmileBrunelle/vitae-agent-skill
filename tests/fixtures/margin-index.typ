@@ -66,9 +66,9 @@
   #grid(columns: (2.5cm, 1fr), column-gutter: 12pt,
     [],
     [#text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname] \
-     #v(-4pt * rhythm)
+     #v(-4pt)
      #text(size: 10.5pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]] \
-     #v(-3pt * rhythm)
+     #v(-3pt)
      #text(size: 9pt, fill: muted)[#contact(mk.pin)[\[City, Region\]] #h(7pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
        #h(7pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
        #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)

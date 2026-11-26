@@ -59,9 +59,9 @@
   // contact row into one line per item or reads its second line before the first.
   #set par(leading: 0.665em, spacing: 0.765em)
   #text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname]
-  #v(-3pt * rhythm)
+  #v(-3pt)
   #text(size: 10.5pt)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-4pt * rhythm)
+  #v(-4pt)
   #text(size: 9pt, fill: muted)[
     #contact-rows(2)#contact(mk.pin)[\[City, Region\]] #h(5pt)#drawn-marker("mid", auto)#h(5pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(5pt)#drawn-marker("mid", auto)#h(5pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \

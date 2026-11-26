@@ -271,10 +271,8 @@
            note-st: it => it,
            sep: [ — ], meta-size: 9pt, gap: 1.5pt,
            above: auto, lift: 0.1em, below: 5.5pt, rhythm: 1.0) = context {
-  // `rhythm` (the family's `#let rhythm`) stretches every vertical gap of the entry together;
-  // 1.0 changes nothing. The auto `above` below is computed from the scaled gap/lift.
-  let gap = gap * rhythm
-  let lift = lift * rhythm
+  // `rhythm` (the family's `#let rhythm`) stretches the inter-block gaps of the entry (`above`,
+  // `below`); `gap` and `lift` are font clearances inside it and stay as given.
   let below = below * rhythm
   let above = if above == auto { auto } else { above * rhythm }
   // In-head spacing, measured from the faces in use (no ambient block spacing:
@@ -741,5 +739,5 @@
   // `outset` paints the fill into the margins WITHOUT touching the layout, so the
   // band's flow height is exactly text + bottom + gap (no negative-pad arithmetic).
   block(width: 100%, above: 0pt, below: gap * rhythm, fill: fill,
-    outset: (left: ml, right: mr, top: mt), inset: (bottom: bottom * rhythm), body)
+    outset: (left: ml, right: mr, top: mt), inset: (bottom: bottom), body)
 }

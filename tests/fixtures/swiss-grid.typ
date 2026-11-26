@@ -58,7 +58,7 @@
 #block(above: 0pt, below: 11pt * rhythm)[
   #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
-     #v(-3pt * rhythm)
+     #v(-3pt)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#contact-rows(5)#contact(mk.pin)[\[City, Region\]] \
       #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \

@@ -60,7 +60,7 @@
 #block(above: 0pt, below: 12pt * rhythm)[
   #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
     [#text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
-     #v(-2pt * rhythm)
+     #v(-2pt)
      #text(size: 10.5pt, fill: accent, weight: "semibold")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #contact-rows(5)#contact(ic.pin)[\[City, Region\]] \
       #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \

@@ -82,7 +82,7 @@
     #line(length: 56pt, stroke: 0.6pt + accent)
     #v(3pt * rhythm)
     #text(size: 11pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-    #v(-1pt * rhythm)
+    #v(-1pt)
     #text(size: 9pt, fill: muted)[
       #contact(none)[\[City, Region\]] #h(7pt) #contact(none)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)
       #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
