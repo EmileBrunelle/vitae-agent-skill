@@ -126,7 +126,7 @@ def run_json(argv: list[str], dispatch: Dispatch) -> tuple[int, None]:
                 bad, rc = True, 2
                 if isinstance(e.code, str):
                     print(e.code, file=sys.stderr)
-        except Exception as e:      # a gate crash is not a gate FAIL: exit 2, one JSON line, nothing lost
+        except Exception as e:      # kept broad: top-level; a gate crash is not a gate FAIL: exit 2, one JSON line with the type and message
             crash, rc = f"{type(e).__name__}: {e}", 2
     if crash:
         sys.stderr.write(out.getvalue() + err.getvalue())

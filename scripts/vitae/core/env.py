@@ -52,7 +52,7 @@ def _wheel_platform_tag() -> str:
         try:
             tags = importlib.import_module(mod)
             return str(next(iter(tags.sys_tags())).platform)
-        except Exception:
+        except (ImportError, StopIteration):   # module absent, or an empty tag list
             continue
     return re.sub(r"[-.]", "_", sysconfig.get_platform())
 
@@ -64,7 +64,7 @@ def check_typst() -> tuple[bool, bool]:
     if shutil.which("typst"):
         try:
             ver = subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
-        except Exception:
+        except (OSError, subprocess.SubprocessError, IndexError):   # cannot run, or no version token in the output
             ver = "?"
         if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
             print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
@@ -130,7 +130,7 @@ def _importable(name: str) -> bool:
     try:
         importlib.import_module(name)
         return True
-    except Exception:
+    except Exception:   # kept broad: a broken wheel may raise anything on import (OSError, RuntimeError...); False reads as backend absent, the callers WARN
         return False
 
 
@@ -296,8 +296,8 @@ def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
         mod = importlib.import_module("typst")   # ModuleType: attribute access is untyped (no stubs)
     except ImportError:
         return None, "", "", False
-    except Exception as e:
-        return None, "", f"import failed: {e}", False
+    except Exception as e:   # kept broad: a broken wheel may raise anything on import; reported as the probe's problem text, which the doctor prints
+        return None, "", f"import failed: {type(e).__name__}: {e}", False
     comp_cls = getattr(mod, "Compiler", None)
     if comp_cls is not None and not hasattr(comp_cls, "compile_with_warnings"):
         # a working but old wheel (typst-py 0.11.x): the API this script drives is newer
@@ -314,16 +314,16 @@ def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
                 return None, "", "compiling a one-line document returned no PDF", False
         try:
             ver = str(json.loads(mod.Compiler().eval("str(sys.version)", format="json")))
-        except Exception:
+        except (RuntimeError, ValueError):   # typst-py eval error, or a reply that is not JSON
             ver = str(getattr(mod, "__version__", "?"))
         full = False
         try:
             full = (hasattr(comp, "query") and hasattr(comp, "eval")
                     and bool(mod.Fonts(include_system_fonts=True, **typst_font_kw()).families()))
-        except Exception:
+        except (RuntimeError, OSError):   # Fonts() failing: the module is compile-only, full stays False
             pass
         return mod, ver, "", full
-    except Exception as e:
+    except Exception as e:   # kept broad: the probe runs a third-party wheel; any failure is reported as the problem text (type and message)
         return None, "", f"{type(e).__name__}: {e}", False
 
 
@@ -351,5 +351,5 @@ def typst_fonts() -> list[str] | None:
     mod = typst_py()
     try:
         return list(mod.Fonts(include_system_fonts=True, **typst_font_kw()).families()) if mod else None
-    except Exception:
+    except (RuntimeError, OSError):   # typst-py Fonts() failing
         return None

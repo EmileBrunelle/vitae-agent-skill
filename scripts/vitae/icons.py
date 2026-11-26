@@ -33,6 +33,7 @@ them. Prefer FILL-based sets (Tabler *-filled, Phosphor *-fill, Bootstrap
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import re
@@ -117,7 +118,7 @@ def fetch_set(prefix: str, names: list[str]) -> tuple[dict[str, object], dict[st
         data = fetch(f"{API}/{prefix}.json?icons={','.join(names)}")
         if not isinstance(data, dict) or not isinstance(coll, dict):
             raise ValueError("unexpected reply shape")
-    except Exception as e:                      # network, DNS, HTTP, bad JSON
+    except (OSError, http.client.HTTPException, ValueError) as e:   # network, DNS, HTTP, bad JSON (JSONDecodeError is a ValueError)
         print(f"ICONS: {prefix} unreachable ({e}) — marks will be omitted, "
               f"contact lines keep their URLs as text", file=sys.stderr)
         return {}, {}

@@ -65,7 +65,7 @@ def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
         typst = importlib.import_module("typst")
         typst.compile(typ, output=pdf, **_root_kw(typ), **typst_font_kw())
         return True, ""
-    except Exception as e:
+    except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
         return False, str(e)
 
 
@@ -158,7 +158,7 @@ def typst_compile(src: str, pdf: str | None = None) -> tuple[bool, str]:
         res = mod.Compiler(src, **_root_kw(src), **typst_font_kw()).compile_with_warnings(output=pdf or os.path.splitext(src)[0] + ".pdf")
         warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
         return True, "\n".join(str(w) for w in warns or [])
-    except Exception as e:
+    except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
         return False, str(e)
 
 
@@ -425,7 +425,7 @@ def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]
             flush()
             pages.append((float(pw), float(ph), _reading_order(items)))
         return pages, None
-    except Exception as e:
+    except Exception as e:   # kept broad: the caller turns the reason (type and message) into a visible "gate skipped" WARN
         return None, f"{type(e).__name__}: {e}"[:120]
 
 
@@ -470,7 +470,7 @@ def pdf_unreadable(pdf: str) -> bool:
                 return True
         backend = pdf_backend()
         return backend is not None and not count_pages(pdf, backend)
-    except Exception:
+    except Exception:   # kept broad: a corrupt file can make any backend raise anything; fails closed (unreadable), never a pass
         return True
 
 

@@ -199,6 +199,6 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
               % (typ, expected, fmin, fmax, allow))
         return 0, footer
     except BaseException:
-        # BaseException, not Exception: Ctrl-C mid-probe must not leave a half-tuned file behind
+        # kept broad: restores the file then re-raises, nothing is swallowed (Ctrl-C mid-probe must not leave a half-tuned file behind)
         open(typ, "w", encoding="utf-8").write(original)   # never leave a probe
         raise

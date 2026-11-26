@@ -281,7 +281,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
             doc = _pdfium_doc(pdf)
             meta: dict[str, str] = doc.get_metadata_dict()
             info = {k: (meta.get(k) or "").strip() for k in ("Keywords", "Title", "Author", "Subject")}
-        except Exception:
+        except (OSError, RuntimeError):   # pypdfium2 cannot open or read the file (PdfiumError is a RuntimeError)
             pass
     elif shutil.which("pdfinfo"):
         for line in subprocess.run(["pdfinfo", pdf], capture_output=True, text=True).stdout.splitlines():
@@ -290,14 +290,18 @@ def check_pdf_metadata(pdf: str) -> list[str]:
                 info[k] = v.strip()
     else:
         try:
+            pypdf = importlib.import_module("pypdf")
+        except ImportError:
+            pypdf = None
+        if pypdf is not None:
             import warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                pypdf = importlib.import_module("pypdf")
-                md = pypdf.PdfReader(pdf).metadata or {}
-            info = {k: str(md.get("/" + k) or "") for k in ("Keywords", "Title", "Author", "Subject")}
-        except Exception:
-            pass
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    md = pypdf.PdfReader(pdf).metadata or {}
+                info = {k: str(md.get("/" + k) or "") for k in ("Keywords", "Title", "Author", "Subject")}
+            except (OSError, ValueError, pypdf.errors.PyPdfError):   # file unreadable or malformed for pypdf
+                pass
     out: list[str] = []
     for k, v in info.items():
         if not v:
@@ -341,10 +345,13 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
     font, up to 2x the size). A run that is a superscript or subscript — smaller than a
     neighbouring run on the same line, raised or lowered, at or right of it — is not tiny."""
     try:
+        pypdf = importlib.import_module("pypdf")
+    except ImportError:
+        return [], [], False   # pypdf absent: the caller reports "not run"
+    try:
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            pypdf = importlib.import_module("pypdf")
             reader = pypdf.PdfReader(pdf)
             off: list[tuple[int, str]] = []
             tiny: list[tuple[int, str, float, int]] = []
@@ -387,10 +394,10 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
                         else:
                             tiny.append((pno, t, sz, i))
         return off, [(p_, t, sz) for p_, t, sz, _ in tiny], True
-    except Exception as e:
-        # ImportError: pypdf is absent, so the caller reports "not run". Any other error
-        # counts as "ran, found nothing".
-        return [], [], not isinstance(e, ImportError)
+    except (OSError, ValueError, pypdf.errors.PyPdfError):
+        # a file pypdf cannot read counts as "ran, found nothing" (the other gates fail an unreadable PDF);
+        # any other exception is a bug in the scan and propagates instead of reading as a clean pass
+        return [], [], True
 
 
 HIDDEN_TAIL = ("text a reader cannot see is still read by ATS and recruiters' tools, "

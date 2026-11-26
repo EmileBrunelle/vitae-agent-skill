@@ -67,9 +67,9 @@ def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None
                     vals = _json_list(out)
                     if vals is not None:
                         return vals
-            except Exception:
-                continue
-    except Exception:
+            except (RuntimeError, TypeError, ValueError, OSError):
+                continue   # this typst-py route failed (typst error, signature of an older wheel, bad JSON): try the next
+    except (RuntimeError, TypeError, OSError):   # Compiler() refusing the source or the keywords: marks not readable
         pass
     return None
 

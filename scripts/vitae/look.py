@@ -496,7 +496,7 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
 def main(argv: Sequence[str] | None = None) -> None:
     try:
         _main(argv)
-    except Exception as e:  # SystemExit/KeyboardInterrupt pass through
+    except Exception as e:  # kept broad: top-level CLI handler, prints and exits non-zero (die); SystemExit/KeyboardInterrupt pass through
         die(f"{type(e).__name__}: {e}")
 
 

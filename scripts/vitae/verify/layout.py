@@ -284,7 +284,9 @@ def pdf_char_fonts(pdf: str) -> list[tuple[str, str]] | None:
                 n = raw.FPDFText_GetFontInfo(tp, i, buf, 256, ctypes.byref(flags))
                 out.append((ch, buf.value.decode("latin-1") if n else ""))
         return out
-    except Exception:
+    except (OSError, RuntimeError, ImportError):
+        # what pypdfium2 raises for a file it cannot read (PdfiumError is a RuntimeError), or a missing shared
+        # library; anything else is a bug in this scan and propagates, never a silent "cannot check"
         return None
 
 
