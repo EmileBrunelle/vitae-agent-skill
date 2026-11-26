@@ -4,6 +4,7 @@ Big Shoulders Display
 C059
 Caladea
 Cantarell
+Carlito
 Chivo
 DejaVu Sans Mono
 Familjen Grotesk
@@ -14,7 +15,10 @@ Geist Mono
 Hanken Grotesk
 Instrument Sans
 Liberation Sans
+Liberation Serif
 Libertinus Serif
+Montserrat
+Nimbus Roman
 Nimbus Sans
 Noto Sans
 Noto Sans Mono
