@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -23,6 +25,7 @@ class CheckResult:
     rc: int
     output: str
     log: Path | None
+    stdout: str = ""   # stdout alone, for the checks that parse it (stderr is in `output`)
 
     @property
     def passed(self) -> bool:
@@ -43,17 +46,17 @@ def run_check(name: str, argv: Sequence[str | os.PathLike[str]], cwd: Path,
     try:
         p = subprocess.run([str(a) for a in argv], cwd=cwd, env=full_env, capture_output=True, text=True,
                            errors="replace", timeout=timeout, stdin=subprocess.DEVNULL)
-        rc, out = p.returncode, p.stdout + p.stderr
+        rc, out, so = p.returncode, p.stdout + p.stderr, p.stdout
     except subprocess.TimeoutExpired:
-        rc, out = 124, f"FAIL timeout after {timeout}s"
+        rc, out, so = 124, f"FAIL timeout after {timeout}s", ""
     except OSError as e:
-        rc, out = 127, f"FAIL cannot run {argv[0]}: {e}"
+        rc, out, so = 127, f"FAIL cannot run {argv[0]}: {e}", ""
     log: Path | None = None
     if log_dir is not None:
         log_dir.mkdir(parents=True, exist_ok=True)
         log = log_dir / (re.sub(r"[/\\]", "_", name) + ".log")
         log.write_text(out, encoding="utf-8")
-    return CheckResult(name, rc, out, log)
+    return CheckResult(name, rc, out, log, so)
 
 
 def assert_passed(r: CheckResult) -> None:
@@ -105,3 +108,64 @@ def discover_templates() -> list[Template]:
     for typ in sorted((ROOT / "templates" / "families").glob("*/resume-2page.typ")):
         out.append(Template(typ.parent.name, "resume-2page", 2, *TWO_PAGE_FILL))
     return out
+
+
+def grep(text: str, pattern: str) -> bool:
+    """`grep -q PATTERN` on a captured output: a regex matched line by line (so ^ and $ anchor a line, as in grep -E)."""
+    return re.search(pattern, text, re.MULTILINE) is not None
+
+
+def typst_compile(src: Path, pdf: Path, cwd: Path) -> CheckResult:
+    """Compile with the typst CLI, else with typst-py through the current python (run_all.sh's fallback)."""
+    if shutil.which("typst"):
+        return run_check(f"typst/{src.stem}", ["typst", "compile", src, pdf], cwd)
+    return run_check(f"typst/{src.stem}", [sys.executable, "-I", "-c",
+                                           "import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])", src, pdf], cwd)
+
+
+# Doctor simulations: a PATH of symlinks and shims, plus a stub `typst` Python module on PYTHONPATH.
+
+def doctor_env(d: Path, tools: Sequence[str] = ()) -> Path:
+    """Fresh `d/bin` (symlinks to the host `tools`) and `d/py` (for a stub typst.py); returns d."""
+    shutil.rmtree(d, ignore_errors=True)
+    (d / "bin").mkdir(parents=True)
+    (d / "py").mkdir()
+    for t in tools:
+        host = shutil.which(t)
+        assert host, f"host tool {t} not found"
+        (d / "bin" / t).symlink_to(host)
+    return d
+
+
+def shim_typst(d: Path, families: Sequence[str], version: str = "0.15.0") -> None:
+    """Fake `typst` CLI of the given version that lists only `families` as its fonts."""
+    echoes = "".join(f'echo "{f}"; ' for f in families)
+    shim = d / "bin" / "typst"
+    shim.write_text(f'#!/bin/sh\n[ "$1" = fonts ] && {{ {echoes}exit 0; }}\necho "typst {version}"\n')
+    shim.chmod(0o755)
+
+
+_STUB_COMPILE = ('class Compiler:\n    def __init__(self, *a, **k): pass\n'
+                 '    def compile_with_warnings(self, **k): return (b"%PDF-1", [])\n')
+STUB_TYPST = {
+    "broken": "",    # imports, has no Compiler: a broken install
+    "compile-only": _STUB_COMPILE + '__version__ = "9.9.9"\n',
+    "working": _STUB_COMPILE + '    def query(self, *a, **k): return "[]"\n    def eval(self, e, **k): return "\\"9.9.9\\""\n'
+                               'class Fonts:\n    def __init__(self, *a, **k): pass\n    def families(self): return ["DejaVu Sans"]\n'
+                               '__version__ = "9.9.9"\n',
+}
+
+
+def stub_typst(d: Path, kind: str, version: str | None = None) -> None:
+    """Write d/py/typst.py: `broken`, `compile-only` or `working` (by how much of the API works)."""
+    src = STUB_TYPST[kind]
+    d.joinpath("py", "typst.py").write_text(src.replace("9.9.9", version) if version else src)
+
+
+def run_doctor(name: str, d: Path, cwd: Path, log_dir: Path, *, stub: bool = False) -> CheckResult:
+    """`verify.py --doctor` with PATH = d/bin only (and PYTHONPATH = d/py when a stub is in play), by the interpreter's own
+    path: a `python3` symlink in the stripped PATH would resolve out of a venv and lose its site-packages."""
+    env = {"PATH": str(d / "bin")}
+    if stub:
+        env["PYTHONPATH"] = str(d / "py")
+    return run_check(name, [sys.executable, "scripts/verify.py", "--doctor"], cwd, env, log_dir)
