@@ -1,11 +1,10 @@
 """Letter gate end to end on a compiled letter: employer/title match, one page, no hidden text."""
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
-from vitae.core.env import preflight
+from vitae.core.env import pdf_tool, preflight
 from vitae.verify.letter import check_letter
 
 pytestmark = pytest.mark.skipif(not preflight()[0], reason="needs typst and a PDF text backend")
@@ -27,7 +26,7 @@ def _run(tmp: Path, src: str, employer: str = "Acme Corp") -> tuple[bool, list[s
     (LETTER, "Widgets Inc", "employer"),
     (LETTER + "#pagebreak()\nSincerely,\n", "Acme Corp", "must be exactly 1"),
     pytest.param(LETTER + HIDDEN, "Acme Corp", "hidden text: remove",
-                 marks=pytest.mark.skipif(not shutil.which("pdftoppm"), reason="needs pdftoppm")),
+                 marks=pytest.mark.skipif(not pdf_tool("pdftoppm"), reason="needs pdftoppm")),
 ], ids=["match", "wrong-employer", "two-pages", "hidden-text"])
 def test_letter_gate_verdict(tmp_path: Path, src: str, employer: str, needle: str | None) -> None:
     ok, fails = _run(tmp_path, src, employer)

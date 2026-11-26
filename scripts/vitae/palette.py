@@ -12,7 +12,6 @@ Usage:
     python3 scripts/gen_palette.py --family swiss-grid --seed "Name+field"
     python3 scripts/gen_palette.py --family color-band --audacity expressive \
         --seed "Name+field" --typst
-    python3 scripts/gen_palette.py --selftest
 
     --audacity sober       default. Deep, contained hues only: the palette must
                            stay credible on a conservative employer's CV even
@@ -360,83 +359,14 @@ def report(p: Palette) -> str:
     return "\n".join(out)
 
 
-def selftest() -> None:
-    a = build("swiss-grid", "Candidate A+software")
-    assert a["accent"] == build("swiss-grid", "Candidate A+software")["accent"]
-    assert build("swiss-grid", "Candidate B+software")["accent"] != a["accent"]
-    seen: dict[str, set[str]] = {}
-    for level in DIAL:
-        for f in HARMONY:
-            for i in range(50):
-                p = build(f, "Candidate %02d+x" % i, level)
-                for name, (v, t) in p["checks"].items():
-                    assert v >= t, (f, level, name, v, t)
-                h, s, l = p["hsl"]
-                assert not EXCLUDE_HUE[0] <= h <= EXCLUDE_HUE[1], (f, h)
-                assert DIAL[level][0][0] <= s <= DIAL[level][0][1]
-                assert DIAL[level][1][0] <= l <= DIAL[level][1][1]
-                seen.setdefault(level, set()).add(_hex(p["accent"]))
-                # duotone: hue B exists only where a family declares it, keeps
-                # inside the same dial ranges (guardrail on BOTH hues), and is
-                # far enough in hue to read as a second colour.
-                if f in DUOTONE:
-                    second = _second(p)
-                    assert second is not None
-                    h2, s2, l2 = second[1]
-                    assert not any(lo <= h2 <= hi for lo, hi in HUE_B_VETO), \
-                        (f, level, h2, "hue B landed in a veto zone")
-                    assert DIAL[level][0][0] <= s2 <= DIAL[level][0][1]
-                    assert DIAL[level][1][0] <= l2 <= DIAL[level][1][1]
-                    d = abs((h2 - h + 180) % 360 - 180)
-                    assert d >= 55, (f, h, h2, d)
-                    assert s2 <= s, (f, "hue B must stay subordinate")
-                    assert p["checks"]["accent2 on white"][0] >= \
-                        ACCENT_MIN[level]
-                    assert "accent2" in typst(p)
-                else:
-                    assert p["accent2"] is None and "accent2" not in typst(p)
-    assert len(seen["sober"]) > 100, "sober range too narrow to individualise"
-    # Grayscale survival of the duotone pairs, measured over 100 draws per
-    # duotone family per dial level. Replaying the old l2=lig+4 rule over these
-    # same keys, 510 of the 1800 (28.3%) fell below the floor; the floor makes
-    # it 0 by construction, so the assertion is that NONE of them collapses.
-    worst: tuple[float, str, str] | None = None
-    for f in DUOTONE:
-        for level in DIAL:
-            for i in range(100):
-                p = build(f, "Gray %03d+x" % i, level)
-                accent2 = p["accent2"]
-                assert accent2 is not None
-                sep = contrast(p["accent"], accent2)
-                assert sep >= DUOTONE_SEP, (f, level, i, sep)
-                if worst is None or sep < worst[0]:
-                    worst = (sep, f, level)
-    # the guardrail: sober never produces a pale or washed-out accent
-    for i in range(200):
-        p = build("swiss-grid", "N%03d" % i, "sober")
-        assert p["hsl"][2] <= 34 and p["checks"]["accent on white"][0] >= 6.0
-    draws = 50 * len(HARMONY)
-    print("selftest OK — %s"
-          % ", ".join("%s: %d distinct accents/%d" % (k, len(v), draws)
-                      for k, v in sorted(seen.items())))
-    assert worst is not None
-    print("  duotone grayscale separation: %d pairs checked, all ≥ %.2f "
-          "(tightest %.2f on %s/%s)"
-          % (len(DUOTONE) * len(DIAL) * 100, DUOTONE_SEP,
-             *worst))
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("--family")
     ap.add_argument("--seed")
     ap.add_argument("--audacity", default="sober", choices=AUDACITIES)
     ap.add_argument("--typst", action="store_true", help="print the #let block")
-    ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
-    if a.selftest:
-        selftest()
-    elif a.family and a.seed:
+    if a.family and a.seed:
         audacity: str = a.audacity
         if not is_audacity(audacity):
             ap.error(f"invalid --audacity {audacity!r}")

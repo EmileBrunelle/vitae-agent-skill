@@ -125,7 +125,7 @@ def _usage(prog: str) -> str:
             f"            checks:[{{level, check, message}}], footer}}; a usage error is {{verdict:ERROR, exit_code:2, error}}\n"
             f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI] [--allow-placeholders]\n"
             f"       {prog} --all DIR [--allow-placeholders] [--rebuild]\n"
-            f"       {prog} --doctor\n")
+            f"       {prog} --doctor")
 
 
 def main() -> tuple[int, str | None]:

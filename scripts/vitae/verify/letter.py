@@ -106,7 +106,7 @@ class _UsageParser(argparse.ArgumentParser):
 
 def _usage() -> str:
     prog = os.path.basename(sys.argv[0])
-    return (f"usage: {prog} letter.typ EMPLOYER \"EXACT JOB TITLE\" [--allow-placeholders]\n")
+    return (f"usage: {prog} letter.typ EMPLOYER \"EXACT JOB TITLE\" [--allow-placeholders]")
 
 
 def main() -> None:

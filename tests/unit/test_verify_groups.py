@@ -537,6 +537,12 @@ def adj(marks, page_words, **kw):
 
 
 class TestCheckDateAdjacency:
+    def test_no_marks_is_silent_and_no_word_boxes_is_a_warn_never_a_crash(self):
+        assert groups.check_date_adjacency("", "", marks=[]) == []
+        warns: list[str] = []
+        assert groups.check_date_adjacency("", "", marks=[H], words=[[]], warns=warns) == []
+        assert warns
+
     def test_date_read_before_the_org_line_passes(self):
         fails, warns, stats = adj([H, D, O], [DEV, DATE, ACME])
         assert (fails, warns) == ([], [])
