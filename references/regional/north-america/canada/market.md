@@ -1,6 +1,6 @@
 # Market: Canada
 
-Loaded on demand when the target market is Canada. Read together with [`common.md`](../common.md), which still applies.
+Loaded on demand when the target market is Canada. The files that go with it are listed in [`steps/2-region.md`](../../../steps/2-region.md).
 
 ## At a glance
 - **Paper:** not covered here (not checked); see [`north-america/common.md`](../common.md)
@@ -17,4 +17,4 @@ Loaded on demand when the target market is Canada. Read together with [`common.m
 - Lawyer, paralegal, notary, teacher: [`law.md`](law.md) and [`teaching.md`](teaching.md) here, [`../quebec/law.md`](../quebec/law.md) and [`../quebec/teaching.md`](../quebec/teaching.md) for Québec.
 
 ## Québec
-- TARGET market is Québec (Québec employer or posting; a Québec address alone does not make it the target): also read [`references/regional/north-america/quebec/market.md`](../quebec/market.md) — French verb style, academic calendars, CPI, OQLF month forms, protected titles, foreign diplomas. Candidate who holds Québec credentials (DEC, AEC, DEP, Québec university degree, Québec order membership) and targets ANY market other than Québec: also read [`references/regional/north-america/quebec/outbound/common.md`](../quebec/outbound/common.md). French CV or francophone employer in NB, NS, PEI, Ontario or Manitoba (never for a Québec target): [`north-america/canada/francophone.md`](francophone.md).
+- Which Québec and French-Canadian files apply (Québec target; Québec credentials targeting another market; French CV or francophone employer outside Québec) is decided by the table in [`steps/2-region.md`](../../../steps/2-region.md); this file does not route.

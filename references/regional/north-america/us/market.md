@@ -1,6 +1,6 @@
 # Market: USA
 
-Loaded on demand when the target market is the USA. Read together with [`common.md`](../common.md), which still applies.
+Loaded on demand when the target market is the USA. The files that go with it are listed in [`steps/2-region.md`](../../../steps/2-region.md).
 
 ## At a glance
 - **Paper:** not covered here (not checked); see [`common.md`](../common.md)

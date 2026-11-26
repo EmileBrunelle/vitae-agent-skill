@@ -2,7 +2,9 @@
 
 Apply the conventions of the market being applied to, not the user's locale. When the region is ambiguous, ask. Send the version in the language *and spelling variant* of the job posting.
 
-**Load only what you need:** this file gives the file list and the universal rules; the per-market depth lives in `regional/<region>/…` — read ONLY the file(s) for the target market, listed below with their load condition. Each market file opens with an "At a glance" (profile columns: paper, photo, CV language, personal data, verb style, length); the add-on files (Québec, `to-…` and `outbound…` files) do not, and always come on top of the target market's file.
+**Load only what you need, by section** (`grep -n '^## ' regional.md`): § Market files is the file list with load conditions (the common markets are also tabulated in [`steps/2-region.md`](steps/2-region.md)); § Universal rules and § Section names per language are read for every CV. This file gives the file list and the universal rules; the per-market depth lives in `regional/<region>/…` — read ONLY the file(s) for the target market, listed below with their load condition. Each market file opens with an "At a glance" (profile columns: paper, photo, CV language, personal data, verb style, length); the add-on files (Québec, `to-…` and `outbound…` files) do not, and always come on top of the target market's file.
+
+## Market files
 
 North America
 - [`regional/north-america/common.md`](regional/north-america/common.md) — read IN ADDITION to `canada/market.md` or `us/market.md` for any Canada or USA target (us-letter; no photo/age; length 1-2 p.; protected-title regime; French outside Québec: see `canada/francophone.md`)

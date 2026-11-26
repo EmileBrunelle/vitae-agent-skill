@@ -1,6 +1,6 @@
 # Market: Québec (Canada)
 
-Loaded on demand when the target market is Québec. Read together with [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md), which still apply; Québec-specific rules only.
+Loaded on demand when the target market is Québec. Québec-specific rules only; the files that go with it are listed in [`steps/2-region.md`](../../../steps/2-region.md).
 
 ## At a glance
 - **Paper:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md)
