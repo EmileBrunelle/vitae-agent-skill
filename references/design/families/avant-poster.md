@@ -12,5 +12,5 @@ The constructivist poster tradition (the Lissitzky lineage): a **two-ink** disci
 - **Type**: a condensed grotesque display + a humanist sans body. Pool: `pick_design.py` FONTS `avant-poster`.
 - **Accents** (complementary harmony). Validated A→B pairs, never mixed across rows: `#b3261e` red → `#1f3a5f` navy · `#8c3b00` rust → `#0e6862` teal · `#72191f` oxblood → `#2f4858` petrol.
 - **Gabarit**: mid — 1.8cm x, 1.3cm top, 1.6cm bottom, body 10.5pt, fill **92-94%**. The margin is what the bars bleed into, so it has to be real.
-- **Verified**: leading `0.675em`, spacing `0.765em`, section `above` 18.5pt (23.5pt airy), 6pt after the title → 1 page, fill 94%, white-run ratio 6.25
+- **Verified**: leading `0.561em`, spacing `0.651em`, list spacing `0.731em` (item gap above leading, 2026-11-26 rhythm fix), section `above` 18.5pt (23.5pt airy), 6pt after the title → 1 page, fill 94%, white-run ratio 6.25
 - Markets: design, art direction, motion, advertising, cultural sector. Never for conservative markets; not in the default pool. Photo: yes (right of the masthead).

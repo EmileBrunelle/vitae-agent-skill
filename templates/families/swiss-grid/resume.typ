@@ -29,7 +29,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.433em, spacing: 0.493em)
+#set par(justify: false, leading: 0.490em, spacing: 0.550em)
 
 // device: heavy accent rule ABOVE the title, full width; nothing below
 #let section(t, body, airy: false) = block(breakable: false,
@@ -49,7 +49,7 @@
 #let skill(cat, items) = srow(text(size: 8.5pt, weight: "bold")[#upper(cat)], items)
 
 #set list(marker: list-marker("square", dark, bold: true), indent: 10pt,
-  spacing: 0.619em, body-indent: 6pt)
+  spacing: 0.660em, body-indent: 6pt)
 
 // header: ONE grid row — name/role left, contact column right (photo slot = right cell)
 #block(above: 0pt, below: 11pt)[
@@ -81,7 +81,6 @@
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].

@@ -34,7 +34,7 @@
 #set page(paper: "us-letter", margin: (x: mx, top: 1.3cm, bottom: 1.6cm))
 #set page(..wd-page-x(mx)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.568em, spacing: 0.658em)
+#set par(justify: false, leading: 0.565em, spacing: 0.655em)
 
 // DEVICE: a heavy hue-A BAR THAT BLEEDS OFF THE LEFT PAGE EDGE and stops at the
 // section title, with the title set on the bar's OWN LINE, to its right. Not a
@@ -78,7 +78,7 @@
 // marker of the roster — a constructivist page is bars and circles.
 #set list(marker: bullet-marked(box(width: 3.4pt, height: 3.4pt, baseline: -0.6pt,
     circle(radius: 1.7pt, fill: accent2))),
-  indent: 10pt, spacing: 0.508em, body-indent: 7pt)
+  indent: 10pt, spacing: 0.735em, body-indent: 7pt)
 
 // HEADER: A MASTHEAD BAR COMPOSITION. A full-bleed hue-A bar across the top of
 // page 1, the name oversized under it, a rotated hue-B bar placed top-right
@@ -145,8 +145,6 @@ with the field's key terms in *bold*.]
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].

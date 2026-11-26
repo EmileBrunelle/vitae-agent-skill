@@ -40,7 +40,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.401em, spacing: 0.461em)
+#set par(justify: false, leading: 0.508em, spacing: 0.568em)
 
 // device: heavy accent rule ABOVE the title, full width; nothing below
 #let section(t, body, airy: false) = block(breakable: false,
@@ -60,7 +60,7 @@
 #let skill(cat, items) = srow(text(size: 8.5pt, weight: "bold")[#upper(cat)], items)
 
 #set list(marker: list-marker("square", dark, bold: true), indent: 10pt,
-  spacing: 0.561em, body-indent: 6pt)
+  spacing: 0.678em, body-indent: 6pt)
 
 // header: ONE grid row — name/role left, contact column right (photo slot = right cell)
 #block(above: 0pt, below: 11pt)[
@@ -100,9 +100,6 @@
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
@@ -166,9 +163,9 @@
 // and measures only the LAST page, so a two-declaration file like this one is
 // balanced by hand — tune page 1 with the 1-page file, then set the second
 // declaration here until page 2 lands in the same target.
-#set par(justify: false, leading: 0.496em, spacing: 0.576em)
+#set par(justify: false, leading: 0.527em, spacing: 0.607em)
 // the item gap follows page 2's leading (leading + 0.16em), so page 2 keeps wrapped line < bullet < entry
-#set list(spacing: 0.656em)
+#set list(spacing: 0.697em)
 
 // ---------- Education: the SAME entry shape as the jobs (dates right-flush) ----------
 // The institution+descriptor line under the entry is what keeps the date from

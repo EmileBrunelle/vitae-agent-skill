@@ -31,7 +31,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.657em, spacing: 0.737em)
+#set par(justify: false, leading: 0.538em, spacing: 0.618em)
 
 // device: short heavy accent bar 20 a large serif title (magazine kicker rule)
 #let section(t, body, airy: false) = block(breakable: false,
@@ -52,7 +52,7 @@
 // skills: serif bold label, thin accent tick (vector), sans items
 #let skill(cat, items) = srow([#text(font: dispf, size: 11pt, weight: "bold")[#cat] #box(width: 3pt, height: 3pt, fill: accent, baseline: -2pt)], items)
 
-#set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.469em, body-indent: 6pt)
+#set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.708em, body-indent: 6pt)
 
 // header: oversized serif name, then role line left / contact column right (photo slot)
 #block(above: 0pt, below: 12pt)[
@@ -88,7 +88,6 @@ with the field's key terms in *bold*.]
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].

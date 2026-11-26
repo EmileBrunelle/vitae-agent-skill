@@ -33,7 +33,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.539em, spacing: 0.639em)
+#set par(justify: false, leading: 0.546em, spacing: 0.646em)
 
 // DEVICE: a small accent LOZENGE (a rotated filled square — vector, emits no
 // text) centred above a CENTRED title. The engraver's spot: one mark, dead
@@ -71,7 +71,7 @@
 // a rule or a colour was not available. Nobody else punctuates with a period.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat.], items)
 
-#set list(marker: list-marker("dash", accent), indent: 10pt, spacing: 0.414em,
+#set list(marker: list-marker("dash", accent), indent: 10pt, spacing: 0.716em,
   body-indent: 6pt)
 
 // HEADER: fully CENTRED — the social-stationery lockup. Name, a short centred
@@ -139,11 +139,9 @@ with the field's key terms in *bold*.]
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
