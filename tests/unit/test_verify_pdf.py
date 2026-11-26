@@ -7,6 +7,7 @@ import shutil
 
 import pytest
 import typst
+from _paths import ROOT
 from PIL import Image
 from vitae.verify import pdf
 
@@ -165,6 +166,16 @@ class TestExtractText:
         text = pdf.extract_text(p, "pdfium")
         assert ("Left\nRight" in text) is newline
         assert ("Left Right" in text) is (not newline)
+
+    @pytest.mark.parametrize("backend", [b for b in BACKENDS if b.values[0] != "pypdf"])
+    def test_overlapping_line_boxes_stay_separate_lines(self, tmp_path, backend):
+        # hard-edge's header at its tightened leading: the 25 pt name's box reaches over the title's below it
+        # (a pulled-up `#v(-5pt)`); pdfium's own text range joined them into one line, poppler cuts them
+        out = tmp_path / "hard-edge.pdf"
+        typst.compile(str(ROOT / "tests" / "fixtures" / "hard-edge.typ"), output=str(out), root=str(ROOT))
+        lines = [" ".join(ln.split()) for ln in pdf.extract_text(str(out), backend).split("\n")]
+        assert "Firstname Lastname" in lines
+        assert any(ln.startswith("[Target title") for ln in lines)
 
     def test_pdfium_empty_page_gives_blank_page(self, tmp_path):
         p = _compile(tmp_path, "empty", "#set page(width: 50pt, height: 50pt)\n#rect(width: 10pt, height: 10pt)")

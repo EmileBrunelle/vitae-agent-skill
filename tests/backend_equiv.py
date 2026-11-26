@@ -37,6 +37,10 @@ ALLOW: dict[tuple[str, str], str] = {
     # (antialiasing) different from poppler's. Allowed only if it still diverges.
     ("fixtures/hard-edge", "group proximity"): "1 px antialiasing at the threshold",
     ("templates/hard-edge/*", "group proximity"): "1 px antialiasing at the threshold",
+    # Skill rows spaced to the 1.2 hierarchy floor exactly (ratio 1.20 in poppler's raster, 1.17 in pdfium's:
+    # 0.24 pt = 1 px at 300 dpi).
+    ("fixtures/avant-poster", "group proximity"): "skill rows at the 1.2 floor, 1 px raster difference",
+    ("templates/margin-index/resume-pair-b", "group proximity"): "skill rows at the 1.2 floor, 1 px raster difference",
 }
 # date adjacency FAIL messages may list extra entry names on one backend: the gate key and status
 # are compared, never the text, so no entry is needed.

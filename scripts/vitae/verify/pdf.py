@@ -177,9 +177,11 @@ def _pdfium_page_text(pg: PdfiumPage) -> str:
     tp = pg.get_textpage()
     if not tp.count_chars():
         return ""
+    pdfium_raw = importlib.import_module("pypdfium2.raw")
     text = tp.get_text_range()
     out: list[str] = []
     prev: tuple[float, float, float, float] | None = None
+    prev_base = 0.0
     idx = 0
     pending = ""                                   # whitespace seen since the last glyph
     for ch in text:
@@ -194,15 +196,20 @@ def _pdfium_page_text(pg: PdfiumPage) -> str:
             out.append(pending + ch)
             pending = ""
             continue
+        ox, oy = ctypes.c_double(), ctypes.c_double()
+        base = oy.value if pdfium_raw.FPDFText_GetCharOrigin(tp, i, ctypes.byref(ox), ctypes.byref(oy)) else (box[1] + box[3]) / 2
         if prev is not None and "\n" not in pending:
             height = min(prev[3] - prev[1], box[3] - box[1])
             same_row = abs((prev[1] + prev[3]) / 2 - (box[1] + box[3]) / 2) <= 0.4 * height
             if same_row and box[0] - prev[2] > LINE_GAP * height:
                 pending = "\n"
+            elif abs(base - prev_base) > 0.4 * height:
+                pending = "\n"                    # another baseline: pdfium keeps lines whose boxes overlap together
         out.append(pending.rstrip(" \t") if "\n" in pending else pending)
         out.append(ch)
         pending = ""
         prev = (box[0], box[1], box[2], box[3])
+        prev_base = base
     out.append(pending)
     return "".join(out)
 
