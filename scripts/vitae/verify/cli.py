@@ -12,7 +12,6 @@ Usage:
     verify.py --all DIR [--allow-placeholders] [--rebuild]
     verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LEADING_LO LEADING_HI] [--allow-placeholders]
     verify.py --doctor
-    verify.py --selftest
 
     e.g. verify.py cv.typ 1 94 96
          verify.py --tune cv.typ 1 94 96
@@ -38,8 +37,7 @@ needed one is removed. What a script cannot know comes from an explicit declarat
 key, a tagged mark in cv.typ) or is left to the model (references/steps/6-verify.md). So there is no INFO or WARN that
 talks about a language: a script never guesses one, and never FAILs because of one.
 
-The helpers live in sibling modules under vitae/verify/ and vitae/core/, imported by name where they are used; the
---selftest code (vitae/selftest/verify.py) is loaded lazily, so a normal run never loads it.
+The helpers live in sibling modules under vitae/verify/ and vitae/core/, imported by name where they are used.
 
 --all checks EVERY deliverable in a directory instead of the one file just edited. This exists because of a real
 regression: a padding tweak was verified on the 2-page CV while it silently pushed the 1-page CV onto two pages
@@ -127,16 +125,15 @@ def _usage(prog: str) -> str:
             f"            checks:[{{level, check, message}}], footer}}; a usage error is {{verdict:ERROR, exit_code:2, error}}\n"
             f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI] [--allow-placeholders]\n"
             f"       {prog} --all DIR [--allow-placeholders] [--rebuild]\n"
-            f"       {prog} --doctor\n"
-            f"       {prog} --selftest")
+            f"       {prog} --doctor\n")
 
 
 def main() -> tuple[int, str | None]:
     """Mode dispatch, and the owner of every usage text (what a usage error and --help print).
 
     The first argument picks the mode, checked in this order: --all, --gates, --render/--text,
-    --doctor, --selftest, --tune; anything else is the one-file gate. Modes that need no
-    cv.typ (--doctor, --selftest, --render, --text) come before the positional parsing, which
+    --doctor, --tune; anything else is the one-file gate. Modes that need no
+    cv.typ (--doctor, --render, --text) come before the positional parsing, which
     would otherwise reject them for a missing `typ`. Every mode ends in sys.exit, except the
     gate modes, which return (exit code, footer): the footer is the NEXT line `_run` prints last
     on a non-zero exit, None until the mode's preflight passed."""
@@ -214,10 +211,6 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
     if argv and argv[0] == "--doctor":     # dependency preflight only; no cv.typ, no footer
         ok, _, _ = preflight()
         sys.exit(0 if ok else 1)
-
-    if argv and argv[0] == "--selftest":
-        import vitae.selftest.verify as verify_selftest  # noqa: PLC0415 -- lazy: a normal run never loads the self-test
-        verify_selftest.run()
 
     if argv and argv[0] == "--tune":
         # verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]; the "--" makes every word a positional

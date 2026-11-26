@@ -22,7 +22,7 @@ from typing import TypeAlias
 from vitae.core.level import Level
 from vitae.verify import registry
 
-_UNSUPPORTED = ("--all", "--gates", "--render", "--text", "--selftest", "--tune")
+_UNSUPPORTED = ("--all", "--gates", "--render", "--text", "--tune")
 _LINE = re.compile(r"^(OK|INFO|WARN|FAIL|NEXT) +(\S.*)$")
 _DUMP = "──── extraction"    # cv.py prints this line, then the raw PDF text, with no end marker
 _AFTER_DUMP = re.compile(r"^(OK|INFO|WARN|FAIL|NEXT)  \S")   # what cv.py prints after the dump uses two spaces

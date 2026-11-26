@@ -151,7 +151,7 @@ def ensure_icons(typ: str) -> None:
 
 def typst_compile(src: str, pdf: str | None = None) -> tuple[bool, str]:
     """(ok, stderr) for `typst compile src [pdf]` via the CLI, else typst-py
-    (the selftests' compile step; warnings are included in the text)."""
+    (the tests' compile step; warnings are included in the text)."""
     if shutil.which("typst"):
         r = subprocess.run(["typst", "compile", src] + ([pdf] if pdf else []) + _root_cli(src), capture_output=True, text=True)
         return r.returncode == 0, r.stderr

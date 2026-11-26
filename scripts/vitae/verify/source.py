@@ -61,7 +61,7 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
     Returns (is_fail, message) pairs; "no #section call" and "single page" come back as non-failures, which the
     caller prints. The caller turns a FAIL into a WARN on the pypdf fallback, whose extraction is indicative only.
 
-    Pure function of (source text, extracted pages) so the selftest can feed it
+    Pure function of (source text, extracted pages) so the tests can feed it
     synthetic text and needs no Typst. The academic gate checks the same
     property one level down (verify_academic.check_no_straddle: the atom is the
     ENTRY there, and its heading list comes from the declared JSON spec).

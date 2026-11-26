@@ -32,7 +32,7 @@ from vitae.verify.pdf import _pdfium_doc
 # 5.14 (a deliberately device-less family, which core.md says legitimately
 # owes a HIGH ratio — failing it for that would contradict the rule it serves).
 # So the ceiling is placed ABOVE the entire roster and BELOW the no-boundary-
-# system pages the selftest draws (6.77 for one lone flourish, 7.92 for none at
+# system pages the test suite draws (6.77 for one lone flourish, 7.92 for none at
 # all). 5.0 kept the corpus green only by an exact tie (humanist-quiet/resume
 # measures 5.00), which is not a calibration.
 SEPARATION_CEILING = 6.0

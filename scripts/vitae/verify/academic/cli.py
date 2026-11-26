@@ -22,7 +22,6 @@ every extracted count/order comes from the rendered PDF.
 
 Usage:
     verify_academic.py cv.typ data.toml [--rebuild]
-    verify_academic.py --selftest
     verify_academic.py --doctor
 
 When the five checks hold, the step-7 review record (`review.md` beside the CV) is checked like verify.py does; --rebuild
@@ -47,7 +46,6 @@ from typing import NoReturn
 
 from vitae.core.env import preflight
 from vitae.core.level import Level
-from vitae.selftest.academic import selftest
 from vitae.verify.academic.gate import run_gate
 from vitae.verify.review_record import check_review_record, layout_report_line
 
@@ -63,13 +61,11 @@ class _UsageParser(argparse.ArgumentParser):
 def _usage() -> str:
     prog = os.path.basename(sys.argv[0])
     return (f"usage: {prog} cv.typ data.toml [--rebuild]\n"
-            f"       {prog} --selftest\n"
             f"       {prog} --doctor")
 
 
 def main() -> None:
     ap = _UsageParser(add_help=False, allow_abbrev=False)
-    ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--doctor", action="store_true")
     ap.add_argument("paths", nargs="*")
     argv = sys.argv[1:]
@@ -79,12 +75,8 @@ def main() -> None:
     # as the old manual argv: only argv[0] is a mode flag (the rest is
     # ignored then); otherwise every argument is a positional, even "-x"
     rebuild = "--rebuild" in argv
-    argv = argv[:1] if argv and argv[0] in ("--selftest", "--doctor") else ["--"] + [a for a in argv if a != "--rebuild"]
+    argv = argv[:1] if argv and argv[0] == "--doctor" else ["--"] + [a for a in argv if a != "--rebuild"]
     args = ap.parse_args(argv)
-
-    if args.selftest:
-        selftest()
-        sys.exit(0)
 
     if args.doctor:
         ok, _, _ = preflight()

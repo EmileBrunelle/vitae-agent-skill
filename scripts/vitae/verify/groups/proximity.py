@@ -229,7 +229,7 @@ PROX_FAIL, PROX_WARN, PROX_HIER = 0.7, 0.85, 1.2
 
 
 def _print_detail(rows: list[DetailRow], grp: list[GroupRow]) -> None:
-    """The machine-readable DETAIL lines (the self-test and --gates read them)."""
+    """The machine-readable DETAIL lines (the tests and --gates read them)."""
     for r in grp:
         hp = "" if r["head_gap"] is None or r["pitch"] is None else \
             f' head-gap={r["head_gap"]:.2f}pt pitch={r["pitch"]:.2f}pt'
@@ -354,7 +354,7 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
         return [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
     if not heads:
         return [(Level.WARN, "group proximity not measured: no lib entry()/srow() heads")]
-    # DETAIL lines are machine-readable and printed here, not returned: the self-test and --gates read them
+    # DETAIL lines are machine-readable and printed here, not returned: the tests and --gates read them
     rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
     if detail is not None:
         detail.extend(rows)

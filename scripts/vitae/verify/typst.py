@@ -110,7 +110,7 @@ def _mask_non_markup(src: str) -> str:
 
 
 # `#set par(... leading: Xem ... spacing: Yem)`, the pair --tune rewrites. It only matches leading before spacing
-# and em units: accepting the reverse order would make _write_par swap the two values (verify_selftest pins this).
+# and em units: accepting the reverse order would make _write_par swap the two values (the unit tests pin this).
 PAR_RE = re.compile(r"(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(em[^)]*?spacing:\s*)([0-9.]+)(em)")
 
 

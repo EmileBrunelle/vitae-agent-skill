@@ -15,7 +15,6 @@ Usage:
         [--audacity sober|expressive|bold] [--creative] [--offline] [--band] \
         [--emit-typ] [--init <cv folder> [--force]]
     python3 scripts/pick_design.py --list        # families, registers, gamuts
-    python3 scripts/pick_design.py --selftest    # assert determinism + pools
 
     --career        early (DEFAULT) → the pool leans MODERN. mid → modern +
                     neutral. senior → neutral + classic. Derive it from the
@@ -96,7 +95,6 @@ from vitae.design.init import init_folder
 from vitae.design.pick import pick
 from vitae.design.report import report
 from vitae.design.tables import AUDACITIES, CAREER, FAMILIES, FONTS, band_ok, is_audacity
-from vitae.selftest.design import selftest
 
 
 def main() -> None:
@@ -138,7 +136,6 @@ def main() -> None:
     ap.add_argument("--region", metavar="CC",
                     help="optional ISO 3166-1 alpha-2 region (CA, CH...) — "
                          "emitted as Typst `region:` only when given")
-    ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if not re.fullmatch(r"[a-z]{2,3}", a.lang):
         ap.error("--lang must be a lowercase ISO 639 language code (2-3 letters) like fr, en, de "
@@ -147,9 +144,7 @@ def main() -> None:
         if not re.fullmatch(r"[A-Za-z]{2}", a.region):
             ap.error("--region must be two letters like CA (got %r)" % a.region)
         a.region = a.region.lower()
-    if a.selftest:
-        selftest()
-    elif a.list:
+    if a.list:
         for f in sorted(FAMILIES):
             d = FAMILIES[f]
             print("%-18s %-8s photo=%-5s cons=%-5s duotone=%-5s spec=%-5s "

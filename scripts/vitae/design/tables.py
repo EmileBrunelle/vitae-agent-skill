@@ -564,4 +564,4 @@ def _idx(key: str, n: int, salt: str = "") -> int:
 
 MIN_POOL = 5        # a profile that draws from fewer than 5 families collides
                     # too often; 14 families make a 5-family floor reachable
-                    # for every profile combination (asserted in selftest()).
+                    # for every profile combination (asserted by the tests).
