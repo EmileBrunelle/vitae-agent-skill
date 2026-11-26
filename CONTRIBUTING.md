@@ -67,6 +67,16 @@ Applies to `references/regional/**`, `references/certifications/**` and `referen
 - An origin with a single outbound guide uses `<origin>/outbound.md` (`middle-east/near-east/outbound.md`). `test_outbound_naming` enforces the prefix ban and the genre-to-folder rule.
 - Confidence: a sourced fact carries its S###; an unsourced fact kept as a warning carries `LOW, unsourced`; an unchecked point carries `not checked`. No HIGH, MEDIUM, unverified, not sourced, bare LOW or LOW confidence.
 
+### Family file format
+
+`references/design/families/*.md` (`tests/unit/test_family_files_format.py` checks it, against `FAMILIES` in `scripts/vitae/design/tables.py`).
+
+- Line 1 is `## N. <stem> — <tagline> · register: <x>`: H2, `N` unique across files, `<stem>` the file stem. Then one intro sentence.
+- Optional free paragraphs led by a bold phrase (`**Locked to software, twice.**`) may follow the intro, before the bullets; they are not label-checked.
+- Then one bullet per label, `- **Label**` followed by `:` (or a parenthetical qualifier, then `.` or `:`). Core labels, all required, in this order: Heading device, Skills block, Accent role, Icons, Header, Type, Accents, Verified.
+- Optional labels, each in a fixed slot: List marker (after Icons), Family variant (after Header), Section order (after Header and Family variant, before Type), Gabarit (after Accents, before Verified). No other label.
+- The last line is the `- Markets:` bullet.
+
 ## Where to edit
 
 [`SKILL.md`](SKILL.md) is a slim entry point and `tests/integration` fails above 13000 bytes. Add or change step detail in `references/steps/N-<slug>.md` (academic mode in [`references/academic-mode.md`](references/academic-mode.md), traps in [`references/known-traps.md`](references/known-traps.md)); keep `SKILL.md` to the rules and the per-step skeleton. Every `references/`, `scripts/` or `templates/` path cited must exist (also gated).
