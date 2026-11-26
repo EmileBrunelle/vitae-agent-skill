@@ -146,21 +146,41 @@ def _read_par(text: str) -> tuple[float, float] | None:
 
 def _write_par(text: str, leading: float, spacing: float) -> str:
     """text with the rule the gate measures (see _tuned_par) rewritten to these values (three decimals);
-    other rules, earlier `#set par` lines included, are untouched."""
+    other rules, earlier `#set par` lines included, are untouched. Only the two numbers are replaced, at
+    the offsets of the masked match, so a comment or string inside the rule survives byte for byte."""
     m = _tuned_par(text)
     if not m:
         return text
-    return "%s%s%.3f%s%.3f%s%s" % (text[:m.start()], m.group(1), leading, m.group(3), spacing,
-                                    m.group(5), text[m.end():])
+    return "%s%.3f%s%.3f%s" % (text[:m.start(2)], leading, text[m.end(2):m.start(4)], spacing,
+                               text[m.end(4):])
 
 
-_RHYTHM_RE = re.compile(r"^(#let rhythm = )([0-9]*\.?[0-9]+)[ \t]*$", re.M)
+_RHYTHM_LINE = re.compile(r"^#let\s+rhythm\b.*$", re.M)
+_RHYTHM_RE = re.compile(r"(#let rhythm = )([0-9]*\.?[0-9]+)[ \t\r]*;?[ \t\r]*")
+
+
+def _rhythm_line(text: str) -> tuple[int, str] | None:
+    """(offset, masked text) of the LAST column-0 `#let rhythm` line (Typst uses the last binding, as the
+    gate does for par), None when the file has none. Searched outside comments and strings."""
+    last = None
+    for m in _RHYTHM_LINE.finditer(_mask_non_markup(text)):
+        last = (m.start(), m.group(0))
+    return last
 
 
 def _rhythm_match(text: str) -> re.Match[str] | None:
-    """Match of the column-0 `#let rhythm = <number>` line (the pt-gap multiplier of the family's
-    section / entry code), None when the file has none. Searched outside comments and strings."""
-    return _RHYTHM_RE.search(_mask_non_markup(text))
+    """Match of the last column-0 `#let rhythm = <number>` line (the pt-gap multiplier of the family's
+    section / entry code; an integer, a trailing `;` and a trailing comment are accepted), None when the
+    file has none or its last one is not in that form (see _rhythm_unparsed). Offsets are those of `text`."""
+    found = _rhythm_line(text)
+    if found is None:
+        return None
+    return _RHYTHM_RE.fullmatch(found[1])       # masked line: same offsets as the raw one
+
+
+def _rhythm_unparsed(text: str) -> bool:
+    """True when the file has a column-0 `#let rhythm` line (its last one) that _read_rhythm cannot read."""
+    return _rhythm_line(text) is not None and _rhythm_match(text) is None
 
 
 def _read_rhythm(text: str) -> float | None:
@@ -170,10 +190,12 @@ def _read_rhythm(text: str) -> float | None:
 
 def _write_rhythm(text: str, rhythm: float) -> str:
     """text with the `#let rhythm` value set (three decimals); unchanged when the file has no such line."""
+    found = _rhythm_line(text)
     m = _rhythm_match(text)
-    if not m:
+    if not m or found is None:
         return text
-    return "%s%.3f%s" % (text[:m.start(2)], rhythm, text[m.end(2):])
+    a, b = found[0] + m.start(2), found[0] + m.end(2)
+    return "%s%.3f%s" % (text[:a], rhythm, text[b:])
 
 
 def _par_scope(text: str) -> int:
