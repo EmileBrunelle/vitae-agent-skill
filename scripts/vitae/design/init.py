@@ -5,8 +5,10 @@ import os
 import re
 import sys
 from collections.abc import Callable, Mapping
+from pathlib import Path
 
 from vitae.design.emit import _chain, _vitae_header, lang_arg
+from vitae.design.libapi import public_signatures
 from vitae.design.pick import Pick
 from vitae.design.tables import FONTS
 
@@ -189,6 +191,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
           "byte-for-byte)" % (out, fam, fam, pick_file))
     for k in kept:
         print("note: " + k)
+    print("lib.typ API, call these as written; do not open lib.typ (positional; named): " + "  ".join(public_signatures(Path(root) / "templates")))
     vf = q(os.path.join(root, "scripts", "verify.py"))
     print("next, run these (do not read the scripts, their output is the "
           "instruction):")
