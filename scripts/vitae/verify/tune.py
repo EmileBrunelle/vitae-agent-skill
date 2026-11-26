@@ -8,6 +8,8 @@ import re
 import shlex
 import signal
 import tempfile
+from collections.abc import Callable
+from types import FrameType
 
 import vitae.fill as measure_fill
 from vitae.core.base import (
@@ -334,7 +336,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
     def on_signal(signum: int, _frame: object) -> None:
         raise _Terminated(signal.Signals(signum).name)
 
-    saved: list[tuple[signal.Signals, signal.Handlers | int | None]] = []
+    saved: list[tuple[signal.Signals, Callable[[int, FrameType | None], object] | int | None]] = []
     try:
         for sig in (signal.SIGTERM, signal.SIGHUP):
             saved.append((sig, signal.signal(sig, on_signal)))
