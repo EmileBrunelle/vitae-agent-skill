@@ -13,7 +13,11 @@ GOOGLE_FONTS_SHA=6157dfaa640ca5738b4d1a7070fe389c3036d7fc
 ADWAITA_FONTS_SHA=0c79765f2bef25b38902fd8497616ac28185254c # tag 51.0
 STIX_SHA=744a22a4dd626cd14d75728aef34fc8ad7c85db0           # stipub/stixfonts v2.13b171
 SCP_URL=https://github.com/adobe-fonts/source-code-pro/releases/download/2.042R-u/1.062R-i/1.026R-vf/OTF-source-code-pro-2.042R-u_1.062R-i.zip
+SCP_SHA=754a2e3ebb945ae905d720ac5896b3b34acc9546dd6551ef9536869788629dae
+CURL=(curl -fsSL --retry 3 --max-time 300)
 UBUNTU=http://archive.ubuntu.com/ubuntu
+# Ubuntu rotates its pool/: a 404 on a .deb below means the pinned version left the archive. Update the
+# DEBS path and sha256 to what the fonts action installs now, and bump nothing else (the cache key follows).
 # Ubuntu 24.04 (noble) packages: pool path and sha256.
 DEBS=(
   "pool/universe/f/fonts-cantarell/fonts-cantarell_0.303.1-1_all.deb 53f3874cef4e8a1424eadd0f1f6ffda48ed4a36cd13d7cb0c255754f2a7eef11"
@@ -21,11 +25,15 @@ DEBS=(
   "pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8_all.deb 40049660c194f3b8a2541fc7369efebb10e9f94bdac836a2f38fafedd10fa73a"
   "pool/main/f/fonts-liberation/fonts-liberation_2.1.5-3_all.deb 065c2ab1abc9108b17d401016dc594b79750904390f095845c93bb06e1153acc"
   "pool/main/f/fonts-noto/fonts-noto-core_20201225-2_all.deb 4fee136cb12fc197703a340e010478f780a41044339fcefbd78ed9aa96c8b617"
+  # fonts-noto-core depends on it in CI (apt installs it too); it is where "Noto Sans Mono" comes from.
+  "pool/main/f/fonts-noto/fonts-noto-mono_20201225-2_all.deb ce277a6e2fbbe7562206171e20e0493ac42c9c405758505cb42aaa01c982036c"
   "pool/universe/f/fonts-open-sans/fonts-open-sans_1.11-2_all.deb d7b1f2d7f39da18e4e3de703e25bb91b09757e8a70bae037ae57410a7fd57a10"
   "pool/main/f/fonts-urw-base35/fonts-urw-base35_20200910-8_all.deb 46e75490faa7fd6fddbc8df234d14e0f7b60ea5e98563227a24d6bf5e5008647"
   "pool/universe/f/fonts-vazirmatn/fonts-vazirmatn_33.003-0ubuntu1_all.deb 93671a36b008992eca0ccc8a6503352f43bf9a2d73eb9ab2f717fdedb7eb251b"
 )
 
+TMP_DIR=
+trap '[ -z "$TMP_DIR" ] || rm -rf "$TMP_DIR"' EXIT
 die() { echo "ci_fonts.sh: $*" >&2; exit 1; }
 
 [ $# -gt 0 ] || die "usage: tests/ci_fonts.sh COMMAND [ARGS...]"
@@ -34,14 +42,14 @@ for t in bwrap typst; do command -v "$t" >/dev/null || die "$t not found (instal
 fetch() {
   for t in curl git ar tar unzip sha256sum; do command -v "$t" >/dev/null || die "$t not found"; done
   local tmp; tmp=$(mktemp -d "$CACHE.tmp.XXXXXX")
-  trap 'rm -rf "$tmp"' RETURN
+  TMP_DIR=$tmp   # removed by the EXIT trap, also after die or Ctrl-C
   mkdir -p "$tmp/fonts" "$tmp/x"
 
   local entry path sum deb
   for entry in "${DEBS[@]}"; do
     read -r path sum <<<"$entry"
     deb="$tmp/$(basename "$path")"
-    curl -fsSL -o "$deb" "$UBUNTU/$path"
+    "${CURL[@]}" -o "$deb" "$UBUNTU/$path"
     echo "$sum  $deb" | sha256sum -c --quiet - || die "checksum mismatch: $path"
     (cd "$tmp/x" && ar x "$deb" && tar -xf data.tar.* && rm -f data.tar.* control.tar.* debian-binary)
   done
@@ -65,23 +73,26 @@ fetch() {
 
   local w
   for w in Regular Italic Medium MediumItalic SemiBold SemiBoldItalic Bold BoldItalic; do
-    curl -fsSL -o "$tmp/fonts/STIXTwoText-$w.otf" \
+    "${CURL[@]}" -o "$tmp/fonts/STIXTwoText-$w.otf" \
       "https://raw.githubusercontent.com/stipub/stixfonts/$STIX_SHA/fonts/static_otf/STIXTwoText-$w.otf"
   done
-  curl -fsSL -o "$tmp/scp.zip" "$SCP_URL"
+  "${CURL[@]}" -o "$tmp/scp.zip" "$SCP_URL"
+  echo "$SCP_SHA  $tmp/scp.zip" | sha256sum -c --quiet - || die "checksum mismatch: Source Code Pro zip"
   unzip -q -j "$tmp/scp.zip" 'OTF/*.otf' -d "$tmp/fonts"
 
   # Keep only what is needed; the marker is written last so a partial fetch is redone.
   mkdir -p "$tmp/out"
   mv "$tmp/fonts" "$tmp/out/fonts"
   mv "$tmp/x/usr/share/fonts" "$tmp/out/debs"
-  echo "$GOOGLE_FONTS_SHA $ADWAITA_FONTS_SHA $STIX_SHA" > "$tmp/out/pins"
+  echo "$PINS" > "$tmp/out/pins"
   rm -rf "$CACHE"
   mv "$tmp/out" "$CACHE"
+  rm -rf "$tmp"; TMP_DIR=   # the script ends in exec, which skips the EXIT trap
 }
 
-pins="$GOOGLE_FONTS_SHA $ADWAITA_FONTS_SHA $STIX_SHA"
-if [ "$(cat "$CACHE/pins" 2>/dev/null || true)" != "$pins" ]; then
+# Cache key: a hash of the whole pin set, so editing any entry, version or hash refetches.
+PINS=$(printf '%s\n' "$GOOGLE_FONTS_SHA" "$ADWAITA_FONTS_SHA" "$STIX_SHA" "$SCP_URL" "$SCP_SHA" "$UBUNTU" "${DEBS[@]}" | sha256sum | cut -d' ' -f1)
+if [ "$(cat "$CACHE/pins" 2>/dev/null || true)" != "$PINS" ]; then
   echo "ci_fonts.sh: fetching the CI font set into $CACHE" >&2
   mkdir -p "$(dirname "$CACHE")"
   fetch

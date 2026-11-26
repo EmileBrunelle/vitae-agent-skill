@@ -6,7 +6,9 @@ set -u
 here="$(cd "$(dirname "$0")" && pwd)"; root="$(cd "$here/../.." && pwd)"
 compile() { # compile <src> <pdf>
   if command -v typst >/dev/null; then typst compile --root "$root" "$1" "$2"
-  else python3 -I -c 'import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2], root=sys.argv[3])' "$1" "$2" "$root"; fi
+  else python3 -I -c 'import os, sys, typst
+fp = [p for p in os.environ.get("TYPST_FONT_PATHS", "").split(os.pathsep) if p]  # typst-py ignores the variable
+typst.compile(sys.argv[1], output=sys.argv[2], root=sys.argv[3], **({"font_paths": fp} if fp else {}))' "$1" "$2" "$root"; fi
 }
 out="${1:-$(mktemp -d)}"; mkdir -p "$out"; fail=0
 for f in "$here"/*.typ; do
