@@ -74,7 +74,7 @@
 // different scales instead of inventing a second language.
 #let skill(cat, items) = srow(
   [#text(font: dispf, weight: "bold", fill: accent)[#cat]
-   #box(width: 1.5pt, height: 8pt, baseline: 1pt, fill: accent2)], items, above: 0.86em)
+   #box(width: 1.5pt, height: 8pt, baseline: 1pt, fill: accent2)], items, above: 0.86em * rhythm)
 
 // List marker: a filled hue-B CIRCLE, drawn (emits no text). The only circular
 // marker of the roster — a constructivist page is bars and circles.
@@ -104,9 +104,9 @@
   // contact row into one line per item or reads its second line before the first.
   #set par(leading: 0.548em, spacing: 0.638em)
   #text(font: dispf, size: 30pt, weight: "bold")[Firstname Lastname]
-  #v(-6pt * rhythm)
+  #v(-6pt)
   #text(size: 10.5pt, weight: "medium", fill: accent2)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-1pt * rhythm)
+  #v(-1pt)
   // SPECIALITIES LINE — the skills the facts support, in the display face, hue A,
   // bar-separated. NO `tracking`: letterspacing extracts as "N E X T" and stops
   // matching. Each item boxed, so none can break across a line end. Every item

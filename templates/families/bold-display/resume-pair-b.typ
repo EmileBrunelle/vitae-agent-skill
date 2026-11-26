@@ -60,9 +60,9 @@
 // header: oversized accent name left, contacts on one line below
 #block(above: 0pt, below: 12pt * rhythm)[
   #text(font: dispf, size: 29pt, weight: "bold", fill: accent)[Firstname Lastname]
-  #v(-3pt * rhythm)
+  #v(-3pt)
   #text(size: 11pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-3pt * rhythm)
+  #v(-3pt)
   #text(size: 9pt, fill: muted)[
     #contact-rows(2)#contact(ic.pin)[\[City, Region\]] #h(9pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(9pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \

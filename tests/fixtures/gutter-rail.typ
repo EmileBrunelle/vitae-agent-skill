@@ -223,7 +223,7 @@
   }]
   #v(5pt * rhythm)
   #text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]
-  #v(-4pt * rhythm)
+  #v(-4pt)
   #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
 ]
 

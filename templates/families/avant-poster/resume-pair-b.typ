@@ -100,9 +100,9 @@
   // contact row into one line per item or reads its second line before the first.
   #set par(leading: 0.503em, spacing: 0.593em)
   #text(font: dispf, size: 30pt, weight: "bold")[Firstname Lastname]
-  #v(-6pt * rhythm)
+  #v(-6pt)
   #text(size: 10.5pt, weight: "medium", fill: accent2)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-1pt * rhythm)
+  #v(-1pt)
   // SPECIALITIES LINE — the skills the facts support, in the display face, hue A,
   // bar-separated. NO `tracking`: letterspacing extracts as "N E X T" and stops
   // matching. Each item boxed, so none can break across a line end. Every item

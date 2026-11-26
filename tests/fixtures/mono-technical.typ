@@ -68,9 +68,9 @@
 // header: name, role, then the contacts on ONE mono line (spec-sheet footer)
 #block(above: 0pt, below: 12pt * rhythm)[
   #text(size: 22pt, weight: "bold")[Firstname Lastname]
-  #v(-4pt * rhythm)
+  #v(-4pt)
   #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-2pt * rhythm)
+  #v(-2pt)
   #text(font: dispf, size: 8.5pt, fill: muted)[
     #contact(ic.pin)[\[City, Region\]] #h(6pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(6pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(6pt)

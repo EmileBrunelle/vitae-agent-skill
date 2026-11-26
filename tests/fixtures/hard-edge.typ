@@ -127,7 +127,7 @@
      #h(9pt)
      #box(baseline: 12pt)[
        #text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
-       #v(-5pt * rhythm)
+       #v(-5pt)
        #text(font: monof, size: 9pt, fill: muted)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]]],
     [], cols: (auto, 1fr), gutter: 0pt,
     align-cells: (left + top, left + top), above: 0pt, below: 5pt * rhythm)

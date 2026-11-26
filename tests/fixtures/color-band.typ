@@ -60,9 +60,9 @@
 // header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
 #masthead(accent, rhythm: rhythm)[
   #text(font: dispf, size: 24pt, weight: "bold", fill: white)[Firstname Lastname]
-  #v(-4pt * rhythm)
+  #v(-4pt)
   #text(size: 10.5pt, fill: white, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-4pt * rhythm)
+  #v(-4pt)
   #text(size: 9pt, fill: white)[
     #contact(ic.pin)[\[City, Region\]]
     #h(6pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]

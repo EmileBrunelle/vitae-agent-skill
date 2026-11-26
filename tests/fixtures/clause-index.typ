@@ -99,7 +99,7 @@
   #let rcell(l, val) = [#text(size: 7.5pt, weight: "bold", fill: ink)[#upper(l)] #val]
   #hrow(
     [#text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname] \
-     #v(-3pt * rhythm)
+     #v(-3pt)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
      #v(2pt * rhythm)
      // REFERENCE ROW — one flowing paragraph, never a grid of stacked cells.
