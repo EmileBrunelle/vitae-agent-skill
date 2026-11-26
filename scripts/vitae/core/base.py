@@ -155,10 +155,10 @@ _FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Ad
                      "or change the page count in cv.typ.\n" + _NO_READ)
 
 
-# The shipped templates top out at 0.96em body leading; the tuner may go up to LEADING_WARN
-# (1.00em). Above 1.00em multi-line text (profile summary, wrapped bullets) reads as
+# The shipped templates stay well below this body leading (today's highest is about 0.72em); the tuner
+# may go up to LEADING_WARN (1.00em). Above 1.00em multi-line text (profile summary, wrapped bullets) reads as
 # double-spaced while every mechanical check still passes.
-LEADING_WARN = 1.00    # em; strictly above it the WARN fires (largest shipped 0.96)
+LEADING_WARN = 1.00    # em; strictly above it the WARN fires
 
 # Relative twin: prose leading against bullet spacing. The family-relative form compares the file's
 # leading / list-spacing ratio with the same ratio of its family's shipped default (resume.typ, or

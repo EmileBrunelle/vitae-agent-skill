@@ -268,7 +268,7 @@ _LOWERED_FAIL = ("FAIL  fill target lowered to {lo}-{hi}% is below the lowered-t
 
 
 _LEADING_WARN = ("WARN  leading {l:.3f}em reads as DOUBLE-SPACED on multi-line paragraphs "
-                 "(shipped templates stay <= 0.96em; warns above {t:.2f}em) — the page is "
+                 "(the gate warns above {t:.2f}em; the shipped templates stay well below) — the page is "
                  "padded with air, not content. Prefer adding a real fact (a bullet, a "
                  "result, a project) over leading; if the facts are exhausted, accept the "
                  "lower fill and tell the user")

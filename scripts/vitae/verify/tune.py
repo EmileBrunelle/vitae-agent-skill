@@ -75,7 +75,7 @@ def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
 
 
 # UPWARD CAP. An under-filled page means a fact is missing, not whitespace to inflate. The
-# shipped templates use body leading up to 0.96em and paragraph spacing up to 1.075em; the tuner
+# shipped templates use body leading well under LEADING_WARN and paragraph spacing up to 1.075em; the tuner
 # never goes above LEADING_WARN (the gate's own double-spacing WARN threshold, so a tuned file
 # never trips it) or SPACING_CAP (the shipped maximum plus 15%, CHANGELOG) whatever range the
 # caller passes. The downward (over-full) search is not capped.
@@ -124,9 +124,10 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
           "target %s pages / fill %s-%s%%"
           % (typ, l0, delta, lo, hi, expected, fmin, fmax))
     if clamped:
-        print("NOTE  upper bound clamped to %.3fem: the shipped templates never exceed "
-              "%.2fem leading (cap %.2f, the gate's double-spacing WARN threshold); an "
-              "under-filled page needs a real fact, not more air" % (cap, 0.96, LEADING_WARN))
+        print("NOTE  upper bound clamped to %.3fem: the lower of the gate's double-spacing WARN threshold "
+              "(%.2fem) and the spacing cap (%.2fem) less this family's spacing offset (%+.3fem), never below "
+              "the current leading; an under-filled page needs a real fact, not more air"
+              % (cap, LEADING_WARN, SPACING_CAP, delta))
     try:
         ok_lo, fill_lo = _probe(typ, original, lo, lo + delta, expected,
                                 use_cli, backend)

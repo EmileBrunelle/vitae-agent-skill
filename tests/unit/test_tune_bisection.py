@@ -200,3 +200,24 @@ class TestUnmeasuredFill:
         install(monkeypatch, lstar=0.93, fill_of=lambda l: None if l >= 0.92 else round(l * 100))
         code, _ = T.tune(str(typ), 1, 80, 99)
         assert code == 0 and 0.80 < written_leading(typ) < 0.92
+
+
+class TestClampMessage:
+    """The NOTE names the cap actually applied and the constants it comes from, not a number frozen in the text."""
+
+    def _note(self, tmp_path, monkeypatch, capsys, par):
+        p = tmp_path / "c.typ"
+        p.write_text(f"#set par({par})\nbody\n", encoding="utf-8")
+        install(monkeypatch, lstar=9.0)
+        T.tune(str(p), 1, 80, 99)
+        return next(ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("NOTE  upper bound clamped"))
+
+    def test_gate_threshold_is_the_cap(self, tmp_path, monkeypatch, capsys):
+        note = self._note(tmp_path, monkeypatch, capsys, "leading: 0.90em, spacing: 1.00em")
+        assert f"clamped to {LEADING_WARN:.3f}em" in note and f"({LEADING_WARN:.2f}em)" in note
+        assert "0.96" not in note
+
+    def test_spacing_cap_is_the_cap_when_tighter(self, tmp_path, monkeypatch, capsys):
+        note = self._note(tmp_path, monkeypatch, capsys, "leading: 0.70em, spacing: 1.20em")   # delta 0.50 -> 1.24 - 0.50
+        assert f"clamped to {T.SPACING_CAP - 0.50:.3f}em" in note and f"({T.SPACING_CAP:.2f}em)" in note and "+0.500em" in note
+        assert "0.96" not in note
