@@ -198,6 +198,12 @@
   if kids.len() == 0 { none } else { kids.join() }
 }
 #let has-text(c) = { let t = if c == none { none } else { head-plain(c) }; type(t) == str and t.trim() != "" }
+// `bullet-marked` tags a list marker (<vitae-bullet>): the page and the x/y where the
+// bullet starts. verify.py finds each bullet's lines by position from it, to FAIL a
+// wrapped bullet whose last line is a few characters alone. `drawn-marker` carries it;
+// a family drawing its own list marker wraps it: `marker: bullet-marked(box(..))`.
+#let bullet-marked(c) = [#context [#metadata((text: "", kind: "bullet",
+  page: here().position().page, x: here().position().x.pt(), y: here().position().y.pt())) <vitae-bullet>]#c]
 #let sec-mark(t) = context [#metadata((
   text: head-plain(t), page: here().position().page, y: here().position().y.pt())) <vitae-sec>]
 
@@ -661,9 +667,9 @@
   let (iw, ih) = marker-ink.at(key, default: fallback)
   let (iw, ih) = (iw.to-absolute(), ih.to-absolute())
   let fill = if fill == auto { text.fill } else { fill }
-  box(width: w, height: 0pt, place(top + left, dx: (w - iw) / 2, dy: -asc,
+  bullet-marked(box(width: w, height: 0pt, place(top + left, dx: (w - iw) / 2, dy: -asc,
     if kind == "dot" or kind == "mid" { ellipse(width: iw, height: ih, fill: fill, stroke: none) }
-    else { rect(width: iw, height: ih, fill: fill, stroke: none) }))
+    else { rect(width: iw, height: ih, fill: fill, stroke: none) })))
 }
 
 // masthead — full-bleed header band that GROWS with its content. A fixed-height

@@ -76,8 +76,8 @@
 
 // List marker: a filled hue-B CIRCLE, drawn (emits no text). The only circular
 // marker of the roster — a constructivist page is bars and circles.
-#set list(marker: box(width: 3.4pt, height: 3.4pt, baseline: -0.6pt,
-    circle(radius: 1.7pt, fill: accent2)),
+#set list(marker: bullet-marked(box(width: 3.4pt, height: 3.4pt, baseline: -0.6pt,
+    circle(radius: 1.7pt, fill: accent2))),
   indent: 10pt, spacing: 0.555em, body-indent: 7pt)
 
 // HEADER: A MASTHEAD BAR COMPOSITION. A full-bleed hue-A bar across the top of
