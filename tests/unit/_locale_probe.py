@@ -28,7 +28,10 @@ def _check_cv_output(cv, typ):
         run_gates=lambda gates, ctx: 0, check_review_record=lambda t: [], layout_report_line=lambda t: None,
         typst_can_query=lambda: False)
     out = io.StringIO()
-    with mock.patch.multiple(cv, **stubs), contextlib.redirect_stdout(out):
+    with contextlib.ExitStack() as stack:
+        for name, stub in stubs.items():
+            stack.enter_context(mock.patch.object(cv, name, stub))
+        stack.enter_context(contextlib.redirect_stdout(out))
         cv._check_cv(typ, "1", None, None)
     return out.getvalue()
 

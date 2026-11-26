@@ -11,7 +11,9 @@ from _paths import SKILL_MD
 
 def _expected_version():
     head = SKILL_MD.read_text(encoding="utf-8").split("\n---", 2)[0]
-    return re.search(r'^\s+version:\s*"?([^"\s]+)"?\s*$', head, re.M).group(1)
+    m = re.search(r'^\s+version:\s*"?([^"\s]+)"?\s*$', head, re.M)
+    assert m is not None
+    return m.group(1)
 
 
 def test_reads_of_non_ascii_files_do_not_depend_on_the_locale(tmp_path):

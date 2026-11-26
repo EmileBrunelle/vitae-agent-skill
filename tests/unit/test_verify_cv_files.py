@@ -1,5 +1,7 @@
 """verify.cv: file classification, the --all sweep (subprocess faked) and the lib.typ integrity gate."""
 import inspect
+from collections.abc import Callable
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -412,6 +414,11 @@ class Env:
     use_cli = False
     can_query = False
     boxes = [[]]
+    # set by the `env` fixture
+    dir: Path
+    calls: dict[str, list[tuple[tuple[object, ...], dict[str, object]]]]
+    capsys: pytest.CaptureFixture[str]
+    run: Callable[..., tuple[int, str | None, str]]
 
 
 @pytest.fixture
