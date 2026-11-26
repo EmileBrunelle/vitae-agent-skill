@@ -693,6 +693,13 @@ def test_layout_report_line_caps_a_long_value(tmp_path):
     assert layout_report_line(str(_cv(tmp_path))) == "Layout review: subagent " + "m" * 71   # exactly 80: untouched
 
 
+def test_layout_report_line_cut_drops_the_space_before_the_ellipsis(tmp_path):
+    cut = "m" * 70 + " " + "n" * 40                                  # the 80-character cut ends on a space
+    _record(tmp_path, GOOD.replace("subagent haiku", "subagent " + cut))
+    line = layout_report_line(str(_cv(tmp_path)))
+    assert line == "Layout review: subagent " + "m" * 70 + "…"
+
+
 def test_layout_report_line_is_none_without_a_readable_record_or_field(tmp_path):
     typ = str(_cv(tmp_path))
     assert layout_report_line(typ) is None                                        # no review.md

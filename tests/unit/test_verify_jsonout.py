@@ -279,6 +279,18 @@ def test_a_two_space_heading_in_the_dump_is_not_a_check(capsys):
     assert "FAIL  SAFE" in err and "INFO  SYSTEMS" in err and "OK  Computer" in err
 
 
+def test_the_dump_goes_to_stderr_whole_and_nothing_else_does(capsys):
+    dump = ["Jane Doe", "FAIL  SAFE", "", "OK  Computer"]
+    _, d, err = _run(capsys, ["x.typ"], _dumping(dump))
+    assert err.split("\n") == ["──── extraction (check reading order) ────", *dump, ""]
+    assert [c["message"] for c in d["checks"]] == ["pages: 1", "review record incomplete"]
+
+
+def test_after_a_dump_of_known_length_a_check_line_is_read_whatever_its_spacing(capsys):
+    _, d, _ = _run(capsys, ["x.typ"], _dumping(["Jane Doe"], after=("INFO one-space shape",)))
+    assert [c["message"] for c in d["checks"]] == ["pages: 1", "one-space shape"]
+
+
 def test_a_check_line_right_after_a_dump_ending_in_a_blank_line_is_kept(capsys):
     _, d, _ = _run(capsys, ["x.typ"], _dumping(["Jane Doe", ""], after=("FAIL  not deliverable",)))
     assert [c["message"] for c in d["checks"]] == ["pages: 1", "not deliverable"]

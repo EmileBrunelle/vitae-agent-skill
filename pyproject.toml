@@ -58,7 +58,7 @@ markers = [
 
 # Local mutation testing (not run in CI): `tests/mutmut.sh run`, see CONTRIBUTING.md.
 [tool.mutmut]
-source_paths = ["src/vitae/verify/review_record.py", "src/vitae/verify/jsonout.py"]
-pytest_add_cli_args_test_selection = ["tests/unit/test_verify_review_record.py", "tests/unit/test_verify_json.py", "tests/unit/test_verify_jsonout.py", "tests/unit/test_verify_placeholders.py"]
+source_paths = ["src/vitae/verify/review_record.py", "src/vitae/verify/jsonout.py", "src/vitae/verify/registry.py", "src/vitae/verify/cv.py"]
+pytest_add_cli_args_test_selection = ["tests/unit/test_verify_review_record.py", "tests/unit/test_verify_json.py", "tests/unit/test_verify_jsonout.py", "tests/unit/test_verify_placeholders.py", "tests/unit/test_leading_family_ratio.py", "tests/unit/test_verify_help_cli.py", "tests/unit/test_verify_cv_files.py", "tests/unit/test_verify_locale.py"]
 also_copy = ["src/", "scripts/", "SKILL.md", "templates/", "references/", "tests/unit/"]
 max_stack_depth = 8
