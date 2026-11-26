@@ -231,11 +231,6 @@ def _spacing_arg(args: str) -> tuple[bool, re.Match[str] | None]:
 _SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
 
 
-def _count_par_leadings(text: str) -> int:
-    """How many column-0 `#set par(... leading: ...)` rules the text has (the gate reads the LAST one)."""
-    return len(_par_rule_spans(_mask_non_markup(text)))
-
-
 def _scale_list_spacing(text: str, factor: float, after: int = 0) -> str:
     """text with every top-level `#set list(... spacing: X)` (numeric, em or pt) multiplied by factor
     (three decimals, unit kept); text with no explicit numeric list spacing comes back unchanged.
