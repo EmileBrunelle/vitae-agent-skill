@@ -8,7 +8,7 @@ is "not measured", never guessed.
 from __future__ import annotations
 
 from vitae.core.level import Finding, Level
-from vitae.verify.groups.query import _is_num, _typst_values
+from vitae.verify.groups.query import _is_num
 
 ROW_GAP = 4.0   # pt: items of one row share a baseline (within ~1pt); the closest designed rows are ~10pt apart
 
@@ -37,15 +37,14 @@ def _declared_rows(values: list[object] | None) -> int:
     return max(declared, default=1)
 
 
-def check_contact_line(typ: str, root: str | None) -> list[Finding]:
-    """FAIL when the tagged contact items take more rows than declared (an item wrapped onto a new line)."""
-    items = _typst_values(typ, "<vitae-contact>", root)
+def check_contact_line(items: list[object] | None, declared_values: list[object] | None) -> list[Finding]:
+    """FAIL when the tagged contact items take more rows than declared (an item wrapped onto a new line).
+    Both lists come from the one marks query (make_context): None when it was unavailable."""
     if items is None:
         return [(Level.WARN, "contact line not measured: typst query unavailable")]
     by_page = _item_ys(items)
     if not by_page:
         return [(Level.INFO, "contact line not measured: no contact item built with lib contact()")]
-    declared_values = _typst_values(typ, "<vitae-contact-rows>", root)
     if declared_values is None:
         return [(Level.WARN, "contact line not measured: the declared row count could not be read (typst query failed)")]
     declared = _declared_rows(declared_values)

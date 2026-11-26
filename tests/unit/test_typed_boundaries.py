@@ -180,10 +180,10 @@ class TestMalformedMarksAreReported:
     def test_the_gate_run_turns_the_note_into_a_warn(self, monkeypatch):
         from vitae.core.level import Level
         from vitae.verify import gates
-        monkeypatch.setattr(gates, "_typst_query_checked", lambda *a, **k: ([self.GOOD], self.NOTE))
+        monkeypatch.setattr(gates, "_typst_marks_and_contact", lambda *a, **k: ([self.GOOD], self.NOTE, None))
         ctx = gates.make_context("cv.typ", "cv.pdf", "", "", "poppler")
         assert gates._mark_notes(ctx) == [(Level.WARN, "lib marks: " + self.NOTE)]
-        monkeypatch.setattr(gates, "_typst_query_checked", lambda *a, **k: ([self.GOOD], None))
+        monkeypatch.setattr(gates, "_typst_marks_and_contact", lambda *a, **k: ([self.GOOD], None, None))
         assert gates._mark_notes(gates.make_context("cv.typ", "cv.pdf", "", "", "poppler")) == []
 
     def test_duplicate_names_gate_warns_on_dropped_sections(self, monkeypatch):

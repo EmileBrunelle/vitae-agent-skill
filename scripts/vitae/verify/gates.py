@@ -16,6 +16,7 @@ from vitae.core.level import Finding, Level
 from vitae.verify.contact import check_contact_line
 from vitae.verify.groups import (
     ENTRY_MARKS,
+    _typst_marks_and_contact,
     _typst_query_checked,
     check_date_adjacency,
     check_duplicate_names,
@@ -28,15 +29,20 @@ from vitae.verify.runts import check_runts
 from vitae.verify.source import check_forced_linebreak, check_literal_tilde, check_no_split
 from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
 
+# ONE `typst query` for every label the gates read from the lib: the entry/bullet marks and the contact labels.
+CONTEXT_MARKS = ENTRY_MARKS + ".or(<vitae-contact>).or(<vitae-contact-rows>)"
+
 
 def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *, root: str | None = None,
                  facts: str | None = None, can_query: bool = True,
                  detail: list[DetailRow] | None = None) -> VerifyContext:
     """Build the gates' inputs; the lib markers are queried here, once, when `typst query` is usable."""
-    marks, note = _typst_query_checked(typ, ENTRY_MARKS, root) if can_query else (None, None)
+    marks, note, contact = _typst_marks_and_contact(typ, CONTEXT_MARKS, root) if can_query else (None, None, None)
     heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
     return VerifyContext(typ=typ, pdf=pdf, txt=txt, src=src, backend=backend, root=root, facts=facts,
                          can_query=can_query, marks=marks, heads=heads, detail=detail,
+                         contact_items=None if contact is None else contact.items,
+                         contact_rows=None if contact is None else contact.rows,
                          mark_notes=(note,) if note else ())
 
 
@@ -111,7 +117,7 @@ def _bullet_chars(ctx: VerifyContext) -> list[Finding]:
 
 
 def _query_notice(ctx: VerifyContext) -> list[Finding]:
-    return [(Level.WARN, "grouping / date-adjacency / duplicate-name gates NOT checked (need the typst CLI or typst-py with query)")]
+    return [(Level.WARN, "grouping / date-adjacency / duplicate-name / bullet-runts / contact-line gates NOT checked (need the typst CLI or typst-py with query)")]
 
 
 def _hidden_text(ctx: VerifyContext) -> list[Finding]:
@@ -157,7 +163,7 @@ def _bullet_runts(ctx: VerifyContext) -> list[Finding]:
 
 
 def _contact_line(ctx: VerifyContext) -> list[Finding]:
-    return check_contact_line(ctx.typ, ctx.root)
+    return check_contact_line(ctx.contact_items, ctx.contact_rows)
 
 
 def _source_text(ctx: VerifyContext) -> list[Finding]:
