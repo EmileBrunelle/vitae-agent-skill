@@ -40,7 +40,7 @@ def check_pillow() -> bool:
 # Oldest typst the fill targets were calibrated on; an older one still works and is reported DEGRADED, not refused.
 TYPST_MIN = (0, 15)
 _NEW_TYPST = ("fill targets are calibrated on typst 0.15; newer versions may measure differently "
-              "-- pin with pip install typst==0.15.0 if fills drift")
+              "-- pin with pip install typst==0.15.2 if fills drift")
 _OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
               "(0.13/0.14 miss 2 templates at 91% against 93-96%)")
 
@@ -69,7 +69,7 @@ def check_typst() -> tuple[bool, bool]:
         if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
             print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
             print("  Upgrade with ONE of:")
-            print("  pip install typst==0.15.0   # no root: add --user, or use a venv; pip picks the CPU architecture")
+            print("  pip install typst==0.15.2   # no root: add --user, or use a venv; pip picks the CPU architecture")
             print("  brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
             print("  distro packages (dnf, apt, pacman) may be older: check `typst --version` after")
             return True, True
@@ -80,7 +80,7 @@ def check_typst() -> tuple[bool, bool]:
     mod, ver, why, full = _typst_py_probe()
     if mod is None and why.startswith("TOOLOLD"):
         print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
-        print("  Upgrade it: pip install typst==0.15.0   # or install the CLI (brew install typst | cargo install typst-cli)")
+        print("  Upgrade it: pip install typst==0.15.2   # or install the CLI (brew install typst | cargo install typst-cli)")
         return False, False
     if mod is None and why:
         print(f"BROKEN  typst: the Python package `typst` is installed but does not work ({why}).")
@@ -98,14 +98,14 @@ def check_typst() -> tuple[bool, bool]:
     if mod is not None:
         if _ver_tuple(ver) < TYPST_MIN:
             print(f"DEGRADED  typst {ver} (Python API): {_OLD_TYPST}.")
-            print("  pip install typst==0.15.0")
+            print("  pip install typst==0.15.2")
             return True, False
         print(f"OK    typst {ver} (Python API: compile, query, fonts)")
         if _ver_tuple(ver) > TYPST_MIN:
             print(f"  NOTE: {_NEW_TYPST}.")
         return True, False
     print("MISSING  typst -- install with ONE of:")
-    print("  pip install typst==0.15.0                    # no root (--user or a venv); no CLI needed: compiles, queries and lists fonts via the Python API")
+    print("  pip install typst==0.15.2                    # no root (--user or a venv); no CLI needed: compiles, queries and lists fonts via the Python API")
     print("  brew install typst                          # macOS")
     print("  winget install --id Typst.Typst             # Windows")
     print("  choco install typst | scoop install typst   # Windows, if you already use them")
@@ -113,7 +113,7 @@ def check_typst() -> tuple[bool, bool]:
     print("  (distro packages — dnf, apt, pacman — may be older than 0.15, the version the fill targets are calibrated on)")
     print("  OFFLINE sandbox (no DNS / pip index)? On the user's own machine run:")
     plat, pyver = _wheel_platform_tag(), f"{sys.version_info.major}.{sys.version_info.minor}"
-    print(f"    pip download typst==0.15.0 --no-deps --only-binary=:all: --platform {plat} --python-version {pyver}")
+    print(f"    pip download typst==0.15.2 --no-deps --only-binary=:all: --platform {plat} --python-version {pyver}")
     print("    (if that platform has no wheel, `python3 -m pip debug --verbose` lists every compatible tag; never install a wheel built for another platform)")
     print("    (or pick the matching wheel from https://pypi.org/project/typst/#files), upload the .whl, then:")
     print("    pip install --no-index <path-to-wheel>")
