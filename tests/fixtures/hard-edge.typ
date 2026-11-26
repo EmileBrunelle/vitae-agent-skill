@@ -107,8 +107,8 @@
 
 // List marker: a hard-bordered SQUARE OUTLINE, drawn (emits no text). Nobody
 // else uses an outlined marker — mono-technical's is filled.
-#set list(marker: box(width: 4pt, height: 4pt, baseline: -0.5pt,
-    stroke: 1pt + accent2), indent: 10pt, spacing: 0.437em, body-indent: 7pt)
+#set list(marker: bullet-marked(box(width: 4pt, height: 4pt, baseline: -0.5pt,
+    stroke: 1pt + accent2)), indent: 10pt, spacing: 0.437em, body-indent: 7pt)
 
 // HEADER: MONOGRAM + TWO ZONES. A hard-bordered square holds the initials
 // reversed out of hue A, the name sits beside it, then the specialities line

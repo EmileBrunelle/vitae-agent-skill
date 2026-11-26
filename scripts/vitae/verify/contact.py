@@ -51,5 +51,6 @@ def check_contact_line(typ: str, root: str | None) -> list[Finding]:
     if rows > declared:
         return [(Level.FAIL, f"contact line wraps: {len(ys)} contact items take {rows} rows on page {page}, "
                              f"the layout declares {declared} — shorten it (drop a channel, shorter labels or URLs) "
-                             "or give it a full row, then re-run the gate")]
+                             "or give it a full row; if the design intends these rows, declare "
+                             f"`#contact-rows({rows})` before the first contact item, then re-run the gate")]
     return [(Level.OK, f"contact line: {len(ys)} items on {rows} row(s), declared {declared}")]

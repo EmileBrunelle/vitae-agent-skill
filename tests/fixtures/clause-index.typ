@@ -118,7 +118,7 @@
        ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
        sep: [ · ])]],
     text(size: 9pt, fill: muted)[
-      #nb(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+      #contact-rows(4)#nb(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] \
       #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
       #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
       #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],

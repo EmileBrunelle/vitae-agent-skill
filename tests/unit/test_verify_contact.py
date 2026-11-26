@@ -35,7 +35,14 @@ def test_one_row_passes(tmp_path):
 
 def test_wrapped_single_row_fails(tmp_path):
     out = _check(tmp_path, _items(["Montreal", "514-555-0100", "maya@example.com", "linkedin.com/in/maya", "github.com/maya"]))
-    assert out[0][0] == Level.FAIL and "wraps" in out[0][1]
+    assert out[0][0] == Level.FAIL
+    assert "wraps" in out[0][1]
+
+
+def test_wrapped_fail_hints_contact_rows_declaration(tmp_path):
+    out = _check(tmp_path, _items(["Montreal", "514-555-0100", "maya@example.com", "linkedin.com/in/maya", "github.com/maya"]))
+    rows = int(out[0][1].split(" items take ")[1].split(" rows")[0])
+    assert f"#contact-rows({rows})" in out[0][1]
 
 
 def test_designed_multi_row_passes_and_extra_wrap_fails(tmp_path):
@@ -67,6 +74,6 @@ def test_cjk_unspaced_one_row_passes_and_wrapped_fails(tmp_path):
     assert many[0][0] == Level.FAIL
 
 
-@pytest.mark.parametrize("ys,n", [([], 0), ([10.0], 1), ([10.0, 11.4, 10.2], 1), ([10.0, 22.0], 2)])
+@pytest.mark.parametrize(("ys", "n"), [([], 0), ([10.0], 1), ([10.0, 11.4, 10.2], 1), ([10.0, 22.0], 2)])
 def test_count_rows(ys, n):
     assert count_rows(ys) == n

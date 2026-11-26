@@ -179,8 +179,8 @@
 // its gutter, and the rail's own shape one scale down (the family repeats its
 // vocabulary instead of inventing a second one). Emits no text. The roster's
 // other drawn markers are a filled square, an outlined square and a circle.
-#set list(marker: box(width: 1.5pt, height: 5.4pt, fill: accent2,
-    baseline: -0.6pt), indent: 10pt, spacing: 0.457em, body-indent: 7pt)
+#set list(marker: bullet-marked(box(width: 1.5pt, height: 5.4pt, fill: accent2,
+    baseline: -0.6pt)), indent: 10pt, spacing: 0.457em, body-indent: 7pt)
 
 // HEADER: a STATUSLINE STRIP first, then the identity. The contacts ride the top
 // of the page as a run of discrete segments — the bar of a themed desktop, or

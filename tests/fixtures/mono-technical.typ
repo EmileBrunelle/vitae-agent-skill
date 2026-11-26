@@ -60,7 +60,7 @@
 // items interleave across rows) — see references/ats.md.
 #let skill(cat, items) = srow([#text(font: dispf, size: 8.5pt, weight: "bold", fill: accent)[#upper(cat)] #text(font: dispf, size: 8.5pt, fill: accent2)[=]], items)
 
-#set list(marker: box(width: 3pt, height: 3pt, fill: accent2, baseline: -0.5pt),
+#set list(marker: bullet-marked(box(width: 3pt, height: 3pt, fill: accent2, baseline: -0.5pt)),
   indent: 10pt, spacing: 0.45em, body-indent: 7pt)
 
 // header: name, role, then the contacts on ONE mono line (spec-sheet footer)

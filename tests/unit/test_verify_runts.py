@@ -68,7 +68,8 @@ def test_runt_after_natural_wrap_fails(tmp_path):
         ctx = _compile(tmp_path, "nat", font, f"- {first} {'x' * n} ms.\n", False)
         out = _bullet_runts(ctx)
         if out:
-            assert out[0][0] == Level.FAIL and "ms." in out[0][1]
+            assert out[0][0] == Level.FAIL
+            assert "ms." in out[0][1]
             return
     pytest.fail("no width produced a lone last word")
 
@@ -81,7 +82,8 @@ def test_no_lib_marker_is_not_measured_never_a_fail(tmp_path):
     typst.compile(str(typ), output=str(out_pdf))
     ctx = make_context(str(typ), str(out_pdf), pdf.extract_text(str(out_pdf), "pdfium"), src, "pdfium")
     out = _bullet_runts(ctx)
-    assert [lvl for lvl, _ in out] == [Level.WARN] and "not measured" in out[0][1]
+    assert [lvl for lvl, _ in out] == [Level.WARN]
+    assert "not measured" in out[0][1]
 
 
 def test_gate_is_registered_and_needs_the_query():
@@ -101,7 +103,7 @@ def _lines(last_w):
     return [full, BulletLine(1, Extent(0, last_w), 10, "y")]
 
 
-@pytest.mark.parametrize("width,expected", [(15, True), (25, True), (26, False), (60, False), (200, False)])
+@pytest.mark.parametrize(("width", "expected"), [(15, True), (25, True), (26, False), (60, False), (200, False)])
 def test_threshold_edge(width, expected):
     assert is_runt(_lines(width)) is expected
 
