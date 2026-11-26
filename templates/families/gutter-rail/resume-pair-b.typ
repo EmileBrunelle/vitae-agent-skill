@@ -22,6 +22,8 @@
 // identifiable as VS Code or as one rice.
 // ---------- Shared mechanics (templates/lib.typ) ----------
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 // SUPPORT DE DESTINATION (core.md § The destination support): the PRINT-SAFE
 // build below is the CANONICAL one and it is the one that ships — nobody
 // controls what a recipient does with a PDF, and a photocopier is the worst
@@ -124,12 +126,12 @@
 // avant-poster's claim — nothing bleeds off the page edge.
 #let crumb = polygon(fill: accent, (0pt, 0pt), (3.6pt, 2.1pt), (0pt, 4.2pt))
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 22pt } else { 17pt }, below: 0pt)[
+  above: if airy { 22pt * rhythm } else { 17pt * rhythm }, below: 0pt)[
   #block(width: 100%, above: 0pt, below: 0pt, outset: (left: 11pt),
     stroke: (left: 0.9pt + accent))[
     #place(left + top, dx: -8pt, dy: 3.6pt, crumb)
     #text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t]
-    #v(11.5pt)
+    #v(11.5pt * rhythm)
     #block(above: 0pt, below: 0pt, width: 100%, body)
   ]
 ]
@@ -154,7 +156,7 @@
   role-st: it => text(font: dispf, size: 11pt, weight: "bold", it),
   date-st: it => text(font: monof, size: 8.5pt, fill: accent2, weight: "medium", it),
   note-st: it => text(font: monof, size: 8pt, fill: muted, it),
-  meta-size: 9pt)
+  meta-size: 9pt, rhythm: rhythm)
 
 // SKILLS: a FOLD ROW. A drawn hue-B fold triangle, then the key in LOWERCASE
 // mono, then the items in the body sans. Lowercase is the point and nobody else
@@ -210,7 +212,7 @@
 // unchanged — verified byte-identical against the wrapped-pair version, since
 // `contact`'s box is the same box either way and colour emits no text.
 #let seg(b) = chip(b, fill: wash, extent: 2.2pt, radius: seg-radius)
-#block(above: 0pt, below: 9pt)[
+#block(above: 0pt, below: 9pt * rhythm)[
   #text(font: monof, size: 8.5pt, fill: muted)[#{
     (contact(mk.pin, seg[\[City, Region\]]),
      contact(mk.phone, seg[#link("tel:+15555550100")[(555) 555-0100]]),
@@ -218,9 +220,9 @@
      contact(mk.li, seg[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]),
      contact(mk.gh, seg[#link("https://github.com/handle")[github.com/handle]])).join([#sym.space.quad])
   }]
-  #v(5pt)
+  #v(5pt * rhythm)
   #text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]
-  #v(-4pt)
+  #v(-4pt * rhythm)
   #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
 ]
 

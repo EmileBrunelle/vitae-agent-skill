@@ -5,6 +5,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks).
 #import "../../templates/lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#5c1f3a")    // garnet — the lozenges + the name rule
 #let pal = derive(accent)
 #let soft = pal.soft
@@ -42,7 +44,7 @@
 // anywhere in the document. This is the only family on a centred axis, and the
 // only one whose section titles are centred.
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 20pt } else { 15pt }, below: 0pt)[
+  above: if airy { 20pt * rhythm } else { 15pt * rhythm }, below: 0pt)[
   // Two separate `align(center)` blocks, not one containing both: inside a
   // single centred block the mark and the title end up centred on their own
   // line boxes and drift apart on short titles (verified — "Languages" landed
@@ -53,9 +55,9 @@
   // draw-rules.md § Anti-AI-slop); at 4.4pt it reads as a lozenge and still stays a mark.
   #align(center, box(width: 5pt, height: 5pt,
     rotate(45deg, rect(width: 4.4pt, height: 4.4pt, fill: accent))))
-  #v(2pt)
+  #v(2pt * rhythm)
   #align(center, text(font: dispf, size: 12pt, weight: "semibold", fill: dark)[#t])
-  #v(11pt)
+  #v(11pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -65,7 +67,7 @@
   role-st: it => text(size: 11.5pt, weight: "bold", it),
   date-st: it => text(size: 9.5pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it),
-  meta-size: 9.5pt, above: 12pt, below: 5.5pt)
+  meta-size: 9.5pt, above: 12pt, below: 5.5pt, rhythm: rhythm)
 
 // skills: the label, then a FULL STOP, then the items — the engraved
 // catalogue/trade-card convention, where the period was the separator because
@@ -84,17 +86,17 @@
 // the widest line inside it (the contact row) instead of on the page axis —
 // the whole header sat 42pt left of the centred section titles and the short
 // rule under the name read as off-centre (measured, not guessed).
-#block(width: 100%, above: 0pt, below: 13pt)[
+#block(width: 100%, above: 0pt, below: 13pt * rhythm)[
   #align(center)[
     #text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname]
     // A HAIRLINE, long, with air around it — the engraver's rule. 1.2pt over
     // 34pt read as a stubby dash sitting on the name; the whole point of
     // engraving is that a clean thin line was the expensive part.
-    #v(3pt)
+    #v(3pt * rhythm)
     #line(length: 56pt, stroke: 0.6pt + accent)
-    #v(4pt)
+    #v(4pt * rhythm)
     #text(size: 11pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-    #v(1pt)
+    #v(1pt * rhythm)
     #text(size: 9pt, fill: muted)[
       #contact(none)[\[City, Region\]] #h(7pt) #contact(none)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)
       #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)

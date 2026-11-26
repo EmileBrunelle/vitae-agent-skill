@@ -8,6 +8,8 @@
 // the lib (entry emission order, extraction-safe skills row, painted chips,
 // unbreakable mark+value box, platform marks, generic icon sets, specialities).
 #import "../../templates/lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#b3261e")    // hue A — the monogram block + the specialities line
 #let accent2 = rgb("#0f4c5c")   // hue B — the dates, the markers, the icons
 // DUOTONE family (core.md § Duotone): the pair is validated together —
@@ -59,10 +61,10 @@
 // inside a box resolves to the AVAILABLE width and silently reproduces the
 // banned full-width bar (same trap as `line(length: 100%)` — verified).
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 26.5pt } else { 21.5pt }, below: 0pt)[
+  above: if airy { 26.5pt * rhythm } else { 21.5pt * rhythm }, below: 0pt)[
   #box(fill: dark, inset: (x: 6pt, y: 2.5pt),
     text(font: dispf, size: 11.5pt, weight: "bold", fill: white)[#upper(t)])
-  #v(12.5pt)
+  #v(12.5pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -73,7 +75,7 @@
   role-st: it => text(font: dispf, size: 11pt, weight: "bold", it),
   date-st: it => text(font: monof, size: 8.5pt, fill: accent2, weight: "medium", it),
   note-st: it => text(font: monof, size: 8pt, fill: muted, it),
-  meta-size: 9pt)
+  meta-size: 9pt, rhythm: rhythm)
 
 // SKILLS: a REVERSED-OUT TAG, then the items plain. The tag is the section
 // slab's own shape one scale down — the family repeats its own shapes instead
@@ -102,7 +104,7 @@
 #let stag(cat) = chip(
   text(font: monof, size: 8pt, weight: "bold", fill: white)[#upper(cat)],
   fill: dark, extent: 1pt)
-#let skill(cat, items) = srow(stag(cat), items, above: auto, lift: 2pt, below: 0pt)
+#let skill(cat, items) = srow(stag(cat), items, above: auto, lift: 2pt * rhythm, below: 0pt)
 #let sskill(cat, items) = skill(cat, items)
 
 // List marker: a hard-bordered SQUARE OUTLINE, drawn (emits no text). Nobody
@@ -116,7 +118,7 @@
 // box — never an image: harvested counter-evidence says an image-rendered
 // monogram is invisible to extraction, and the initials are then a hole in the
 // document where the name should be.
-#block(above: 0pt, below: 12pt)[
+#block(above: 0pt, below: 12pt * rhythm)[
   #hrow(
     [#box(baseline: 12pt, width: 1.15cm, height: 1.15cm, fill: accent,
        stroke: 1.4pt + dark, inset: 0pt)[
@@ -125,10 +127,10 @@
      #h(9pt)
      #box(baseline: 12pt)[
        #text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
-       #v(-5pt)
+       #v(-5pt * rhythm)
        #text(font: monof, size: 9pt, fill: muted)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]]],
     [], cols: (auto, 1fr), gutter: 0pt,
-    align-cells: (left + top, left + top), above: 0pt, below: 5pt)
+    align-cells: (left + top, left + top), above: 0pt, below: 5pt * rhythm)
   // SPECIALITIES LINE — the mastered skills, in hue A, mono, uppercase,
   // pipe-separated. NO `tracking`: letterspacing extracts as "N E X T" and
   // stops matching. Each item boxed, so none can break across a line end.
@@ -137,7 +139,7 @@
   #text(font: monof, size: 8.5pt, weight: "bold", fill: accent)[#specline(
     ("[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]", "[ITEM]"),
     sep: [ | ])]
-  #v(2pt)
+  #v(2pt * rhythm)
   #text(font: monof, size: 8.5pt, fill: muted)[
     #contact(ic.pin)[\[City, Region\]] #h(7pt)
     #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)

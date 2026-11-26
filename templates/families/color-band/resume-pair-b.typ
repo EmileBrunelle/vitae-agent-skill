@@ -40,6 +40,8 @@
 // be orphaned at a line end (`nb` is the untagged form, for Languages and skills) — and it drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
 #import "../../lib.typ": marks, nb, contact, ghost, drawn-marker, list-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let mk = marks(ic-col)
 // the hand-drawn pin/phone follow the marks' all-or-nothing rule (no mixed row)
 #let ic-on(g) = if mk.mail == none { ghost } else { g }
@@ -51,11 +53,11 @@
 
 // device: heading reversed out of a solid accent bar, no rules at all
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 19pt } else { 14pt }, below: 0pt)[
+  above: if airy { 19pt * rhythm } else { 14pt * rhythm }, below: 0pt)[
   #block(width: 100%, fill: accent, inset: (x: 6pt, y: 2.5pt))[
     #text(font: dispf, size: 11.5pt, weight: "bold", fill: white)[#upper(t)]
   ]
-  #v(8pt)
+  #v(8pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -63,22 +65,22 @@
 // in-head spacing is what keeps the org line grouped with its own role.
 #let job(role, org, dates, note) = wd-entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: accent2, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: label on its own line, items on the line below (two-line rows)
 #let skill(cat, items) = srow(
   text(weight: "bold", size: 9.5pt)[#upper(cat)], items,
-  brk: true, brk-gap: 2pt, above: auto, below: 0pt)
+  brk: true, brk-gap: 2pt * rhythm, above: auto, below: 0pt)
 
 #set list(marker: list-marker("dot", accent2, bold: true), indent: 10pt,
   spacing: 0.758em, body-indent: 6pt)
 
 // header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
-#masthead(accent)[
+#masthead(accent, rhythm: rhythm)[
   #text(font: dispf, size: 24pt, weight: "bold", fill: white)[Firstname Lastname]
-  #v(-4pt)
+  #v(-4pt * rhythm)
   #text(size: 10.5pt, fill: white, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-4pt)
+  #v(-4pt * rhythm)
   #text(size: 9pt, fill: white)[
     #contact(ic-on(ic-pin))[\[City, Region\]]
     #h(6pt) #contact(ic-on(ic-tel))[#link("tel:+15555550100")[(555) 555-0100]]

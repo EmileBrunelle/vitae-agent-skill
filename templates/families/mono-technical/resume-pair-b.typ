@@ -4,6 +4,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 // DUOTONE family: two harmonised hues, each with its own job.
 #let accent = rgb("#1f3a5f")    // hue A — STRUCTURE: heading marks, chip keylines
 #let accent2 = rgb("#8f2d3f")   // hue B — DATA: dates, list markers, icons
@@ -37,12 +39,12 @@
 
 // device: a filled hue-A square, then the title in the MONO face. No rules.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 27pt } else { 20pt }, below: 0pt)[
+  above: if airy { 27pt * rhythm } else { 20pt * rhythm }, below: 0pt)[
   #box(width: 6pt, height: 6pt, fill: accent, baseline: 0pt)
   #box(width: 3pt, height: 6pt, fill: accent2, baseline: 0pt)
   #h(5pt)
   #text(font: dispf, size: 11.5pt, weight: "bold", fill: dark)[#t]
-  #v(14pt)
+  #v(14pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -52,7 +54,7 @@
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(font: dispf, size: 8.5pt, fill: accent2, weight: "medium", it),
   note-st: it => text(fill: muted, it),
-  above: 11pt)
+  above: 11pt, rhythm: rhythm)
 
 // skills: a spec-sheet KEY = VALUE row — mono key in hue A, the "=" in hue B,
 // values in the body sans. Verified alternative to inline "chips": one box per
@@ -64,11 +66,11 @@
   indent: 10pt, spacing: 0.804em, body-indent: 7pt)
 
 // header: name, role, then the contacts on ONE mono line (spec-sheet footer)
-#block(above: 0pt, below: 12pt)[
+#block(above: 0pt, below: 12pt * rhythm)[
   #text(size: 22pt, weight: "bold")[Firstname Lastname]
-  #v(-4pt)
+  #v(-4pt * rhythm)
   #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-2pt)
+  #v(-2pt * rhythm)
   #text(font: dispf, size: 8.5pt, fill: muted)[
     #contact(ic.pin)[\[City, Region\]] #h(6pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(6pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(6pt)

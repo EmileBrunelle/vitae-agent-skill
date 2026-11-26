@@ -216,6 +216,8 @@ Tuning knobs, in order of preference (avoid `v(1fr)` stretchers — they create 
 2. `section` `above` gap; a separate larger value for sparse pages (an `airy: true` variant) — but keep the delta between pages small or the document reads as two different documents.
 3. List `spacing`, job-block `above/below`.
 4. Real content (an extra legitimate bullet) beats any spacing trick.
+
+**Rhythm scale (template convention).** Every CV template carries `#let rhythm = 1.000` at column 0 right after its lib import (a tuner parses that exact line), and every pt vertical gap (`section` `above`/`below`/`v(..pt)`, header blocks, skills rows) is written `Npt * rhythm`; `entry(..., rhythm: rhythm)` and `masthead`/`runhead` take it as a parameter. Horizontal sizes, rule lengths, font sizes and the `em` values of `#set par`/`#set list` are not multiplied. A new family copies the line and the pattern.
 5. Multi-page balancing: `#set text`/`#set par` are document-global — re-declare them locally after a `#pagebreak()` to give a sparser page its own rhythm without disturbing page 1.
 
 On multi-page versions, decide the page break yourself (`#pagebreak()`) so page assignment is deterministic, and re-run the loop after every content edit — one wrapped line can cascade an unbreakable section onto a new page.

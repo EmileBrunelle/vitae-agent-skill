@@ -4,6 +4,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#33475b")
 // Coordinated palette (monochrome harmony): one accent + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).
@@ -37,18 +39,18 @@
 // keyline marks the title and is invisible to a horizontal boundary scan,
 // which is why this family used to buy separation with empty space alone.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 20.5pt } else { 16.5pt }, below: 0pt)[
-  #block(above: 0pt, below: 5pt)[#line(length: 100%, stroke: 0.6pt + soft)]
+  above: if airy { 20.5pt * rhythm } else { 16.5pt * rhythm }, below: 0pt)[
+  #block(above: 0pt, below: 5pt * rhythm)[#line(length: 100%, stroke: 0.6pt + soft)]
   #box(inset: (left: 11pt), stroke: (left: 4pt + accent))[
     #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
   ]
-  #v(11.5pt)
+  #v(11.5pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: accent, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: the label itself carries the accent — no separator, no rule
 #let skill(cat, items) = srow(text(fill: accent, weight: "bold")[#cat], items)
@@ -56,10 +58,10 @@
 #set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.698em, body-indent: 6pt)
 
 // header: name left + contact column right (photo slot = right cell), no rule
-#block(above: 0pt, below: 12pt)[
+#block(above: 0pt, below: 12pt * rhythm)[
   #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
-     #v(-3pt)
+     #v(-3pt * rhythm)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #contact-rows(5)#contact(ic.pin)[\[City, Region\]] \
       #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \

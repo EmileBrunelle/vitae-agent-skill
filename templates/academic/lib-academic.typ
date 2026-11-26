@@ -28,13 +28,13 @@
 // same page). Remaining entries flow normally after, each already
 // unbreakable on its own via `aentry`/`apub`. `entries` is an array of
 // already-built entry content (never raw data) — call site decides order.
-#let asection(title, entries, above: 14pt) = {
+#let asection(title, entries, above: 14pt, rhythm: 1.0) = {
   if entries.len() == 0 { return }
-  block(breakable: false, above: above, below: 2pt)[
+  block(breakable: false, above: above * rhythm, below: 2pt * rhythm)[
     #text(size: 12pt, weight: "bold")[#upper(title)]
-    #v(2pt)
+    #v(2pt * rhythm)
     #line(length: 100%, stroke: 0.6pt + luma(150))
-    #v(4pt)
+    #v(4pt * rhythm)
     #entries.at(0)
   ]
   for e in entries.slice(1) { e }
@@ -54,8 +54,8 @@
 // never lift it to fix an orphan — a short page tail is free here, there is
 // no fill target in this genre (academic-mode.md, "What does not apply here").
 #let aentry(year, body, above: 3pt, below: 3pt, year-w: 2.2cm,
-            year-st: it => text(weight: "bold", it)) = block(
-  breakable: false, above: above, below: below)[
+            year-st: it => text(weight: "bold", it), rhythm: 1.0) = block(
+  breakable: false, above: above * rhythm, below: below * rhythm)[
   #grid(columns: (year-w, 1fr), column-gutter: 10pt,
     align: (left + top, left + top),
     year-st(year), body)
@@ -79,7 +79,7 @@
 // the optional fields (website, orcid) that is `none` is simply dropped from
 // its line, never left as an empty separator.
 #let aheader(name, title, affiliation, address, email, cv-date,
-             website: none, orcid: none) = block(below: 12pt)[
+             website: none, orcid: none, rhythm: 1.0) = block(below: 12pt * rhythm)[
   #text(size: 15pt, weight: "bold")[#name] \
   #title#if affiliation != none [, #affiliation] \
   #address \

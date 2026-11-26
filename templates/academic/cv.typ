@@ -19,6 +19,12 @@
 // then pdftotext -layout out.pdf - | less  (checks A-E are manual until the
 // academic gate is built; see academic-mode.md "Correctness properties").
 #import "lib-academic.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
+#let asection = asection.with(rhythm: rhythm)
+#let aentry = aentry.with(rhythm: rhythm)
+#let apub = apub.with(rhythm: rhythm)
+#let aheader = aheader.with(rhythm: rhythm)
 
 #let data = toml("faits-academique.example.toml")
 #let m = data.meta
@@ -107,11 +113,11 @@
 ])))
 
 // -------------------------------------------------- 12. Affiliations/languages
-#block(above: 12pt)[
+#block(above: 12pt * rhythm)[
   #text(size: 12pt, weight: "bold")[AFFILIATIONS AND LANGUAGES]
-  #v(2pt)
+  #v(2pt * rhythm)
   #line(length: 100%, stroke: 0.6pt + luma(150))
-  #v(4pt)
+  #v(4pt * rhythm)
   #data.affiliations_languages.affiliations \
   #data.affiliations_languages.languages
 ]

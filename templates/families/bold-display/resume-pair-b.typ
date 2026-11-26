@@ -4,6 +4,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#8c3b00")    // hue A — the name, and nothing else
 #let accent2 = rgb("#105a90")   // hue B — heading underlines, markers, icons
 // DUOTONE family (core.md § Duotone): the pair is validated together
@@ -37,17 +39,17 @@
 
 // device: oversized dark title over a heavy accent underline as wide as the title
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 21.5pt } else { 16.5pt }, below: 0pt)[
+  above: if airy { 21.5pt * rhythm } else { 16.5pt * rhythm }, below: 0pt)[
   #box(inset: (bottom: 3pt), stroke: (bottom: 2.5pt + accent2))[
     #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#upper(t)]
   ]
-  #v(10.5pt)
+  #v(10.5pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: bold label, wide gap, items — no separator punctuation at all
 #let skill(cat, items) = srow(box[#text(weight: "bold")[#cat]#h(12pt)], items)
@@ -56,11 +58,11 @@
   spacing: 0.760em, body-indent: 6pt)
 
 // header: oversized accent name left, contacts on one line below
-#block(above: 0pt, below: 12pt)[
+#block(above: 0pt, below: 12pt * rhythm)[
   #text(font: dispf, size: 29pt, weight: "bold", fill: accent)[Firstname Lastname]
-  #v(-3pt)
+  #v(-3pt * rhythm)
   #text(size: 11pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-3pt)
+  #v(-3pt * rhythm)
   #text(size: 9pt, fill: muted)[
     #contact-rows(2)#contact(ic.pin)[\[City, Region\]] #h(9pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(9pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \

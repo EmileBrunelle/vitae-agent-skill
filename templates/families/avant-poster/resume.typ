@@ -7,6 +7,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets, specialities line).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#b3261e")    // hue A — the bleeding bars (masthead + sections)
 #let accent2 = rgb("#1f3a5f")   // hue B — the dividers, the markers, icons, dates
 // DUOTONE family (core.md § Duotone). The constructivist poster is a
@@ -48,14 +50,14 @@
 // emits no text, so the bar costs nothing in the layout and nothing in the
 // extraction.
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 23.5pt } else { 18.5pt }, below: 0pt)[
+  above: if airy { 23.5pt * rhythm } else { 18.5pt * rhythm }, below: 0pt)[
   #box(width: 100%, height: 13pt)[
     #place(horizon + left, dx: -mx,
       rect(width: mx + 30pt, height: 5pt, fill: accent))
     #place(horizon + left, dx: 38pt,
       text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#upper(t)])
   ]
-  #v(10pt)
+  #v(10pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -64,7 +66,7 @@
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   role-st: it => text(font: dispf, size: 11.5pt, weight: "bold", it),
   date-st: it => text(size: 9pt, fill: accent2, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: the label in hue A, then a drawn hue-B DIVIDER BAR (a box: emits no
 // text), then the items. The divider is the same flat-bar vocabulary as the
@@ -97,14 +99,14 @@
 // `background` would repeat it on page 2 (verified on color-band).
 #place(top + left, dx: -mx, dy: -1.3cm,
   rect(width: 100% + 2 * mx, height: 0.5cm, fill: accent))
-#block(above: 0pt, below: 11pt)[
+#block(above: 0pt, below: 11pt * rhythm)[
   // Header lines keep a tight pitch whatever the body leading: poppler splits a looser
   // contact row into one line per item or reads its second line before the first.
   #set par(leading: 0.548em, spacing: 0.638em)
   #text(font: dispf, size: 30pt, weight: "bold")[Firstname Lastname]
-  #v(-6pt)
+  #v(-6pt * rhythm)
   #text(size: 10.5pt, weight: "medium", fill: accent2)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-1pt)
+  #v(-1pt * rhythm)
   // SPECIALITIES LINE — the skills the facts support, in the display face, hue A,
   // bar-separated. NO `tracking`: letterspacing extracts as "N E X T" and stops
   // matching. Each item boxed, so none can break across a line end. Every item
@@ -113,7 +115,7 @@
   #text(font: dispf, size: 9pt, weight: "bold", fill: accent)[#specline(
     ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
     sep: [ \/ ])]
-  #v(1pt)
+  #v(1pt * rhythm)
   // Contact gaps stay >= 12pt: poppler reads a narrower gap as a column break (1 line per item).
   #text(size: 9pt, fill: muted)[
     #contact(ic.pin)[\[City, Region\]] #h(14pt)

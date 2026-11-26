@@ -270,7 +270,13 @@
            org-st: it => text(weight: "semibold", it),
            note-st: it => it,
            sep: [ — ], meta-size: 9pt, gap: 1.5pt,
-           above: auto, lift: 0.1em, below: 5.5pt) = context {
+           above: auto, lift: 0.1em, below: 5.5pt, rhythm: 1.0) = context {
+  // `rhythm` (the family's `#let rhythm`) stretches every vertical gap of the entry together;
+  // 1.0 changes nothing. The auto `above` below is computed from the scaled gap/lift.
+  let gap = gap * rhythm
+  let lift = lift * rhythm
+  let below = below * rhythm
+  let above = if above == auto { auto } else { above * rhythm }
   // In-head spacing, measured from the faces in use (no ambient block spacing:
   // the head row is wrapped so `par.spacing` never lands between role and org).
   // `clr` is the smallest role-baseline -> org-line-top distance at which the
@@ -481,8 +487,8 @@
 // convention. It goes in the FLOW, immediately after the `#pagebreak()`, and
 // NEVER in a page `header:` field — many parsers skip the header/footer
 // regions entirely, so anything load-bearing put there is a bug, not a device.
-#let runhead(name, n, total, st: it => text(size: 8.5pt, it)) = block(
-  above: 0pt, below: 10pt,
+#let runhead(name, n, total, st: it => text(size: 8.5pt, it), rhythm: 1.0) = block(
+  above: 0pt, below: 10pt * rhythm,
   st[#name #h(1fr) #n / #total])
 
 // ------------------------------------------------------- generic icons
@@ -708,7 +714,7 @@
 // strut); `gap` is the space between the band and what follows (the larger of it
 // and the next block's own `above`). Both are explicit, so ambient
 // `set block(spacing: ..)` does not change them.
-#let masthead(fill, body, bottom: 8pt, gap: 8pt) = context {
+#let masthead(fill, body, bottom: 8pt, gap: 8pt, rhythm: 1.0) = context {
   let pw = page.width
   let ph = if page.height == auto { pw } else { page.height }   // workday: continuous page
   let dflt = 2.5 / 21 * calc.min(pw, ph)
@@ -734,6 +740,6 @@
   let mt = side("top")
   // `outset` paints the fill into the margins WITHOUT touching the layout, so the
   // band's flow height is exactly text + bottom + gap (no negative-pad arithmetic).
-  block(width: 100%, above: 0pt, below: gap, fill: fill,
-    outset: (left: ml, right: mr, top: mt), inset: (bottom: bottom), body)
+  block(width: 100%, above: 0pt, below: gap * rhythm, fill: fill,
+    outset: (left: ml, right: mr, top: mt), inset: (bottom: bottom * rhythm), body)
 }

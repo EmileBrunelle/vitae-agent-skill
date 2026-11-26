@@ -4,6 +4,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#b3261e")
 // Coordinated palette (monochrome harmony): one accent + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).
@@ -33,17 +35,17 @@
 
 // device: heavy accent rule ABOVE the title, full width; nothing below
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 19.5pt } else { 14.5pt }, below: 0pt)[
+  above: if airy { 19.5pt * rhythm } else { 14.5pt * rhythm }, below: 0pt)[
   #line(length: 100%, stroke: 2.5pt + accent)
-  #v(4pt)
+  #v(4pt * rhythm)
   #text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t]
-  #v(10.5pt)
+  #v(10.5pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: small uppercase run-in label (no tracking), then the items
 #let skill(cat, items) = srow(text(size: 8.5pt, weight: "bold")[#upper(cat)], items)
@@ -52,10 +54,10 @@
   spacing: 0.660em, body-indent: 6pt)
 
 // header: ONE grid row — name/role left, contact column right (photo slot = right cell)
-#block(above: 0pt, below: 11pt)[
+#block(above: 0pt, below: 11pt * rhythm)[
   #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
-     #v(-3pt)
+     #v(-3pt * rhythm)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#contact-rows(5)#contact(mk.pin)[\[City, Region\]] \
       #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \

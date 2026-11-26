@@ -5,6 +5,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
 #import "../../templates/lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#0e6862")
 // Coordinated palette (monochrome harmony): one accent + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).
@@ -35,16 +37,16 @@
 
 // device: none — whitespace and a size/weight step do all the delimiting
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 31pt } else { 26pt }, below: 0pt)[
+  above: if airy { 31pt * rhythm } else { 26pt * rhythm }, below: 0pt)[
   #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
-  #v(10.5pt)
+  #v(10.5pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   above: 11pt,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: bulleted rows, accent marker, em-dash label (hanging indent aligns wraps)
 #let skill(cat, items) = srow([#drawn-marker("dash", accent, bold: true)#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
@@ -53,14 +55,14 @@
   spacing: 0.706em, body-indent: 6pt)
 
 // header: name + subtitle left, contacts on two left-aligned lines below
-#block(above: 0pt, below: 12pt)[
+#block(above: 0pt, below: 12pt * rhythm)[
   // Header lines keep a tight pitch whatever the body leading: poppler splits a looser
   // contact row into one line per item or reads its second line before the first.
   #set par(leading: 0.665em, spacing: 0.765em)
   #text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname]
-  #v(-3pt)
+  #v(-3pt * rhythm)
   #text(size: 10.5pt)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-4pt)
+  #v(-4pt * rhythm)
   #text(size: 9pt, fill: muted)[
     #contact-rows(2)#contact(mk.pin)[\[City, Region\]] #h(5pt)#drawn-marker("mid", auto)#h(5pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(5pt)#drawn-marker("mid", auto)#h(5pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
