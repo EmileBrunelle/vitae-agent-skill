@@ -36,6 +36,20 @@ class TestIcons:
         assert icons.fetch_set("lucide", ["mail"]) == ({}, {})
         assert "ICONS: lucide unreachable" in capsys.readouterr().err
 
+    def test_deeply_nested_json_degrades_with_a_message(self, monkeypatch, capsys):
+        class Reply:
+            def __enter__(self) -> "Reply":
+                return self
+
+            def __exit__(self, *_a: object) -> None: ...
+
+            def read(self, _n: int) -> bytes:
+                return b"[" * 100_000   # nested far past the interpreter's recursion limit
+
+        monkeypatch.setattr(icons.urllib.request, "urlopen", lambda *a, **k: Reply())
+        assert icons.fetch_set("lucide", ["mail"]) == ({}, {})
+        assert "ICONS: lucide unreachable" in capsys.readouterr().err
+
     def test_a_bug_is_not_swallowed(self, monkeypatch):
         monkeypatch.setattr(icons, "fetch", _raiser(KeyError("boom")))
         with pytest.raises(KeyError):
@@ -139,7 +153,8 @@ class TestEnv:
         with pytest.raises(KeyError):
             env.check_typst()
 
-    def _probe(self, monkeypatch, *, eval_exc: BaseException | None = None, fonts_exc: BaseException | None = None):
+    def _probe(self, monkeypatch, *, eval_exc: BaseException | None = None, fonts_exc: BaseException | None = None,
+               has_eval: bool = True):
         class Compiler:
             def __init__(self, *_a: object, **_k: object) -> None: ...
 
@@ -153,6 +168,8 @@ class TestEnv:
                     raise eval_exc
                 return '"0.15.0"'
 
+        if not has_eval:
+            del Compiler.eval   # typst-py 0.13.4-0.14.x
         mod = types.SimpleNamespace(
             Compiler=Compiler, __version__="9.9",
             Fonts=_raiser(fonts_exc) if fonts_exc else lambda **k: types.SimpleNamespace(families=lambda: ["A"]))
@@ -169,6 +186,19 @@ class TestEnv:
 
     def test_eval_failure_keeps_module_version(self, monkeypatch):
         _, ver, problem, full = self._probe(monkeypatch, eval_exc=RuntimeError("no eval"))
+        assert (ver, problem, full) == ("9.9", "", True)
+
+    def test_compiler_without_eval_is_degraded_not_broken(self, monkeypatch, capsys):
+        mod, ver, problem, full = self._probe(monkeypatch, has_eval=False)
+        assert mod is not None and problem == "" and full is False and ver == "9.9"
+        monkeypatch.setattr(env.shutil, "which", lambda n, *a, **k: None)
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: (mod, ver, problem, full))
+        assert env.check_typst() == (True, False)
+        out = capsys.readouterr().out
+        assert out.startswith("DEGRADED") and "BROKEN" not in out
+
+    def test_eval_signature_mismatch_keeps_module_version(self, monkeypatch):
+        _, ver, problem, full = self._probe(monkeypatch, eval_exc=TypeError("unexpected keyword 'format'"))
         assert (ver, problem, full) == ("9.9", "", True)
 
     def test_fonts_failure_leaves_compile_only(self, monkeypatch):
@@ -203,22 +233,32 @@ class TestTextGates:
         self._use(monkeypatch, exc)
         assert text.check_pdf_metadata("x.pdf") == []
 
-    def test_metadata_bug_raises(self, monkeypatch):
-        self._use(monkeypatch, KeyError("boom"))
-        with pytest.raises(KeyError):
-            text.check_pdf_metadata("x.pdf")
+    @pytest.mark.parametrize("exc", [NotImplementedError("encrypted"), KeyError("boom")])
+    def test_metadata_pypdf_crash_is_a_visible_warn(self, monkeypatch, exc):
+        self._use(monkeypatch, exc)
+        assert text.check_pdf_metadata("x.pdf") == [
+            f"metadata pypdf scan failed: {type(exc).__name__} — metadata not checked"]
 
     def test_missing_pypdf_means_no_metadata_finding_and_runs_not_run(self, monkeypatch):
         monkeypatch.setattr(text.importlib, "import_module", _raiser(ImportError("pypdf")))
         assert text.check_pdf_metadata("x.pdf") == []
-        assert text._text_runs("x.pdf") == ([], [], False)
+        assert text._text_runs("x.pdf") == ([], [], False, "")
 
     @pytest.mark.parametrize("exc", [OSError("gone"), ValueError("bad"), _PyPdfError("corrupt")])
     def test_unreadable_pdf_still_counts_as_ran_found_nothing(self, monkeypatch, exc):
         self._use(monkeypatch, exc)
-        assert text._text_runs("x.pdf") == ([], [], True)
+        assert text._text_runs("x.pdf") == ([], [], True, "")
 
-    def test_text_runs_bug_raises_instead_of_a_clean_pass(self, monkeypatch):
-        self._use(monkeypatch, KeyError("boom"))
-        with pytest.raises(KeyError):
-            text._text_runs("x.pdf")
+    @pytest.mark.parametrize("exc", [NotImplementedError("unsupported"), KeyError("boom")])
+    def test_text_runs_pypdf_crash_is_reported_not_a_clean_pass(self, monkeypatch, exc):
+        self._use(monkeypatch, exc)
+        assert text._text_runs("x.pdf") == ([], [], False, type(exc).__name__)
+
+    def test_hidden_text_gate_warns_when_the_pypdf_scan_crashed(self, monkeypatch):
+        self._use(monkeypatch, NotImplementedError("unsupported"))
+        monkeypatch.setattr(text, "_boxes_unavailable", lambda pdf: "")
+        monkeypatch.setattr(text, "_bbox_pages", lambda pdf: [])
+        monkeypatch.setattr(text, "_render_pages_png", lambda *a, **k: [])
+        msgs = text.check_hidden_text("x.pdf")
+        assert any(lvl is text.Level.WARN and "pypdf scan failed: NotImplementedError" in m for lvl, m in msgs)
+        assert not any("PASS" in m or "no hidden" in m for _, m in msgs)

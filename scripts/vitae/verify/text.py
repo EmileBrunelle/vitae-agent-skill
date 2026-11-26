@@ -275,6 +275,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
     Backends are tried in the order the other gates use (pdfium, poppler's pdfinfo, pypdf). A
     read that fails leaves `info` empty: unreadable metadata is no finding, never a FAIL."""
     info = {}
+    scan_failed = ""
     doc: PdfiumDoc | None = None
     if pdf_backend() == "pdfium":
         try:
@@ -302,7 +303,11 @@ def check_pdf_metadata(pdf: str) -> list[str]:
                 info = {k: str(md.get("/" + k) or "") for k in ("Keywords", "Title", "Author", "Subject")}
             except (OSError, ValueError, pypdf.errors.PyPdfError):   # file unreadable or malformed for pypdf
                 pass
+            except Exception as e:   # broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
+                scan_failed = type(e).__name__
     out: list[str] = []
+    if scan_failed:
+        out.append(f"metadata pypdf scan failed: {scan_failed} — metadata not checked")
     for k, v in info.items():
         if not v:
             continue
@@ -332,10 +337,11 @@ def check_pdf_metadata(pdf: str) -> list[str]:
 TINY_TEXT_PT = 5.0   # real font size under which a run is "tiny" (WARN): nobody reads it
 
 
-def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, float]], bool]:
-    """([(page_no, text, off_page)], [(page_no, text, real_size_pt)], ran): text runs the
+def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, float]], bool, str]:
+    """([(page_no, text, off_page)], [(page_no, text, real_size_pt)], ran, failure): text runs the
     PDF places outside the page box, and runs set under TINY_TEXT_PT. `ran` is False when pypdf
-    is unusable, so the caller can say the check did not run instead of reporting a clean pass.
+    is unusable, so the caller can say the check did not run instead of reporting a clean pass; `failure` is the
+    exception type name when pypdf crashed on the file (ran is then False), else "".
 
     Poppler drops every glyph past the page edge, so a run placed wholly off the page is
     invisible to pdftotext; pypdf (optional) sees it. Geometry only (the run's origin
@@ -347,7 +353,7 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
     try:
         pypdf = importlib.import_module("pypdf")
     except ImportError:
-        return [], [], False   # pypdf absent: the caller reports "not run"
+        return [], [], False, ""   # pypdf absent: the caller reports "not run"
     try:
         import warnings
         with warnings.catch_warnings():
@@ -393,11 +399,12 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
                             tiny[-1] = (pno, tiny[-1][1] + " " + t, min(tiny[-1][2], sz), i)
                         else:
                             tiny.append((pno, t, sz, i))
-        return off, [(p_, t, sz) for p_, t, sz, _ in tiny], True
+        return off, [(p_, t, sz) for p_, t, sz, _ in tiny], True, ""
     except (OSError, ValueError, pypdf.errors.PyPdfError):
-        # a file pypdf cannot read counts as "ran, found nothing" (the other gates fail an unreadable PDF);
-        # any other exception is a bug in the scan and propagates instead of reading as a clean pass
-        return [], [], True
+        # a file pypdf cannot read counts as "ran, found nothing" (the other gates fail an unreadable PDF)
+        return [], [], True, ""
+    except Exception as e:   # broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
+        return [], [], False, type(e).__name__
 
 
 HIDDEN_TAIL = ("text a reader cannot see is still read by ATS and recruiters' tools, "
@@ -445,14 +452,16 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
 
     found = runs(lambda st: st[5] or st[3] < HIDDEN_MIN_BOX_PT
                  or (st[4] is not None and st[4] < HIDDEN_FAIL_RATIO))
-    outside, tiny, ran = _text_runs(pdf)
+    outside, tiny, ran, failure = _text_runs(pdf)
     if pdf_backend() == "pdfium":
         # pdfium keeps the glyphs placed past the page edge, so their word boxes are already
         # in `found`: poppler drops them, only pypdf then sees them
         seen = {(pno, w) for pno, t in found for w in t.split()}
         outside = [(pno, t) for pno, t in outside if not all((pno, w) in seen for w in t.split())]
     found += outside
-    if not ran:
+    if failure:
+        msgs.append((Level.WARN, f"hidden-text pypdf scan failed: {failure} — off-page and tiny-text checks not run"))
+    elif not ran:
         if pdf_backend() == "pdfium":
             # pdfium keeps off-page glyphs, so the word-box check above covered them; the
             # tiny-text check is pypdf's alone

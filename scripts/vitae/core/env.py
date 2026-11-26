@@ -312,10 +312,12 @@ def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
             doc = res[0] if isinstance(res, tuple) else res      # (pdf bytes, warnings)
             if not isinstance(doc, bytes | bytearray) or not doc.startswith(b"%PDF"):
                 return None, "", "compiling a one-line document returned no PDF", False
-        try:
-            ver = str(json.loads(mod.Compiler().eval("str(sys.version)", format="json")))
-        except (RuntimeError, ValueError):   # typst-py eval error, or a reply that is not JSON
-            ver = str(getattr(mod, "__version__", "?"))
+        ver = str(getattr(mod, "__version__", "?"))
+        if hasattr(comp_cls, "eval"):   # typst-py 0.13.4-0.14.x has no Compiler.eval: DEGRADED, still compiles
+            try:
+                ver = str(json.loads(mod.Compiler().eval("str(sys.version)", format="json")))
+            except (RuntimeError, ValueError, TypeError):   # eval error, a reply that is not JSON, or a signature mismatch
+                pass
         full = False
         try:
             full = (hasattr(comp, "query") and hasattr(comp, "eval")

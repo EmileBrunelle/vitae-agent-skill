@@ -118,7 +118,7 @@ def fetch_set(prefix: str, names: list[str]) -> tuple[dict[str, object], dict[st
         data = fetch(f"{API}/{prefix}.json?icons={','.join(names)}")
         if not isinstance(data, dict) or not isinstance(coll, dict):
             raise ValueError("unexpected reply shape")
-    except (OSError, http.client.HTTPException, ValueError) as e:   # network, DNS, HTTP, bad JSON (JSONDecodeError is a ValueError)
+    except (OSError, http.client.HTTPException, ValueError, RecursionError) as e:   # network, DNS, HTTP, bad JSON (JSONDecodeError is a ValueError), JSON nested too deep
         print(f"ICONS: {prefix} unreachable ({e}) — marks will be omitted, "
               f"contact lines keep their URLs as text", file=sys.stderr)
         return {}, {}
