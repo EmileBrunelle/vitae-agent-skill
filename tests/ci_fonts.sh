@@ -2,7 +2,7 @@
 # Run a command with only the fonts CI has, so fill-window results match CI.
 #   tests/ci_fonts.sh python -m pytest -q -n auto tests/integration
 # The host's fonts can differ from CI's (Fedora's Caladea is not Ubuntu's), which moves templates
-# at the edge of the fill window. The set mirrors .github/actions/fonts/action.yml: Ubuntu 24.04
+# at the edge of the fill window. The set mirrors .github/actions/fonts/action.yml: Ubuntu 26.04
 # font packages plus the pinned google/fonts, Adwaita, STIX Two and Source Code Pro downloads.
 # Keep the pins below in sync with that action. Needs: bwrap, typst, curl, git, ar, tar, unzip.
 # The fonts are fetched once into $VITAE_CI_FONTS (default ~/.cache/vitae-ci-fonts).
@@ -18,17 +18,18 @@ CURL=(curl -fsSL --retry 3 --max-time 300)
 UBUNTU=http://archive.ubuntu.com/ubuntu
 # Ubuntu rotates its pool/: a 404 on a .deb below means the pinned version left the archive. Update the
 # DEBS path and sha256 to what the fonts action installs now, and bump nothing else (the cache key follows).
-# Ubuntu 24.04 (noble) packages: pool path and sha256.
+# Ubuntu 26.04 (resolute) packages, the versions the ubuntu-latest runner installed (CI run 45889715936,
+# apt log): pool path and sha256. fonts-liberation and fonts-dejavu-core are preinstalled on the runner.
 DEBS=(
-  "pool/universe/f/fonts-cantarell/fonts-cantarell_0.303.1-1_all.deb 53f3874cef4e8a1424eadd0f1f6ffda48ed4a36cd13d7cb0c255754f2a7eef11"
+  "pool/universe/f/fonts-cantarell/fonts-cantarell_0.303.1-4_all.deb 0c2c78d3108c7426ecb2fba14f426d1717847cf8f76ad76e1fe85d479323df0f"
   "pool/universe/f/fonts-crosextra-caladea/fonts-crosextra-caladea_20200211-2_all.deb 1a85651d71331a0e07dafa5d54e9aa54b445c29ae0dacb8c7cd224b1b7baaf82"
-  "pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8_all.deb 40049660c194f3b8a2541fc7369efebb10e9f94bdac836a2f38fafedd10fa73a"
-  "pool/main/f/fonts-liberation/fonts-liberation_2.1.5-3_all.deb 065c2ab1abc9108b17d401016dc594b79750904390f095845c93bb06e1153acc"
-  "pool/main/f/fonts-noto/fonts-noto-core_20201225-2_all.deb 4fee136cb12fc197703a340e010478f780a41044339fcefbd78ed9aa96c8b617"
+  "pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8build1_all.deb f4606b12eb41ddf7932d3a1ebc2019f9bbf90d0824943a2dc0c77a00f43019f2"
+  "pool/main/f/fonts-liberation/fonts-liberation_2.1.5-3build1_all.deb 47f156bc945cfc69cf2f2a0c19b8c82b67a685738d3846673462de6a73266e1b"
+  "pool/main/f/fonts-noto/fonts-noto-core_20201225-2build1_all.deb 25999af6e6665266b1f055d351fc5008534e65c9f7bdda1e7fb5a7574c42372f"
   # fonts-noto-core depends on it in CI (apt installs it too); it is where "Noto Sans Mono" comes from.
-  "pool/main/f/fonts-noto/fonts-noto-mono_20201225-2_all.deb ce277a6e2fbbe7562206171e20e0493ac42c9c405758505cb42aaa01c982036c"
-  "pool/universe/f/fonts-open-sans/fonts-open-sans_1.11-2_all.deb d7b1f2d7f39da18e4e3de703e25bb91b09757e8a70bae037ae57410a7fd57a10"
-  "pool/main/f/fonts-urw-base35/fonts-urw-base35_20200910-8_all.deb 46e75490faa7fd6fddbc8df234d14e0f7b60ea5e98563227a24d6bf5e5008647"
+  "pool/main/f/fonts-noto/fonts-noto-mono_20201225-2build1_all.deb b9b3e49f6a6926e3be9817c39587a4eeff48d147cb21fdd799f89a045fe097c5"
+  "pool/universe/f/fonts-open-sans/fonts-open-sans_1.11-2build1_all.deb d3848bfbec4883c58f324759d44f10f7b995b8f4b94f52ecf96571fe0488a32d"
+  "pool/main/f/fonts-urw-base35/fonts-urw-base35_20200910-8build1_all.deb be59254289c670d5c6580ce381995292aa05c9dd4bc5fa65b9dbaa527b55adda"
   "pool/universe/f/fonts-vazirmatn/fonts-vazirmatn_33.003-0ubuntu1_all.deb 93671a36b008992eca0ccc8a6503352f43bf9a2d73eb9ab2f717fdedb7eb251b"
 )
 
