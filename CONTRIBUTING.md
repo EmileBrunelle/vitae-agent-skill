@@ -71,7 +71,7 @@ Applies to `references/regional/**`, `references/certifications/**` and `referen
 
 `references/design/families/*.md` (`tests/unit/test_family_files_format.py` checks it, against `FAMILIES` in `scripts/vitae/design/tables.py`).
 
-- Line 1 is `## N. <stem> — <tagline> · register: <x>`: H2, `N` unique across files, `<stem>` the file stem. Then one intro sentence.
+- Line 1 is `## N. <stem> — <tagline> · register: <x>`: H2, `N` unique across files, `<stem>` the file stem. An intro line follows.
 - Optional free paragraphs led by a bold phrase (`**Locked to software, twice.**`) may follow the intro, before the bullets; they are not label-checked.
 - Then one bullet per label, `- **Label**` followed by `:` (or a parenthetical qualifier, then `.` or `:`). Core labels, all required, in this order: Heading device, Skills block, Accent role, Icons, Header, Type, Accents, Verified.
 - Optional labels, each in a fixed slot: List marker (after Icons), Family variant (after Header), Section order (after Header and Family variant, before Type), Gabarit (after Accents, before Verified). No other label.

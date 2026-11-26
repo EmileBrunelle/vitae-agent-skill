@@ -1,5 +1,7 @@
 """references/design/families/*.md follow the format in CONTRIBUTING.md ("Family file format")."""
 import re
+from collections.abc import Callable
+from functools import cache
 
 import pytest
 from _paths import ROOT
@@ -7,7 +9,7 @@ from vitae.design.tables import FAMILIES
 
 DIR = ROOT / "references" / "design" / "families"
 HEADER = re.compile(r"^## (\d+)\. (\S+) — .+ · register: \S.*$")
-BULLET = re.compile(r"^- \*\*([^*]+)\*\*")
+BULLET = re.compile(r"^- \*\*([^*]+)\*\*(:| \(.*\)[.:])?")
 CORE = ("Heading device", "Skills block", "Accent role", "Icons", "Header", "Type", "Accents", "Verified")
 # Every label in its only legal position; optional ones sit in the slot shown.
 ORDER = ("Heading device", "Skills block", "Accent role", "Icons", "List marker", "Header",
@@ -15,14 +17,19 @@ ORDER = ("Heading device", "Skills block", "Accent role", "Icons", "List marker"
 
 
 def problems(stem: str, text: str) -> list[str]:
-    lines = text.splitlines()
+    lines = text.rstrip().splitlines()
+    if not lines:
+        return ["empty"]
     head = HEADER.match(lines[0]) if lines else None
     out = []
     if not head:
         out.append("header")
     elif head.group(2) != stem:
         out.append("stem")
-    labels = [m.group(1) for ln in lines if (m := BULLET.match(ln))]
+    bullets = [m for ln in lines if (m := BULLET.match(ln))]
+    labels = [m.group(1) for m in bullets]
+    if not all(m.group(2) for m in bullets):
+        out.append("label punctuation")
     unknown = [x for x in labels if x not in ORDER]
     if unknown:
         out.append(f"unknown {unknown}")
@@ -36,19 +43,20 @@ def problems(stem: str, text: str) -> list[str]:
 
 
 def numbers(files: dict[str, str]) -> list[str]:
-    return [m.group(1) for t in files.values() if (m := HEADER.match(t.splitlines()[0]))]
+    return [m.group(1) for t in files.values() if (m := HEADER.match(t.lstrip().split("\n", 1)[0]))]
 
 
+@cache
 def texts() -> dict[str, str]:
     return {p.stem: p.read_text(encoding="utf-8") for p in sorted(DIR.glob("*.md"))}
 
 
 @pytest.mark.parametrize("stem", sorted(texts()))
-def test_family_file_format(stem):
+def test_family_file_format(stem: str) -> None:
     assert problems(stem, texts()[stem]) == []
 
 
-def test_numbers_are_unique_and_stems_match_the_roster():
+def test_numbers_are_unique_and_stems_match_the_roster() -> None:
     nums = numbers(texts())
     assert len(set(nums)) == len(nums)
     assert set(texts()) == set(FAMILIES)
@@ -60,15 +68,22 @@ def test_numbers_are_unique_and_stems_match_the_roster():
     ("unknown label", lambda t: t.replace("- **Icons**", "- **Bogus**: x\n- **Icons**", 1)),
     ("missing core label", lambda t: t.replace("- **Icons**", "- Icons", 1)),
     ("renamed stem", lambda t: t.replace(" swiss-grid ", " swiss-gridx ", 1)),
+    ("bad punctuation", lambda t: t.replace("- **Icons**:", "- **Icons** -", 1)),
+    ("empty file", lambda t: ""),
+    ("no Markets bullet", lambda t: t.rstrip().rsplit("\n", 1)[0] + "\n"),
     ("bad header", lambda t: t.replace("## 1.", "# 1.", 1)),
 ])
-def test_the_checker_rejects_a_broken_file(label, mutate):
+def test_the_checker_rejects_a_broken_file(label: str, mutate: Callable[[str], str]) -> None:
     text = texts()["swiss-grid"]
     assert problems("swiss-grid", mutate(text)) != [], label
 
 
-def test_the_checker_rejects_a_duplicate_number_and_an_extra_file():
+def test_the_checker_rejects_a_duplicate_number_and_an_extra_file() -> None:
     files = texts()
     files["extra"] = files["swiss-grid"].replace("swiss-grid", "extra")
     assert len(set(numbers(files))) != len(numbers(files))
     assert set(files) != set(FAMILIES)
+
+
+def test_trailing_blank_lines_are_ignored() -> None:
+    assert problems("swiss-grid", texts()["swiss-grid"] + "\n\n") == []
