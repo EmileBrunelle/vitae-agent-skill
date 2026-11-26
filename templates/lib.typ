@@ -43,10 +43,17 @@
 // nbsp, leaving the value alone — no stray leading space.
 // `ghost`: see gate-icons below (a drawn icon switched off, height kept).
 #let ghost = "ghost"
+// Every contact item is tagged <vitae-contact> (page, x, y of its start; pure metadata, no layout
+// effect) so verify.py can count the rows the contact block really occupies. A family that
+// designs more than one row (a column, a two-line block) says so with `contact-rows(n)`; without
+// it the block is declared to be ONE row, and an item that wraps onto another line is a FAIL.
+#let contact-mark = context [#metadata((text: "", page: here().position().page,
+  x: here().position().x.pt(), y: here().position().y.pt())) <vitae-contact>]
+#let contact-rows(n) = [#metadata(n) <vitae-contact-rows>]
 #let nb(mark, value) = {
-  if mark == none { box[#value] }
-  else if mark == ghost { box[#box(width: 0pt, height: 7.4pt, baseline: 1.4pt)#value] }
-  else { box[#mark~#value] }
+  if mark == none { box[#contact-mark#value] }
+  else if mark == ghost { box[#contact-mark#box(width: 0pt, height: 7.4pt, baseline: 1.4pt)#value] }
+  else { box[#contact-mark#mark~#value] }
 }
 
 // ------------------------------------------------------------ workday mode

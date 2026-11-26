@@ -90,7 +90,7 @@
   #text(size: 9.5pt, fill: muted)[
     \[City, Region\]
     #h(5pt)#drawn-marker("dot", auto)#h(5pt) #link("tel:+15555550100")[(555) 555-0100]
-    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #contact-rows(2)#nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
     #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
     #h(5pt)#drawn-marker("dot", auto)#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
