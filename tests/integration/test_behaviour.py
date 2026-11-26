@@ -6,14 +6,13 @@ reads `.stdout`; where it merged stderr it reads `.output`.
 """
 from __future__ import annotations
 
-import importlib.util
 import os
 import re
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from harness import CheckResult, Template, discover_templates, grep, typst_compile
+from harness import CheckResult, Template, discover_templates, grep, importable_isolated, typst_compile
 
 Check = Callable[..., CheckResult]
 
@@ -326,7 +325,7 @@ def test_render_crops_solid(check: Check, py: str, scratch: Path) -> None:
 def test_font_fallback(check: Check, py: str, scratch: Path) -> None:
     """A CV whose requested family draws no Latin FAILs naming requested and drawn families; one symbol the face lacks is at
     most an INFO; CJK text, math and symbols never FAIL. Needs pypdfium2 (the gate says "NOT checked" without it)."""
-    if importlib.util.find_spec("pypdfium2") is None:
+    if not importable_isolated("pypdfium2"):
         pytest.skip("needs pypdfium2")
     d = scratch / "tests" / "font_fallback"
     for f in ("bad", "near", "cjk", "math", "symbols", "math-libertinus", "ncm", "raw-only"):

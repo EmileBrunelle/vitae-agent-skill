@@ -159,3 +159,9 @@ def run_doctor(name: str, d: Path, cwd: Path, log_dir: Path, *, stub: bool = Fal
     if stub:
         env["PYTHONPATH"] = str(d / "py")
     return run_check(name, [sys.executable, "scripts/verify.py", "--doctor"], cwd, env, log_dir)
+
+
+def importable_isolated(module: str) -> bool:
+    """Whether `python -I` can import `module`. The gates run isolated (no user site, no PYTHONPATH), so a skip guard
+    must decide the same way: find_spec in the pytest process also sees a `pip install --user` copy the gate cannot."""
+    return subprocess.run([sys.executable, "-I", "-c", f"import {module}"], capture_output=True).returncode == 0

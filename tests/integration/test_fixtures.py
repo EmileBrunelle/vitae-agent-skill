@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from harness import ROOT, CheckResult, assert_passed, run_check
+from harness import ROOT, CheckResult, assert_passed, importable_isolated, run_check
 
 FIXTURES = sorted(p.stem for p in (ROOT / "tests" / "fixtures").glob("*.typ"))
 
@@ -28,7 +28,8 @@ def test_backends_lines(fixtures_rendered: tuple[CheckResult, Path], scratch: Pa
     """poppler vs pypdfium2 line by line (compare_backends.py SKIPs itself, exit 0, unless both are installed)."""
     if not shutil.which("pdftotext"):
         pytest.skip("needs pdftotext")
-    pytest.importorskip("pypdfium2")
+    if not importable_isolated("pypdfium2"):
+        pytest.skip("needs pypdfium2 importable under python -I")
     pdfs = sorted(fixtures_rendered[1].glob("*.pdf"))
     assert pdfs, "no fixture rendered"
     assert_passed(run_check("backends/lines", [sys.executable, "-I", "tests/compare_backends.py", *pdfs], scratch, None, log_dir))
