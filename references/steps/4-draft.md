@@ -1,116 +1,38 @@
 # Step 4 — Draft from the family's worked file
 
-4. **Draft from the family's worked file — never from scratch. One command:** `python3 <skill>/scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --career early|mid|senior [--photo] [--conservative] [--creative] [--offline] [--band] --lang <iso639> [--region <iso3166>] --init <cv folder>` — it prints the design report (family, fonts, palette, leading, fill target) and the `lib.typ` API (function names; positional; named parameters: call them as printed, never open `lib.typ`), then writes `<cv folder>/lib.typ` and `icons.typ` (byte copies), and `<cv folder>/cv.typ` = the drawn family's worked file with the drawn palette, fonts, leading and mark kit already substituted (pass `--offline` when the sandbox has no network to fetch missing fonts, so the eligible pool is restricted to families whose font roles all have a locally installed face). `--band` is an optional visual accent, the user's choice, never the default and never inferred: a text-free 8 mm strip of the family's accent down the left page edge (page background, no extractable text, extraction unchanged); `color-band`, `margin-index` and the creative families ignore it with a notice, and it never changes the draw. Pass `--lang` with the CV's language (`fr`, `de`, `es`…; default `en`) and `--region` when the market has a variant (`--lang fr --region ca` for Québec): both are written into `#set text(lang: …, region: …)`, which is all the language handling the CV gets, so a wrong `--lang` means wrong hyphenation and quotes. `--lang` only sets Typst's language: translate every section label and header string yourself (the starter keeps English labels such as Profile, Skills & Tools), using the per-language heading table in [`references/regional.md`](../regional.md#section-names-per-language) § "Section names per language" (line 50). `pick_design.py --init` refuses to overwrite an existing `cv.typ` (`--force` to replace) and prints the next commands (`harvest_icons.py <folder>`, `verify.py --tune <folder>/cv.typ 1
-   <lo> <hi>`, then `verify.py <folder>/cv.typ 1 <lo> <hi>`) — run them verbatim, but
-   on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first
-   replace the filler with the candidate's facts, then read
-   [`references/steps/4-draft/tune.md`](4-draft/tune.md), then `--tune`, then verify. **Read order: run `pick_design.py` first. Then read [`references/design/core.md`](../design/core.md) whole (it is ~73 KB; read it in chunks if your Read tool limits size) and the family file it prints, `references/design/families/<family>.md`, whole — and no other family file.** If `--init` fails: [`4-draft/fallback.md`](4-draft/fallback.md).
-   **Never retype, rewrite or summarize
-   `lib.typ`** (a rewrite from memory lost `derive()` and the build never compiled
-   again); customization goes in `cv.typ`. `verify.py` FAILs a lib that is not a
-   copy. `section()`, `job()`, `skill()` and the other devices are defined in the
-   family file, NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with
-   `unknown variable: section`. (`templates/resume.typ` is only the generic
-   starter, for when no family is drawn.)
-   If the CV is French, the career spans 15+ years, the candidate changes careers, or honest content overflows 2 pages (3rd page: academic, DACH): [`4-draft/structure.md`](4-draft/structure.md).
-   **Fill `cv.typ` one section at a time:
-   one edit, then compile — never write the whole file in one go, and never plan
-   the whole CV in your head first. Once a first full draft compiles, run the gate (`verify.py cv.typ N`, step 6) and follow its NEXT line. The starter already shows every call form with
-   all arguments (`job(role, org, dates, note)` — `note` is required — then `- ` bullets;
-   `skill(cat, items)`, `section(title)[...]`): copy those or the printed `lib.typ` signatures.**
-   Read [`references/typst-primer.md`](../typst-primer.md)
-   (1 minute) before writing any Typst. Typst has no bundler, so the folder
-   holds three files: `cv.typ` (the family file), `lib.typ` (the verified
-   shared mechanics) and `icons.typ` (the EMPTY fallback `lib.typ` imports;
-   copying it keeps the folder compiling with no network). `--init` (with its `--lang`/`--region`) prints the `harvest_icons.py <that folder>` command: run it once: the contact/platform mark path data is third-party
-   artwork this skill does not ship, so it is fetched at build time into
-   `<that folder>/icons.typ`, overwriting the empty copy — never into
-   `templates/`. The script always writes the file and always exits 0 — if the
-   API is unreachable it says so on stderr and writes empty marks, and the CV
-   then compiles with no icons and its contact URLs in plain text. Icons are all-or-nothing: `marks()` in `lib.typ` returns no mark for ANY item unless every mark of the kit has data, so a partial harvest gives a text-only contact line (the script prints `WARN  ICONS: incomplete harvest`) rather than icons on some items only — tell the user when that happens. `verify.py`
-   copies the empty fallback in if the folder has none, so the gate never
-   fails for a missing `icons.typ`, load the field pack if one exists, keep the design system's
-   invariants (core.md and the family file, read as instructed above). All fourteen family files
-   (`templates/families/<family>/resume.typ`) are gate-passing, with
-   `resume-pair-b.typ` beside each showing the same recipe on its second font
-   pair.
-   `templates/families/swiss-grid/resume-2page.typ` is the worked **2-page**
-   example (deliberate break, `runhead`, both pages measured). For the look, do **not** choose freely
-   — an agent choosing freely reconverges on the template's own combination and
-   every candidate ends up with the same CV. The draw is the `--init` command above (without `--init` it only prints the report; `--emit-typ` prints the preamble values alone, `lang`/`region` included — it deliberately does **not** emit the devices, because those are the recipe). **`--market` is documentation only**
-   — it is echoed in the report and changes nothing: a conservative market
-   must be passed as `--conservative` (the `--field` table also flips it on by
-   itself for law, finance, accounting, insurance, government…).
-   Build it by following that family's recipe in
-   `references/design/families/<family>.md` (heading device, skills-block
-   shape, accent role, contact icons, platform marks, header composition,
-   verified leading/spacing/`above`). **Fourteen families in four registers**,
-   and the pool is widened until at least **five** are eligible for any
-   profile. The `creative` register (`hard-edge`, `avant-poster`, `gutter-rail`)
-   is **never in the default pool**: it is unlocked by a creative target field or
-   by `--creative` (an explicit request from the candidate or user, never
-   inferred), and a conservative market caps it straight back out.
-   `gutter-rail` carries a second lock on top: its current only reads to a
-   software audience, so it needs a technical field **plus** the explicit ask. A creative family is
-   held to the *same* gate as every other — "beautiful **and** parseable" is
-   the whole bar, and it does not soften.
-   The script also draws the
-   **secondary parameters**, all of which are part of the anti-clone system —
-   apply them, don't re-choose: the **font pair** from that family's pool
-   (`FONTS` in the script is the single source of truth; it checks local
-   availability and prints the provenance of anything missing — never let a
-   font warning stand; two families also draw a third face, a metadata
-   monospace), the **section labels** (the lexical skeleton is a fingerprint
-   too), the list marker, on a **duotone** family the second hue with its own
-   named jobs, and three things that change the page before a word is read:
-   the family's **gabarit** (its own margins, body size and *derived* fill
-   target — do not assume 94-96%), its **default section order** (a target
-   market's convention always overrides it), and whether it carries a
-   **specialities line** (four families do; on those, every item on that line
-   is content and rule 2 applies to it in the most prominent position on the
-   page). Where a family declares its own **variant** axis (one does), apply the
-   drawn variant too.
-   **Languages section: only when** the facts list a language other than the CV's own, or the market or posting calls for it (bilingual role, Canadian federal second-official-language levels, Québec, a posting requiring a language, a candidate applying outside their home-language market); otherwise omit it (« English (native) » on an English CV for an English market is filler).
-   Every dated entry must use lib `entry()`: a hand-built grid is not measured by the date-adjacency gate. Check that verify.py's `INFO  date adjacency: N lib entries measured, …` line counts every dated entry in the CV.
-   Fresh fonts beyond the pool: only on the user's explicit request, or when
-   nothing in the pool is available — then follow core.md § Font pools
-   (vetting checklist, no over-used display defaults, add the winner back into
-   `FONTS` once it passed the gate). The draw is deterministic per candidate,
-   so the 1-page, 2-page and translated versions share one look. The user may
-   override with an explicit family or their own combination — an explicit
-   choice always wins; silence does not.
-   **Derive `--career` from the fact sheet** — years of experience, whether
-   this is a first job, the seniority of the titles — and the market from
-   step 2's regional file and the employer type. **Never from age, birth year,
-   graduation year used as an age proxy, or any other demographic datum**: the
-   skill does not ask for age and does not infer from it (anti-discrimination
-   conventions). The default is `early`, which leans modern.
-   **Colour audacity dial** (`--audacity`, and `scripts/gen_palette.py`):
-   default `sober`. It is raised only on the explicit request of the candidate
-   or user — never inferred by the agent from anything about the person or
-   their workplace — and a conservative target market caps it back down
-   (`references/regional.md`); a market never raises it.
-   Shipping the template's own combination (bordeaux `#7d2231`, accent tick +
-   full-width hairline under an UPPERCASE accent title, `Category: items`,
-   Carlito body + Montserrat headings) is a defect — Montserrat is also one of
-   the over-used faces core.md bans as a *display* face, which is one more
-   reason the template's look is a starting point and never a deliverable. The bar the result must clear is
-   core.md's **non-recognition** test: a recruiter who has seen two CVs from
-   this skill must not recognise the third, and no page may pass for a consumer
-   tool's default template.
-   Before writing any job title onto the page, check each title in the fact
-   sheet against the protected titles in `references/regional.md` and the
-   target market's file — the wording on the source CV does not by itself
-   authorize reusing a reserved title.
-   After ANY compile error, re-read `references/typst-primer.md` (pointer in
-   step 4) before retrying: it covers every construct the
-   template uses and the exact errors agents actually hit; don't guess
-   syntax, test with `typst eval`. If the primer doesn't cover the error,
-   don't try random variants — consult up-to-date documentation by whatever
-   means are available (web search for the official Typst docs, a docs MCP
-   if one is configured) and fold the lesson back into the primer.
-   Structure notes: the "target-field experience / other professional
-   experience" split exists only to keep an off-track role from leading the
-   page — when every job is on target, use a single experience section.
-   Employer descriptor line under each role;
-   no bare adjective lists.
+4. **Draft from the family's worked file — never from scratch.**
+
+**Read order (do it in this order, nothing else before the first edit):**
+1. [`4-draft/traps.md`](4-draft/traps.md) (first).
+2. Run `pick_design.py --init` (command below). It prints the design report and the `lib.typ` API, then writes the folder.
+3. [`references/design/core.md`](../design/core.md), these sections only (find them with `grep -n '^#' core.md`): § Invariants, § Design families, § Rules common to every family, § Tokens, § Structure primitives, § Micro-typography checklist. Read § The destination support only if a dark/screen build is asked; § Page-fill tuning loop only at the tune step (it repeats [`4-draft/tune.md`](4-draft/tune.md)).
+4. The family file `--init` printed, `references/design/families/<family>.md`, whole — and no other family file.
+5. [`references/typst-primer.md`](../typst-primer.md) (1 minute) before writing any Typst; the field pack if one exists.
+6. Later, when its trigger fires: [`4-draft/tune.md`](4-draft/tune.md) after the first fill; [`4-draft/structure.md`](4-draft/structure.md) if the CV is French, the career spans 15+ years, the candidate changes careers, or honest content overflows 2 pages (3rd page: academic, DACH); [`4-draft/fallback.md`](4-draft/fallback.md) if `--init` fails; [`references/design/draw-rules.md`](../design/draw-rules.md) only for `--creative`, a family the roster lacks, or a face outside the pool.
+
+**The command:** `python3 <skill>/scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --career early|mid|senior [--photo] [--conservative] [--creative] [--offline] [--band] --lang <iso639> [--region <iso3166>] --init <cv folder>` — it prints the design report (family, fonts, palette, leading, fill target) and the `lib.typ` API (function names; positional; named parameters: call them as printed, never open `lib.typ`), then writes `<cv folder>/lib.typ` and `icons.typ` (byte copies), and `<cv folder>/cv.typ` = the drawn family's worked file with the drawn palette, fonts, leading and mark kit already substituted (pass `--offline` when the sandbox has no network to fetch missing fonts, so the eligible pool is restricted to families whose font roles all have a locally installed face). `--band` is an optional visual accent, the user's choice, never the default and never inferred: a text-free 8 mm strip of the family's accent down the left page edge (page background, no extractable text, extraction unchanged); `color-band`, `margin-index` and the creative families ignore it with a notice, and it never changes the draw. Pass `--lang` with the CV's language (`fr`, `de`, `es`…; default `en`) and `--region` when the market has a variant (`--lang fr --region ca` for Québec): both are written into `#set text(lang: …, region: …)`, which is all the language handling the CV gets, so a wrong `--lang` means wrong hyphenation and quotes. `--lang` only sets Typst's language: translate every section label and header string yourself (the starter keeps English labels such as Profile, Skills & Tools), using the per-language heading table in [`references/regional.md`](../regional.md#section-names-per-language) § "Section names per language". `pick_design.py --init` refuses to overwrite an existing `cv.typ` (`--force` to replace) and prints the next commands (`harvest_icons.py <folder>`, `verify.py --tune <folder>/cv.typ 1 <lo> <hi>`, then `verify.py <folder>/cv.typ 1 <lo> <hi>`) — run them verbatim, but on the untouched filler starter a fill FAIL/overflow is expected (drawn fonts): first replace the filler with the candidate's facts, then read [`4-draft/tune.md`](4-draft/tune.md), then `--tune`, then verify.
+
+**`--market` is documentation only** — it is echoed in the report and changes nothing: a conservative market must be passed as `--conservative` (the `--field` table also flips it on by itself for law, finance, accounting, insurance, government…). Without `--init` the command only prints the report; `--emit-typ` prints the preamble values alone (`lang`/`region` included) — it deliberately does **not** emit the devices, because those are the recipe.
+
+**The look is drawn, not chosen** (rationale: [`draw-rules.md`](../design/draw-rules.md) § Why the draw exists). Build it by following the family's recipe in `references/design/families/<family>.md` (heading device, skills-block shape, accent role, contact icons, platform marks, header composition, verified leading/spacing/`above`). The draw is deterministic per candidate, so the 1-page, 2-page and translated versions share one look. The user may override with an explicit family or their own combination — an explicit choice always wins; silence does not. Shipping the template's own combination (bordeaux `#7d2231`, accent tick + full-width hairline under an UPPERCASE accent title, `Category: items`, Carlito body + Montserrat headings) is a defect, and the result must clear the non-recognition test of core.md § The final bar. All fourteen family files (`templates/families/<family>/resume.typ`) are gate-passing, with `resume-pair-b.typ` beside each showing the same recipe on its second font pair; `templates/families/swiss-grid/resume-2page.typ` is the worked **2-page** example (deliberate break, `runhead`, both pages measured).
+
+**The `creative` register** (`hard-edge`, `avant-poster`, `gutter-rail`) is never in the default pool: it is unlocked by a creative target field or by `--creative` (an explicit request from the candidate or user, never inferred), and a conservative market caps it straight back out. `gutter-rail` carries a second lock: its current only reads to a software audience, so it needs a technical field **plus** the explicit ask. A creative family is held to the *same* gate as every other.
+
+**Secondary parameters** — all of them part of the anti-clone system; apply them, don't re-choose: the **font pair** from the family's pool (`FONTS` in the script is the single source of truth; it checks local availability and prints the provenance of anything missing — never let a font warning stand; two families also draw a third face, a metadata monospace), the **section labels** (the lexical skeleton is a fingerprint too), the list marker, on a **duotone** family the second hue with its own named jobs, and three things that change the page before a word is read: the family's **gabarit** (its own margins, body size and *derived* fill target — do not assume 94-96%), its **default section order** (a target market's convention always overrides it), and whether it carries a **specialities line** (four families do; on those, every item on that line is content and rule 2 applies to it in the most prominent position on the page). Where a family declares its own **variant** axis (one does), apply the drawn variant too.
+
+**`lib.typ` and the family file.** **Never retype, rewrite or summarize `lib.typ`** (a rewrite from memory lost `derive()` and the build never compiled again); customization goes in `cv.typ`. `verify.py` FAILs a lib that is not a copy. `section()`, `job()`, `skill()` and the other devices are defined in the family file, NOT in `lib.typ` — a résumé written from `lib.typ` alone dies with `unknown variable: section`. (`templates/resume.typ` is only the generic starter, for when no family is drawn.) Keep the design system's invariants (core.md and the family file).
+
+**Fill `cv.typ` one section at a time: one edit, then compile — never write the whole file in one go, and never plan the whole CV in your head first. Once a first full draft compiles, run the gate (`verify.py cv.typ N`, step 6) and follow its NEXT line. The starter already shows every call form with all arguments (`job(role, org, dates, note)` — `note` is required — then `- ` bullets; `skill(cat, items)`, `section(title)[...]`): copy those or the printed `lib.typ` signatures.**
+
+**Files and icons.** Typst has no bundler, so the folder holds three files: `cv.typ` (the family file), `lib.typ` (the verified shared mechanics) and `icons.typ` (the EMPTY fallback `lib.typ` imports; copying it keeps the folder compiling with no network). `--init` (with its `--lang`/`--region`) prints the `harvest_icons.py <that folder>` command: run it once: the contact/platform mark path data is third-party artwork this skill does not ship, so it is fetched at build time into `<that folder>/icons.typ`, overwriting the empty copy — never into `templates/`. The script always writes the file and always exits 0 — if the API is unreachable it says so on stderr and writes empty marks, and the CV then compiles with no icons and its contact URLs in plain text. Icons are all-or-nothing: `marks()` in `lib.typ` returns no mark for ANY item unless every mark of the kit has data, so a partial harvest gives a text-only contact line (the script prints `WARN  ICONS: incomplete harvest`) rather than icons on some items only — tell the user when that happens. `verify.py` copies the empty fallback in if the folder has none, so the gate never fails for a missing `icons.typ`.
+
+**Content rules.**
+- **Languages section: only when** the facts list a language other than the CV's own, or the market or posting calls for it (bilingual role, Canadian federal second-official-language levels, Québec, a posting requiring a language, a candidate applying outside their home-language market); otherwise omit it (« English (native) » on an English CV for an English market is filler).
+- Every dated entry must use lib `entry()`: a hand-built grid is not measured by the date-adjacency gate. Check that verify.py's `INFO  date adjacency: N lib entries measured, …` line counts every dated entry in the CV.
+- Fresh fonts beyond the pool: only on the user's explicit request, or when nothing in the pool is available — then follow [`draw-rules.md`](../design/draw-rules.md) § Font vetting (checklist, no over-used display defaults, add the winner back into `FONTS` once it passed the gate).
+- **Derive `--career` from the fact sheet** — years of experience, whether this is a first job, the seniority of the titles — and the market from step 2's regional file and the employer type. **Never from age, birth year, graduation year used as an age proxy, or any other demographic datum**: the skill does not ask for age and does not infer from it (anti-discrimination conventions). The default is `early`, which leans modern.
+- **Colour audacity dial** (`--audacity`, and `scripts/gen_palette.py`): default `sober`. It is raised only on the explicit request of the candidate or user — never inferred by the agent from anything about the person or their workplace — and a conservative target market caps it back down (`references/regional.md`); a market never raises it.
+- Before writing any job title onto the page, check each title in the fact sheet against the protected titles in `references/regional.md` and the target market's file — the wording on the source CV does not by itself authorize reusing a reserved title.
+- Structure notes: the "target-field experience / other professional experience" split exists only to keep an off-track role from leading the page — when every job is on target, use a single experience section. Employer descriptor line under each role; no bare adjective lists.
+
+**After ANY compile error, re-read `references/typst-primer.md`** before retrying: it covers every construct the template uses and the exact errors agents actually hit; don't guess syntax, test with `typst eval`. If the primer doesn't cover the error, don't try random variants — consult up-to-date documentation by whatever means are available (web search for the official Typst docs, a docs MCP if one is configured) and fold the lesson back into the primer.
