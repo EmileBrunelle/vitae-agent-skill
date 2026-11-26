@@ -7,7 +7,7 @@ on its own result. --quick: the first 3 only.
 from __future__ import annotations
 
 import pytest
-from harness import QUICK_TEMPLATES, ROOT, CheckResult, Template, assert_passed, discover_templates
+from harness import QUICK_TEMPLATES, ROOT, TWO_PAGE_FILL, CheckResult, Template, assert_passed, discover_templates
 
 
 def test_every_family_has_its_templates() -> None:
@@ -17,6 +17,8 @@ def test_every_family_has_its_templates() -> None:
     for fam in FAMILIES:
         for name in ("resume", "resume-pair-b"):
             assert (ROOT / "templates" / "families" / fam / f"{name}.typ").is_file(), f"{fam}/{name}.typ missing"
+    two = {p.parent.name for p in (ROOT / "templates" / "families").glob("*/resume-2page.typ")}
+    assert two == set(TWO_PAGE_FILL), f"resume-2page.typ without a declared fill target (or target without file): {sorted(two ^ set(TWO_PAGE_FILL))}"
 
 
 def test_template(template: Template, template_results: dict[str, CheckResult], quick: bool) -> None:

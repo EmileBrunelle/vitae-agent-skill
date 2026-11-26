@@ -80,7 +80,9 @@ def run_parallel(thunks: Mapping[str, Callable[[], CheckResult]]) -> dict[str, C
 
 # The first 3 templates only under --quick.
 QUICK_TEMPLATES = 3
-TWO_PAGE_FILL = (94, 96)   # swiss-grid/resume-2page.typ: 2 pages, 94-96 % (run_all.sh's hard-coded target)
+# The 2-page variants and their fill targets (tables.py declares none): a resume-2page.typ in a family not listed here fails
+# test_every_family_has_its_templates instead of silently getting someone else's target.
+TWO_PAGE_FILL = {"swiss-grid": (94, 96)}
 
 
 @dataclass(frozen=True)
@@ -105,8 +107,8 @@ def discover_templates() -> list[Template]:
         lo, hi = (int(x) for x in FAMILIES[fam]["page"]["fill"].split("-"))
         for name in ("resume", "resume-pair-b"):
             out.append(Template(fam, name, 1, lo, hi))
-    for typ in sorted((ROOT / "templates" / "families").glob("*/resume-2page.typ")):
-        out.append(Template(typ.parent.name, "resume-2page", 2, *TWO_PAGE_FILL))
+    for fam, (lo, hi) in sorted(TWO_PAGE_FILL.items()):
+        out.append(Template(fam, "resume-2page", 2, lo, hi))
     return out
 
 

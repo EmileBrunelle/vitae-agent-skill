@@ -6,7 +6,12 @@ import pathlib
 import sys
 
 root = pathlib.Path(__file__).resolve().parents[2]
-out = pathlib.Path(sys.argv[2]) if sys.argv[1:2] == ["--out"] and len(sys.argv) == 3 else root/"tests/fixtures"
+if len(sys.argv) == 1:
+    out = root/"tests/fixtures"
+elif len(sys.argv) == 3 and sys.argv[1] == "--out":
+    out = pathlib.Path(sys.argv[2])
+else:
+    sys.exit("usage: gen.py [--out DIR]")
 out.mkdir(parents=True, exist_ok=True)
 BODY = '''
 // ---------- spacing-measurement body (neutral fake content) ----------

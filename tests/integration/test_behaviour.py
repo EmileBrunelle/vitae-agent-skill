@@ -245,7 +245,7 @@ def test_render_crops(check: Check, py: str, scratch: Path) -> None:
 
 def test_render_crops_sidebar(check: Check, py: str, scratch: Path) -> None:
     """A sidebar covering 70% of the page must not become the "paper": one fill of the sidebar's own width."""
-    Image = pytest.importorskip("PIL.Image")
+    from PIL import Image  # a missing Pillow is a FAIL (the bash check failed too), not a skip
     d = scratch / "crops-sb"
     _typ(d, "s", '#set page(width: 21cm, height: 29.7cm, margin: 0pt, fill: white)\n#set text(size: 11pt)\n'
                  '#place(top + left, rect(width: 70%, height: 100%, fill: rgb("#1e5631"), inset: 2cm)[#text(fill: white)[Sidebar text]])\n'
@@ -269,7 +269,7 @@ def test_render_crops_marks(check: Check, py: str, scratch: Path) -> None:
     """A solid phone glyph and a mail mark one no-break space from its value are kept (the 4 contact marks), the heading
     squares (same shape 3+ times) are not; a dark page under a white card gives the card and the band, not a whole-page
     fill; a plain --render drops the stem's old crops."""
-    Image = pytest.importorskip("PIL.Image")
+    from PIL import Image  # a missing Pillow is a FAIL (the bash check failed too), not a skip
     d = scratch / "crops-marks"
     _typ(d, "m", '#set page(width: 21cm, height: 29.7cm, margin: 2cm)\n#set text(size: 11pt)\n'
                  '#let sq = box(width: 5pt, height: 5pt, fill: rgb("#1b4965"))\n' + MARKS +
