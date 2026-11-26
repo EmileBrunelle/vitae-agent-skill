@@ -34,7 +34,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.653em, spacing: 0.733em)
+#set par(justify: false, leading: 0.502em, spacing: 0.582em)
 
 // device: oversized dark title over a heavy accent underline as wide as the title
 #let section(t, body, airy: false) = block(breakable: false,
@@ -54,7 +54,7 @@
 #let skill(cat, items) = srow(box[#text(weight: "bold")[#cat]#h(12pt)], items)
 
 #set list(marker: list-marker("square", accent2, bold: true), indent: 10pt,
-  spacing: 0.549em, body-indent: 6pt)
+  spacing: 0.672em, body-indent: 6pt)
 
 // header: oversized accent name left, contacts on one line below
 #block(above: 0pt, below: 12pt)[

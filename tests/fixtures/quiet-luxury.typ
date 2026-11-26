@@ -29,7 +29,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.580em, spacing: 0.680em)
+#set par(justify: false, leading: 0.508em, spacing: 0.608em)
 
 // device: the title, then a SHORT hairline tick on its own baseline-centre —
 // inline punctuation, not furniture. Never under the heading, never full width
@@ -55,7 +55,7 @@
 // glyph, does the separating. No colon, no dash, no bullet.
 #let skill(cat, items) = srow(text(fill: ink, weight: "semibold")[#cat], items)
 
-#set list(marker: list-marker("mid", dark), indent: 10pt, spacing: 0.45em, body-indent: 6pt)
+#set list(marker: list-marker("mid", dark), indent: 10pt, spacing: 0.834em, body-indent: 6pt)
 
 // header: CONTACTS FIRST (a letterhead line), then the name, then the role —
 // the reverse of every other family's header order.

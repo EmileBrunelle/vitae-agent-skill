@@ -34,7 +34,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.651em, spacing: 0.771em)
+#set par(justify: false, leading: 0.489em, spacing: 0.608em)
 
 // device: a filled hue-A square, then the title in the MONO face. No rules.
 #let section(t, body, airy: false) = block(breakable: false,
@@ -61,7 +61,7 @@
 #let skill(cat, items) = srow([#text(font: dispf, size: 8.5pt, weight: "bold", fill: accent)[#upper(cat)] #text(font: dispf, size: 8.5pt, fill: accent2)[=]], items)
 
 #set list(marker: bullet-marked(box(width: 3pt, height: 3pt, fill: accent2, baseline: -0.5pt)),
-  indent: 10pt, spacing: 0.45em, body-indent: 7pt)
+  indent: 10pt, spacing: 0.779em, body-indent: 7pt)
 
 // header: name, role, then the contacts on ONE mono line (spec-sheet footer)
 #block(above: 0pt, below: 12pt)[
