@@ -23,6 +23,7 @@ from vitae.verify.groups import (
 from vitae.verify.layout import check_font_fallback
 from vitae.verify.placeholders import check_placeholders
 from vitae.verify.registry import FnGate, Gate
+from vitae.verify.runts import check_runts
 from vitae.verify.source import check_forced_linebreak, check_literal_tilde, check_no_split
 from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
 
@@ -150,6 +151,10 @@ def _date_adjacency(ctx: VerifyContext) -> list[Finding]:
     return out
 
 
+def _bullet_runts(ctx: VerifyContext) -> list[Finding]:
+    return check_runts(ctx.marks, ctx.pdf, fail=lambda msg: _bad(ctx, msg))
+
+
 def _source_text(ctx: VerifyContext) -> list[Finding]:
     return [(Level.FAIL, msg) for msg in check_forced_linebreak(ctx.src) + check_literal_tilde(ctx.src)]
 
@@ -200,6 +205,7 @@ LAYOUT_GATES: tuple[Gate, ...] = (
     FnGate("font-fallback", _font_fallback),
     FnGate("group-proximity", _group_proximity, _can_query),
     FnGate("date-adjacency", _date_adjacency, _can_query),
+    FnGate("bullet-runts", _bullet_runts, _can_query),
     FnGate("source-text", _source_text),
     FnGate("duplicate-names", _duplicate_names, _can_query),
 )

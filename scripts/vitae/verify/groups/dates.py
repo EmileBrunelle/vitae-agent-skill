@@ -16,7 +16,7 @@ from vitae.verify.pdf import _boxes_unavailable, word_boxes
 # their position in `pdftotext -bbox` (the same layout analysis as the text an
 # ATS reads). No regex decides what a date is, so an org "Vision 2020 Inc", a
 # bullet "5000 users" or a role "Tier 2 Support" cannot be mistaken for one.
-ENTRY_MARKS = "selector(<vitae-head>).or(<vitae-part>)"
+ENTRY_MARKS = "selector(<vitae-head>).or(<vitae-part>).or(<vitae-bullet>)"
 
 
 def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
