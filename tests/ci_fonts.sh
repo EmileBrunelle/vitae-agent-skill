@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Run a command with only the fonts CI has, so fill-window results match CI.
+#   tests/ci_fonts.sh python -m pytest -q -n auto tests/integration
+# The host's fonts can differ from CI's (Fedora's Caladea is not Ubuntu's), which moves templates
+# at the edge of the fill window. The set mirrors .github/actions/fonts/action.yml: Ubuntu 24.04
+# font packages plus the pinned google/fonts, Adwaita, STIX Two and Source Code Pro downloads.
+# Keep the pins below in sync with that action. Needs: bwrap, typst, curl, git, ar, tar, unzip.
+# The fonts are fetched once into $VITAE_CI_FONTS (default ~/.cache/vitae-ci-fonts).
+set -euo pipefail
+
+CACHE="${VITAE_CI_FONTS:-${XDG_CACHE_HOME:-$HOME/.cache}/vitae-ci-fonts}"
+GOOGLE_FONTS_SHA=6157dfaa640ca5738b4d1a7070fe389c3036d7fc
+ADWAITA_FONTS_SHA=0c79765f2bef25b38902fd8497616ac28185254c # tag 51.0
+STIX_SHA=744a22a4dd626cd14d75728aef34fc8ad7c85db0           # stipub/stixfonts v2.13b171
+SCP_URL=https://github.com/adobe-fonts/source-code-pro/releases/download/2.042R-u/1.062R-i/1.026R-vf/OTF-source-code-pro-2.042R-u_1.062R-i.zip
+UBUNTU=http://archive.ubuntu.com/ubuntu
+# Ubuntu 24.04 (noble) packages: pool path and sha256.
+DEBS=(
+  "pool/universe/f/fonts-cantarell/fonts-cantarell_0.303.1-1_all.deb 53f3874cef4e8a1424eadd0f1f6ffda48ed4a36cd13d7cb0c255754f2a7eef11"
+  "pool/universe/f/fonts-crosextra-caladea/fonts-crosextra-caladea_20200211-2_all.deb 1a85651d71331a0e07dafa5d54e9aa54b445c29ae0dacb8c7cd224b1b7baaf82"
+  "pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8_all.deb 40049660c194f3b8a2541fc7369efebb10e9f94bdac836a2f38fafedd10fa73a"
+  "pool/main/f/fonts-liberation/fonts-liberation_2.1.5-3_all.deb 065c2ab1abc9108b17d401016dc594b79750904390f095845c93bb06e1153acc"
+  "pool/main/f/fonts-noto/fonts-noto-core_20201225-2_all.deb 4fee136cb12fc197703a340e010478f780a41044339fcefbd78ed9aa96c8b617"
+  "pool/universe/f/fonts-open-sans/fonts-open-sans_1.11-2_all.deb d7b1f2d7f39da18e4e3de703e25bb91b09757e8a70bae037ae57410a7fd57a10"
+  "pool/main/f/fonts-urw-base35/fonts-urw-base35_20200910-8_all.deb 46e75490faa7fd6fddbc8df234d14e0f7b60ea5e98563227a24d6bf5e5008647"
+  "pool/universe/f/fonts-vazirmatn/fonts-vazirmatn_33.003-0ubuntu1_all.deb 93671a36b008992eca0ccc8a6503352f43bf9a2d73eb9ab2f717fdedb7eb251b"
+)
+
+die() { echo "ci_fonts.sh: $*" >&2; exit 1; }
+
+[ $# -gt 0 ] || die "usage: tests/ci_fonts.sh COMMAND [ARGS...]"
+for t in bwrap typst; do command -v "$t" >/dev/null || die "$t not found (install it first)"; done
+
+fetch() {
+  for t in curl git ar tar unzip sha256sum; do command -v "$t" >/dev/null || die "$t not found"; done
+  local tmp; tmp=$(mktemp -d "$CACHE.tmp.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  mkdir -p "$tmp/fonts" "$tmp/x"
+
+  local entry path sum deb
+  for entry in "${DEBS[@]}"; do
+    read -r path sum <<<"$entry"
+    deb="$tmp/$(basename "$path")"
+    curl -fsSL -o "$deb" "$UBUNTU/$path"
+    echo "$sum  $deb" | sha256sum -c --quiet - || die "checksum mismatch: $path"
+    (cd "$tmp/x" && ar x "$deb" && tar -xf data.tar.* && rm -f data.tar.* control.tar.* debian-binary)
+  done
+
+  # google/fonts, sparse and pinned (same family list as the CI action).
+  git init -q "$tmp/gf"
+  git -C "$tmp/gf" remote add origin https://github.com/google/fonts
+  git -C "$tmp/gf" config core.sparseCheckout true
+  printf 'ofl/%s\n' firasans firamono ptsans geist geistmono onest instrumentsans publicsans \
+    schibstedgrotesk spacegrotesk hankengrotesk familjengrotesk chivo \
+    bigshouldersdisplay redhatdisplay redhattext redhatmono > "$tmp/gf/.git/info/sparse-checkout"
+  git -C "$tmp/gf" fetch -q --depth 1 origin "$GOOGLE_FONTS_SHA"
+  git -C "$tmp/gf" checkout -q FETCH_HEAD
+  find "$tmp/gf/ofl" -name '*.ttf' -exec cp {} "$tmp/fonts/" \;
+
+  git init -q "$tmp/ad"
+  git -C "$tmp/ad" remote add origin https://github.com/GNOME/adwaita-fonts
+  git -C "$tmp/ad" fetch -q --depth 1 origin "$ADWAITA_FONTS_SHA"
+  git -C "$tmp/ad" checkout -q FETCH_HEAD
+  find "$tmp/ad/sans" "$tmp/ad/mono" -name '*.ttf' -exec cp {} "$tmp/fonts/" \;
+
+  local w
+  for w in Regular Italic Medium MediumItalic SemiBold SemiBoldItalic Bold BoldItalic; do
+    curl -fsSL -o "$tmp/fonts/STIXTwoText-$w.otf" \
+      "https://raw.githubusercontent.com/stipub/stixfonts/$STIX_SHA/fonts/static_otf/STIXTwoText-$w.otf"
+  done
+  curl -fsSL -o "$tmp/scp.zip" "$SCP_URL"
+  unzip -q -j "$tmp/scp.zip" 'OTF/*.otf' -d "$tmp/fonts"
+
+  # Keep only what is needed; the marker is written last so a partial fetch is redone.
+  mkdir -p "$tmp/out"
+  mv "$tmp/fonts" "$tmp/out/fonts"
+  mv "$tmp/x/usr/share/fonts" "$tmp/out/debs"
+  echo "$GOOGLE_FONTS_SHA $ADWAITA_FONTS_SHA $STIX_SHA" > "$tmp/out/pins"
+  rm -rf "$CACHE"
+  mv "$tmp/out" "$CACHE"
+}
+
+pins="$GOOGLE_FONTS_SHA $ADWAITA_FONTS_SHA $STIX_SHA"
+if [ "$(cat "$CACHE/pins" 2>/dev/null || true)" != "$pins" ]; then
+  echo "ci_fonts.sh: fetching the CI font set into $CACHE" >&2
+  mkdir -p "$(dirname "$CACHE")"
+  fetch
+fi
+
+font_paths="$CACHE/fonts"
+while IFS= read -r d; do font_paths+=":$d"; done < <(find "$CACHE/debs" -type d)
+
+# Hide the host's font directories; tmpfs only on paths that exist (bwrap would create the rest).
+hide=()
+for d in /usr/share/fonts /usr/local/share/fonts "$HOME/.local/share/fonts" "$HOME/.fonts"; do
+  [ -d "$d" ] && hide+=(--tmpfs "$d")
+done
+
+exec bwrap --bind / / --dev-bind /dev /dev "${hide[@]}" \
+  --setenv FONTCONFIG_FILE /dev/null \
+  --setenv TYPST_FONT_PATHS "$font_paths" \
+  --setenv TYPST_IGNORE_SYSTEM_FONTS true \
+  "$@"
