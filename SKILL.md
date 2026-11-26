@@ -82,7 +82,7 @@ Each step below is a skeleton; its body lives in the linked file. Read that file
 
 `uv run scripts/verify.py …` when uv is installed (dependencies install themselves), else `python3 scripts/verify.py …`; same for each script; `--help` on each gives the options.
 
-- `verify.py cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--json]`: the gate. `--doctor` diagnoses the toolchain, `--tune` bisects `#let rhythm` (all block gaps; a CV keeps that line from its template) before leading, to a fill target, `--all DIR` re-gates every deliverable in a folder.
+- `verify.py cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md] [--json]`: the gate. `--doctor` diagnoses the toolchain, `--tune` bisects spacing to a fill target, `--all DIR` re-gates every deliverable in a folder.
 - `verify_academic.py cv.typ data.toml`: the academic-CV gate.
 - `verify_letter.py letter.typ EMPLOYER "EXACT JOB TITLE"`: the cover-letter gate.
 - `pick_design.py --lang <iso> [--region <cc>] [--init FOLDER]`: draws the design family and parameters, and initialises the folder.
