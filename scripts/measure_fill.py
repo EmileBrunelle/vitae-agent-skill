@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["Pillow>=11"]
+# dependencies = ["Pillow>=13"]
 # ///
 """Page-fill and whitespace measurer: entry point; code lives in vitae.fill."""
 import pathlib

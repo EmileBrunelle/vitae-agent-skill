@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["typst==0.15.0", "pypdfium2>=5", "Pillow>=11", "pypdf>=5"]
+# dependencies = ["typst==0.15.0", "pypdfium2>=5", "Pillow>=13", "pypdf>=7"]
 # ///
 """Letter gate: entry point; code lives in vitae.verify.letter."""
 import pathlib

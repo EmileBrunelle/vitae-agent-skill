@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 20
     env:
       TYPST_VERSION: "0.15.1"
-      # typst-py (PyPI) trails the CLI: 0.15.1 does not exist there, 0.15.0 is the newest.
+      # typst-py (PyPI) trails the CLI; 0.15.2 exists there, but we stay on 0.15.0 until a calibrated bump.
       TYPST_PY_VERSION: "0.15.0"
     steps:
       - uses: actions/checkout@v7
@@ -41,7 +41,7 @@ jobs:
       - name: Python dependencies
         # typst + pypdfium2 are what run_all's compare_backends step and the equivalence bench
         # need next to the CLI/poppler; typst-py is pinned to its own PyPI version.
-        run: pip install Pillow pypdf pyyaml mypy==2.4.1 ruff pytest pypdfium2 "typst==$TYPST_PY_VERSION"
+        run: pip install Pillow pypdf pyyaml==6.0.4 mypy==2.4.1 ruff==0.17.6 pytest==9.2.0 pypdfium2 "typst==$TYPST_PY_VERSION"
 
       - name: Typst ${{ env.TYPST_VERSION }}
         if: matrix.python-version == '3.x'
@@ -126,7 +126,7 @@ jobs:
 
       - name: Lint (pyproject.toml)
         run: |
-          pip install ruff pytest pyyaml
+          pip install ruff==0.17.6 pytest==9.2.0 pyyaml==6.0.4
           ruff check scripts tests
           python -m pytest -q tests/unit
 
