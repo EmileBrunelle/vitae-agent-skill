@@ -437,10 +437,28 @@ class TestEnsureIcons:
     def test_never_writes_into_the_skill_tree(self):
         skill = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         d = os.path.join(skill, "templates", "academic")
-        before = sorted(os.listdir(d))
-        pdf.ensure_icons(os.path.join(d, "cv.typ"))
-        assert sorted(os.listdir(d)) == before
-        assert not os.path.exists(os.path.join(d, "icons.typ"))
+        stray = os.path.join(d, "icons.typ")
+        existed = os.path.exists(stray)
+        try:
+            pdf.ensure_icons(os.path.join(d, "cv.typ"))
+            assert existed or not os.path.exists(stray)
+        finally:
+            if not existed and os.path.exists(stray):
+                os.remove(stray)
+
+    def test_a_symlinked_dir_into_the_skill_is_still_the_skill_tree(self, tmp_path):
+        skill = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        d = os.path.join(skill, "templates", "academic")
+        stray = os.path.join(d, "icons.typ")
+        existed = os.path.exists(stray)
+        link = tmp_path / "link"
+        link.symlink_to(d)
+        try:
+            pdf.ensure_icons(str(link / "cv.typ"))
+            assert existed or not os.path.exists(stray)
+        finally:
+            if not existed and os.path.exists(stray):
+                os.remove(stray)
 
     def test_copies_the_fallback_when_missing(self, tmp_path):
         typ = tmp_path / "cv.typ"

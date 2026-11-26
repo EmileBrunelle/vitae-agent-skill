@@ -129,8 +129,8 @@ def ensure_icons(typ: str) -> None:
     """
     if auto_root(typ):                 # reference family file: lib.typ/icons.typ live in templates/
         return
-    d = os.path.dirname(os.path.abspath(typ))
-    skill = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    d = os.path.dirname(os.path.realpath(typ))
+    skill = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
     if os.path.commonpath([d, skill]) == skill:   # a file inside the skill (templates/...): a gate never writes there
         return
     dst = os.path.join(d, "icons.typ")
