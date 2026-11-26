@@ -4,6 +4,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#5c4632")
 #let pal = derive(accent)
 #let soft = pal.soft
@@ -35,11 +37,11 @@
 // (a rule spanning the measure beside every title reads as word-processor
 // furniture; measured and rejected).
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 27pt } else { 20pt }, below: 0pt)[
+  above: if airy { 27pt * rhythm } else { 20pt * rhythm }, below: 0pt)[
   #text(font: dispf, size: 12pt, weight: "semibold", fill: dark)[#t]
   #h(7pt)
   #box(baseline: -3pt, line(length: 34pt, stroke: 2pt + accent))
-  #v(13.5pt)
+  #v(13.5pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -48,7 +50,7 @@
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   org-st: it => text(weight: "semibold", fill: accent, it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: the label is set in the METADATA GRAY — colour, not weight or a
 // glyph, does the separating. No colon, no dash, no bullet.
@@ -58,15 +60,15 @@
 
 // header: CONTACTS FIRST (a letterhead line), then the name, then the role —
 // the reverse of every other family's header order.
-#block(above: 0pt, below: 14pt)[
+#block(above: 0pt, below: 14pt * rhythm)[
   #text(size: 8.5pt, fill: muted)[
     #contact(ic.pin)[\[City, Region\]] #h(7pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(7pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
     #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
     #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
-  #v(3pt)
+  #v(3pt * rhythm)
   #text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname]
-  #v(-4pt)
+  #v(-4pt * rhythm)
   #text(size: 10.5pt, fill: ink)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
 ]
 

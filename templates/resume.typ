@@ -18,6 +18,8 @@
 //
 // HAND-OFF IS TWO FILES: this .typ and lib.typ beside it. Typst has no bundler.
 #import "lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 
 // ---------- Tokens ----------
 #let accent = rgb("#7d2231")        // one accent, ≥4.5:1 on white, survives B&W
@@ -45,15 +47,15 @@
 // One unbreakable block per section: never split across pages.
 // `airy: true` = roomier rhythm for sparse pages of a multi-page version.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 19pt } else { 16pt }, below: 0pt)[
+  above: if airy { 19pt * rhythm } else { 16pt * rhythm }, below: 0pt)[
   #grid(columns: (auto, auto), column-gutter: 7pt, align: horizon,
     box(width: 4pt, height: 9pt, fill: accent),   // accent tick (vector: emits no text)
     text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
       size: 12.5pt, weight: "bold", fill: accent)[#upper(t)],
   )
-  #v(3pt)
+  #v(3pt * rhythm)
   #line(length: 100%, stroke: 0.7pt + luma(180))  // single thin hairline
-  #v(5pt)
+  #v(5pt * rhythm)
   #body
 ]
 
@@ -66,7 +68,7 @@
   org-st: it => text(fill: accent, weight: "semibold", it),
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it),
-  below: 4pt)
+  below: 4pt, rhythm: rhythm)
 
 // Linear skill line — NEVER a data grid (ATS extracts grids column-by-column).
 // French: use [#cat~:] for the non-breaking space before the colon.
@@ -83,10 +85,10 @@
 #align(center)[
   #text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
     size: 23pt, weight: "bold")[Firstname Lastname]
-  #v(-2pt)
+  #v(-2pt * rhythm)
   // Title and degree only as the facts state them; check protected titles (rule 4).
   #text(size: 11pt, fill: accent, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-4pt)
+  #v(-4pt * rhythm)
   #text(size: 9.5pt, fill: muted)[
     #contact(none)[\[City, Region\]]
     #h(5pt)#drawn-marker("dot", auto)#h(5pt) #contact(none)[#link("tel:+15555550100")[(555) 555-0100]]

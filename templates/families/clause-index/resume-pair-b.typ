@@ -4,6 +4,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets, specialities line).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#33475b")    // slate — the clause numbers, and nothing else
 #let pal = derive(accent)
 #let soft = pal.soft
@@ -47,14 +49,14 @@
 #let clause = counter("clause")
 #let sub = counter("sub")     // sub-clause index, reset by every section
 #let section(t, body, airy: false) = block(width: 100%, breakable: false,
-  above: if airy { 27pt } else { 22pt }, below: 0pt)[
+  above: if airy { 27pt * rhythm } else { 22pt * rhythm }, below: 0pt)[
   #clause.step()
   #sub.update(1)   // display() reads the value BEFORE this row’s step, so 1-based
   #grid(columns: (20pt, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom),
     text(size: 12pt, weight: "bold", fill: accent, number-type: "lining",
       number-width: "tabular")[#context clause.display()],
     text(font: dispf, size: 12pt, weight: "bold", fill: dark)[#t])
-  #v(12pt)
+  #v(12pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -64,7 +66,7 @@
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold",
     number-width: "tabular", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: a SUB-CLAUSE number. The row carries the section's own clause number
 // with a sub-index ("2.1", "2.2" …) in the accent, then the label in bold, then
@@ -85,7 +87,7 @@
 // header composition comes from. Then the SPECIALITIES LINE: this is the one
 // neutral family that carries one (core.md § Specialities line), set in the
 // label register so it reads as a data row and not as a slogan.
-#block(above: 0pt, below: 10pt)[
+#block(above: 0pt, below: 10pt * rhythm)[
   // The reference row and the specialities line live INSIDE the left zone, not
   // across the full width. MEASURED (new trap): a full-width row that crosses
   // the contact column's x-range gets its rightmost item pulled into the
@@ -96,9 +98,9 @@
   #let rcell(l, val) = [#text(size: 7.5pt, weight: "bold", fill: ink)[#upper(l)] #val]
   #hrow(
     [#text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname] \
-     #v(-3pt)
+     #v(-3pt * rhythm)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-     #v(2pt)
+     #v(2pt * rhythm)
      // REFERENCE ROW — one flowing paragraph, never a grid of stacked cells.
      // MEASURED TRAP (new): as a single-ROW grid whose three cells each stacked
      // a label over its value, poppler emitted all three LABELS first and all
@@ -108,7 +110,7 @@
      #text(size: 9pt)[#rcell("Location", [\[City, Region\]]) #h(9pt)
        #rcell("Availability", [\[Two weeks’ notice\]]) #h(9pt)
        #rcell("Authorization", [\[Authorized to work\]])]
-     #v(2pt)
+     #v(2pt * rhythm)
      // SPECIALITIES LINE: the skills the facts support, linear, NO letterspacing
      // (it extracts as "N E X T" and stops matching), each item boxed so it can
      // never break across a line end. Every item is CONTENT: SKILL.md rule 2

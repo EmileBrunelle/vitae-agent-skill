@@ -4,6 +4,8 @@
 // the lib (entry emission order, extraction-safe skills row, unbreakable
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
+// vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
+#let rhythm = 1.000
 #let accent = rgb("#4a2f10")
 #let pal = derive(accent)
 #let soft = pal.soft
@@ -28,17 +30,17 @@
 // its own content. Single-ROW grid per section (safe: ats.md), title cell first
 // so the extraction order stays heading → body.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 36pt } else { 28pt }, below: 0pt)[
+  above: if airy { 36pt * rhythm } else { 28pt * rhythm }, below: 0pt)[
   #if workday [
     // parse copy: title ABOVE the body, so the extraction order stays heading → body
     // (a margin column wraps the title and is read before the header contacts)
     #text(size: 10.5pt, weight: "bold", fill: accent)[#t]
-    #v(3pt)
+    #v(3pt * rhythm)
     #body
   ] else [
   #grid(columns: (2.5cm, 1fr), column-gutter: 12pt, align: (right + top, left + top),
     [#line(length: 100%, stroke: 1pt + accent)
-     #v(3pt)
+     #v(3pt * rhythm)
      #text(size: 10.5pt, weight: "bold", fill: accent)[#t]],
     body,
   )
@@ -49,7 +51,7 @@
 // keeps the date anchored in the extraction (ats.md, orphaned-date trap)
 #let job(role, org, dates, note) = entry(role, org, dates, note, above: 1.40em,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
-  note-st: it => text(fill: muted, it))
+  note-st: it => text(fill: muted, it), rhythm: rhythm)
 
 // skills: italic run-in label, no separator glyph at all — the italic/roman
 // jump does the separating (nobody else uses italic as the skills device)
@@ -59,13 +61,13 @@
 
 // header: name and role in the content column, contacts on one line under it;
 // the margin column stays empty here (extraction keeps the name first)
-#block(above: 0pt, below: 13pt)[
+#block(above: 0pt, below: 13pt * rhythm)[
   #grid(columns: (2.5cm, 1fr), column-gutter: 12pt,
     [],
     [#text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname] \
-     #v(-4pt)
+     #v(-4pt * rhythm)
      #text(size: 10.5pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]] \
-     #v(-3pt)
+     #v(-3pt * rhythm)
      #text(size: 9pt, fill: muted)[#contact(mk.pin)[\[City, Region\]] #h(7pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
        #h(7pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
        #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
