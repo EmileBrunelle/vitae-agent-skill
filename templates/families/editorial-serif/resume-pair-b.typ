@@ -5,7 +5,7 @@
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
-#let rhythm = 1.000
+#let rhythm = 0.959
 #let accent = rgb("#1f3a5f")
 // Coordinated palette (monochrome harmony): one accent + derived roles.
 // soft = same hue lightened, for decorative hairlines only (never text).
@@ -33,7 +33,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.510em, spacing: 0.580em)
+#set par(justify: false, leading: 0.510em, spacing: 0.556em)
 
 // device: short heavy accent bar 20 a large serif title (magazine kicker rule)
 #let section(t, body, airy: false) = block(breakable: false,
@@ -54,7 +54,7 @@
 // skills: serif bold label, thin accent tick (vector), sans items
 #let skill(cat, items) = srow([#text(font: dispf, size: 11pt, weight: "bold")[#cat] #box(width: 3pt, height: 3pt, fill: accent, baseline: -2pt)], items)
 
-#set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.680em, body-indent: 6pt)
+#set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.652em, body-indent: 6pt)
 
 // header: oversized serif name, then role line left / contact column right (photo slot)
 #block(above: 0pt, below: 12pt * rhythm)[
