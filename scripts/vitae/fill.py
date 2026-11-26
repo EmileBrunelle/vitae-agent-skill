@@ -27,21 +27,15 @@ from typing import NoReturn
 
 from PIL import Image
 
-from vitae.core.pixels import gray_pixels
-
 
 def measure(path: str) -> str:
     """Return 'ink from X% to Y%' (or 'blank page') for one page image."""
     im = Image.open(path).convert("L")
     w, h = im.size
-    px = gray_pixels(im)
-    lo: int | None = None
-    hi = 0
-    for y in range(h):
-        if any(px[x, y] < 245 for x in range(0, w, 3)):  # sample every 3rd column
-            if lo is None:
-                lo = y
-            hi = y
+    # ink = any pixel < 245 among every 3rd column (x = 0, 3, 6...): NEAREST at scale 3 with offset -1 samples exactly those
+    sampled = im.transform(((w + 2) // 3, h), Image.Transform.AFFINE, (3, 0, -1, 0, 1, 0), Image.Resampling.NEAREST)
+    box = sampled.point([255 if v < 245 else 0 for v in range(256)]).getbbox()
+    lo, hi = (None, 0) if box is None else (box[1], box[3] - 1)
     if lo is None:
         return "blank page"
     return f"ink from {lo / h * 100:.0f}% to {hi / h * 100:.0f}%"

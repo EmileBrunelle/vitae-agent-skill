@@ -16,7 +16,7 @@ from collections.abc import Sequence
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from vitae.core.base import Band, Box
-from vitae.core.pixels import colour_counts, gray_pixels
+from vitae.core.pixels import colour_counts
 
 # BOUNDARY_RATIO is a LOCATOR, not a grade. It answers "is this white run tall
 # enough to be a section boundary rather than a line gap", which is all that
@@ -72,52 +72,26 @@ FURNITURE_PAD = 1.0                      # pt padding so antialiasing at a
 def furniture_ink(png: str, boxes: Sequence[Box] | None) -> list[Band]:
     """Ink bands (start, end) that fall OUTSIDE every word box on the page.
 
-    Interval arithmetic, not a per-pixel coverage mask: each row's covering
-    boxes are merged into a handful of intervals, and only the GAPS between
-    them are ever scanned pixel-by-pixel. A text-heavy row is almost entirely
-    covered, so this looks at a sliver of it instead of the whole width.
+    The word boxes are blanked out of a dark-pixel mask, so a dark run can never cross or
+    start inside one; each row's longest uncovered dark run is then its longest non-zero stretch.
     """
     if not boxes:
         return []
     im = Image.open(png).convert("L")
     w, h = im.size
-    px = gray_pixels(im)
+    # <200 luma on 0..255: catches pale `soft` hairlines (luma ~180) while ignoring paper (255)
+    mask = im.point([255 if v < 200 else 0 for v in range(256)])
+    draw = ImageDraw.Draw(mask)
     sc = FURNITURE_SCALE
-    cov: list[list[tuple[int, int]]] = [[] for _ in range(h)]
     for x0, y0, x1, y1 in boxes:
         ya = max(0, int((y0 - FURNITURE_PAD) * sc))
         yb = min(h - 1, int((y1 + FURNITURE_PAD) * sc))
         xa = max(0, int((x0 - FURNITURE_PAD) * sc))
         xb = min(w, int((x1 + FURNITURE_PAD) * sc) + 1)
-        for y in range(ya, yb + 1):
-            cov[y].append((xa, xb))
-
-    def uncovered_dark_run(y: int) -> int:
-        merged: list[tuple[int, int]] = []
-        for a, b in sorted(cov[y]):
-            if merged and a <= merged[-1][1]:
-                merged[-1] = (merged[-1][0], max(merged[-1][1], b))
-            else:
-                merged.append((a, b))
-        gaps, prev = [], 0
-        for a, b in merged:
-            if a > prev:
-                gaps.append((prev, a))
-            prev = max(prev, b)
-        if prev < w:
-            gaps.append((prev, w))
-        best = run = 0
-        for gs, ge in gaps:
-            run = 0
-            for x in range(gs, ge):
-                if px[x, y] < 200:       # <200 luma on 0..255: catches pale `soft` hairlines (luma ~180) while ignoring paper (255)
-                    run += 1
-                    best = max(best, run)
-                else:
-                    run = 0
-        return best
-
-    rows = [uncovered_dark_run(y) / w for y in range(h)]
+        if ya <= yb and xa < xb:
+            draw.rectangle((xa, ya, xb - 1, yb), fill=0)
+    data = mask.tobytes()
+    rows = [max(map(len, data[y * w:(y + 1) * w].split(b"\x00"))) / w for y in range(h)]
     bands: list[tuple[int, int]] = []
     cur: list[int] | None = None
     for y, r in enumerate(rows):
@@ -232,6 +206,11 @@ CROP_CAP = 8              # crops per page; fills first, then icons, both in rea
 _NONZERO_LUT = [0] + [255] * 255     # maps any nonzero L value to 255
 
 
+def _nonzero(im: Image.Image) -> int:
+    """Number of non-zero pixels of an 'L' image."""
+    return im.width * im.height - im.histogram()[0]      # histogram bin 0 = the zero pixels
+
+
 def _components(grid: Image.Image, merge: int = 0) -> list[tuple[int, int, int, int]]:
     """8-connected blobs of the non-zero cells of a small 'L' grid, as (x0, y0, x1, y1) cell
     boxes (inclusive); `merge` cells of dilation first so a glyph's parts read as one blob."""
@@ -309,7 +288,7 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             area = (box[2] - box[0]) * (box[3] - box[1])
             # >=80% of both page dimensions: page-spanning candidate tested against CROP_FRAME_FILL
             if box[2] - box[0] >= 0.8 * w and box[3] - box[1] >= 0.8 * h and \
-                    sum(1 for v in solid.crop(box).tobytes() if v) < CROP_FRAME_FILL * area:
+                    _nonzero(solid.crop(box)) < CROP_FRAME_FILL * area:
                 continue        # a frame stroked around the page, not a fill
             fills.append(("fill", box, area))
     icons: list[tuple[str, tuple[int, int, int, int], int]] = []
@@ -331,7 +310,7 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             tight = rest.crop(box).getbbox()
             if tight is not None:
                 parts.append((box, tight[2] - tight[0], tight[3] - tight[1],
-                              sum(1 for v in rest.crop(box).tobytes() if v)))
+                              _nonzero(rest.crop(box))))
         for box, tw, th, n in parts:
             twins = sum(1 for _, w2, h2, n2 in parts if abs(w2 - tw) <= 1 and abs(h2 - th) <= 1 and abs(n2 - n) <= 0.15 * max(n, n2))
             if twins >= CROP_REPEAT:
@@ -345,7 +324,7 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             tight = rest.crop(box).getbbox()      # the ink itself, without the blob's dilation margin
             if tight is None:
                 continue
-            n = sum(1 for v in rest.crop(box).tobytes() if v)
+            n = _nonzero(rest.crop(box))
             ink_box = (box[0] + tight[0], box[1] + tight[1], box[0] + tight[2], box[1] + tight[3])
             marks.append((box, ink_box, n))
         for box, (tx0, ty0, tx1, ty1), n in marks:
