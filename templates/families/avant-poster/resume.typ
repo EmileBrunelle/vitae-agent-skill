@@ -85,7 +85,7 @@
 // then the contacts.
 //
 // NO DIAGONAL. An earlier version placed a rotated hue-B bar top right. It
-// failed the § Anti-AI-slop test on the one question that matters — "does this
+// failed the draw-rules.md § Anti-AI-slop test on the one question that matters — "does this
 // element do work the reader can name?": readers asked what it was for and
 // there was no answer. A diagonal that sets an axis is a decision; a diagonal
 // that only signals "constructivist" is decorative geometric confetti with a

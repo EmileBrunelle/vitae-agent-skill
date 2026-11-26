@@ -50,7 +50,7 @@
   // 4.4pt inside a 5pt box: `rotate` defaults to `reflow: false`, so the
   // diamond's 6.2pt diagonal overflows the box VISUALLY and costs zero
   // layout. At 3.5pt the mark read as a speck of dust (decorative confetti,
-  // § Anti-AI-slop); at 4.4pt it reads as a lozenge and still stays a mark.
+  // draw-rules.md § Anti-AI-slop); at 4.4pt it reads as a lozenge and still stays a mark.
   #align(center, box(width: 5pt, height: 5pt,
     rotate(45deg, rect(width: 4.4pt, height: 4.4pt, fill: accent))))
   #v(2pt)

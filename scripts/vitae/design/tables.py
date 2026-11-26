@@ -312,7 +312,7 @@ FAMILIES: dict[str, Family] = {
 }
 
 # ---------------------------------------------------------------- font pools
-# ONE source of truth for typography; references/design/core.md describes the
+# ONE source of truth for typography; references/design/draw-rules.md describes the
 # REGISTER each pool serves and never repeats the lists (a second list drifts).
 # Entry = (family name exactly as `typst fonts` reports it, provenance).
 # Hard rule: no display face is shared between two families — the display face
@@ -330,7 +330,7 @@ FAMILIES: dict[str, Family] = {
 # neo-grotesque would erase the family. The exemption is creative-register
 # only, their BODY pools do carry a local member, and the hand-off names the
 # package to install. Every other family keeps the rule.
-# Extending a pool: run core.md's vetting checklist first, then add here.
+# Extending a pool: run draw-rules.md's vetting checklist first, then add here.
 FONTS: dict[str, FontPool] = {
     "swiss-grid": FontPool(
         register="neo-grotesque, one family for display and body",
@@ -406,7 +406,7 @@ FONTS: dict[str, FontPool] = {
               ("Manrope", "GF (OFL)")]),
     "bold-display": FontPool(
         register="geometric display for the name + a neutral sans body",
-        # Montserrat was removed here on purpose: core.md § Font pools bans
+        # Montserrat was removed here on purpose: draw-rules.md § Font vetting bans
         # the over-used defaults (Inter, Roboto, Montserrat, Lato, Open Sans)
         # as DISPLAY faces, and leaving it in the pool meant drawing a banned
         # face on ~6% of the draws. Three members left = the documented minimum.

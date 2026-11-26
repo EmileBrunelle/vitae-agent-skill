@@ -105,7 +105,7 @@ references/                   # chargé à la demande, jamais en bloc
   certifications/rules.md     #   routeur des fichiers de certifications professionnelles
   steps/                      #   corps des étapes 0-8, lus au début de l'étape
   fields/                     #   packs par domaine (software-dev, métiers, genre CV académique)
-  design/core.md, families/   #   règles de design communes ; une recette par famille de design (14)
+  design/core.md, draw-rules.md, separation-gate.md, families/   #   règles de design communes ; une recette par famille de design (14)
   *.md                        #   notes par sujet : ats, fonts, icons, known-traps, reviews, typst-primer, ...
 templates/                    # points de départ Typst
   resume.typ, lib.typ         #   gabarit annoté + mécaniques vérifiées communes (le transfert, c'est ces deux fichiers)

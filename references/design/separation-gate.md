@@ -1,0 +1,52 @@
+# Separation gate — how verify.py measures section boundaries
+
+Read this file only when `verify.py` FAILs or warns on section separation (ink at the boundary, holes, the white-run ratio, device quorum) and the three-step order in [`core.md`](core.md) § Invariants does not resolve it, or when changing the measurement itself. The rules a draft must follow stay in core.md; this file holds the instrument: how a device is detected, what each threshold means, what was measured per family, and where the instrument is blind.
+
+**How a device is detected (rewritten 2026-09-13).** Two row scans, unioned under a POSITION test; neither alone is enough.
+
+1. *Ink in a horizontal white gap* (`boundary_ink`) — sees full-width rules, knockout slabs and pale hairlines, i.e. devices that own rows of their own.
+2. *Ink no `pdftotext` word box covers* (`furniture_ink`, `FURNITURE_FLOOR` 0.02) — sees devices typeset ON the heading's line, which scan 1 is blind to because the heading's glyphs occupy the same rows.
+
+Both halves are filtered by LOCATION before they count — that is the whole invariant, and the union is where it was first lost. Scan 1 keeps a band whose span (white above + band + white below) reaches `BOUNDARY_RATIO` × the median gap. Scan 2 cannot use that test: a band on the heading's own line is inside no white run at all, so its span collapses to its own thickness and every device this scan exists to find would be deleted. It uses PROXIMITY instead (`near_boundary`): the band must touch, or come within one median gap of, a white run at least `BOUNDARY_ADJACENT` (1.2) × that median — tall enough to be a boundary rather than a line gap. Measured over the 14 families, the two clusters are 1.54–5.14 for bands at a boundary and 0.00–0.40 for bands inside a section, so 1.2 sits in an empty range. Without this filter scan 2 was position-blind and a page with NO device but four underlined links mid-section satisfied `DEVICE_QUORUM` while the message claimed the bands were at a boundary.
+
+Scan 1 alone reported **0 devices for `quiet-luxury` and `avant-poster`**, both of which carry seven; scan 2 alone loses `keyline-corporate` (hairline too pale), `hard-edge` (knockout hidden under the white text's own box) and `bold-display` (underline inside the box padding). The union is the gate. `FURNITURE_FLOOR` is 0.02 because the signal is identical from 0.01 to 0.03; under 0.005 contact icons and list bullets arrive. It can sit far below `measure_fill.RULE_FLOOR` (0.04) because that floor only ever had to separate devices from TEXT, and text is now subtracted.
+
+Under `DEVICE_QUORUM` the page FAILs — really, not conditionally on the white ratio as before. Two escapes, both narrow:
+
+- `DEVICELESS` in `verify.py`: five families whose device is real but of a KIND no row scan can see — `humanist-quiet` (no ink, by doctrine), `clause-index` (the device is a numeral, so it is text), `gutter-rail` (the bar is VERTICAL and never forms a row band), `mono-technical` (6pt squares, ~1% of width), `engraved-card` (a 4.4pt lozenge above every title: measured on the render, six marks of 13x13px — 1.0% of a 1275px page — dead centre, one per section). The family is read from the `// FAMILY:` banner on line 1, never from the directory: a delivered CV is a copy living in the user's own folder, and a path-only rule failed exactly the files the skill ships.
+- No `pdftotext` on PATH: the quorum is reported, never failed. A missing tool is not a design defect.
+
+`mono-technical` and `engraved-card` are the genuine weak boundaries in the roster: their devices are real but too small to read at arm's length. That is a design debt, not a gate bug — and it is now the ONLY thing keeping them out of the roster's mainstream, since both are `DEVICELESS`. The "2 bands, at the quorum's edge" reading of `engraved-card` published here on 2026-09-13 was an ARTEFACT: the union double-counted the same band in two coordinate frames. Corrected, the family scores 1 — its letterhead rule — and its actual section device was never visible to the gate at all.
+
+**The ratio is a THERMOMETER, not a grade — it is reported, never failed (re-measured 2026-11-25).** The counter-intuitive part is the one that survives: the families whose separation reads best are among the *lowest* white ratios of the roster, because their boundary is carried by **ink** (a filled bar, a knocked-out black slab, a 2.5pt rule) — `color-band` 2.57, `swiss-grid` 2.80, `editorial-serif` 3.00 (`hard-edge` 3.86 and `bold-display` 4.80 show how little the number tracks the device). The device-less `humanist-quiet` sits highest by design (4.33-6.00). White space is therefore never a score.
+
+It is not a floor either, and that is the change. The old floor (2.0×) was a curve fitted to the corpus under a sampling that had since changed: all 30 rendered pages run 1.89 → 5.14 in one continuum, the widest step in it is 0.83, and a synthetic page whose section gap *equals* its line gap scores 2.69 — it outranks 10 real pages that genuinely separate. The statistic does not measure what its name says, so no floor value is defensible; excluding the header block (tested at 8/10/12/15% of the text span) shuffles families across any line you draw instead of stabilising it. What does separate, cleanly, is where the ink is: devices AT a boundary count 0-1 on the device-less families and 4-13 on every other — the same conclusion d7f67da reached for page-wide ink. Read the ratio, look at the page, and judge the boundary by its device.
+
+**The gate now measures the ink, not only the white (added 2026-09-13).** `measure_fill.bands()` reports candidate DEVICES alongside white runs: a row whose longest *unbroken* dark run spans ≥4% of the page width (`RULE_FLOOR`), measured against the page's modal luma rather than absolute black (`RULE_CONTRAST`, 20 levels) so a pale `soft` hairline and a tinted ground both read correctly. A wide run is only a CANDIDATE: `verify.py` (`boundary_ink()`) keeps the ones that sit at a section boundary — in a tall gap, capping it, or splitting it — and requires at least `DEVICE_QUORUM` (2) of them, because width alone cannot tell a rule from an underline (a `#show link: underline` on the contact line measures 21.8%, a two-column table rule 86.4%, both wider than `quiet-luxury`'s real 5.65% tick) and one mark is the flourish under the name, not a boundary system. Measured at 150 ppi, longest run as a share of page width: `humanist-quiet` (device-less by design) 2.8%, `margin-index` (accent rule inside a 2.5cm margin column) 11.5%, `hard-edge` (short accent rule) 35.7%, `swiss-grid` (full-measure hairline) 86.0%, `color-band` (bleed bar) 88.0% — `bands()` crops to 6-94% of the width before measuring but divides by the FULL width, so 88% is the ceiling, not 100%.
+
+The floor was 25% at first, on the reasoning that the clusters were an order of magnitude apart and the number therefore needed no tuning. That was wrong: it FAILed `margin-index`, whose rule is real but deliberately shorter than the text column. A device does not have to span the measure — it has to be unmistakably longer than any run text can produce. 8% was the next try and also wrong: it false-failed `editorial-serif` (7.61%) and `avant-poster` (7.29%). Text tops out at 3.66% across the corpus and the thinnest real device is `quiet-luxury`'s 5.65% tick, so `RULE_FLOOR` is **4%**, with room on both sides — and it is a prefilter, not the verdict: the verdict is location (`boundary_ink`).
+
+Two measurement traps, both walked into while building this, both worth not repeating: (1) the *fraction* of dark pixels in a row cannot separate a filled bar from a dense line of body text — both land near 0.5 once sampled — only continuity can; and (2) the longest run must be sought over the whole page, not on the row with the most ink, because a short accent rule covers LESS of its row than a dense text line covers of its own.
+
+**The instrument has one blind spot, and a device can walk into it.** The scan compares the boundary runs to the *intra-section* runs, so it needs intra-section white to exist. A device that puts ink on **every row of the section body** — a continuous vertical rule beside the text, a full-height column ruler — deletes that comparison: measured on `gutter-rail`'s first build, whose gutter rail was drawn at the text edge with the text indented past it, the whole page yielded **10** white runs instead of ~60, median 21.5px, tallest 27px, **ratio 1.26** — a FAIL on a page whose boundaries are in fact bracketed by ink at both ends. Two consequences, and neither is "relax the check": (1) the fix is to move the device **into the margin**, where a gutter belongs anyway (`outset` instead of `inset`), so the text column's own rhythm is measured honestly and the device's separation becomes a bonus the number *understates* — the same build then measures 3.00; and (2) a dashed or dotted version of that rail would have *passed* with a ratio near 8, because the dash gaps become the median — that number would be a lie, and inflating the ratio that way is the one manoeuvre this section forbids by name.
+
+**Per-family measurement (re-measured 2026-11-25 at 90 ppi on `resume.typ` page 1, all 14 families: max run / median run, max run as % of page height, devices found AT a boundary).**
+
+| family | ratio | max run | boundary devices |
+|---|---|---|---|
+| `color-band` | 3.00 | 1.8% | 8 |
+| `swiss-grid` | 3.00 | 1.5% | 7 |
+| `engraved-card` | 3.14 | 2.2% | 1 |
+| `mono-technical` | 3.54 | 2.3% | 0 |
+| `editorial-serif` | 3.75 | 1.5% | 8 |
+| `keyline-corporate` | 4.17 | 2.5% | 7 |
+| `clause-index` | 4.17 | 2.5% | 0 |
+| `hard-edge` | 4.33 | 2.6% | 11 |
+| `gutter-rail` | 4.43 | 3.1% | 1 |
+| `quiet-luxury` | 4.60 | 2.3% | 0 |
+| `margin-index` | 4.62 | 3.7% | 7 |
+| `bold-display` | 5.20 | 2.6% | 7 |
+| `avant-poster` | 6.25 | 2.5% | 0 |
+| `humanist-quiet` | 7.50 | 3.0% | 0 |
+
+The ratios move with every leading change, so re-measure the table after one (the sampling in `measure_fill.gaps` also changed once, at commit 42049f6: every 4th column → every column). The right column is the one that separates. `keyline-corporate` measured 7.25 here until it was given the rule it was named for: its vertical keyline marks the title but is invisible to a horizontal boundary scan, so empty space was doing the whole separating. A `soft` rule across the boundary plus the reclaimed gap (leading 0.540 → 0.741em) put it at 3.57.

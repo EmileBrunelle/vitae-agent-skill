@@ -72,7 +72,7 @@ Secondary parameters, drawn from the same hash: accent (plus its paired duotone
 hue B where the family has one), list marker, section-label variant, the
 family's own VARIANT where it declares one, and the font pair from the family's
 own typographic pool. FONTS below is the single
-source of truth for typography — core.md describes the registers and the
+source of truth for typography — references/design/draw-rules.md describes the registers and the
 vetting checklist and does NOT repeat the lists (a second list drifts).
 
 The recipes themselves (heading device, skills block, accent role, icons,

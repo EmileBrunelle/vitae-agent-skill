@@ -105,7 +105,7 @@
 // Nobody else in the roster runs a vertical rule beside body content:
 // keyline-corporate's keyline hugs the TITLE's own height and carries no mark,
 // margin-index puts a whole column beside the body and no rule at all. The
-// rail's nameable job (§ Anti-AI-slop) is that it marks the section's vertical
+// rail's nameable job (draw-rules.md § Anti-AI-slop) is that it marks the section's vertical
 // extent: where a rail stops, the section has stopped, so the white between two
 // rails is bracketed by ink at both ends. That is what lets this family sit
 // near the separation floor instead of buying its boundary in white.

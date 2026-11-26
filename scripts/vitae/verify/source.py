@@ -18,7 +18,7 @@ from vitae.verify.typst import _mask_non_markup
 SECTION_CALL_RE = re.compile(r'#section\(\s*"([^"]*)"')
 
 
-# lib.typ's `runhead` emits `name #h(1fr) n / total` (core.md § the device
+# lib.typ's `runhead` emits `name #h(1fr) n / total` (core.md § Structure primitives
 # table: placed IN THE FLOW, because a page `header:` field is dropped by many
 # parsers). pdftotext may put the name and the `n / total` on one line or two,
 # in either order, so the pagination token is what identifies the band — and a

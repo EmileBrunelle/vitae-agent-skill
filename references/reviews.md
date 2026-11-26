@@ -21,7 +21,7 @@ A design-focused reviewer that *looks at the PNGs* (not just the source). It mus
 On top of the measurements, this reviewer owns the **non-recognition bar** ([`references/design/core.md`](design/core.md) § The final bar): given the rendered pages of *two other* CVs produced by this skill (any two families — keep a couple of reference PNGs for this), it must answer two pass/fail questions and quote the evidence from the images:
 
 1. **Same-tool test** — could a recruiter who has seen those two identify this third one as coming from the same tool? What gives it away: heading device, skills-block shape, accent placement, header order, section labels? Any shared signature across all three is a FAIL, and it names the marker.
-2. **Consumer-default test** — could this page pass for the default template of a popular consumer tool (the most-used word-processor CV template, a résumé site's first theme)? If yes, FAIL, with the symptom named from core.md's "too much like Word 97" list.
+2. **Consumer-default test** — could this page pass for the default template of a popular consumer tool (the most-used word-processor CV template, a résumé site's first theme)? If yes, FAIL, with the symptom named from the "too much like Word 97" list in [`references/design/draw-rules.md`](design/draw-rules.md).
 
 Both are pass/fail, not stylistic preferences, and a FAIL means the recipe (not the content) gets changed.
 

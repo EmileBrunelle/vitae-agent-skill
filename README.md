@@ -105,7 +105,7 @@ references/                   # loaded on demand, never all at once
   certifications/rules.md     #   router for professional-certification files
   steps/                      #   step bodies 0-8, read when the step starts
   fields/                     #   field packs (software-dev, trades, academic CV genre)
-  design/core.md, families/   #   shared design rules; one recipe per design family (14)
+  design/core.md, draw-rules.md, separation-gate.md, families/   #   shared design rules, drawing rules, gate internals; one recipe per design family (14)
   *.md                        #   topic notes: ats, fonts, icons, known-traps, reviews, typst-primer, ...
 templates/                    # Typst starting points
   resume.typ, lib.typ         #   annotated template + shared verified mechanics (hand-off is these two files)

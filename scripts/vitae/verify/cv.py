@@ -486,7 +486,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                   f"`scripts/verify.py {shlex.quote(typ)} {expected} {lowest} {fmax}{allow}` (FILL_MIN = the "
                   f"lowest fill the gate prints, not below {LOWERED_FILL_FLOOR}) and tell the user")
     # Clone markers: the template's own accent and its "Category: items" skills block, left in
-    # place, make every CV from the skill look alike (references/design/core.md, three clone markers).
+    # place, make every CV from the skill look alike (references/design/draw-rules.md, three clone markers).
     typ_text = open(typ, encoding="utf-8").read()
     if "7d2231" in typ_text.lower():
         print("WARN  template default accent (#7d2231) — run scripts/pick_design.py and apply the family it draws (references/design/families/<family>.md)")
