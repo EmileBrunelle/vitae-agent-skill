@@ -72,7 +72,7 @@
     sep: [ #box(width: 3pt, height: 3pt, fill: accent2) ])]
   #v(1pt)
   #text(size: 9pt, fill: muted)[
-    #nb(ic.pin)[\[City, Region\]] #h(9pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
+    #contact-rows(2)#nb(ic.pin)[\[City, Region\]] #h(9pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(9pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
     #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
     #h(9pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]

@@ -12,7 +12,7 @@ L1 (crops:fill) Is all text fully visible, with none cut off, overlapped or hidd
 L2 (crops:fill) Is every text on a coloured band or fill clearly legible against it (no pale-on-pale, no dark-on-dark)?
 L3 (page) Does every section heading have clear space above it, bigger than the space between lines inside the section above?
 L4 (page) Does each sub-line (role, company, dates, descriptor) sit closer to its own heading than to the next block?
-L5 (page) Does every skills row, contact line, descriptor line, Languages line and specialities line stay on one line?
+L5 (page) Does every skills row, contact line, descriptor line, Languages line and specialities line stay on one line? The gate FAILs a contact line that wraps onto more rows than its template lays out.
 L6 (page) Do all dates sit in the same place and style, none apart from the others?
 L7 (pages) Is there no heading alone at the bottom of a page, no single line stranded at the top or bottom of a page, and does each page after the first open on a section heading?
 L8 (page) Is every word whole at the end of its line (none split across two lines)?

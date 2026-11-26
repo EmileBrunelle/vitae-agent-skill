@@ -68,7 +68,7 @@
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
      #v(-3pt)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
-    text(size: 9pt, fill: muted)[#nb(mk.pin)[\[City, Region\]] \
+    text(size: 9pt, fill: muted)[#contact-rows(5)#nb(mk.pin)[\[City, Region\]] \
       #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \
       #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
       #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \

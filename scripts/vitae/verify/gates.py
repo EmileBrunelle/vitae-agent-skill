@@ -13,6 +13,7 @@ import re
 from vitae.core.base import DetailRow, HiddenStat, Mark
 from vitae.core.context import VerifyContext
 from vitae.core.level import Finding, Level
+from vitae.verify.contact import check_contact_line
 from vitae.verify.groups import (
     ENTRY_MARKS,
     _typst_query_checked,
@@ -150,6 +151,10 @@ def _date_adjacency(ctx: VerifyContext) -> list[Finding]:
     return out
 
 
+def _contact_line(ctx: VerifyContext) -> list[Finding]:
+    return check_contact_line(ctx.typ, ctx.root)
+
+
 def _source_text(ctx: VerifyContext) -> list[Finding]:
     return [(Level.FAIL, msg) for msg in check_forced_linebreak(ctx.src) + check_literal_tilde(ctx.src)]
 
@@ -200,6 +205,7 @@ LAYOUT_GATES: tuple[Gate, ...] = (
     FnGate("font-fallback", _font_fallback),
     FnGate("group-proximity", _group_proximity, _can_query),
     FnGate("date-adjacency", _date_adjacency, _can_query),
+    FnGate("contact-line", _contact_line, _can_query),
     FnGate("source-text", _source_text),
     FnGate("duplicate-names", _duplicate_names, _can_query),
 )
