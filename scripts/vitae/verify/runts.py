@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from vitae.core.base import HeadMark, Mark, Word, WordBox, _Line, is_placed
 from vitae.core.level import Finding, Level
 from vitae.verify.groups.query import _lines
-from vitae.verify.pdf import word_boxes
+from vitae.verify.pdf import _bbox_pages
 
 # A last line is a runt when it is at most RUNT_EM line heights wide AND at most RUNT_FRAC of the bullet's
 # widest line. Both: the first keeps a short line of a narrow column from being judged by the column alone,
@@ -28,6 +28,8 @@ RUNT_EM = 2.5
 RUNT_FRAC = 0.15
 _EDGE_SLACK = 1.5      # pt: continuation lines share the first line's edge within this
 _MARKER_BAND = 8.0     # pt: how far from the marker's y a text line may sit and still be its first line
+_CHANNEL = 0.4         # line heights: a gap this wide, free of words on every line below the marker, ends the column
+_BOTTOM_LINES = 1.5    # line heights: a bullet's last line this close to the content bottom may go on at the next page
 
 
 @dataclass(frozen=True)
@@ -54,6 +56,7 @@ class BulletLine:
     extent: Extent
     height: float
     text: str
+    y1: float = 0.0
 
 
 def _positions(marks: list[Mark]) -> list[Pos]:
@@ -74,13 +77,13 @@ def _text_side(words: list[Word], m: Pos) -> bool | None:
 
 def _column(words: list[Word], m: Pos, ltr: bool) -> tuple[float, float]:
     """The x range of the marker's column: from the marker out to the first clear vertical channel (wider
-    than a line height) in the words at or below the marker, so a sidebar beside it is not part of it."""
+    than a few interword spaces: no word of any line below crosses it, so justified text is not cut) in the words at or below the marker, so a sidebar beside it is not part of it."""
     below = [w for w in words if (w[1] + w[3]) / 2 >= m.y - _MARKER_BAND
              and (w[0] >= m.x - 0.5 if ltr else w[2] <= m.x + 0.5)]
     if not below:
         return (m.x - 0.5, float("inf")) if ltr else (float("-inf"), m.x + 0.5)
     below.sort(key=lambda w: w[0] if ltr else -w[2])
-    gap = max(w[3] - w[1] for w in below[:1])
+    gap = _CHANNEL * max(w[3] - w[1] for w in below[:1])
     edge = below[0][2] if ltr else below[0][0]
     for w in below:
         if ltr:
@@ -120,19 +123,34 @@ def _follow(lines: list[_Line], start: int, edge: float, ltr: bool, nxt: float, 
         ln = lines[k]
         if stop is not None and k >= stop:
             return False
+        # a lowered inline element can split the next bullet's first line so that `stop` is None: its lines
+        # are still at or below the next marker
+        if nxt != float("inf") and ln["c"] >= nxt - (ln["y1"] - ln["y0"]) / 2:
+            return False
         if prev is not None and ln["y0"] - prev["y1"] > prev["y1"] - prev["y0"]:
             return False
         e = _extent(ln["words"])
         if abs((e.x0 if ltr else e.x1) - edge) > _EDGE_SLACK:
             return False
-        got.append(BulletLine(pg, e, ln["y1"] - ln["y0"], " ".join(w[4] for w in ln["words"])))
+        got.append(BulletLine(pg, e, ln["y1"] - ln["y0"], " ".join(w[4] for w in ln["words"]), ln["y1"]))
         prev = ln
     return True
 
 
-def bullet_lines(marks: list[Mark], pages: list[list[WordBox]]) -> list[tuple[int, list[BulletLine]]]:
+def _at_bottom(page: list[WordBox], following: list[WordBox], last: BulletLine, page_h: float | None) -> bool:
+    """True when the bullet's last line sits where the page's content ends, so the next line would not have
+    fitted: the page height less a bottom margin taken as large as the next page's top margin (its topmost text).
+    Without the page height: when no text of the page is lower."""
+    if page_h is None or not following:
+        return last.y1 >= max(b[3] for b, _ in page) - 0.5
+    return last.y1 >= page_h - min(b[1] for b, _ in following) - _BOTTOM_LINES * last.height
+
+
+def bullet_lines(marks: list[Mark], pages: list[list[WordBox]],
+                 heights: list[float] | None = None) -> list[tuple[int, list[BulletLine]]]:
     """Per bullet mark (page, lines top to bottom); a bullet whose first line cannot be located is dropped.
-    Only the words of the marker's own column count, and a bullet runs on across a page break."""
+    Only the words of the marker's own column count, and a bullet runs on across a page break when its last
+    line is at the bottom of the content (`heights`: the page heights)."""
     bullets = sorted(_positions(marks), key=lambda p: (p.page, p.y))
     out: list[tuple[int, list[BulletLine]]] = []
     for i, m in enumerate(bullets):
@@ -150,11 +168,13 @@ def bullet_lines(marks: list[Mark], pages: list[list[WordBox]]) -> list[tuple[in
             continue
         first = _extent(lines[j]["words"])
         edge = first.x0 if ltr else first.x1
-        got = [BulletLine(pg, first, lines[j]["y1"] - lines[j]["y0"], " ".join(w[4] for w in lines[j]["words"]))]
+        got = [BulletLine(pg, first, lines[j]["y1"] - lines[j]["y0"], " ".join(w[4] for w in lines[j]["words"]),
+                            lines[j]["y1"])]
         nxt = next((b.y for b in bullets[i + 1:] if b.page == pg and abs(b.x - m.x) <= _EDGE_SLACK and b.y > m.y + 1),
                    float("inf"))
-        if _follow(lines, j + 1, edge, ltr, nxt, pg, got, lines[j]) and pg < len(pages):
-            # ran to the end of the column: the bullet may go on at the top of the next page, same column
+        at_end = _follow(lines, j + 1, edge, ltr, nxt, pg, got, lines[j])
+        if at_end and pg < len(pages) and _at_bottom(pages[pg - 1], pages[pg], got[-1], heights[pg - 1] if heights else None):
+            # ran to the bottom of the column: the bullet may go on at the top of the next page, same column
             nxt = min((b.y for b in bullets if b.page == pg + 1 and abs(b.x - m.x) <= _EDGE_SLACK),
                       default=float("inf"))
             _follow(_window(pages[pg], col), 0, edge, ltr, nxt, pg + 1, got, None)
@@ -180,12 +200,13 @@ def check_runts(marks: list[Mark] | None, pdf: str, *, fail: Callable[[str], Fin
         return [(Level.WARN, "bullet runt lines not measured: typst query unavailable")]
     if not any(m.get("kind") == "bullet" for m in marks):
         return [(Level.WARN, "bullet runt lines not measured: no lib bullet marks "
-                             "(the list marker is not lib drawn-marker / bullet-marked)")]
-    pages = word_boxes(pdf, with_text=True)
-    if pages is None:
+                             "(draw the list through lib list-marker or bullet-marked; drawn-marker is the untagged inline separator)")]
+    sized = _bbox_pages(pdf)
+    if sized is None:
         return [(Level.WARN, "bullet runt lines not measured: word positions unavailable")]
     out: list[Finding] = []
-    for pg, lines in bullet_lines(marks, pages):
+    for _, lines in bullet_lines(marks, [items for _, _, items in sized], [h for _, h, _ in sized]):
+        pg = lines[-1].page
         if is_runt(lines, runt_em, runt_frac):
             out.append(fail(f'bullet runt line on page {pg}: last line of a {len(lines)}-line bullet is '
                             f'"{lines[-1].text}" (a few glyphs alone) — a bullet is one line or its lines are '

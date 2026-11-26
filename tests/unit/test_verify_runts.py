@@ -205,3 +205,45 @@ def test_inline_separator_is_not_a_bullet(tmp_path):
                    'Nî #drawn-marker("dot", auto) Nî #drawn-marker("mid", auto) Nî\n\n- one\n- two\n', encoding="utf-8")
     vals = _typst_values(str(typ), "<vitae-bullet>", str(tmp_path))
     assert vals is not None and len(vals) == 2
+
+
+def test_next_page_runt_is_reported_on_its_own_page(tmp_path):
+    ctx = _split_across_pages(tmp_path, lambda room: f"#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
+    assert "page 2" in _bullet_runts(ctx)[0][1]
+
+
+def test_complete_bullet_then_aligned_line_on_next_page_is_not_a_runt(tmp_path):
+    """The bullet ended on page 1 above the bottom; page 2 starts with a short line at the same left edge."""
+    for room in range(10, 40, 4):   # beyond that the bullet reaches the bottom: a continuation cannot be excluded
+        body = (f"#v({room}pt)\n- {LATIN_FIRST} more words to wrap the line here ok.\n"
+                "#pagebreak()\n#pad(left: 9.6pt)[2021]\n")
+        ctx = _compile_doc(tmp_path, f"np{room}", "width: 330pt, height: 120pt, margin: 20pt", body)
+        assert _bullet_runts(ctx) == [], room
+
+
+def test_next_bullet_with_a_lowered_inline_element_does_not_hide_the_runt(tmp_path):
+    body = f"- {LATIN_FIRST} \\ ms.\n- Cut floor area by #box(baseline: 4pt)[30] m2 across sites.\n"
+    ctx = _compile_doc(tmp_path, "low", "width: 330pt, height: 200pt, margin: 20pt", body)
+    out = _bullet_runts(ctx)
+    assert [lvl for lvl, _ in out] == [Level.FAIL], out
+    assert "ms." in out[0][1]
+
+
+@pytest.mark.parametrize("sidebar_left", [True, False])
+def test_runt_next_to_a_justified_sidebar_with_a_narrow_gutter_is_found(tmp_path, sidebar_left):
+    side = "[" + " ".join(f"Sidebar words {i} of a justified paragraph text" for i in range(14)) + "]"
+    main = (f"[\n- {LATIN_FIRST} adding indexes so the report now finishes \\ ms.\n"
+            "- Another bullet, one line.\n]")
+    cells = f"{side}, {main}" if sidebar_left else f"{main}, {side}"
+    cols = "110pt, 1fr" if sidebar_left else "1fr, 110pt"
+    ctx = _compile_doc(tmp_path, "just", "width: 400pt, height: 300pt, margin: 20pt",
+                       "#set par(justify: true)\n"
+                       f"#grid(columns: ({cols}), column-gutter: 12pt, {cells})")
+    out = _bullet_runts(ctx)
+    assert [lvl for lvl, _ in out] == [Level.FAIL], out
+    assert "ms." in out[0][1]
+
+
+def test_not_measured_notice_names_the_tagging_markers():
+    out = check_runts([], "x.pdf", fail=lambda m: (Level.FAIL, m))
+    assert "list-marker" in out[0][1] and "bullet-marked" in out[0][1]
