@@ -40,7 +40,7 @@
   #line(length: 46pt, stroke: 3.5pt + accent)
   #v(3pt)
   #text(font: dispf, size: 13pt, weight: "bold", fill: dark)[#t]
-  #v(9pt)
+  #v(8pt)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 

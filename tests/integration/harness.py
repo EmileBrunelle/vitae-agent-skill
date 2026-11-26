@@ -33,6 +33,10 @@ class CheckResult:
     def tail(self, n: int = 15) -> str:
         return "\n".join(self.output.splitlines()[-n:])
 
+    def failures(self) -> str:
+        """The FAIL lines (and the NEXT line after them): the cause, which the tail of a long verify output hides."""
+        return "\n".join(ln for ln in self.output.splitlines() if ln.startswith(("FAIL", "NEXT")))
+
 
 def run_check(name: str, argv: Sequence[str | int | os.PathLike[str]], cwd: Path,
               env: Mapping[str, str] | None = None, log_dir: Path | None = None,
@@ -59,7 +63,7 @@ def run_check(name: str, argv: Sequence[str | int | os.PathLike[str]], cwd: Path
 
 
 def assert_passed(r: CheckResult) -> None:
-    assert r.passed, f"FAIL {r.name} (exit {r.rc}; see {r.log})\n{r.tail()}"
+    assert r.passed, f"FAIL {r.name} (exit {r.rc}; see {r.log})\n{r.failures()}\n--- tail ---\n{r.tail()}"
 
 
 # The first 3 templates only under --quick.
