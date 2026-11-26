@@ -15,8 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         # 3.11 = declared minimum (tomllib); 3.x = latest stable.
-        # 3.11 runs only the Python-version-sensitive checks (mypy, ruff, tests/unit); Typst, fonts, poppler and
-        # the template compiles are identical across Python versions, so they run on 3.x only.
+        # 3.11 runs the Python-version-sensitive checks (mypy, ruff, tests/unit) plus the backend verdict
+        # equivalence bench; 3.x runs the template compiles (integration suite). Typst, poppler and fonts are
+        # installed on both legs (the bench needs them); the integration suite is identical across Python
+        # versions, so it runs on 3.x only. The two long steps sit on different legs to shorten the critical path.
         python-version: ["3.11", "3.x"]
     timeout-minutes: 20
     env:
@@ -44,7 +46,6 @@ jobs:
         run: pip install Pillow pypdf pyyaml==6.0.4 mypy==2.4.1 ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 pypdfium2 "typst==$TYPST_PY_VERSION"
 
       - name: Typst ${{ env.TYPST_VERSION }}
-        if: matrix.python-version == '3.x'
         env:
           GH_TOKEN: ${{ github.token }}
         # gh goes through the API asset endpoint; the plain releases/download URL
@@ -57,17 +58,14 @@ jobs:
           typst --version
 
       - name: poppler
-        if: matrix.python-version == '3.x'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends poppler-utils
 
       # Fonts: .github/actions/fonts (shared with the pure-python job).
       - uses: ./.github/actions/fonts
-        if: matrix.python-version == '3.x'
 
       - name: Check every font the templates name is visible to Typst
-        if: matrix.python-version == '3.x'
         run: |
           typst fonts > "$RUNNER_TEMP/fonts.txt"
           missing=0
@@ -90,9 +88,10 @@ jobs:
         run: python -m pytest -q -n auto tests/integration --vitae-out "$RUNNER_TEMP/out"
 
       # Same inputs through poppler vs pypdfium2 and typst CLI vs typst-py: gate VERDICTS must match
-      # (the bench needs the CLI and poppler, so it lives in this job, not in pure-python).
+      # (the bench needs the CLI and poppler, so it lives in this job, not in pure-python). Runs on the
+      # 3.11 leg, which has the shorter path, while 3.x runs the integration suite.
       - name: Backend verdict equivalence
-        if: matrix.python-version == '3.x'
+        if: matrix.python-version == '3.11'
         run: python tests/backend_equiv.py "$RUNNER_TEMP/equiv"
 
       - name: Upload template PDFs and PNGs
