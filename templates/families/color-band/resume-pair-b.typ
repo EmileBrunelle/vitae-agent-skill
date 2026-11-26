@@ -47,7 +47,7 @@
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.782em, spacing: 0.832em)
+#set par(justify: false, leading: 0.569em, spacing: 0.619em)
 
 // device: heading reversed out of a solid accent bar, no rules at all
 #let section(t, body, airy: false) = block(breakable: false,
@@ -71,7 +71,7 @@
   brk: true, brk-gap: 2pt, above: auto, below: 0pt)
 
 #set list(marker: list-marker("dot", accent2, bold: true), indent: 10pt,
-  spacing: 0.637em, body-indent: 6pt)
+  spacing: 0.758em, body-indent: 6pt)
 
 // header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
 #masthead(accent)[

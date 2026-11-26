@@ -46,14 +46,23 @@ class TestFamilyRelative:
         assert lead / lsp < LEADING_ABS_RATIO_WARN
         assert _leading_warn(cv(tmp_path, lead, lsp)).startswith("WARN")
 
-    def test_two_page_reference_is_the_2page_template(self, tmp_path):
-        # a file at exactly the swiss-grid 2-page default: silent against it, fires against resume.typ
-        l2, s2 = _default("swiss-grid", 2)
-        l1, s1 = _default("swiss-grid", 1)
-        assert (l2 / s2) / (l1 / s1) > LEADING_FAMILY_RATIO_WARN   # precondition: the two defaults differ
-        p = cv(tmp_path, l2, s2, "swiss-grid")
-        assert _leading_warn(p, 2) == ""
-        assert _leading_warn(p, 1).startswith("WARN")
+    def test_two_page_reference_is_the_2page_template(self, tmp_path, monkeypatch):
+        # a file at exactly the family's 2-page default: silent against it, fires against resume.typ.
+        # Synthetic family: the shipped 1-page and 2-page ratios are no longer far enough apart to pin.
+        import vitae.verify.cv as C
+        fam = tmp_path / "templates" / "families" / "zz"
+        fam.mkdir(parents=True)
+        (tmp_path / "scripts" / "vitae" / "verify").mkdir(parents=True)
+        (fam / "resume.typ").write_text("#set par(leading: 0.60em)\n#set list(spacing: 0.80em)\nx\n")
+        (fam / "resume-2page.typ").write_text("#set par(leading: 0.80em)\n#set list(spacing: 0.80em)\nx\n")
+        monkeypatch.setattr(C.os.path, "abspath", lambda _p: str(tmp_path / "scripts" / "vitae" / "verify" / "cv.py"))
+        C._family_default.cache_clear()
+        try:
+            p = cv(tmp_path, 0.80, 0.80, "zz")
+            assert _leading_warn(p, 2) == ""
+            assert _leading_warn(p, 1).startswith("WARN")
+        finally:
+            C._family_default.cache_clear()
 
     def test_unparsable_2page_falls_back_to_resume(self, tmp_path, monkeypatch):
         import vitae.verify.cv as C

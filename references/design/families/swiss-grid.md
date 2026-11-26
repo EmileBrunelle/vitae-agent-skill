@@ -9,5 +9,5 @@ Müller-Brockmann / Helvetica school: flush-left, objective, structure carried b
 - **Header**: one grid ROW — name 24pt bold + role line left, 5-line contact column right-aligned (photo slot = right cell).
 - **Type**: one neo-grotesque for display *and* body. Pool (and provenance, and the fallback chain): `scripts/pick_design.py` FONTS `swiss-grid`.
 - **Accents** (mono harmony): `#b3261e` swiss red · `#33475b` slate · `#0f4c5c` petrol.
-- **Verified**: leading `0.604em`, spacing `0.664em`, section `above` 14.5pt (19.5pt airy), 6pt after the title (2.2:1) → 1 page, fill 96%, white-run ratio 2.80 (tallest gap 1.5% of page height). Default labels: Profile / Technical Skills.
+- **Verified**: leading `0.433em`, spacing `0.493em`, list spacing `0.619em` (item gap above leading, 2026-11-26 rhythm fix), section `above` 14.5pt (19.5pt airy), 6pt after the title (2.2:1) → 1 page, fill 96%, white-run ratio 2.80 (tallest gap 1.5% of page height). Default labels: Profile / Technical Skills.
 - Markets: any; safe for conservative. Photo: yes.

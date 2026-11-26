@@ -283,12 +283,18 @@
   let clr = calc.max(dsc(role-st), dsc(date-st)) + o("ascender") - o("cap-height")
   // Gap ABOVE the entry (to the previous entry's last line): at least 1.4x the
   // body leading (the gap between two wrapped lines inside the entry; a clearly
-  // larger step than the bullet pitch, still below the section gap), and at
+  // larger step than the bullet pitch, still below the section gap), at
   // least the role -> org distance plus `lift` (the previous entry's last line
   // usually has descenders, the role line usually none), so the head never
   // sits closer to the previous entry than to its own org line.
+  // The list-item gap (`#set list(spacing:)`, the leading when unset): the entry gap is at least 1.25x it
+  // (+0.1em), so line leading < item gap < entry gap holds, with the entry still reading as one unit
+  // (the gate wants the entry gap >= 1.2x the largest gap inside an entry) when a family opens its
+  // item gap above its leading.
+  let li-gap = if list.spacing == auto { par.leading.to-absolute() } else { list.spacing.to-absolute() }
   let ab = if above != auto { above } else {
-    calc.max(1.4 * par.leading.to-absolute(), clr + gap.to-absolute() + lift.to-absolute())
+    calc.max(1.4 * par.leading.to-absolute(), clr + gap.to-absolute() + lift.to-absolute(),
+             1.25 * li-gap + 0.1em.to-absolute())
   }
   let dated = has-text(dates)
   let line = [#org-st(org)#if note != none [#note-st([#sep#note])]]
