@@ -70,10 +70,10 @@
   #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-2pt)
   #text(font: dispf, size: 8.5pt, fill: muted)[
-    #nb(ic.pin)[\[City, Region\]] #h(6pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
-    #h(6pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(6pt)
-    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(6pt)
-    #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+    #contact(ic.pin)[\[City, Region\]] #h(6pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
+    #h(6pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(6pt)
+    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(6pt)
+    #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
 ]
 
 // ---------- Profile ----------

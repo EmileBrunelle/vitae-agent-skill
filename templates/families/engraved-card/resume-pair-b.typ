@@ -67,7 +67,7 @@
 // a rule or a colour was not available. Nobody else punctuates with a period.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat.], items)
 
-#set list(marker: drawn-marker("dash", accent), indent: 10pt, spacing: 0.581em,
+#set list(marker: list-marker("dash", accent), indent: 10pt, spacing: 0.581em,
   body-indent: 6pt)
 
 // HEADER: fully CENTRED — the social-stationery lockup. Name, a short centred
@@ -82,10 +82,10 @@
     #text(size: 11pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
     #v(-1pt)
     #text(size: 9pt, fill: muted)[
-      \[City, Region\] #h(7pt) #link("tel:+15555550100")[(555) 555-0100] #h(7pt)
-      #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
-      #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
-      #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+      #contact(none)[\[City, Region\]] #h(7pt) #contact(none)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)
+      #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
+      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
+      #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
   ]
 ]
 

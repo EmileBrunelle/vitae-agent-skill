@@ -52,7 +52,7 @@
 // skills: bold label, wide gap, items — no separator punctuation at all
 #let skill(cat, items) = srow(box[#text(weight: "bold")[#cat]#h(12pt)], items)
 
-#set list(marker: drawn-marker("square", accent2, bold: true), indent: 10pt,
+#set list(marker: list-marker("square", accent2, bold: true), indent: 10pt,
   spacing: 0.633em, body-indent: 6pt)
 
 // header: oversized accent name left, contacts on one line below
@@ -62,10 +62,10 @@
   #text(size: 11pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-3pt)
   #text(size: 9pt, fill: muted)[
-    #contact-rows(2)#nb(ic.pin)[\[City, Region\]] #h(9pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
-    #h(9pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(9pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #contact-rows(2)#contact(ic.pin)[\[City, Region\]] #h(9pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
+    #h(9pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
+    #h(9pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 

@@ -51,7 +51,7 @@ Device-level calls gathered from a survey of published CVs, template galleries a
 
 ## Bullet markers must be drawn (vector), not characters
 
-A list marker set as a character (–, •, ▪, ◆) lands in the extracted text: on the Banque Nationale portal it came out alone on its own line above the bullet's text, and Microsoft/Eightfold displayed it literally in descriptions (measured). Draw it (`drawn-marker` in `templates/lib.typ`, a Typst shape that emits no text). Never use an icon font (Font Awesome, etc.) for markers or icons: its glyphs are private-use characters and extract as junk. `verify.py` WARNs on a line that starts with a bullet or private-use character.
+A list marker set as a character (–, •, ▪, ◆) lands in the extracted text: on the Banque Nationale portal it came out alone on its own line above the bullet's text, and Microsoft/Eightfold displayed it literally in descriptions (measured). Draw it (`list-marker` / `drawn-marker` in `templates/lib.typ`, a Typst shape that emits no text). Never use an icon font (Font Awesome, etc.) for markers or icons: its glyphs are private-use characters and extract as junk. `verify.py` WARNs on a line that starts with a bullet or private-use character.
 
 ## Eightfold (Microsoft careers portal) — measured quirks
 

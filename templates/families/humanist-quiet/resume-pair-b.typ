@@ -48,7 +48,7 @@
 // skills: bulleted rows, accent marker, em-dash label (hanging indent aligns wraps)
 #let skill(cat, items) = srow([#drawn-marker("dash", accent, bold: true)#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
 
-#set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
+#set list(marker: list-marker("dash", accent, bold: true), indent: 10pt,
   spacing: 0.580em, body-indent: 6pt)
 
 // header: name + subtitle left, contacts on two left-aligned lines below
@@ -61,10 +61,10 @@
   #text(size: 10.5pt)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-4pt)
   #text(size: 9pt, fill: muted)[
-    #contact-rows(2)#nb(mk.pin)[\[City, Region\]] #h(5pt)#drawn-marker("mid", auto)#h(5pt) #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
-    #h(5pt)#drawn-marker("mid", auto)#h(5pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(5pt)#drawn-marker("mid", auto)#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #contact-rows(2)#contact(mk.pin)[\[City, Region\]] #h(5pt)#drawn-marker("mid", auto)#h(5pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
+    #h(5pt)#drawn-marker("mid", auto)#h(5pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
+    #h(5pt)#drawn-marker("mid", auto)#h(5pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 

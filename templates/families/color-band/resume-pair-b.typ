@@ -39,7 +39,7 @@
 // Each mark+value pair goes through `nb`, a #box[…~…] so the mark can never
 // be orphaned at a line end — and `nb` drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
-#import "../../lib.typ": marks, nb, ghost, drawn-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
+#import "../../lib.typ": marks, nb, contact, ghost, drawn-marker, list-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
 #let mk = marks(ic-col)
 // the hand-drawn pin/phone follow the marks' all-or-nothing rule (no mixed row)
 #let ic-on(g) = if mk.mail == none { ghost } else { g }
@@ -70,7 +70,7 @@
   text(weight: "bold", size: 9.5pt)[#upper(cat)], items,
   brk: true, brk-gap: 2pt, above: auto, below: 0pt)
 
-#set list(marker: drawn-marker("dot", accent2, bold: true), indent: 10pt,
+#set list(marker: list-marker("dot", accent2, bold: true), indent: 10pt,
   spacing: 0.637em, body-indent: 6pt)
 
 // header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
@@ -80,11 +80,11 @@
   #text(size: 10.5pt, fill: white, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-4pt)
   #text(size: 9pt, fill: white)[
-    #nb(ic-on(ic-pin))[\[City, Region\]]
-    #h(6pt) #nb(ic-on(ic-tel))[#link("tel:+15555550100")[(555) 555-0100]]
-    #h(6pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]]
-    #h(6pt) #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(6pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #contact(ic-on(ic-pin))[\[City, Region\]]
+    #h(6pt) #contact(ic-on(ic-tel))[#link("tel:+15555550100")[(555) 555-0100]]
+    #h(6pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]]
+    #h(6pt) #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
+    #h(6pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 

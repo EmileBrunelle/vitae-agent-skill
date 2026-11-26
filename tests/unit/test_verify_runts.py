@@ -28,10 +28,10 @@ SCRIPTS = {
 def _compile(tmp_path, name, font, bullet, rtl):
     for f in ("lib.typ", "icons.typ"):
         shutil.copy(ROOT / "templates" / f, tmp_path / f)
-    src = ('#import "lib.typ": drawn-marker\n#set page(width: 330pt, height: 200pt, margin: 20pt)\n'
+    src = ('#import "lib.typ": drawn-marker, list-marker\n#set page(width: 330pt, height: 200pt, margin: 20pt)\n'
            f'#set text(font: "{font}", size: 10pt{", dir: rtl" if rtl else ""})\n'
            '#set par(justify: false)\n'
-           '#set list(marker: drawn-marker("dot", black), indent: 0pt, spacing: 1em, body-indent: 6pt)\n'
+           '#set list(marker: list-marker("dot", black), indent: 0pt, spacing: 1em, body-indent: 6pt)\n'
            f"{bullet}\n")
     typ = tmp_path / f"{name}.typ"
     typ.write_text(src, encoding="utf-8")
@@ -120,3 +120,16 @@ def test_single_line_is_never_a_runt():
 
 def test_check_runts_without_query_warns():
     assert check_runts(None, "x.pdf", fail=lambda m: (Level.FAIL, m))[0][0] == Level.WARN
+
+
+def test_inline_separator_is_not_a_bullet(tmp_path):
+    """drawn-marker used as an inline separator dot must not be tagged <vitae-bullet>; list-marker is."""
+    from vitae.verify.groups.query import _typst_values
+    for f in ("lib.typ", "icons.typ"):
+        shutil.copy(ROOT / "templates" / f, tmp_path / f)
+    typ = tmp_path / "sep.typ"
+    typ.write_text('#import "lib.typ": drawn-marker, list-marker\n#set page(width: 300pt, height: 100pt)\n'
+                   '#set list(marker: list-marker("dot", black))\n'
+                   'Nî #drawn-marker("dot", auto) Nî #drawn-marker("mid", auto) Nî\n\n- one\n- two\n', encoding="utf-8")
+    vals = _typst_values(str(typ), "<vitae-bullet>", str(tmp_path))
+    assert vals is not None and len(vals) == 2

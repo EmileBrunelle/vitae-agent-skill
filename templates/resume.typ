@@ -74,7 +74,7 @@
 // e.g. #skill("[Category]", [\[item\], *\[item\]*]) — a "string" renders it literally.
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
-#set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
+#set list(marker: list-marker("dash", accent, bold: true), indent: 10pt,
   spacing: 0.565em, body-indent: 6pt)
 
 // ---------- Header (centered; platform marks only, no generic icons) ----------
@@ -88,11 +88,11 @@
   #text(size: 11pt, fill: accent, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-4pt)
   #text(size: 9.5pt, fill: muted)[
-    \[City, Region\]
-    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #link("tel:+15555550100")[(555) 555-0100]
-    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #contact-rows(2)#nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #contact(none)[\[City, Region\]]
+    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #contact(none)[#link("tel:+15555550100")[(555) 555-0100]]
+    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #contact-rows(2)#contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
+    #h(5pt)#drawn-marker("dot", auto)#h(5pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 

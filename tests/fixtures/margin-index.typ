@@ -56,7 +56,7 @@
 // jump does the separating (nobody else uses italic as the skills device)
 #let skill(cat, items) = srow(text(style: "italic")[#cat], items)
 
-#set list(marker: drawn-marker("emdash", accent), indent: 9pt, spacing: 0.844em, body-indent: 6pt)
+#set list(marker: list-marker("emdash", accent), indent: 9pt, spacing: 0.844em, body-indent: 6pt)
 
 // header: name and role in the content column, contacts on one line under it;
 // the margin column stays empty here (extraction keeps the name first)
@@ -67,10 +67,10 @@
      #v(-4pt)
      #text(size: 10.5pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]] \
      #v(-3pt)
-     #text(size: 9pt, fill: muted)[#nb(mk.pin)[\[City, Region\]] #h(7pt) #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
-       #h(7pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
-       #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
-       #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]],
+     #text(size: 9pt, fill: muted)[#contact(mk.pin)[\[City, Region\]] #h(7pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
+       #h(7pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
+       #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
+       #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]],
   )
 ]
 
