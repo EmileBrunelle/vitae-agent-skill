@@ -99,7 +99,7 @@ Notes on the rows:
 
 ## Route 3: the visual checker
 
-Route 3 is the optional visual pass done by a separate vision model through `scripts/look.py`. Recommendation: use a remote model. Three local models were tried as the checker on five test pages (one control, four with a known defect: low contrast, a clipped icon, a word split by a forced break, an extra gap above a heading), all on an AMD RX 9070 with LM Studio (ROCm), n=1 per page and mode.
+Route 3 is the optional visual pass done by a separate vision model through `scripts/look.py`. Recommendation: use a remote model. Three local models were tried as the checker on five test pages (one control, four with a known defect: low contrast, a clipped icon, a word split by a forced break, an extra gap above a heading), all on an AMD RX 9070 with LM Studio (ROCm), n=1 per page and mode, at temperature 0 (`--temperature 0`; pass it explicitly for reproducible local runs, since it is not the default: Claude's endpoint rejects temperature < 1).
 
 | Local model | Completed runs | Defects detected | False FAILs | Verdict |
 |---|---|---|---|---|

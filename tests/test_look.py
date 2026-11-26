@@ -75,11 +75,11 @@ check("L01", jr(("L01", "PASS", "a"), ("L2", "PASS", "b"), ("L3", "PASS", "c")),
 check("content parts", [{"type": "text", "text": jall()}], 0, [])
 # loud outcomes: never counted as a pile of FAIL
 ok("unparseable verdicts" in raises("I can't see any image.") and "ignored response_format" in raises("I can't see any image."))
-ok("not JSON" in raises("PASS L1 — a\nPASS L2 — b\nPASS L3 — c") and "update LM Studio/ollama" in raises("FAIL L1 — a"))
+ok("not JSON" in raises("PASS L1 — a\nPASS L2 — b\nPASS L3 — c") and "refused or answered in prose" in raises("FAIL L1 — a"))
 # reasoning leaked into the content is not stripped: the reply is not JSON, loudly, with its first chars
 for leak in ("<think>checking\nreasoning</think>\n" + jall(), "reasoning...\n</think>\n" + jall(), "<think>\n" + jall()):
     m = raises(leak)
-    ok("not JSON" in m and "leaked reasoning" in m and "reasoning_content" in m and "update LM Studio/ollama" in m and leak[:20] in m, m)
+    ok("not JSON" in m and "reasoning leaked" in m and "reasoning_content" in m and "refused or answered in prose" in m and leak[:20] in m, m)
 ok("not a checklist item" in raises(jr(("L1", "PASS", "a"), ("L9", "FAIL", "x"))))
 # any verdict outside the enum (translated token, lowercase, other word) is rejected, never mapped
 for bad_v in ("RÉUSSI", "ÉCHEC", "pass", "Fail", "FALLO", "OK", "", "PASSED"):
@@ -284,7 +284,7 @@ ok(c == 2 and "--max-tokens" in e, (c, e))
 c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat(""))
 ok(c == 2 and "empty" in e, (c, e))
 c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("<think>why</think>\n" + jall()))
-ok(c == 2 and "not JSON" in e and "leaked reasoning" in e and "<think>why</think>" in e and o == "", (c, o, e))
+ok(c == 2 and "not JSON" in e and "reasoning leaked" in e and "<think>why</think>" in e and o == "", (c, o, e))
 # 3 exit-2 anomalies
 c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat([{"type": "text", "text": jall()}]))
 ok(c == 0, (c, e))
@@ -292,7 +292,7 @@ ok(c == 0, (c, e))
 for free in ("Je ne vois aucune image, désolé.\nVoici mon analyse.", "PASS L1 — a\nPASS L2 — b\nPASS L3 — c",
              "| id | verdict |\n|---|---|\n| L1 | PASS |"):
     c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r, free=free: chat(free))
-    ok(c == 2 and "unparseable verdicts" in e and "ignored response_format" in e and "update LM Studio/ollama" in e
+    ok(c == 2 and "unparseable verdicts" in e and "ignored response_format" in e and "refused or answered in prose" in e
        and o == "", (c, o, e))
 c, o, e = cli("--checklist", CL_OLD, P1, resp=lambda r: chat("Je ne vois aucune image"))
 ok("Je ne vois aucune image" in e, e)

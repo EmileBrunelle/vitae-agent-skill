@@ -19,7 +19,7 @@ missing or self-contradicting (PASS and FAIL for one id) item counts FAIL. Last 
 Exit 0 all PASS, 1 any FAIL, 2 endpoint/config/input error (incl. truncated output in a single call, and a reply that
 is not the schema's JSON or answers an id that is not a checklist item: `unparseable verdicts`, nothing counted; the usual
 cause is a server or model that ignores `response_format`: update LM Studio/ollama or pick another model).
---temperature, --top-p and --top-k (LM Studio extension) go into the request only when given (Claude's endpoint refuses non-default sampling values on recent models).
+--temperature, --top-p and --top-k (LM Studio extension) go into the request only when given (Claude's endpoint refuses non-default sampling values on recent models: it rejects temperature < 1, so 0 is not a default). Local models: pass `--temperature 0` for reproducible runs.
 --per-item: a response cut off at --max-tokens (finish_reason=length) makes that item `FAIL … inconclusive
 (truncated at <n> tokens)`; the run continues with the remaining items and exits 1.
 
@@ -189,8 +189,9 @@ class ReplyError(Exception):
     """The reply is not the schema's JSON, or answers an id the checklist does not have."""
 
 
-IGNORED_HINT = ("the server ignored response_format (structured output) or leaked reasoning into the content: update "
-                "LM Studio/ollama, enable reasoning separation (reasoning_content), or pick another model. Nothing was counted")
+IGNORED_HINT = ("possible causes: the server or model ignored response_format (e.g. markdown fences around the JSON), the model "
+                "refused or answered in prose, or reasoning leaked into the content. Check the server version, enable reasoning "
+                "separation (reasoning_content), or pick another model. Nothing was counted")
 
 
 def parse_verdicts(content: object, ids: Sequence[str]) -> dict[str, tuple[str, str]]:
