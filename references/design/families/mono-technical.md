@@ -10,5 +10,5 @@ The spec-sheet / changelog current: monospace devices, tabular dates, high infor
 - **Header**: name, role line, then the contacts on ONE monospace line.
 - **Type**: a document-grade monospace for every device + a neutral sans body. Pool: `pick_design.py` FONTS `mono-technical`.
 - **Accents** (complementary harmony). Validated A→B pairs: `#1f3a5f` navy → `#8f2d3f` crimson (8.0) · `#33475b` slate → `#8a2f2a` brick (8.3) · `#0f4c5c` petrol → `#66291a` (11.1) · `#5b2a5e` plum → `#3c633a` (6.9). The first two replaced `#664e2d` and `#66513c`: a complemented navy lands on dull bronze, which is the muddiest thing this system can produce at 8.5pt.
-- **Verified**: leading `0.651em`, spacing `0.771em`, section `above` 20pt (25pt airy), 4pt after the title (5.0:1) → 1 page, fill 95%, white-run ratio 3.54 (2.3% of page height).
+- **Verified**: leading `0.489em`, spacing `0.608em`, list spacing `0.779em`, section `above` 20pt (25pt airy), 4pt after the title (5.0:1) → 1 page, fill 95%, white-run ratio 3.54 (2.3% of page height).
 - Markets: software, engineering, data, hardware, startups. Not for conservative markets, not for general business. Photo: no.

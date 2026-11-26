@@ -28,7 +28,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.480em, spacing: 0.580em)
+#set par(justify: false, leading: 0.536em, spacing: 0.636em)
 
 // device: the title, then a SHORT hairline tick on its own baseline-centre —
 // inline punctuation, not furniture. Never under the heading, never full width
@@ -48,14 +48,13 @@
 #let job(role, org, dates, note) = entry(role, org, dates, note,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   org-st: it => text(weight: "semibold", fill: accent, it),
-  note-st: it => text(fill: muted, it),
-  above: 11pt)
+  note-st: it => text(fill: muted, it))
 
 // skills: the label is set in the METADATA GRAY — colour, not weight or a
 // glyph, does the separating. No colon, no dash, no bullet.
 #let skill(cat, items) = srow(text(fill: ink, weight: "semibold")[#cat], items)
 
-#set list(marker: list-marker("mid", dark), indent: 10pt, spacing: 0.444em, body-indent: 6pt)
+#set list(marker: list-marker("mid", dark), indent: 10pt, spacing: 0.825em, body-indent: 6pt)
 
 // header: CONTACTS FIRST (a letterhead line), then the name, then the role —
 // the reverse of every other family's header order.
@@ -91,12 +90,9 @@
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
