@@ -89,11 +89,25 @@ class TestHueGeometry:
 
 class TestBuild:
     @pytest.mark.parametrize("level", sorted(P.DIAL))
-    @pytest.mark.parametrize("family", ["swiss-grid", "color-band", "gutter-rail"])
-    def test_every_role_clears_its_threshold(self, family, level):
-        p = P.build(family, "Some Seed+field", level)
-        failing = {k: v for k, v in p["checks"].items() if v[0] < v[1]}
-        assert failing == {}
+    @pytest.mark.parametrize("family", sorted(P.HARMONY))
+    def test_every_role_clears_its_threshold_and_the_dial_holds(self, family, level):
+        """50 draws per family and level: contrast floors, the dial's saturation/lightness bands, the hue veto, and
+        a second hue only where the family declares one (inside the same dial, far in hue, subordinate)."""
+        (smin, smax), (lmin, lmax) = P.DIAL[level]
+        for i in range(50):
+            p = P.build(family, "Candidate %02d+x" % i, level)
+            assert {k: v for k, v in p["checks"].items() if v[0] < v[1]} == {}
+            h, s, l = p["hsl"]
+            assert not P.EXCLUDE_HUE[0] <= h <= P.EXCLUDE_HUE[1] and smin <= s <= smax and lmin <= l <= lmax
+            if family not in P.DUOTONE:
+                assert p["accent2"] is None and "accent2" not in P.typst(p)
+                continue
+            second = P._second(p)
+            assert second is not None and "accent2" in P.typst(p)
+            h2, s2, l2 = second[1]
+            assert not any(lo <= h2 <= hi for lo, hi in P.HUE_B_VETO)
+            assert smin <= s2 <= smax and lmin <= l2 <= lmax and s2 <= s
+            assert abs((h2 - h + 180) % 360 - 180) >= 55 and p["checks"]["accent2 on white"][0] >= P.ACCENT_MIN[level]
 
     def test_same_inputs_give_same_palette(self):
         assert P.build("swiss-grid", "s") == P.build("swiss-grid", "s")
