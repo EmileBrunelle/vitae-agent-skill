@@ -1,35 +1,51 @@
-"""Public API of templates/lib.typ, read from the file itself (no list to keep in sync).
+"""Public API of a lib.typ, read from the file itself (no list to keep in sync).
 
-A function is public when a worked file (templates/resume.typ or a family's .typ) calls it;
-the rest of lib.typ is internal plumbing the CV never touches."""
+lib.typ marks no function as internal, so everything an agent could need is listed: every
+top-level `#let` of the file, functions with their parameters, values by name."""
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-_DEF = re.compile(r"^#let ([A-Za-z][\w-]*)\(", re.M)
+_DEF = re.compile(r"^#let ([A-Za-z][\w-]*)(\()?", re.M)
 _OPEN, _CLOSE = "([{", ")]}"
 
 
 def _params(src: str, start: int) -> list[str] | None:
-    """Parameter texts of the definition whose '(' sits just before `start`; None if unbalanced."""
-    depth, quote, cur, out = 1, False, "", []
-    for ch in src[start:]:
-        if quote:
-            cur += ch
-            quote = ch != '"'
+    """Parameter texts of the definition whose '(' sits just before `start`; None if unbalanced.
+
+    Strings (with `\\"` escapes) and `//`, `/* */` comments are skipped; quotes inside a
+    `[...]` content block are plain text."""
+    stack, cur, out = ["("], "", []
+    i, n = start, len(src)
+    while i < n:
+        ch = src[i]
+        if ch == '"' and stack[-1] != "[":
+            j = i + 1
+            while j < n and src[j] != '"':
+                j += 2 if src[j] == "\\" else 1
+            cur += src[i:j + 1]
+            i = j + 1
             continue
-        if ch == '"':
-            quote, cur = True, cur + ch
-        elif ch in _OPEN:
-            depth, cur = depth + 1, cur + ch
+        if src.startswith("//", i):
+            j = src.find("\n", i)
+            i = n if j < 0 else j
+            continue
+        if src.startswith("/*", i):
+            j = src.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+            continue
+        i += 1
+        if ch in _OPEN:
+            stack.append(ch)
+            cur += ch
         elif ch in _CLOSE:
-            depth -= 1
-            if depth == 0:
+            stack.pop()
+            if not stack:
                 out.append(cur)
                 return [p.strip() for p in out if p.strip()]
             cur += ch
-        elif ch == "," and depth == 1:
+        elif ch == "," and len(stack) == 1:
             out.append(cur)
             cur = ""
         else:
@@ -37,23 +53,41 @@ def _params(src: str, start: int) -> list[str] | None:
     return None
 
 
-def signatures(lib_src: str) -> dict[str, str]:
-    """name -> `name(positional; named)` for every top-level `#let name(...)` of lib.typ."""
+def signatures(lib_src: str, failed: list[str] | None = None) -> dict[str, str]:
+    """name -> `name(positional; named)` for a top-level function, bare `name` for a value.
+
+    A parameter list that does not balance degrades to `name(?)` and its name goes to `failed`."""
     sigs: dict[str, str] = {}
     for m in _DEF.finditer(lib_src):
+        name = m.group(1)
+        if not m.group(2):
+            if re.match(r"\s*=", lib_src[m.end():]):
+                sigs[name] = name
+            continue
         params = _params(lib_src, m.end())
         if params is None:
-            raise SystemExit("lib.typ: unbalanced parameter list for %s" % m.group(1))
+            sigs[name] = name + "(?)"
+            if failed is not None:
+                failed.append(name)
+            continue
         pos = [p for p in params if ":" not in p.split("(")[0].split("[")[0]]
         named = [p.split(":")[0].strip() for p in params if p not in pos]
-        sigs[m.group(1)] = "%s(%s%s)" % (m.group(1), ", ".join(pos),
-                                         ("; " + ", ".join(named)) if named else "")
+        sigs[name] = "%s(%s%s)" % (name, ", ".join(pos),
+                                   ("; " + ", ".join(named)) if named else "")
     return sigs
 
 
-def public_signatures(templates: Path) -> list[str]:
-    """Signatures of the lib.typ functions that the worked files call, in lib.typ order."""
-    sigs = signatures((templates / "lib.typ").read_text(encoding="utf-8"))
-    used = "\n".join(p.read_text(encoding="utf-8")
-                     for p in [templates / "resume.typ", *sorted(templates.glob("families/*/*.typ"))])
-    return [s for n, s in sigs.items() if re.search(r"(?<![\w-])%s\(" % re.escape(n), used)]
+def public_signatures(lib_path: Path) -> list[str]:
+    """Signatures of every top-level `#let` of `lib_path`, in file order; never raises on syntax."""
+    return list(signatures(lib_path.read_text(encoding="utf-8")).values())
+
+
+def api_line(lib_path: Path) -> str:
+    """The `--init` line listing the API of `lib_path`, plus a WARN tail for unparsed signatures."""
+    failed: list[str] = []
+    sigs = signatures(lib_path.read_text(encoding="utf-8"), failed)
+    line = "  ".join(sigs.values())
+    if failed:
+        line += "\nWARN: parameters of %s not parsed: grep -n '^#let NAME' %s" % (
+            ", ".join(failed), lib_path)
+    return line
