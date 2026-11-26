@@ -25,4 +25,6 @@ class VerifyContext:
     marks: list[Mark] | None = None
     heads: list[Mark] | None = None
     detail: list[DetailRow] | None = None
+    contact_items: list[object] | None = None   # <vitae-contact> values, read with the marks (None: query unavailable)
+    contact_rows: list[object] | None = None    # <vitae-contact-rows> values, same query
     mark_notes: tuple[str, ...] = ()   # what the marks query dropped (malformed lib marks): a WARN, never silent

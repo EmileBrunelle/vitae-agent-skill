@@ -36,8 +36,8 @@
 // `icons.typ` that scripts/harvest_icons.py generates beside it at build time
 // (the path data is third-party artwork and is NOT vendored in this repo).
 // Selective import: this file keeps its own chip devices.
-// Each mark+value pair goes through `nb`, a #box[…~…] so the mark can never
-// be orphaned at a line end — and `nb` drops the mark cleanly if the fetch
+// Each header contact goes through `contact`, a #box[…~…] so the mark can never
+// be orphaned at a line end (`nb` is the untagged form, for Languages and skills) — and it drops the mark cleanly if the fetch
 // failed, leaving the URL as plain text.
 #import "../../lib.typ": marks, nb, contact, ghost, drawn-marker, list-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
 #let mk = marks(ic-col)

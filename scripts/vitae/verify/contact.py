@@ -8,7 +8,7 @@ is "not measured", never guessed.
 from __future__ import annotations
 
 from vitae.core.level import Finding, Level
-from vitae.verify.groups.query import _is_num, _typst_values
+from vitae.verify.groups.query import _is_num
 
 ROW_GAP = 4.0   # pt: items of one row share a baseline (within ~1pt); the closest designed rows are ~10pt apart
 
@@ -31,24 +31,33 @@ def count_rows(ys: list[float], gap: float = ROW_GAP) -> int:
     return sum(1 for a, b in zip(ordered, ordered[1:]) if b - a > gap) + 1 if ordered else 0
 
 
-def _declared_rows(values: list[object] | None) -> int:
-    """The rows the family declares (the largest `contact-rows`); ONE when it declares none."""
-    declared = [v for v in values or [] if isinstance(v, int) and not isinstance(v, bool) and v >= 1]
-    return max(declared, default=1)
+def _declared_rows(values: list[object]) -> tuple[int, str | None]:
+    """The rows the family declares (the largest `contact-rows`; ONE when it declares none) and, when a
+    declaration is unreadable, what is wrong with it. A whole-number float (2.0) is a valid count."""
+    declared: list[int] = []
+    bad: list[object] = []
+    for v in values:
+        n = v.get("rows") if isinstance(v, dict) else None
+        if _is_num(n) and isinstance(n, (int, float)) and n == int(n) and n >= 1:
+            declared.append(int(n))
+        else:
+            bad.append(n)
+    return max(declared, default=1), (f"rows = {bad[0]!r}" if bad else None)
 
 
-def check_contact_line(typ: str, root: str | None) -> list[Finding]:
-    """FAIL when the tagged contact items take more rows than declared (an item wrapped onto a new line)."""
-    items = _typst_values(typ, "<vitae-contact>", root)
+def check_contact_line(items: list[object] | None, declared_values: list[object] | None) -> list[Finding]:
+    """FAIL when the tagged contact items take more rows than declared (an item wrapped onto a new line).
+    Both lists come from the one marks query (make_context): None when it was unavailable."""
     if items is None:
         return [(Level.WARN, "contact line not measured: typst query unavailable")]
     by_page = _item_ys(items)
     if not by_page:
         return [(Level.INFO, "contact line not measured: no contact item built with lib contact()")]
-    declared_values = _typst_values(typ, "<vitae-contact-rows>", root)
     if declared_values is None:
         return [(Level.WARN, "contact line not measured: the declared row count could not be read (typst query failed)")]
-    declared = _declared_rows(declared_values)
+    declared, problem = _declared_rows(declared_values)
+    if problem:
+        return [(Level.WARN, f"contact line not measured: a contact-rows declaration is not a whole number of rows >= 1 ({problem})")]
     page, ys = next(iter(sorted(by_page.items())))
     rows = count_rows(ys)
     if rows > declared:

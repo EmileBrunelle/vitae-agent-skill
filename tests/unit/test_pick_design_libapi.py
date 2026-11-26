@@ -104,3 +104,34 @@ def test_signature_of_every_value_and_function_is_listed_in_file_order(tmp_path)
     lib = tmp_path / "lib.typ"
     lib.write_text("#let used(a, b: 1) = a\n#let v = 1\n#let w(z) = z\n", encoding="utf-8")
     assert public_signatures(lib) == ["used(a; b)", "v", "w(z)"]
+
+
+def _old_lib_folder(tmp_path):
+    """A CV folder whose lib.typ predates `contact()`: `nb` is defined, `contact` is not."""
+    f = tmp_path / "f"
+    assert init(f, "Jane Roe", "accounting").returncode == 0
+    lib = (f / "lib.typ").read_text(encoding="utf-8").replace("#let contact(", "#let contact-gone(")
+    (f / "lib.typ").write_text(lib, encoding="utf-8")
+    return f
+
+
+def test_init_warns_when_the_kept_lib_is_old(tmp_path):
+    f = _old_lib_folder(tmp_path)
+    r = init(f, "Jane Roe", "accounting", "--force")
+    warn = [ln for ln in r.stdout.splitlines() if ln.startswith("WARN") and "OLD lib.typ" in ln]
+    assert r.returncode == 0 and len(warn) == 1 and "cp " in warn[0]
+
+
+def test_init_no_old_lib_warning_for_a_current_or_merely_edited_lib(tmp_path):
+    f = tmp_path / "f"
+    assert init(f, "Jane Roe", "accounting").returncode == 0
+    (f / "lib.typ").write_text((f / "lib.typ").read_text(encoding="utf-8") + "\n#let extra = 1\n", encoding="utf-8")
+    r = init(f, "Jane Roe", "accounting", "--force")
+    assert "kept existing" in r.stdout and "OLD lib.typ" not in r.stdout
+
+
+def test_verify_names_an_old_lib(tmp_path):
+    from vitae.verify.cv import check_lib_integrity
+    f = _old_lib_folder(tmp_path)
+    out = check_lib_integrity(str(f / "cv.typ"), str(ROOT))
+    assert out and "OLD lib.typ" in out[0][1]

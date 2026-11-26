@@ -5,7 +5,7 @@ import json
 import shutil
 import subprocess
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from vitae.core.base import Mark, Word, _Line
 from vitae.core.env import typst_font_kw, typst_py
@@ -14,6 +14,12 @@ from vitae.verify.pdf import auto_root
 if TYPE_CHECKING:
     # type checking only: typing_extensions is never imported at run time (annotations are strings here)
     from typing_extensions import TypeIs
+
+class ContactValues(NamedTuple):
+    """The <vitae-contact> item values and the <vitae-contact-rows> declarations read with the marks."""
+    items: list[object]
+    rows: list[object]
+
 
 # ---------- grouping / date / duplicate-name / forced-break gates ----------
 # lib.typ tags every entry head and skill label with an invisible <vitae-head>
@@ -109,6 +115,14 @@ def _first_problem(v: object) -> str:
     return f"<mark> = {v!r}"
 
 
+def _check_marks(vals: list[object]) -> tuple[list[Mark], str | None]:
+    """The well-typed Marks of `vals` and the note on the dropped ones (see _typst_query_checked)."""
+    marks = [v for v in vals if _is_mark(v)]
+    bad = [v for v in vals if not _is_mark(v)]
+    note = f"{len(bad)} lib marks ignored: malformed (first: {_first_problem(bad[0])})" if bad else None
+    return marks, note
+
+
 def _typst_query_checked(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None]:
     """The lib's Mark values (see _typst_values) and a note: an entry that is not a well-typed Mark (see _is_mark)
     is dropped, and the note says how many and the first offending field; None when nothing was dropped (valid lib
@@ -116,10 +130,30 @@ def _typst_query_checked(typ: str, selector: str, root: str | None = None) -> tu
     vals = _typst_values(typ, selector, root)
     if vals is None:
         return None, None
-    marks = [v for v in vals if _is_mark(v)]
-    bad = [v for v in vals if not _is_mark(v)]
-    note = f"{len(bad)} lib marks ignored: malformed (first: {_first_problem(bad[0])})" if bad else None
-    return marks, note
+    return _check_marks(vals)
+
+
+def _kind_of(v: object) -> object:
+    """The `kind` of a lib metadata value, None when it is not a dict or has none."""
+    return v.get("kind") if isinstance(v, dict) else None
+
+
+def _typst_marks_and_contact(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None, ContactValues | None]:
+    """ONE query for the marks and the contact labels: `selector` selects all of them (Typst `.or`), and the
+    values are split by their explicit `kind` since a query drops the label: "contact" is a <vitae-contact> item,
+    "contact-rows" a <vitae-contact-rows> declaration; everything else goes through _check_marks as before
+    (a value with neither kind is never counted as contact). All three are None when the query is unavailable."""
+    vals = _typst_values(typ, selector, root)
+    if vals is None:
+        return None, None, None
+    rows: list[object] = []
+    items: list[object] = []
+    rest: list[object] = []
+    for v in vals:
+        kind = _kind_of(v)
+        (rows if kind == "contact-rows" else items if kind == "contact" else rest).append(v)
+    marks, note = _check_marks(rest)
+    return marks, note, ContactValues(items=items, rows=rows)
 
 
 def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:

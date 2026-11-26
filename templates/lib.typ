@@ -51,9 +51,9 @@
 // Every contact item (city and phone included) goes through `contact`; nothing else does.
 // The mark sits in a zero-size box on the item's BASELINE (a box's bottom edge rests on it), so its y is
 // the baseline whatever the height of the icon or glyph beside it.
-#let contact-mark = box(width: 0pt, height: 0pt, context [#metadata((text: "", page: here().position().page,
+#let contact-mark = box(width: 0pt, height: 0pt, context [#metadata((kind: "contact", text: "", page: here().position().page,
   x: here().position().x.pt(), y: here().position().y.pt())) <vitae-contact>])
-#let contact-rows(n) = [#metadata(n) <vitae-contact-rows>]
+#let contact-rows(n) = [#metadata((kind: "contact-rows", rows: n)) <vitae-contact-rows>]
 #let nb-item(tag, mark, value) = {
   if mark == none { box[#tag#value] }
   else if mark == ghost { box[#tag#box(width: 0pt, height: 7.4pt, baseline: 1.4pt)#value] }

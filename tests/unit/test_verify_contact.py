@@ -3,14 +3,13 @@
 Tiny CVs importing the real lib.typ `contact`; rows are counted from item y only, so scripts, right-to-left
 text and unspaced text are treated like any other."""
 import shutil
-from unittest import mock
 
 import pytest
 import typst
 from _paths import ROOT
 from vitae.core.level import Level
-from vitae.verify import contact as mod
 from vitae.verify.contact import check_contact_line, count_rows
+from vitae.verify.gates import make_context
 
 TEMPLATES = ROOT / "templates"
 
@@ -24,7 +23,8 @@ def _check(tmp_path, body, lang="en", font="Libertinus Serif", rows=None, rtl=Fa
                    f'#set text(font: "{font}", lang: "{lang}", size: 10pt{", dir: rtl" if rtl else ""})\n{decl}{body}\n',
                    encoding="utf-8")
     typst.compile(str(typ), output=str(tmp_path / "cv.pdf"))
-    return check_contact_line(str(typ), str(tmp_path))
+    ctx = make_context(str(typ), str(tmp_path / 'cv.pdf'), '', '', None, root=str(tmp_path))
+    return check_contact_line(ctx.contact_items, ctx.contact_rows)
 
 
 def _items(words):
@@ -108,17 +108,26 @@ def test_mixed_mark_heights_stay_one_row(tmp_path):
     assert _check(tmp_path, body)[0][0] == Level.OK
 
 
-def test_second_query_failure_is_warn_not_fail(tmp_path):
-    real = mod._typst_values
-
-    def fake(typ, selector, root=None):
-        return None if selector == "<vitae-contact-rows>" else real(typ, selector, root)
-
-    col = "#contact(none)[a] \\ #contact(none)[b] \\ #contact(none)[c]"
-    with mock.patch.object(mod, "_typst_values", fake):
-        out = _check(tmp_path, col, rows=3)
+def test_unreadable_row_declaration_is_warn_not_fail():
+    out = check_contact_line([{"page": 1, "x": 1.0, "y": 10.0}], None)
     assert out[0][0] == Level.WARN
     assert "not measured" in out[0][1]
+
+
+def test_unavailable_query_is_warn():
+    assert check_contact_line(None, None)[0][0] == Level.WARN
+
+
+def test_a_verify_runs_one_typst_query_for_all_labels(tmp_path, monkeypatch):
+    """The marks, the bullets and both contact labels come from ONE query (one compile), not three."""
+    from vitae.verify.groups import query
+    calls = []
+    real = query._typst_values
+    monkeypatch.setattr(query, "_typst_values", lambda typ, sel, root=None: calls.append(sel) or real(typ, sel, root))
+    out = _check(tmp_path, _items(["Montreal", "555-0100", "me@x.org"]))
+    assert out[0][0] == Level.OK
+    assert len(calls) == 1
+    assert all(lbl in calls[0] for lbl in ("<vitae-contact>", "<vitae-contact-rows>", "<vitae-bullet>", "<vitae-head>"))
 
 
 @pytest.mark.parametrize("rel", ["resume.typ", "families/engraved-card/resume.typ"])
@@ -127,3 +136,30 @@ def test_every_header_contact_item_is_tagged(tmp_path, rel):
     from vitae.verify.groups.query import _typst_values
     vals = _typst_values(str(TEMPLATES / rel), "<vitae-contact>", str(ROOT))
     assert vals is not None and len(vals) == 5
+
+
+def test_contact_is_recognised_by_its_explicit_kind_only(tmp_path, monkeypatch):
+    """A value shaped like a contact item but without `kind` is a (malformed) mark, never a contact item."""
+    from vitae.verify.groups import query
+    shaped = {"text": "", "page": 1, "x": 5.0, "y": 10.0}
+    tagged = {"kind": "contact", "text": "", "page": 1, "x": 5.0, "y": 10.0}
+    decl = {"kind": "contact-rows", "rows": 2}
+    monkeypatch.setattr(query, "_typst_values", lambda *a, **k: [shaped, tagged, decl, {"page": 1, "y": 3.0}])
+    marks, note, contact = query._typst_marks_and_contact("x.typ", "sel")
+    assert contact is not None
+    assert contact.items == [tagged]
+    assert contact.rows == [decl]
+    assert marks == [shaped]
+    assert note is not None and "malformed" in note
+
+
+def test_contact_rows_accepts_a_whole_number_float(tmp_path):
+    body = "#contact(none)[a] \\\\ #contact(none)[b]"
+    assert _check(tmp_path, body, rows="2.0")[0][0] == Level.OK
+
+
+def test_contact_rows_declaration_unreadable_is_warn():
+    items = [{"kind": "contact", "page": 1, "y": 10.0}]
+    for bad in (2.5, 0, "2", None):
+        out = check_contact_line(items, [{"kind": "contact-rows", "rows": bad}])
+        assert out[0][0] == Level.WARN and "contact-rows" in out[0][1]

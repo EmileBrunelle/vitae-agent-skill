@@ -194,11 +194,11 @@
 // the run scatters (ats.md, lib.typ § chip). The gaps between segments are a
 // plain SPACE CHARACTER (`sym.space.quad`, wide enough to read as a gap) and
 // never an `h()`: explicit spacing beside a painted run tears it exactly as a
-// box does. Each mark+value pair goes through `nb`, so the mark can never be
+// box does. Each mark+value pair goes through `contact`, so the mark can never be
 // orphaned from its value at a line end.
 //
 // The MARK rides in the gap just before its own field, OUTSIDE the tint, and
-// the construction is `nb(mk.x, seg[value])` — the mark outside, the `seg` on
+// the construction is `contact(mk.x, seg[value])` — the mark outside, the `seg` on
 // the value only. `highlight` paints behind a text run and not behind an inline
 // image box, so there is no construction that puts a vector mark under the
 // paint; MEASURED, the version that wrapped the whole pair (`seg[#contact(mk.x)[…]]`)
@@ -209,7 +209,7 @@
 // ~2.9pt and the mark stays grouped with its own value (the gap to the PREVIOUS
 // segment is the wider one: `sym.space.quad` less the extent). Extraction is
 // unchanged — verified byte-identical against the wrapped-pair version, since
-// `nb`'s box is the same box either way and colour emits no text.
+// `contact`'s box is the same box either way and colour emits no text.
 #let seg(b) = chip(b, fill: wash, extent: 2.2pt, radius: seg-radius)
 #block(above: 0pt, below: 9pt)[
   #text(font: monof, size: 8.5pt, fill: muted)[#{
