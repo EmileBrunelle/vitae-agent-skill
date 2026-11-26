@@ -39,13 +39,13 @@
 #set text(font: ("Carlito", "Noto Sans", "Liberation Sans"), size: 10.5pt,
   lang: "en", fill: dark, hyphenate: false)
 // Primary fill-tuning knobs ↓ (±0.01-0.03em steps)
-#set par(justify: false, leading: 0.701em, spacing: 0.781em)
+#set par(justify: false, leading: 0.573em, spacing: 0.653em)
 
 // ---------- Primitives ----------
 // One unbreakable block per section: never split across pages.
 // `airy: true` = roomier rhythm for sparse pages of a multi-page version.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 19pt } else { 14pt }, below: 0pt)[
+  above: if airy { 19pt } else { 16pt }, below: 0pt)[
   #grid(columns: (auto, auto), column-gutter: 7pt, align: horizon,
     box(width: 4pt, height: 9pt, fill: accent),   // accent tick (vector: emits no text)
     text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
@@ -66,7 +66,7 @@
   org-st: it => text(fill: accent, weight: "semibold", it),
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it),
-  above: 9pt, below: 4pt)
+  below: 4pt)
 
 // Linear skill line — NEVER a data grid (ATS extracts grids column-by-column).
 // French: use [#cat~:] for the non-breaking space before the colon.
@@ -75,7 +75,7 @@
 #let skill(cat, items) = srow(text(weight: "semibold")[#cat:], items)
 
 #set list(marker: list-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.565em, body-indent: 6pt)
+  spacing: 0.785em, body-indent: 6pt)
 
 // ---------- Header (centered; platform marks only, no generic icons) ----------
 // The marks are vector and emit no text; the readable URL beside each one is
@@ -115,8 +115,6 @@ with the field's key terms in *bold*.]
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated, or present]",
   "[City] · [descriptor, only if the facts or the employer's site say it] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
