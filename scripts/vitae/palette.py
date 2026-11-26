@@ -47,29 +47,33 @@ import argparse
 import colorsys
 import hashlib
 import sys
-from typing import TypeAlias, TypedDict, cast
+from typing import TYPE_CHECKING, TypeAlias, TypedDict
 
 from vitae.core.colour import rel_luminance as _lum
-from vitae.design.tables import Audacity
+from vitae.design.tables import AUDACITIES, Audacity, is_audacity
+
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import ReadOnly
 
 RGB: TypeAlias = tuple[int, int, int]
 
 
 class Palette(TypedDict):
-    family: str
-    audacity: Audacity
-    harmony: str
-    seed: str
-    attempts: int
-    hsl: tuple[int, int, int]
-    accent: RGB
-    soft: RGB
-    ink: RGB
-    dark: RGB
-    checks: dict[str, tuple[float, float]]
-    accent2: RGB | None
-    hsl2: tuple[int, int, int] | None
-    roles: tuple[str, str] | None
+    family: ReadOnly[str]
+    audacity: ReadOnly[Audacity]
+    harmony: ReadOnly[str]
+    seed: ReadOnly[str]
+    attempts: ReadOnly[int]
+    hsl: ReadOnly[tuple[int, int, int]]
+    accent: ReadOnly[RGB]
+    soft: ReadOnly[RGB]
+    ink: ReadOnly[RGB]
+    dark: ReadOnly[RGB]
+    checks: ReadOnly[dict[str, tuple[float, float]]]
+    accent2: ReadOnly[RGB | None]
+    hsl2: ReadOnly[tuple[int, int, int] | None]
+    roles: ReadOnly[tuple[str, str] | None]
 
 # Per-audacity draw ranges: (saturation range, lightness range) in HSL %.
 # The lightness ceiling is what keeps a hue "deep" rather than neon or pastel;
@@ -305,14 +309,24 @@ def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
     raise SystemExit("no valid palette in 64 draws — widen the dial ranges")
 
 
+def _second(p: Palette) -> tuple[RGB, tuple[int, int, int], tuple[str, str]] | None:
+    """The duotone's hue B as (colour, hsl, (hue A role, hue B role)), or None for a single-hue palette; the three
+    fields are set together by build(), so a palette with a colour but no hsl or roles is a bug, not a variant."""
+    accent2, hsl2, roles = p["accent2"], p["hsl2"], p["roles"]
+    if accent2 is None:
+        return None
+    assert hsl2 is not None and roles is not None, "a duotone palette carries accent2, hsl2 and roles together"
+    return accent2, hsl2, roles
+
+
 def typst(p: Palette) -> str:
     two = []
-    if p["accent2"] is not None:
+    second = _second(p)
+    if second is not None:
         two = ['#let accent2 = rgb("%s")  // H%d S%d%% L%d%% — duotone hue B, %s'
-               % (_hex(p["accent2"]), *cast(tuple[int, int, int], p["hsl2"]),
-                  cast(tuple[str, str], p["roles"])[1]),
+               % (_hex(second[0]), *second[1], second[2][1]),
                '// hue A role — %s. Each hue keeps 1-2 jobs, never more.'
-               % cast(tuple[str, str], p["roles"])[0]]
+               % second[2][0]]
     return "\n".join([
         '#let accent = rgb("%s")   // H%d S%d%% L%d%% — %s harmony, %s'
         % (_hex(p["accent"]), *p["hsl"], p["harmony"], p["audacity"]),
@@ -327,15 +341,14 @@ def typst(p: Palette) -> str:
 
 
 def report(p: Palette) -> str:
+    second = _second(p)
     out = ["family    : %s   (harmony: %s)" % (p["family"], p["harmony"]),
            "audacity  : %s" % p["audacity"],
            "seed      : %r   (draw %d)" % (p["seed"], p["attempts"]),
            "accent    : %s   H%d S%d%% L%d%%" % (_hex(p["accent"]), *p["hsl"]),
            *(["accent2   : %s   H%d S%d%% L%d%%   (duotone — %s; hue A: %s)"
-              % (_hex(p["accent2"]), *cast(tuple[int, int, int], p["hsl2"]),
-                 cast(tuple[str, str], p["roles"])[1],
-                 cast(tuple[str, str], p["roles"])[0])]
-             if p["accent2"] is not None else []),
+              % (_hex(second[0]), *second[1], second[2][1], second[2][0])]
+             if second is not None else []),
            "soft      : %s   (hairlines only)" % _hex(p["soft"]),
            "ink       : %s   (metadata)" % _hex(p["ink"]),
            "dark      : %s   (body)" % _hex(p["dark"]), "contrast  :"]
@@ -367,7 +380,9 @@ def selftest() -> None:
                 # inside the same dial ranges (guardrail on BOTH hues), and is
                 # far enough in hue to read as a second colour.
                 if f in DUOTONE:
-                    h2, s2, l2 = cast(tuple[int, int, int], p["hsl2"])
+                    second = _second(p)
+                    assert second is not None
+                    h2, s2, l2 = second[1]
                     assert not any(lo <= h2 <= hi for lo, hi in HUE_B_VETO), \
                         (f, level, h2, "hue B landed in a veto zone")
                     assert DIAL[level][0][0] <= s2 <= DIAL[level][0][1]
@@ -390,7 +405,9 @@ def selftest() -> None:
         for level in DIAL:
             for i in range(100):
                 p = build(f, "Gray %03d+x" % i, level)
-                sep = contrast(p["accent"], cast(RGB, p["accent2"]))
+                accent2 = p["accent2"]
+                assert accent2 is not None
+                sep = contrast(p["accent"], accent2)
                 assert sep >= DUOTONE_SEP, (f, level, i, sep)
                 if worst is None or sep < worst[0]:
                     worst = (sep, f, level)
@@ -402,24 +419,28 @@ def selftest() -> None:
     print("selftest OK — %s"
           % ", ".join("%s: %d distinct accents/%d" % (k, len(v), draws)
                       for k, v in sorted(seen.items())))
+    assert worst is not None
     print("  duotone grayscale separation: %d pairs checked, all ≥ %.2f "
           "(tightest %.2f on %s/%s)"
           % (len(DUOTONE) * len(DIAL) * 100, DUOTONE_SEP,
-             *cast(tuple[float, str, str], worst)))
+             *worst))
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("--family")
     ap.add_argument("--seed")
-    ap.add_argument("--audacity", default="sober", choices=sorted(DIAL))
+    ap.add_argument("--audacity", default="sober", choices=AUDACITIES)
     ap.add_argument("--typst", action="store_true", help="print the #let block")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         selftest()
     elif a.family and a.seed:
-        p = build(a.family, a.seed, cast(Audacity, a.audacity))
+        audacity: str = a.audacity
+        if not is_audacity(audacity):
+            ap.error(f"invalid --audacity {audacity!r}")
+        p = build(a.family, a.seed, audacity)
         print(typst(p) if a.typst else report(p))
     else:
         sys.exit(__doc__)

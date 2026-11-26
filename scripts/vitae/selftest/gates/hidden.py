@@ -6,8 +6,7 @@ import os
 import sys
 import tempfile
 from collections.abc import Callable
-from types import ModuleType
-from typing import cast
+from unittest import mock
 
 from vitae.core.env import pdf_backend, pdf_tool, typst_can_query, typst_fonts
 from vitae.core.level import Finding
@@ -110,15 +109,8 @@ def hidden_text() -> None:
                 _res = check_hidden_text(_f)
                 assert any("attachment" in m for lv, m in _res if lv == "WARN"), _res
             # no pypdf: say so, never a silent OK
-            _had, _saved = "pypdf" in sys.modules, sys.modules.get("pypdf")
-            sys.modules["pypdf"] = cast(ModuleType, None)
-            try:
+            with mock.patch.dict(sys.modules, {"pypdf": None}):   # restored on exit, absent or not before
                 _res = check_hidden_text(_f)
-            finally:
-                if not _had:
-                    del sys.modules["pypdf"]
-                else:
-                    sys.modules["pypdf"] = cast(ModuleType, _saved)
             assert ("WARN", "hidden text: off-page check not run (pypdf missing)") in _res if pdf_backend() != "pdfium" \
                 else any("ran on pdfium word boxes only" in m for _, m in _res), _res
         print(f"selftest hidden text: {len(_cases)} layouts + 6 metadata sets + attachment + no-pypdf measured")

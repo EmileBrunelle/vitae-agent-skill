@@ -28,8 +28,8 @@ class TestHierarchy:
 
     def test_skill_rows_name_the_skill_wrapper(self):
         words = [line("Cat", 0), line("Detail", 20), line("Next", 41)]
-        h, n = head("Cat", 0), head("Next", 41)
-        h["kind"] = n["kind"] = "skill"
+        h: Mark = {**head("Cat", 0), "kind": "skill"}
+        n: Mark = {**head("Next", 41), "kind": "skill"}
         (lv, msg), = groups.check_group_proximity("", "", heads=[h, n], secs=[], pages=[words], detail=[])
         assert lv is Level.WARN and "skill rows barely separated" in msg and "entries" not in msg.split("\n")[0]
         assert "gap to the next skill row" in msg and "inside a skill row" in msg
@@ -46,8 +46,8 @@ class TestHierarchy:
     def test_mixed_groups_say_entries_but_worst_clause_follows_its_own_kind(self):
         # worst group (ratio 1.0) is a skill row; the other flat group (ratio 1.1) is an entry
         words = [line("Cat", 0), line("Detail", 20), line("Role", 40), line("Detail2", 60), line("Next", 81)]
-        h1, h2, n = head("Cat", 0), head("Role", 40), head("Next", 81)
-        h1["kind"] = "skill"
+        h1: Mark = {**head("Cat", 0), "kind": "skill"}
+        h2, n = head("Role", 40), head("Next", 81)
         (lv, msg), = groups.check_group_proximity("", "", heads=[h1, h2, n], secs=[], pages=[words], detail=[])
         first = msg.split("\n")[0]
         assert lv is Level.WARN and "entries barely separated" in first and "skill rows" not in first
@@ -89,8 +89,7 @@ def _entry(gap_head: float, pitch: float, org: str = "Acme") -> GroupRow:
     ys.append(ys[-1] + 10 + gap_head)
     ys += [ys[-1] + 10 + pitch, ys[-1] + 20 + 2 * pitch]
     words = [line(t, y) for t, y in zip(("Role", "Acme", "B1", "B2", "B3"), ys)] + [line("Next", ys[-1] + 60)]
-    h = head("Role", 0)
-    h["org"] = org
+    h: Mark = {**head("Role", 0), "org": org}
     return only_group(groups.measure_groups([h, head("Next", ys[-1] + 60)], [], [words])[0])
 
 
@@ -107,27 +106,24 @@ class TestOrgToFirstBullet:
     def test_needs_an_org_and_two_bullets(self):
         assert _entry(2.0, 5.0, org="")["head_gap"] is None            # no org line: line 1 would be a bullet
         words = [line("Role", 0), line("Acme", 12), line("B1", 24), line("Next", 80)]
-        h = head("Role", 0)
-        h["org"] = "Acme"
+        h: Mark = {**head("Role", 0), "org": "Acme"}
         r = only_group(groups.measure_groups([h, head("Next", 80)], [], [words])[0])
         assert r["head_gap"] is None and r["pitch"] is None             # one bullet: no pitch
 
     def test_wrapped_org_or_role_is_skipped(self):
         # org wraps onto a second line: line 1 holds only its first words, so gaps[1] is not org -> bullet
         words = [line("Role", 0), line("Acme", 12), line("Corp", 24), line("B1", 36), line("B2", 48), line("Next", 90)]
-        h = head("Role", 0)
-        h["org"] = "Acme Corp"
+        h: Mark = {**head("Role", 0), "org": "Acme Corp"}
         r = only_group(groups.measure_groups([h, head("Next", 90)], [], [words])[0])
         assert r["head_gap"] is None
         # role wraps: the org lands on line 2
         words = [line("Role", 0), line("more", 12), line("Acme", 24), line("B1", 36), line("B2", 48), line("Next", 90)]
-        h["org"] = "Acme"
+        h = {**h, "org": "Acme"}
         r = only_group(groups.measure_groups([h, head("Next", 90)], [], [words])[0])
         assert r["head_gap"] is None
 
     def test_printed_in_detail_but_never_a_finding(self, capsys):
         words = [line("Role", 0), line("Acme", 12), line("B1", 24), line("B2", 36), line("Next", 80)]
-        h = head("Role", 0)
-        h["org"] = "Acme"
+        h: Mark = {**head("Role", 0), "org": "Acme"}
         out = groups.check_group_proximity("", "", heads=[h, head("Next", 80)], secs=[], pages=[words], detail=[])
         assert "head-gap=" in capsys.readouterr().out and all(lv is Level.OK for lv, _ in out)

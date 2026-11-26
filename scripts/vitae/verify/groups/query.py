@@ -5,11 +5,15 @@ import json
 import shutil
 import subprocess
 from collections.abc import Callable, Sequence
-from typing import TypeGuard
+from typing import TYPE_CHECKING
 
 from vitae.core.base import Mark, Word, _Line
 from vitae.core.env import typst_font_kw, typst_py
 from vitae.verify.pdf import auto_root
+
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import TypeIs
 
 # ---------- grouping / date / duplicate-name / forced-break gates ----------
 # lib.typ tags every entry head and skill label with an invisible <vitae-head>
@@ -40,7 +44,7 @@ _MARK_FIELDS: tuple[tuple[str, Callable[[object], bool]], ...] = (
 )
 
 
-def _is_mark(v: object) -> TypeGuard[Mark]:
+def _is_mark(v: object) -> TypeIs[Mark]:
     """A JSON object with a str `text` whose other Mark keys, when present, have their declared type."""
     if not isinstance(v, dict) or not isinstance(v.get("text"), str):
         return False
@@ -93,10 +97,34 @@ def _typst_values(typ: str, selector: str, root: str | None = None) -> list[obje
     return None
 
 
-def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:
-    """The lib's Mark values (see _typst_values); an entry that is not a well-typed Mark (see _is_mark) is dropped."""
+def _first_problem(v: object) -> str:
+    """What makes `v` not a Mark, as `<field> = <value>` (the first offending field)."""
+    if not isinstance(v, dict):
+        return f"<mark> = {v!r}"
+    if not isinstance(v.get("text"), str):
+        return f"text = {v.get('text')!r}"
+    for key, ok in _MARK_FIELDS:
+        if key in v and not ok(v[key]):
+            return f"{key} = {v[key]!r}"
+    return f"<mark> = {v!r}"
+
+
+def _typst_query_checked(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None]:
+    """The lib's Mark values (see _typst_values) and a note: an entry that is not a well-typed Mark (see _is_mark)
+    is dropped, and the note says how many and the first offending field; None when nothing was dropped (valid lib
+    output never has a note). The marks are None when the query is unavailable."""
     vals = _typst_values(typ, selector, root)
-    return None if vals is None else [v for v in vals if _is_mark(v)]
+    if vals is None:
+        return None, None
+    marks = [v for v in vals if _is_mark(v)]
+    bad = [v for v in vals if not _is_mark(v)]
+    note = f"{len(bad)} lib marks ignored: malformed (first: {_first_problem(bad[0])})" if bad else None
+    return marks, note
+
+
+def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:
+    """`_typst_query_checked` without the note."""
+    return _typst_query_checked(typ, selector, root)[0]
 
 
 def _gnorm(t: str) -> str:
@@ -117,9 +145,8 @@ def _lines(words: Sequence[Word], x_min: float) -> list[_Line]:
         if out and abs(c - out[-1]["c"]) <= 3.0:     # same text line: centres within 3pt
             ln = out[-1]
             ln["words"].append(w)
-            ln["y0"], ln["y1"] = min(ln["y0"], w[1]), max(ln["y1"], w[3])
-            ln["x0"] = min(ln["x0"], w[0])
-            ln["c"] = (ln["y0"] + ln["y1"]) / 2
+            y0, y1 = min(ln["y0"], w[1]), max(ln["y1"], w[3])
+            out[-1] = {"y0": y0, "y1": y1, "c": (y0 + y1) / 2, "x0": min(ln["x0"], w[0]), "words": ln["words"]}
         else:
             out.append({"y0": w[1], "y1": w[3], "c": c, "x0": w[0], "words": [w]})
     return out

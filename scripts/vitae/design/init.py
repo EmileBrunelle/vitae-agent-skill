@@ -5,7 +5,6 @@ import os
 import re
 import sys
 from collections.abc import Callable, Mapping
-from typing import cast
 
 from vitae.design.emit import _chain, _vitae_header, lang_arg
 from vitae.design.pick import Pick
@@ -179,8 +178,8 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
                  r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.M)
     _write_nofollow(out, (_vitae_header(pg) + "\n" + src).encode("utf-8"))
     lo, hi = pg["fill"].split("-")
-    if any((cast(str, p.get(k)) or "").startswith("NO pool member")
-           for k in ("display_note", "body_note", "mono_note")):
+    if any((note or "").startswith("NO pool member")
+           for note in (p["display_note"], p["body_note"], p["mono_note"])):
         kept.append("at least one font role of %s has NO pool member installed "
                     "locally — install the face above before verifying%s"
                     % (fam, "" if p["offline"] else

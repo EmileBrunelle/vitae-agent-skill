@@ -25,3 +25,4 @@ class VerifyContext:
     marks: list[Mark] | None = None
     heads: list[Mark] | None = None
     detail: list[DetailRow] | None = None
+    mark_notes: tuple[str, ...] = ()   # what the marks query dropped (malformed lib marks): a WARN, never silent

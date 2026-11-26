@@ -2,47 +2,58 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Literal, NotRequired, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Literal, NotRequired, TypeAlias, TypedDict
+
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import ReadOnly, TypeIs
 
 Audacity: TypeAlias = Literal["sober", "expressive", "bold"]
+AUDACITIES: tuple[Audacity, ...] = ("sober", "expressive", "bold")
+
+
+def is_audacity(v: str) -> TypeIs[Audacity]:
+    """`v` is one of the colour dial levels (the CLI parsers pass --audacity through `choices`, this proves it)."""
+    return v in AUDACITIES
+
 Font: TypeAlias = tuple[str, str]               # (family name, provenance)
 
 class Labels(TypedDict):
-    profile: str
-    skills: str
+    profile: ReadOnly[str]
+    skills: ReadOnly[str]
 
 
 class Page(TypedDict):
-    margin: str
-    body: str
-    fill: str
+    margin: ReadOnly[str]
+    body: ReadOnly[str]
+    fill: ReadOnly[str]
 
 
 class Family(TypedDict):
-    register: str
-    current: str
-    icons: str
-    accents: list[str]
-    accents2: NotRequired[list[str]]
-    markers: list[str]
-    labels: Labels
-    header: str
-    photo_ok: bool
-    conservative_ok: bool
-    page: Page
-    order: tuple[str, ...]
-    spec: bool
-    leading: str
-    spacing: str
-    above: str
-    variants: NotRequired[list[str]]
+    register: ReadOnly[str]
+    current: ReadOnly[str]
+    icons: ReadOnly[str]
+    accents: ReadOnly[list[str]]
+    accents2: NotRequired[ReadOnly[list[str]]]
+    markers: ReadOnly[list[str]]
+    labels: ReadOnly[Labels]
+    header: ReadOnly[str]
+    photo_ok: ReadOnly[bool]
+    conservative_ok: ReadOnly[bool]
+    page: ReadOnly[Page]
+    order: ReadOnly[tuple[str, ...]]
+    spec: ReadOnly[bool]
+    leading: ReadOnly[str]
+    spacing: ReadOnly[str]
+    above: ReadOnly[str]
+    variants: NotRequired[ReadOnly[list[str]]]
 
 
 class FontPool(TypedDict):
-    register: str
-    display: list[Font]
-    body: list[Font]
-    mono: NotRequired[list[Font]]
+    register: ReadOnly[str]
+    display: ReadOnly[list[Font]]
+    body: ReadOnly[list[Font]]
+    mono: NotRequired[ReadOnly[list[Font]]]
 
 
 # register: modern | neutral | classic | creative — how current the look reads.

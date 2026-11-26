@@ -15,7 +15,7 @@ from vitae.core.context import VerifyContext
 from vitae.core.level import Finding, Level
 from vitae.verify.groups import (
     ENTRY_MARKS,
-    _typst_query,
+    _typst_query_checked,
     check_date_adjacency,
     check_duplicate_names,
     check_group_proximity,
@@ -31,10 +31,11 @@ def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *,
                  facts: str | None = None, can_query: bool = True,
                  detail: list[DetailRow] | None = None) -> VerifyContext:
     """Build the gates' inputs; the lib markers are queried here, once, when `typst query` is usable."""
-    marks = _typst_query(typ, ENTRY_MARKS, root) if can_query else None
+    marks, note = _typst_query_checked(typ, ENTRY_MARKS, root) if can_query else (None, None)
     heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
     return VerifyContext(typ=typ, pdf=pdf, txt=txt, src=src, backend=backend, root=root, facts=facts,
-                         can_query=can_query, marks=marks, heads=heads, detail=detail)
+                         can_query=can_query, marks=marks, heads=heads, detail=detail,
+                         mark_notes=(note,) if note else ())
 
 
 def _bad(ctx: VerifyContext, msg: str) -> Finding:
@@ -153,11 +154,20 @@ def _source_text(ctx: VerifyContext) -> list[Finding]:
     return [(Level.FAIL, msg) for msg in check_forced_linebreak(ctx.src) + check_literal_tilde(ctx.src)]
 
 
+def _mark_notes(ctx: VerifyContext) -> list[Finding]:
+    """A lib mark the reader dropped as malformed is a mark no gate measured: say so."""
+    return [(Level.WARN, "lib marks: " + n) for n in ctx.mark_notes]
+
+
 def _duplicate_names(ctx: VerifyContext) -> list[Finding]:
-    secs: list[Mark] | None = _typst_query(ctx.typ, "<vitae-sec>", ctx.root)
+    findings: list[Finding] = []
+    queried, note = _typst_query_checked(ctx.typ, "<vitae-sec>", ctx.root)
+    secs: list[Mark] | None = queried
+    if note:
+        findings.append((Level.WARN, "duplicate names: " + note))
     if not secs:   # no <vitae-sec> marks (a CV that never wrapped `section` in wd-section(), or no query): read the #section("...") calls instead
         secs = [{"text": t} for t in re.findall(r'#section\(\s*"((?:[^"\\]|\\.)*)"', ctx.src)]
-    return [(Level.FAIL, "duplicate name: " + msg) for msg in check_duplicate_names(secs, ctx.heads)]
+    return findings + [(Level.FAIL, "duplicate name: " + msg) for msg in check_duplicate_names(secs, ctx.heads)]
 
 
 def _can_query(ctx: VerifyContext) -> bool:
@@ -185,6 +195,7 @@ EXTRACTION_GATES: tuple[Gate, ...] = (
 # Without `typst query` the grouping / date / duplicate-name gates are skipped, with a notice first.
 LAYOUT_GATES: tuple[Gate, ...] = (
     FnGate("query-notice", _query_notice, _cannot_query),
+    FnGate("mark-notes", _mark_notes, _can_query),
     FnGate("hidden-text", _hidden_text),
     FnGate("font-fallback", _font_fallback),
     FnGate("group-proximity", _group_proximity, _can_query),

@@ -549,17 +549,14 @@ class TestCheckDateAdjacency:
         assert msg.startswith("lengthen the org/descriptor line of")
 
     def test_date_read_in_the_middle_of_the_role_fails(self):
-        h = H.copy()
-        h["text"] = "Senior Dev"
+        h: Mark = {**H, "text": "Senior Dev"}
         words = [WB(10, 0, 40, 10, "Senior"), DATE, WB(45, 0, 70, 10, "Dev"), ACME]
         fails, _, _ = adj([h, D, O], words)
         (msg,) = fails
         assert "read in the middle of its role" in msg and 'before "Dev"' in msg
 
     def test_date_read_after_the_next_entry_starts_fails(self):
-        h2 = H.copy()
-        h2["text"] = "Ops"
-        h2["y"] = 50.0
+        h2: Mark = {**H, "text": "Ops", "y": 50.0}
         words = [DEV, ACME, WB(10, 50, 30, 60, "Ops"), DATE]
         # no org mark so the org-order check cannot be the one that fires
         fails, _, _ = adj([H, D, h2], words)
@@ -579,22 +576,18 @@ class TestCheckDateAdjacency:
         assert stats["unmeasured"] == 1 and stats["measured"] == 0
 
     def test_date_on_another_page_fails(self):
-        d = D.copy()
-        d["page"] = 2
+        d: Mark = {**D, "page": 2}
         fails, _, _ = adj([H, d, O], [DEV, DATE, ACME])
         assert "its date is set on page 2, its head on page 1" in fails[0]
 
     def test_head_page_beyond_the_pdf_is_only_a_note(self):
-        h = H.copy()
-        h["page"] = 3
-        d = D.copy()
-        d["page"] = 3
+        h: Mark = {**H, "page": 3}
+        d: Mark = {**D, "page": 3}
         fails, warns, _ = adj([h, d, O], [DEV, DATE, ACME])
         assert fails == [] and 'page 3 not in the PDF' in warns[0]
 
     def test_undated_entry_is_counted_and_never_fails(self):
-        undated = H.copy()
-        undated["dated"] = False
+        undated: Mark = {**H, "dated": False}
         fails, warns, stats = adj([undated], [DEV])
         assert (fails, warns) == ([], [])
         assert stats == {"measured": 0, "undated": 1, "unmeasured": 0}
@@ -625,17 +618,13 @@ class TestCheckDateAdjacency:
 
     def test_org_line_twelve_points_from_its_marker_is_still_matched(self):
         # the org words are looked up within max(h, 6) + 10 pt of the marker's y
-        o = O.copy()
-        o["x"] = 20.0
-        o["y"] = 14.0
-        o["h"] = 6.0
+        o: Mark = {**O, "x": 20.0, "y": 14.0, "h": 6.0}
         acme = WB(20, 21, 60, 31, "Acme")                      # centre 26: 12 pt below the marker
         fails, warns, stats = adj([H, D, o], [DEV, DATE, acme])
         assert (fails, warns) == ([], []) and stats["measured"] == 1
 
     def test_org_line_not_found_is_a_note_not_a_failure(self):
-        o = O.copy()
-        o["x"] = 20.0
+        o: Mark = {**O, "x": 20.0}
         fails, warns, stats = adj([H, D, o], [DEV, DATE])
         assert fails == [] and any("employer line words not found" in w for w in warns)
         assert stats["measured"] == 1
@@ -648,27 +637,20 @@ class TestCheckDateAdjacency:
         assert warns == ["pdftotext unavailable (word positions needed)"]
 
     def test_inline_date_after_the_role_is_measured_on_the_head_line(self):
-        d = D.copy()
-        d["x"] = 35.0
-        d["inline"] = True
-        d["w"] = 25.0
+        d: Mark = {**D, "x": 35.0, "inline": True, "w": 25.0}
         words = [DEV, WB(35, 0, 60, 10, "2020"), ACME]
         fails, warns, stats = adj([H, d, O], words)
         assert (fails, stats["measured"]) == ([], 1)
 
     def test_inline_date_read_after_the_org_line_fails_with_the_rebuild_advice(self):
-        d = D.copy()
-        d["x"] = 35.0
-        d["inline"] = True
-        d["w"] = 25.0
+        d: Mark = {**D, "x": 35.0, "inline": True, "w": 25.0}
         words = [DEV, ACME, WB(35, 0, 60, 10, "2020")]
         (msg,), _, _ = adj([H, d, O], words)
         assert msg.startswith("rebuild entry \"Dev\" with the family's unmodified job()")
         assert "already set its date inline after the role" in msg
 
     def test_old_lib_head_without_anchor_gets_the_recopy_advice(self):
-        h = H.copy()
-        del h["anchor"]
+        h = Mark(kind="entry", text="Dev", page=1, x=10.0, y=0.0, dated=True)   # an old lib: no `anchor`
         (msg,), _, _ = adj([h, D, O], [DEV, ACME, DATE])
         assert "recopy the skill's lib.typ" in msg
 
@@ -678,8 +660,7 @@ class TestCheckDateAdjacency:
         assert "by at least 153pt" in msg
 
     def test_org_line_that_already_reaches_the_date_gets_the_rebuild_advice(self):
-        o = O.copy()
-        o["w"] = 200.0
+        o: Mark = {**O, "w": 200.0}
         (msg,), _, _ = adj([H, D, o], [DEV, WB(10, 14, 230, 24, "Acme"), DATE])
         assert "already runs its org line under the date" in msg
 

@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import TypeGuard
 
-from vitae.core.base import HeadMark, Mark, WordBox, _EntryRecord
+from vitae.core.base import HeadMark, Mark, WordBox, _EntryRecord, is_placed
 from vitae.core.env import pdf_backend
 from vitae.verify.groups.query import _typst_query
 from vitae.verify.pdf import _boxes_unavailable, word_boxes
@@ -20,11 +19,6 @@ from vitae.verify.pdf import _boxes_unavailable, word_boxes
 ENTRY_MARKS = "selector(<vitae-head>).or(<vitae-part>)"
 
 
-def _is_placed(m: Mark) -> TypeGuard[HeadMark]:
-    """A mark that carries its position (page, x, y), as every lib entry head and part mark does."""
-    return "page" in m and "x" in m and "y" in m
-
-
 def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
     """Marks in document order -> one record per entry head:
     {"head": mark, "date": mark|None, "org": mark|None, "date_first": bool}.
@@ -33,21 +27,21 @@ def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
     recs: list[_EntryRecord] = []
     cur: _EntryRecord | None = None
     for m in marks or []:
-        if not _is_placed(m):              # a mark without a position cannot be measured: ignored
+        if not is_placed(m):              # a mark without a position cannot be measured: ignored
             continue
         k = m.get("kind")
         if k == "entry":
             cur = {"head": m, "date": None, "org": None, "date_first": None}
             recs.append(cur)
         elif k in ("date", "org") and cur is not None:
+            # a record is never edited in place: the filled copy replaces it (cur is always the last record)
+            first = cur["date_first"]
             if k == "date" and cur["date"] is None:
-                cur["date"] = m
-                if cur["date_first"] is None:
-                    cur["date_first"] = True
+                cur = {**cur, "date": m, "date_first": True if first is None else first}
+                recs[-1] = cur
             elif k == "org" and cur["org"] is None:
-                cur["org"] = m
-                if cur["date_first"] is None:
-                    cur["date_first"] = False
+                cur = {**cur, "org": m, "date_first": False if first is None else first}
+                recs[-1] = cur
         elif k == "skill":
             cur = None                     # other part kinds ("date-col") are ignored
     return recs

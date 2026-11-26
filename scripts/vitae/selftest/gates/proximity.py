@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import tempfile
 from collections.abc import Callable
-from typing import cast
 
 from vitae.core.base import DetailRow, Mark, Word
 from vitae.core.env import pdf_tool, typst_can_query
@@ -34,7 +33,7 @@ def group_proximity() -> None:
     _hd: list[Mark] = [{"kind": "entry", "text": "Role One", "org": "Acme Corp", "page": 1, "x": 50.0, "y": 105.0},
            {"kind": "entry", "text": "Role Two", "org": "Beta Inc", "page": 1, "x": 50.0, "y": 0.0}]
     for top, want_fail in ((149, True), (160, False)):
-        hh = cast(list[Mark], [dict(_hd[0]), dict(_hd[1], y=top + 5.0)])
+        hh: list[Mark] = [_hd[0].copy(), {**_hd[1], "y": top + 5.0}]
         got = check_group_proximity("", "", heads=hh, secs=[], pages=[_flat(_words(top))])
         assert (got[0][0] == "FAIL") == want_fail, (top, got)
     # raster path: the measured gap is OPTICAL (baseline -> x-height top), so the

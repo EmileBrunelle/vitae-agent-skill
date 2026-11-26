@@ -1,15 +1,19 @@
 """Academic gate: the declared side — section spec, TOML tables, heading set."""
 from __future__ import annotations
 
-from typing import NotRequired, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypeAlias, TypedDict
+
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import ReadOnly
 
 
 class Section(TypedDict):
-    heading: str
-    count: int
-    undated_prefix: int
-    numbered: bool
-    nondated: NotRequired[bool]  # no year column (REFERENCES); default: the heading is in NONDATED_HEADINGS
+    heading: ReadOnly[str]
+    count: ReadOnly[int]
+    undated_prefix: ReadOnly[int]
+    numbered: ReadOnly[bool]
+    nondated: NotRequired[ReadOnly[bool]]  # no year column (REFERENCES); default: the heading is in NONDATED_HEADINGS
 
 
 # a parsed TOML document (tomllib.load): values are walked with isinstance, never indexed blindly

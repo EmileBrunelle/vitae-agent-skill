@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Sequence
-from typing import Literal, cast, overload
+from typing import Literal, overload
 
 from PIL import Image
 
@@ -85,8 +85,19 @@ def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
     return sorted(glob.glob(os.path.join(tmp_dir, "p*.png")))
 
 
+def _png_number(path: str) -> int:
+    """The page number a pdftoppm file name ends in (`p-3.png`, `h-03.png`): its numeric sort key."""
+    m = re.search(r"(\d+)\.png$", path)
+    if m is None:
+        raise ValueError(f"not a numbered page image: {path!r}")
+    return int(m.group(1))
+
+
 def _pdfium_doc(pdf: str) -> PdfiumDoc:
-    return cast(PdfiumDoc, importlib.import_module("pypdfium2").PdfDocument(pdf))
+    doc = importlib.import_module("pypdfium2").PdfDocument(pdf)
+    if not isinstance(doc, PdfiumDoc):
+        raise TypeError(f"pypdfium2.PdfDocument is not the document the gates drive: {type(doc).__name__}")
+    return doc
 
 
 def count_pages(pdf: str, backend: PdfBackend) -> str | None:
@@ -448,7 +459,7 @@ def _render_pages_png(pdf: str, tmp: str, ppi: int = HIDDEN_PPI) -> list[str]:
     subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "h")],
                    capture_output=True, text=True)
     return sorted(glob.glob(os.path.join(tmp, "h*.png")),
-                  key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1)))
+                  key=lambda f: _png_number(f))
 
 
 def pdf_unreadable(pdf: str) -> bool:
@@ -490,8 +501,8 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
         paths = []
         drop_stale()
         for f in sorted(glob.glob(os.path.join(tmp, "p*.png")),
-                        key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1))):
-            n = int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1))
+                        key=lambda f: _png_number(f)):
+            n = _png_number(f)
             paths.append(os.path.join(out_dir, f"{stem}-p{n}.png"))
             shutil.move(f, paths[-1])
     return paths
@@ -507,7 +518,7 @@ def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
         subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "c")],
                        capture_output=True, text=True)
         files = sorted(glob.glob(os.path.join(tmp, "c*.png")),
-                       key=lambda f: int(cast(re.Match[str], re.search(r"(\d+)\.png$", f)).group(1)))
+                       key=lambda f: _png_number(f))
         out = []
         for f in files:
             with Image.open(f) as fh:

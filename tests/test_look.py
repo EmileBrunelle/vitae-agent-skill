@@ -12,7 +12,8 @@ import shutil
 import sys
 import tempfile
 import threading
-from typing import Callable, NotRequired, Optional, TypedDict
+from collections.abc import Callable
+from typing import NotRequired, TypedDict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
@@ -121,8 +122,8 @@ Responder = Callable[[Request], tuple[int, bytes]]
 
 
 class State:
-    resp: Optional[Responder] = None
-    models: Optional[bytes] = None
+    resp: Responder | None = None
+    models: bytes | None = None
 
 
 STATE = State()
@@ -141,7 +142,7 @@ class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: object) -> None:
         pass
 
-    def reply(self, code: int, body: bytes, declared: Optional[int] = None) -> None:
+    def reply(self, code: int, body: bytes, declared: int | None = None) -> None:
         self.send_response(code)
         self.send_header("Content-Length", str(len(body) if declared is None else declared))
         self.end_headers()
@@ -213,7 +214,7 @@ def item_of(req: Request, pattern: str) -> str:
     return m.group(0)
 
 
-def cli(*args: str, resp: Optional[Responder] = None) -> tuple[int, str, str]:
+def cli(*args: str, resp: Responder | None = None) -> tuple[int, str, str]:
     REQS.clear()
     STATE.resp = resp
     out, err = io.StringIO(), io.StringIO()
@@ -290,7 +291,7 @@ ok(c == 2 and "shape" in e, (c, e))
 
 
 # 9 per-item
-def per_item_resp(fail: Optional[tuple[str, str]] = None) -> Responder:
+def per_item_resp(fail: tuple[str, str] | None = None) -> Responder:
     def r(req: Request) -> tuple[int, bytes]:
         i = item_of(req, r"\bL\d+\b(?= (?!—))")
         if fail and fail[0] == i and fail[1] in images_of(req):

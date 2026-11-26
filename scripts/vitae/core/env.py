@@ -9,6 +9,7 @@ import functools
 import importlib
 import importlib.metadata
 import importlib.util
+import io
 import json
 import os
 import re
@@ -18,7 +19,7 @@ import sys
 import sysconfig
 import tempfile
 from types import ModuleType
-from typing import Literal, TextIO, TypeAlias, cast
+from typing import Literal, TextIO, TypeAlias
 
 # ---------- dependency preflight ("doctor") ----------
 
@@ -122,7 +123,7 @@ def check_typst() -> tuple[bool, bool]:
 PdfBackend: TypeAlias = Literal["poppler", "pdfium", "pypdf"] | None
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _importable(name: str) -> bool:
     """True when `name` really imports (find_spec says only that a file exists: a broken
     wheel or a missing shared library passes it and then fails on first use)."""
@@ -141,9 +142,10 @@ def pdf_backend() -> PdfBackend:
     does not import is not selected, the doctor tests it the same way."""
     if shutil.which("pdfinfo") and shutil.which("pdftotext"):
         return "poppler"
-    for name, backend in (("pypdfium2", "pdfium"), ("pypdf", "pypdf")):
+    fallbacks: tuple[tuple[str, Literal["pdfium", "pypdf"]], ...] = (("pypdfium2", "pdfium"), ("pypdf", "pypdf"))
+    for name, backend in fallbacks:
         if _importable(name):
-            return cast(PdfBackend, backend)
+            return backend
     return None
 
 
@@ -217,10 +219,12 @@ def check_fonts() -> None:
         print(f"OK    fonts ({usable} of {len(pools)} design families have an installed face for every role; a drawn face may still be substituted, {len(have)} families)")
 
 
-class _CountDegraded:
+class _CountDegraded(io.StringIO):
     """stdout wrapper: counts the doctor lines that start with DEGRADED, so no path can print one and still end on an
-    OK summary, whichever check wrote it."""
+    OK summary, whichever check wrote it. A StringIO only so that it is a TextIO redirect_stdout accepts: it keeps
+    nothing, every write goes to `inner`."""
     def __init__(self, inner: TextIO) -> None:
+        super().__init__()
         self.inner, self.n, self._bol = inner, 0, True
 
     def write(self, text: str) -> int:
@@ -233,6 +237,12 @@ class _CountDegraded:
     def flush(self) -> None:
         self.inner.flush()
 
+    def isatty(self) -> bool:
+        return self.inner.isatty()
+
+    def fileno(self) -> int:
+        return self.inner.fileno()
+
     def __getattr__(self, name: str) -> object:
         return getattr(self.inner, name)
 
@@ -241,7 +251,7 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
     """Print the doctor output; returns (all_ok, use_cli_typst, pdf_backend). all_ok is False only when something
     has no fallback (Pillow, typst, a PDF reader); DEGRADED lines leave it True."""
     counter = _CountDegraded(sys.stdout)
-    with contextlib.redirect_stdout(cast(TextIO, counter)):
+    with contextlib.redirect_stdout(counter):
         pillow_ok = check_pillow()
         typst_ok, use_cli = check_typst()
         if use_cli or typst_py() is not None:
@@ -276,7 +286,7 @@ def _ver_tuple(v: str) -> tuple[int, int]:
     return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
     """(module, version, problem, full) for the `typst` Python package, by running it: a tiny
     document is compiled and an expression evaluated, so a broken wheel is reported broken

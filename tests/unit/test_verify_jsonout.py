@@ -308,6 +308,6 @@ def test_run_gates_fails_when_any_line_fails_even_if_later_lines_pass(capsys):
         registry.FnGate("b", lambda c: [(Level.FAIL, "bad"), (Level.OK, "after")]),
         registry.FnGate("c", lambda c: [(Level.WARN, "late")]),
     ]
-    assert registry.run_gates(gates, ctx) == 1  # type: ignore[arg-type]
-    assert registry.run_gates(gates[:1] + gates[2:], ctx) == 0  # type: ignore[arg-type]
+    assert registry.run_gates(gates, ctx) == 1  # type: ignore[arg-type]  # a bare object() stands in for the context: these gates never read it
+    assert registry.run_gates(gates[:1] + gates[2:], ctx) == 0  # type: ignore[arg-type]  # same stand-in context
     assert "FAIL  bad" in capsys.readouterr().out

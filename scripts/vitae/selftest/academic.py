@@ -98,7 +98,7 @@ def selftest() -> None:
 
     # A. a missing entry: declare one more than the PDF actually has.
     sections = _baseline_sections(3)
-    sections[0]["count"] = 4
+    sections[0] = {**sections[0], "count": 4}
     results, _ = analyze(text, sections, "Doe")
     _assert_fails_with(results, "A", "declared 4, extracted 3", "missing-entry")
     # the other, untouched sections still pass their own A/B/C/D checks

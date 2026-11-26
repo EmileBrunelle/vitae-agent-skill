@@ -90,13 +90,12 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from typing import cast
 
 from vitae.design.emit import emit_typ
 from vitae.design.init import init_folder
 from vitae.design.pick import pick
 from vitae.design.report import report
-from vitae.design.tables import CAREER, FAMILIES, FONTS, Audacity, band_ok
+from vitae.design.tables import AUDACITIES, CAREER, FAMILIES, FONTS, band_ok, is_audacity
 from vitae.selftest.design import selftest
 
 
@@ -106,8 +105,7 @@ def main() -> None:
     ap.add_argument("--field")
     ap.add_argument("--market", default="unspecified")
     ap.add_argument("--career", default="early", choices=sorted(CAREER))
-    ap.add_argument("--audacity", default="sober",
-                    choices=["sober", "expressive", "bold"])
+    ap.add_argument("--audacity", default="sober", choices=AUDACITIES)
     ap.add_argument("--photo", action="store_true")
     ap.add_argument("--conservative", action="store_true")
     ap.add_argument("--creative", action="store_true",
@@ -174,8 +172,11 @@ def main() -> None:
                     print("%18s   %-8s%s" % ("", role, ", ".join(
                         "%s [%s]" % nv for nv in pool)))
     elif a.name and a.field:
+        audacity: str = a.audacity
+        if not is_audacity(audacity):
+            ap.error(f"invalid --audacity {audacity!r}")
         p = pick(a.name, a.field, a.career, a.photo, a.conservative,
-                 cast(Audacity, a.audacity), not a.no_font_check, a.creative,
+                 audacity, not a.no_font_check, a.creative,
                  a.offline)
         band = a.band
         if band and not band_ok(p["family"]):

@@ -48,7 +48,7 @@ The scope is `[tool.mutmut]` in `pyproject.toml`: `source_paths` (the modules to
 - The repo holds no symlinks (claude.ai rejects zips containing them, and Windows checkouts break them): family templates import the shared files by relative path (`#import "../../lib.typ": *`), so they compile only with `--root` on an ancestor (by hand, from the repo root: `typst compile --root . templates/families/<family>/resume.typ out.pdf`) — `verify.py` adds it for you. `pick_design.py --init` rewrites that import to `"lib.typ"` in the starter it copies out. Never add a symlink.
 - A change to `templates/lib.typ` must keep the 29 templates pixel-identical, or the PR must say why not.
 
-Python scripts must type-check with mypy (config in `mypy.ini`, run `python3 -m mypy`) and target Python 3.11 or later.
+Python scripts must type-check with mypy (config in `mypy.ini`, run `python3 -m mypy`) and target Python 3.11 or later: the minimum is the oldest maintained Python (3.11 today; `tomllib` requires it), and `typing_extensions` is for type checking only (imported under `TYPE_CHECKING`, never at run time).
 
 ## Reference file format
 

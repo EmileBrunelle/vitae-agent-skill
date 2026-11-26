@@ -279,7 +279,7 @@ _LEADING_FAMILY_WARN = ("WARN  the list rhythm no longer matches the paragraph r
                         "Type size and leading are not padding")
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _family_default(family: str, pages: int) -> tuple[float, float] | None:
     """(leading, list spacing) in em shipped by templates/families/<family>: resume-2page.typ for
     pages >= 2 when it exists, else resume.typ; None when unknown or either value is not numeric."""

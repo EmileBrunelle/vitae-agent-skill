@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from vitae.design.fonts import _family_usable, _fonts_available, _pick_font
 from vitae.design.tables import (
@@ -21,32 +21,36 @@ from vitae.design.tables import (
     _idx,
 )
 
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import ReadOnly
+
 
 class Pick(TypedDict):
-    key: str
-    family: str
-    have: set[str] | None
-    offline: bool
-    eligible: list[str]
-    recipe: Family
-    mono: Font | None
-    mono_note: str | None
-    variant: str | None
-    career: str
-    domain: str
-    audacity: Audacity
-    accent: str
-    accent2: str | None
-    marker: str
-    markset: tuple[str, str]
-    labels: dict[str, str]
-    font_register: str
-    display: Font
-    display_wanted: Font | None
-    display_note: str
-    body: Font
-    body_wanted: Font | None
-    body_note: str
+    key: ReadOnly[str]
+    family: ReadOnly[str]
+    have: ReadOnly[set[str] | None]
+    offline: ReadOnly[bool]
+    eligible: ReadOnly[list[str]]
+    recipe: ReadOnly[Family]
+    mono: ReadOnly[Font | None]
+    mono_note: ReadOnly[str | None]
+    variant: ReadOnly[str | None]
+    career: ReadOnly[str]
+    domain: ReadOnly[str]
+    audacity: ReadOnly[Audacity]
+    accent: ReadOnly[str]
+    accent2: ReadOnly[str | None]
+    marker: ReadOnly[str]
+    markset: ReadOnly[tuple[str, str]]
+    labels: ReadOnly[dict[str, str]]
+    font_register: ReadOnly[str]
+    display: ReadOnly[Font]
+    display_wanted: ReadOnly[Font | None]
+    display_note: ReadOnly[str]
+    body: ReadOnly[Font]
+    body_wanted: ReadOnly[Font | None]
+    body_note: ReadOnly[str]
 
 
 def _field_has(field: str | None, key: str) -> bool:

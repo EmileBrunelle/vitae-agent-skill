@@ -6,7 +6,11 @@ run prints last is returned by the mode that computes it (see `_run` in vitae/ve
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Literal, NotRequired, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Literal, NotRequired, TypeAlias, TypedDict
+
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import ReadOnly, TypeIs
 
 # ---------- shapes passed around ----------
 # Geometry, in PDF points unless said otherwise (pdftotext -bbox).
@@ -23,13 +27,13 @@ HiddenStat: TypeAlias = tuple[int, str, Box, float, float | None, bool]
 
 class _MarkExtras(TypedDict, total=False):
     """The keys only some marks carry (shared by Mark and HeadMark)."""
-    kind: str           # "entry" / "skill" (heads) or "date" / "org" / "date-col" (parts)
-    org: str            # heads only
-    w: float            # measured cell width (parts)
-    h: float            # measured cell height (parts)
-    dated: bool         # entry heads of a lib that tags them: given a date?
-    anchor: bool        # entry heads of a lib that tags them: date anchor present
-    inline: bool        # date parts: set inline after the role
+    kind: ReadOnly[str]           # "entry" / "skill" (heads) or "date" / "org" / "date-col" (parts)
+    org: ReadOnly[str]            # heads only
+    w: ReadOnly[float]            # measured cell width (parts)
+    h: ReadOnly[float]            # measured cell height (parts)
+    dated: ReadOnly[bool]         # entry heads of a lib that tags them: given a date?
+    anchor: ReadOnly[bool]        # entry heads of a lib that tags them: date anchor present
+    inline: ReadOnly[bool]        # date parts: set inline after the role
 
 
 class Mark(_MarkExtras):
@@ -38,71 +42,83 @@ class Mark(_MarkExtras):
     section title has no x and no kind, and the fallback marks built from the
     source (and partial marks of an old lib) carry no position. The gates that
     measure positions work on HeadMark / SecMark, which they narrow to."""
-    text: str
-    page: NotRequired[int]
-    x: NotRequired[float]
-    y: NotRequired[float]
+    text: ReadOnly[str]
+    page: NotRequired[ReadOnly[int]]
+    x: NotRequired[ReadOnly[float]]
+    y: NotRequired[ReadOnly[float]]
 
 
 class HeadMark(_MarkExtras):
     """A Mark known to carry its x: an entry head, skill label or part (<vitae-head> / <vitae-part>)."""
-    text: str
-    page: int
-    x: float
-    y: float
+    text: ReadOnly[str]
+    page: ReadOnly[int]
+    x: ReadOnly[float]
+    y: ReadOnly[float]
 
 
-class SecMark(TypedDict):
-    """A section title mark (<vitae-sec>) with its position: no x, no kind."""
-    text: str
-    page: int
-    y: float
+class SecMark(_MarkExtras):
+    """A section title mark (<vitae-sec>) with its position. The lib gives it no kind and no x; the optional
+    keys are only here so that a Mark with a page and a y narrows to it (is_sec_placed)."""
+    text: ReadOnly[str]
+    page: ReadOnly[int]
+    y: ReadOnly[float]
+    x: NotRequired[ReadOnly[float]]
+
+
+def is_placed(m: Mark) -> TypeIs[HeadMark]:
+    """A mark that carries its position (page, x, y), as every lib entry head and part mark does."""
+    return "page" in m and "x" in m and "y" in m
+
+
+def is_sec_placed(m: Mark) -> TypeIs[SecMark]:
+    """A mark that carries the page and y a section title is measured from (its x, if any, is not read)."""
+    return "page" in m and "y" in m
 
 
 class _EntryRecord(TypedDict):
     """_entry_records(): an entry head with the part marks that follow it."""
-    head: HeadMark
-    date: HeadMark | None
-    org: HeadMark | None
-    date_first: bool | None
+    head: ReadOnly[HeadMark]
+    date: ReadOnly[HeadMark | None]
+    org: ReadOnly[HeadMark | None]
+    date_first: ReadOnly[bool | None]
 
 
 class _Line(TypedDict):
     """_lines(): the words of one text line, clustered by y-centre."""
-    y0: float
-    y1: float
-    c: float
-    x0: float
-    words: list[Word]
+    y0: ReadOnly[float]
+    y1: ReadOnly[float]
+    c: ReadOnly[float]
+    x0: ReadOnly[float]
+    words: ReadOnly[list[Word]]
 
 
 class GroupRow(TypedDict):
     """measure_groups() / DETAIL row of an entry or skill group."""
-    kind: Literal["group"]
-    text: str
-    page: int
-    n: int                          # lines in the group, less one
-    gaps: list[float]               # gaps between consecutive lines inside it
-    internal: float                 # the largest of them
-    between: float                  # last line -> next block's first line
-    ratio: float                    # between / internal
-    hkind: str | None               # the head mark kind: "entry" or "skill"
-    next_sec: bool                  # the next block is a section title
-    head_gap: float | None          # org line -> first bullet (entries with an org line and >= 2 bullet lines)
-    pitch: float | None             # median gap between the bullet lines
-    ls: list[LineBox]
-    pair_in: tuple[str, str]        # the line pair behind `internal`
-    pair_btw: tuple[str, str]       # the line pair behind `between`
+    kind: ReadOnly[Literal["group"]]
+    text: ReadOnly[str]
+    page: ReadOnly[int]
+    n: ReadOnly[int]                          # lines in the group, less one
+    gaps: ReadOnly[list[float]]               # gaps between consecutive lines inside it
+    internal: ReadOnly[float]                 # the largest of them
+    between: ReadOnly[float]                  # last line -> next block's first line
+    ratio: ReadOnly[float]                    # between / internal
+    hkind: ReadOnly[str | None]               # the head mark kind: "entry" or "skill"
+    next_sec: ReadOnly[bool]                  # the next block is a section title
+    head_gap: ReadOnly[float | None]          # org line -> first bullet (entries with an org line and >= 2 bullet lines)
+    pitch: ReadOnly[float | None]             # median gap between the bullet lines
+    ls: ReadOnly[list[LineBox]]
+    pair_in: ReadOnly[tuple[str, str]]        # the line pair behind `internal`
+    pair_btw: ReadOnly[tuple[str, str]]       # the line pair behind `between`
 
 
 class SecRow(TypedDict):
     """measure_groups() / DETAIL row of a section title."""
-    kind: Literal["sec"]
-    text: str
-    page: int
-    before: float                   # previous block -> title (its bar)
-    after: float                    # title -> first line of its section
-    ratio: float
+    kind: ReadOnly[Literal["sec"]]
+    text: ReadOnly[str]
+    page: ReadOnly[int]
+    before: ReadOnly[float]                   # previous block -> title (its bar)
+    after: ReadOnly[float]                    # title -> first line of its section
+    ratio: ReadOnly[float]
 
 
 DetailRow: TypeAlias = GroupRow | SecRow

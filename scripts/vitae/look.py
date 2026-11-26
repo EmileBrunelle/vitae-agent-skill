@@ -53,7 +53,8 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import IO, Callable, NamedTuple, NoReturn, Optional, Sequence, cast
+from collections.abc import Callable, Sequence
+from typing import IO, NamedTuple, NoReturn
 
 DEFAULT_CHECKLIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "references", "look-checklist.md")
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
@@ -176,7 +177,7 @@ def clean_content(content: object) -> str:
     return text.strip()
 
 
-def _answer(line: str) -> Optional[tuple[str, str, str]]:
+def _answer(line: str) -> tuple[str, str, str] | None:
     """One line -> (id, PASS|FAIL, zone) or None."""
     raw = line.strip()
     if raw.startswith("|"):
@@ -262,7 +263,7 @@ def _resolve(host: str) -> list[str]:
 
 
 def _check_remote(base_url: str, allow_remote: bool,
-                  resolver: Callable[[str], Sequence[str]] = _resolve) -> Optional[str]:
+                  resolver: Callable[[str], Sequence[str]] = _resolve) -> str | None:
     """None when the images may be sent to base_url; else the refusal message. A non-local host (any public
     address, or a name that does not resolve) is refused unless allow_remote, which returns None."""
     try:
@@ -288,11 +289,13 @@ def _open(req: urllib.request.Request, url: str, timeout: float) -> IO[bytes]:
     variables, so images meant for loopback/private hosts never travel through a proxy; a remote URL
     (--allow-remote) keeps the default, proxy-honouring behaviour."""
     if _check_remote(url, False, _resolve) is None:
-        return cast(IO[bytes], urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout))
-    return cast(IO[bytes], urllib.request.urlopen(req, timeout=timeout))
+        local: IO[bytes] = urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=timeout)
+        return local
+    remote: IO[bytes] = urllib.request.urlopen(req, timeout=timeout)
+    return remote
 
 
-def http_json(url: str, body: Optional[bytes], timeout: float, model: str = "") -> object:
+def http_json(url: str, body: bytes | None, timeout: float, model: str = "") -> object:
     headers = {"Content-Type": "application/json"} if body is not None else {}
     req = urllib.request.Request(url, data=body, headers=headers)
     try:
@@ -351,8 +354,8 @@ class Truncated(Exception):
 
 
 def ask(base_url: str, model: str, prompt: str, pngs: Sequence[str], max_tokens: int,
-        timeout: float, temperature: float = 0, top_p: Optional[float] = None,
-        top_k: Optional[int] = None) -> tuple[str, int, int]:
+        timeout: float, temperature: float = 0, top_p: float | None = None,
+        top_k: int | None = None) -> tuple[str, int, int]:
     """One chat call -> (answer text, prompt_tokens, completion_tokens). Dies (exit 2) on any anomaly
     except truncation, which raises Truncated."""
     content: list[dict[str, object]] = [{"type": "text", "text": prompt}]
@@ -437,7 +440,7 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
     for it in items:
         prompt = ITEM_PROMPT.format(id=it.id, text=it.text)
 
-        def one(imgs: Sequence[str], prompt: str = prompt, item_id: str = it.id) -> tuple[Optional[tuple[str, str]], str]:
+        def one(imgs: Sequence[str], prompt: str = prompt, item_id: str = it.id) -> tuple[tuple[str, str] | None, str]:
             nonlocal tp, tc
             try:
                 text, p, c = ask(a.base_url, a.model, prompt, imgs, a.max_tokens, a.timeout,
@@ -474,14 +477,14 @@ def per_item(a: argparse.Namespace, items: list[Item], pngs: Sequence[str]) -> t
     return verdicts, tp, tc
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     try:
         _main(argv)
     except Exception as e:  # SystemExit/KeyboardInterrupt pass through
         die(f"{type(e).__name__}: {e}")
 
 
-def _main(argv: Optional[Sequence[str]] = None) -> None:
+def _main(argv: Sequence[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base-url", required=True)
     ap.add_argument("--model")

@@ -107,7 +107,7 @@ class TestBuild:
 
     def test_unknown_audacity_exits(self):
         with pytest.raises(SystemExit):
-            P.build("swiss-grid", "s", "loud")  # type: ignore[arg-type]
+            P.build("swiss-grid", "s", "loud")  # type: ignore[arg-type]  # "loud" is not an Audacity on purpose: build() must exit
 
     @pytest.mark.parametrize("level", sorted(P.DIAL))
     def test_accent_stays_outside_muddy_yellow_zone(self, level):

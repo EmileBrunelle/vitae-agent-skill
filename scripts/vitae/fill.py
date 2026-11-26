@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Callable, NoReturn
+from collections.abc import Callable
+from typing import NoReturn
 
 from PIL import Image
 

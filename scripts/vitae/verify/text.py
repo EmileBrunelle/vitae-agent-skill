@@ -11,7 +11,6 @@ import subprocess
 import tempfile
 import unicodedata
 from collections.abc import Callable, Sequence
-from typing import cast
 
 from PIL import Image
 
@@ -20,6 +19,7 @@ from vitae.core.colour import rel_luminance as _lum
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
+from vitae.core.pixels import colour_counts
 from vitae.verify.lang import _is_latin, _strip_latin_marks
 from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png
 
@@ -239,8 +239,7 @@ def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] 
                 xb, yb = int(x1 * sc) + 1 + HIDDEN_PAD_PX, int(y1 * sc) + 1 + HIDDEN_PAD_PX
                 xa, ya, xb, yb = max(xa, 0), max(ya, 0), min(xb, im.width), min(yb, im.height)
                 if xb > xa and yb > ya:
-                    cols = cast(list[tuple[int, tuple[int, ...]]],
-                                im.crop((xa, ya, xb, yb)).getcolors(maxcolors=(xb - xa) * (yb - ya)))
+                    cols = colour_counts(im.crop((xa, ya, xb, yb)), (xb - xa) * (yb - ya))
                     lb = _lum(max(cols)[1])
                     ratio = 1.0
                     for _, col in cols:

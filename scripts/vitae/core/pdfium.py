@@ -3,7 +3,7 @@ so there is nothing to import its types from). Only the methods the code calls a
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from PIL import Image
 
@@ -24,6 +24,7 @@ class PdfiumPage(Protocol):
     def render(self, scale: float = ..., grayscale: bool = ...) -> PdfiumBitmap: ...
 
 
+@runtime_checkable
 class PdfiumDoc(Protocol):
     def __len__(self) -> int: ...
     def __iter__(self) -> Iterator[PdfiumPage]: ...

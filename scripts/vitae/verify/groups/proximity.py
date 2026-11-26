@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import statistics
-from typing import NotRequired, cast
+from typing import TYPE_CHECKING
 
 from vitae.core.base import (
     DetailRow,
@@ -15,7 +15,8 @@ from vitae.core.base import (
     SecRow,
     Word,
     _Line,
-    _MarkExtras,
+    is_placed,
+    is_sec_placed,
 )
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
@@ -23,11 +24,14 @@ from vitae.verify.groups.ink import _page_ink_gap
 from vitae.verify.groups.query import _find_run, _gnorm, _line_index, _lines, _typst_query
 from vitae.verify.pdf import _boxes_unavailable, word_boxes
 
+if TYPE_CHECKING:
+    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
+    from typing_extensions import ReadOnly
 
-class _KMark(SecMark, _MarkExtras):
+
+class _KMark(SecMark):
     """A head or section mark tagged with its kind: "h" head / "s" section (a section has no x)."""
-    _k: str
-    x: NotRequired[float]
+    _k: ReadOnly[str]
 
 
 def _dx(m: _KMark, h: HeadMark) -> float:
@@ -193,12 +197,13 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     page, rail titles beside the body and unlocated text are skipped."""
     gap_fn = gap_fn or (lambda page, up, lo: lo[2] - up[3])
     # a partial mark has no position to measure from: skipped
-    placed = [cast(HeadMark, h) for h in heads if "page" in h and "y" in h and "x" in h]
-    placed_secs = [cast(SecMark, sc) for sc in secs if "page" in sc and "y" in sc]
+    placed: list[HeadMark] = [h for h in heads if is_placed(h)]
+    placed_secs: list[SecMark] = [sc for sc in secs if is_sec_placed(sc)]
     rows: list[DetailRow] = []
     skipped = 0
     # the marks tagged with their kind ("h" head / "s" section)
-    marks: list[_KMark] = [cast(_KMark, {**h, "_k": "h"}) for h in placed] + [cast(_KMark, {**s, "_k": "s"}) for s in placed_secs]
+    marks: list[_KMark] = [{**h, "_k": "h"} for h in placed]
+    marks.extend({**s, "_k": "s"} for s in placed_secs)
     for h in sorted(placed, key=lambda h: (h["page"], h["y"])):
         row, skip = _measure_head(h, marks, pages_words, gap_fn)
         skipped += skip

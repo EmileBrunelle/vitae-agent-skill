@@ -12,12 +12,11 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Sequence
-from typing import cast
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from vitae.core.base import Band, Box
-from vitae.core.pixels import gray_pixels
+from vitae.core.pixels import colour_counts, gray_pixels
 
 # BOUNDARY_RATIO is a LOCATOR, not a grade. It answers "is this white run tall
 # enough to be a section boundary rather than a line gap", which is all that
@@ -276,8 +275,8 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
     sidebar must not become the 'paper'), else the modal colour (a tinted or dark page)."""
     im = im.convert("RGB")
     w, h = im.size
-    colours = im.getcolors(maxcolors=w * h) or [(1, (255, 255, 255))]
-    white = sum(n for n, c in colours if min(cast(tuple[int, ...], c)) >= 250)
+    colours = colour_counts(im, w * h) or [(1, (255, 255, 255))]
+    white = sum(n for n, c in colours if min(c) >= 250)
     m = min(4, w // 4, h // 4)          # 4 px inside: poppler leaves a white last row and column on some page sizes
     bg: tuple[int, ...] | None = None
     for inset in sorted({m, round(CROP_RING_INSET[0] * min(w, h)), round(CROP_RING_INSET[1] * min(w, h))}, reverse=True):
@@ -285,19 +284,19 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
         # the outer rings, the paper lies inside it; a dark page keeps its colour under a white card
         # further in than the rings; a sidebar or a header band leaves every ring mixed.
         inset = min(inset, w // 4, h // 4)
-        ring: Counter[tuple[int, ...] | float] = Counter()
+        ring: Counter[tuple[int, ...]] = Counter()
         for strip in ((0, inset, w, inset + 1), (0, h - inset - 1, w, h - inset), (inset, 0, inset + 1, h), (w - inset - 1, 0, w - inset, h)):
-            for n, c in im.crop(strip).getcolors(maxcolors=w * h) or []:
+            for n, c in colour_counts(im.crop(strip), w * h):
                 ring[c] += n
         top, top_n = ring.most_common(1)[0]
         if top_n >= CROP_EDGE_SHARE * sum(ring.values()):
-            bg = cast(tuple[int, ...], top)
+            bg = top
             break
     if bg is None:
         if white >= CROP_WHITE_PAPER * w * h:
             bg = (255, 255, 255)        # a >50% sidebar must not become the 'paper'
         else:
-            bg = cast(tuple[int, ...], max(colours)[1])
+            bg = max(colours)[1]
     ink = ImageChops.difference(im, Image.new("RGB", im.size, bg)).convert("L").point(
         [255 if v >= CROP_DELTA else 0 for v in range(256)])
     k = CROP_SCAN_PPI
