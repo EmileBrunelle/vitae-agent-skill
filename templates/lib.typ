@@ -43,6 +43,8 @@
 // nbsp, leaving the value alone — no stray leading space.
 // `ghost`: see gate-icons below (a drawn icon switched off, height kept).
 #let ghost = "ghost"
+// CONTRACT: nb() is reserved for contact items. The contact-line gate counts every nb item as a
+// contact; text anywhere else (body, skills, dates) must not use it.
 // Every contact item is tagged <vitae-contact> (page, x, y of its start; pure metadata, no layout
 // effect) so verify.py can count the rows the contact block really occupies. A family that
 // designs more than one row (a column, a two-line block) says so with `contact-rows(n)`; without
