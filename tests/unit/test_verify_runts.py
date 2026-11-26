@@ -214,10 +214,57 @@ def test_next_page_runt_is_reported_on_its_own_page(tmp_path):
 
 def test_complete_bullet_then_aligned_line_on_next_page_is_not_a_runt(tmp_path):
     """The bullet ended on page 1 above the bottom; page 2 starts with a short line at the same left edge."""
-    for room in range(10, 40, 4):   # beyond that the bullet reaches the bottom: a continuation cannot be excluded
+    for room in range(10, 30, 4):   # beyond that the bullet is within ~2 line pitches of the bottom: a continuation cannot be excluded
         body = (f"#v({room}pt)\n- {LATIN_FIRST} more words to wrap the line here ok.\n"
                 "#pagebreak()\n#pad(left: 9.6pt)[2021]\n")
         ctx = _compile_doc(tmp_path, f"np{room}", "width: 330pt, height: 120pt, margin: 20pt", body)
+        assert _bullet_runts(ctx) == [], room
+
+
+def _pages(tmp_path, name):
+    import pypdfium2
+    return pypdfium2.PdfDocument(str(tmp_path / f"{name}.pdf"))
+
+
+def test_runt_is_found_whatever_the_room_left_widow_orphan_control(tmp_path):
+    """Typst moves the last two lines together, so page 1 can end two line pitches above the content bottom:
+    every split of a 5-line bullet whose last word lands alone on page 2 is found."""
+    body_for = f"#v({{room}}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n"
+    split = 0
+    for room in range(0, 40):
+        ctx = _compile_doc(tmp_path, f"wo{room}", "width: 330pt, height: 160pt, margin: 20pt",
+                           body_for.format(room=room))
+        pdf_doc = _pages(tmp_path, f"wo{room}")
+        if len(pdf_doc) == 2 and "ms." in pdf_doc[1].get_textpage().get_text_range():
+            split += 1
+            out = _bullet_runts(ctx)
+            assert [lvl for lvl, _ in out] == [Level.FAIL], (room, out)
+    assert split >= 3   # the sweep must reach splits, widow/orphan ones included
+
+
+@pytest.mark.parametrize(("top", "bottom"), [(20, 60), (60, 20)])
+def test_runt_is_found_with_unequal_margins(tmp_path, top, bottom):
+    page = f"width: 330pt, height: 160pt, margin: (top: {top}pt, bottom: {bottom}pt, x: 20pt)"
+    # a full first page tells the document where its content ends
+    fill = "#block(height: 100%, align(bottom)[Filled.])\n#pagebreak()\n"
+    for room in range(0, 90):
+        ctx = _compile_doc(tmp_path, f"um{room}", page, f"{fill}#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
+        pdf_doc = _pages(tmp_path, f"um{room}")
+        if len(pdf_doc) == 3 and "ms." in pdf_doc[2].get_textpage().get_text_range():
+            out = _bullet_runts(ctx)
+            assert [lvl for lvl, _ in out] == [Level.FAIL], (room, out)
+            return
+    pytest.fail("no room made the bullet break across pages")
+
+
+def test_complete_bullet_far_above_the_bottom_with_a_small_bottom_margin_is_not_a_runt(tmp_path):
+    """Top margin 60, bottom 20: the bullet ends 50pt above the content bottom, which page 1's text shows."""
+    page = "width: 330pt, height: 160pt, margin: (top: 60pt, bottom: 20pt, x: 20pt)"
+    for room in range(0, 16, 4):
+        body = ("#block(height: 100%, align(bottom)[Filled.])\n#pagebreak()\n"
+                f"#v({room}pt)\n- {LATIN_FIRST} more words to wrap the line ok.\n"
+                "#pagebreak()\n#pad(left: 9.6pt)[2021]\n")
+        ctx = _compile_doc(tmp_path, f"fp{room}", page, body)
         assert _bullet_runts(ctx) == [], room
 
 

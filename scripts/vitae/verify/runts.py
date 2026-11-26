@@ -29,7 +29,7 @@ RUNT_FRAC = 0.15
 _EDGE_SLACK = 1.5      # pt: continuation lines share the first line's edge within this
 _MARKER_BAND = 8.0     # pt: how far from the marker's y a text line may sit and still be its first line
 _CHANNEL = 0.4         # line heights: a gap this wide, free of words on every line below the marker, ends the column
-_BOTTOM_LINES = 1.5    # line heights: a bullet's last line this close to the content bottom may go on at the next page
+_BOTTOM_LINES = 2.3    # line heights: a bullet's last line this close to the content bottom may go on at the next page
 
 
 @dataclass(frozen=True)
@@ -137,13 +137,24 @@ def _follow(lines: list[_Line], start: int, edge: float, ltr: bool, nxt: float, 
     return True
 
 
-def _at_bottom(page: list[WordBox], following: list[WordBox], last: BulletLine, page_h: float | None) -> bool:
-    """True when the bullet's last line sits where the page's content ends, so the next line would not have
-    fitted: the page height less a bottom margin taken as large as the next page's top margin (its topmost text).
-    Without the page height: when no text of the page is lower."""
-    if page_h is None or not following:
-        return last.y1 >= max(b[3] for b, _ in page) - 0.5
-    return last.y1 >= page_h - min(b[1] for b, _ in following) - _BOTTOM_LINES * last.height
+def _at_bottom(pages: list[list[WordBox]], pg: int, col: tuple[float, float], last: BulletLine,
+               page_h: float | None) -> bool:
+    """True when the bullet's last line (on page `pg`, 1-based) sits where its column's content ends, so the
+    next line would not have fitted: within _BOTTOM_LINES line heights (widow/orphan control moves two lines
+    together) of the content bottom. The bottom is read from the document: the lowest text of the column's x
+    band on any page; it counts only when another page reaches about as low as this one (else the bullet is its own
+    only evidence). Alone, the bottom margin is taken as large as the next page's top margin (its topmost text),
+    which is a guess for unequal margins. A footer inside the column band raises the bottom: a split can be
+    missed there, never invented."""
+    lowest = [max((b[3] for b, _ in page if b[0] >= col[0] - 0.5 and b[2] <= col[1] + 0.5), default=float("-inf"))
+              for page in pages]
+    window = _BOTTOM_LINES * last.height
+    others = max((v for i, v in enumerate(lowest) if i != pg - 1), default=float("-inf"))
+    if others >= last.y1 - last.height:
+        return last.y1 >= max(others, lowest[pg - 1]) - window
+    if page_h is None:
+        return last.y1 >= lowest[pg - 1] - 0.5
+    return last.y1 >= page_h - min(b[1] for b, _ in pages[pg]) - window
 
 
 def bullet_lines(marks: list[Mark], pages: list[list[WordBox]],
@@ -173,7 +184,7 @@ def bullet_lines(marks: list[Mark], pages: list[list[WordBox]],
         nxt = next((b.y for b in bullets[i + 1:] if b.page == pg and abs(b.x - m.x) <= _EDGE_SLACK and b.y > m.y + 1),
                    float("inf"))
         at_end = _follow(lines, j + 1, edge, ltr, nxt, pg, got, lines[j])
-        if at_end and pg < len(pages) and _at_bottom(pages[pg - 1], pages[pg], got[-1], heights[pg - 1] if heights else None):
+        if at_end and pg < len(pages) and _at_bottom(pages, pg, col, got[-1], heights[pg - 1] if heights else None):
             # ran to the bottom of the column: the bullet may go on at the top of the next page, same column
             nxt = min((b.y for b in bullets if b.page == pg + 1 and abs(b.x - m.x) <= _EDGE_SLACK),
                       default=float("inf"))
