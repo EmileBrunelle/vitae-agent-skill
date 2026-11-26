@@ -193,3 +193,19 @@ def test_a_section_heading_under_the_last_bullet_is_not_a_wrapped_line(tmp_path)
     c = _columns(ctx)[0]
     assert c.wrapped is not None and c.wrapped < 14
     assert _spacing_rhythm(ctx) == []
+
+
+def test_bullets_on_different_pages_are_not_paired(monkeypatch):
+    """Synthetic positions: the second bullet sits lower on page 2 than the first on page 1, so the y gap alone
+    is positive (and within reach); only the page check keeps the pair out of the bullet pitch."""
+    from vitae.verify import rhythm
+    from vitae.verify.runts import BulletLine, Extent, Pos
+
+    def line(page, y1):
+        return BulletLine(page, Extent(0.0, 100.0), 10.0, "x", y1)
+
+    placed = [(Pos(1, 10.0, 100.0), [line(1, 110.0)]), (Pos(2, 10.0, 120.0), [line(2, 130.0)])]
+    monkeypatch.setattr(rhythm, "located_bullets", lambda *_a, **_k: placed)
+    (col,) = measure_columns([], [])
+    assert col.pairs == 0
+    assert col.bullet is None

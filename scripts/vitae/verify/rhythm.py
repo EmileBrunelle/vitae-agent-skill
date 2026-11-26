@@ -72,7 +72,9 @@ def measure_columns(marks: list[Mark], pages: list[list[WordBox]], heights: list
         wrapped = [b.y1 - a.y1 for _, ls in cl for a, b in zip(ls, ls[1:]) if a.page == b.page]
         gaps: list[float] = []
         for (pa, la), (pb, lb) in zip(cl, cl[1:]):
-            # a bullet that runs on to the next page, or a next bullet on another page, gives a gap <= 0 here
+            if pa.page != pb.page:
+                continue    # no pitch across a page break, whatever the two y values say
+            # a bullet that runs on to the next page gives a gap <= 0 here
             gap = lb[0].y1 - la[-1].y1
             lo = min(ln.extent.x0 for ln in la)
             hi = max(ln.extent.x1 for ln in la)
