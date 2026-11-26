@@ -120,11 +120,11 @@ class TestTuneScalesList:
         assert T.tune(str(p), 1, 80, 99)[0] == 0
         assert "#set list(indent: 10pt)\n" in p.read_text(encoding="utf-8")
 
-    def test_two_par_file_list_spacing_unchanged(self):
+    def test_two_par_file_tunes_the_gates_line_and_leaves_an_earlier_list_alone(self):
         src = ("#set par(leading: 0.60em, spacing: 0.70em)\n#set list(spacing: 0.45em)\n"
                "#set par(leading: 0.96em, spacing: 1.0em)\nbody\n")
         out = T._with_rhythm(src, 0.70, 0.80)
-        assert _doc_par_list(out) == (0.96, 0.45) and out.startswith("#set par(leading: 0.700em")
+        assert _doc_par_list(out) == (0.70, 0.45) and out.startswith("#set par(leading: 0.60em, spacing: 0.70em)")
 
     def test_nested_spacing_untouched(self):
         src = "#set par(leading: 0.6em)\n#set list(marker: box(spacing: 0.1em)[x])\nbody\n"

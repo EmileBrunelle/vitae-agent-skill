@@ -114,19 +114,74 @@ def _mask_non_markup(src: str) -> str:
 PAR_RE = re.compile(r"(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(em[^)]*?spacing:\s*)([0-9.]+)(em)")
 
 
+def _par_rule_spans(masked: str) -> list[tuple[int, int]]:
+    """(start, end) of every column-0 `#set par(... leading: ...)` rule in a _mask_non_markup'd text."""
+    spans = []
+    for m in re.finditer(r"^#set\s+par\(", masked, re.M):
+        k, d = m.end(), 1
+        while k < len(masked) and d:
+            d += (masked[k] == "(") - (masked[k] == ")")
+            k += 1
+        if _LEAD_ARG.search(masked[m.end():k - 1]):
+            spans.append((m.start(), k))
+    return spans
+
+
+def _tuned_par(text: str) -> re.Match[str] | None:
+    """PAR_RE match of the rule the gate measures (the LAST column-0 `#set par(... leading: ...)`), None when
+    there is none or that rule is not in the `leading: Xem ... spacing: Yem` form the tuner can rewrite.
+    Offsets are those of `text` (masking keeps them)."""
+    masked = _mask_non_markup(text)
+    spans = _par_rule_spans(masked)
+    return PAR_RE.match(masked, spans[-1][0]) if spans else None
+
+
 def _read_par(text: str) -> tuple[float, float] | None:
-    """(leading, spacing) in em of the first `#set par(...)` that PAR_RE matches, None when none does."""
-    m = PAR_RE.search(text)
+    """(leading, spacing) in em of the rule the gate measures (see _tuned_par), None when it is not tunable."""
+    m = _tuned_par(text)
     if not m:
         return None
     return float(m.group(2)), float(m.group(4))
 
 
 def _write_par(text: str, leading: float, spacing: float) -> str:
-    """text with the first PAR_RE match rewritten to these values (three decimals); other rules are untouched."""
-    return PAR_RE.sub(
-        lambda m: "%s%.3f%s%.3f%s" % (m.group(1), leading, m.group(3), spacing,
-                                      m.group(5)), text, count=1)
+    """text with the rule the gate measures (see _tuned_par) rewritten to these values (three decimals);
+    other rules, earlier `#set par` lines included, are untouched."""
+    m = _tuned_par(text)
+    if not m:
+        return text
+    return "%s%s%.3f%s%.3f%s%s" % (text[:m.start()], m.group(1), leading, m.group(3), spacing,
+                                    m.group(5), text[m.end():])
+
+
+_RHYTHM_RE = re.compile(r"^(#let rhythm = )([0-9]*\.?[0-9]+)[ \t]*$", re.M)
+
+
+def _rhythm_match(text: str) -> re.Match[str] | None:
+    """Match of the column-0 `#let rhythm = <number>` line (the pt-gap multiplier of the family's
+    section / entry code), None when the file has none. Searched outside comments and strings."""
+    return _RHYTHM_RE.search(_mask_non_markup(text))
+
+
+def _read_rhythm(text: str) -> float | None:
+    m = _rhythm_match(text)
+    return float(m.group(2)) if m else None
+
+
+def _write_rhythm(text: str, rhythm: float) -> str:
+    """text with the `#let rhythm` value set (three decimals); unchanged when the file has no such line."""
+    m = _rhythm_match(text)
+    if not m:
+        return text
+    return "%s%.3f%s" % (text[:m.start(2)], rhythm, text[m.end(2):])
+
+
+def _par_scope(text: str) -> int:
+    """Offset from which the tuner's list-spacing scaling applies: the start of the tuned par rule when the
+    file has several (a list set before it belongs to another page's rhythm), 0 when it has one."""
+    masked = _mask_non_markup(text)
+    spans = _par_rule_spans(masked)
+    return spans[-1][0] if len(spans) > 1 else 0
 
 
 # The set rules _doc_par_list_size reads; only at column 0, so a rule inside a #let or #show body never counts.
@@ -156,21 +211,14 @@ _SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
 
 def _count_par_leadings(text: str) -> int:
     """How many column-0 `#set par(... leading: ...)` rules the text has (the gate reads the LAST one)."""
-    masked = _mask_non_markup(text)
-    count = 0
-    for m in re.finditer(r"^#set\s+par\(", masked, re.M):
-        k, d = m.end(), 1
-        while k < len(masked) and d:
-            d += (masked[k] == "(") - (masked[k] == ")")
-            k += 1
-        count += bool(_LEAD_ARG.search(masked[m.end():k - 1]))
-    return count
+    return len(_par_rule_spans(_mask_non_markup(text)))
 
 
-def _scale_list_spacing(text: str, factor: float) -> str:
+def _scale_list_spacing(text: str, factor: float, after: int = 0) -> str:
     """text with every top-level `#set list(... spacing: X)` (numeric, em or pt) multiplied by factor
     (three decimals, unit kept); text with no explicit numeric list spacing comes back unchanged.
-    Same top-level scope as _doc_par_list_size, so a nested `box(spacing:)` is never touched."""
+    Same top-level scope as _doc_par_list_size, so a nested `box(spacing:)` is never touched; only rules
+    starting at offset `after` or later are scaled."""
     masked = _mask_non_markup(text)
     out, last, depth, i, n = [], 0, 0, 0, len(masked)
     while i < n:
@@ -187,7 +235,7 @@ def _scale_list_spacing(text: str, factor: float) -> str:
                 k += 1
             args = masked[i + m.end():k - 1]
             _, sp = _spacing_arg(args)
-            if sp:
+            if sp and i >= after:
                 a, b = i + m.end() + sp.start(1), i + m.end() + sp.end(1)
                 out.append(text[last:a])
                 out.append("%.3f" % (float(sp.group(1)) * factor))

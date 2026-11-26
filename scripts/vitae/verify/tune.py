@@ -19,7 +19,14 @@ from vitae.core.base import (
 )
 from vitae.core.env import PdfBackend, preflight
 from vitae.verify.pdf import compile_pdf, count_pages, render_pngs
-from vitae.verify.typst import _count_par_leadings, _read_par, _scale_list_spacing, _write_par
+from vitae.verify.typst import (
+    _par_scope,
+    _read_par,
+    _read_rhythm,
+    _scale_list_spacing,
+    _write_par,
+    _write_rhythm,
+)
 
 # ---------- auto-tuner: the fill loop, run by bisection instead of by hand ----------
 
@@ -45,21 +52,33 @@ from vitae.verify.typst import _count_par_leadings, _read_par, _scale_list_spaci
 def _with_rhythm(text: str, leading: float, spacing: float) -> str:
     """text with par leading/spacing set and the list spacing scaled by leading / original leading.
 
-    With more than one `#set par(leading:)` the tuner edits the first while the gate reads the last,
-    so both of the gate's values stay untouched and the list spacing is left alone too."""
+    Read and write target the `#set par` rule the gate measures (the last column-0 one); with several
+    par rules only the list spacings after it are scaled (see _par_scope)."""
     par = _read_par(text)
     out = _write_par(text, leading, spacing)
-    if not par or par[0] <= 0 or _count_par_leadings(text) > 1:
+    if not par or par[0] <= 0:
         return out
-    return _scale_list_spacing(out, leading / par[0])
+    return _scale_list_spacing(out, leading / par[0], _par_scope(text))
 
 
-def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
-           use_cli: bool, backend: PdfBackend) -> tuple[bool, int | None]:
-    """Compile at (leading, spacing); return (pages_ok, fill_pct or None).
+def _with_gap_scale(text: str, rhythm: float) -> str:
+    """text with `#let rhythm` set to `rhythm` and the gaps outside the family's pt constants scaled
+    with it: par spacing = spacing x rhythm / current rhythm, numeric list spacing likewise. Leading is
+    untouched. `text` must carry the rhythm line; a text without one comes back unchanged."""
+    par, cur = _read_par(text), _read_rhythm(text)
+    if par is None or not cur or cur <= 0:
+        return text
+    factor = rhythm / cur
+    out = _write_par(_write_rhythm(text, rhythm), par[0], par[1] * factor)
+    return _scale_list_spacing(out, factor, _par_scope(text))
+
+
+def _probe_text(typ: str, candidate: str, expected: int, use_cli: bool,
+                backend: PdfBackend) -> tuple[bool, int | None]:
+    """Write `candidate` to `typ`, compile it; return (pages_ok, fill_pct or None).
 
     Rewrites `typ` in place on every call: the caller restores the original text."""
-    open(typ, "w", encoding="utf-8").write(_with_rhythm(text, leading, spacing))
+    open(typ, "w", encoding="utf-8").write(candidate)
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "t.pdf")
         ok, _ = compile_pdf(typ, pdf, use_cli)
@@ -74,12 +93,56 @@ def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
         return True, (int(m.group(1)) if m else None)
 
 
+def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
+           use_cli: bool, backend: PdfBackend) -> tuple[bool, int | None]:
+    """Compile at (leading, spacing); return (pages_ok, fill_pct or None)."""
+    return _probe_text(typ, _with_rhythm(text, leading, spacing), expected, use_cli, backend)
+
+
 # UPWARD CAP. An under-filled page means a fact is missing, not whitespace to inflate. The
 # shipped templates use body leading well under LEADING_WARN and paragraph spacing up to 1.075em; the tuner
 # never goes above LEADING_WARN (the gate's own double-spacing WARN threshold, so a tuned file
 # never trips it) or SPACING_CAP (the shipped maximum plus 15%, CHANGELOG) whatever range the
 # caller passes. The downward (over-full) search is not capped.
 SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
+
+
+# PHASE 1 (files with a `#let rhythm = R` line). The family multiplies every pt gap of its section / entry
+# code by `rhythm`, so scaling it (with par spacing and list spacing) stretches ALL inter-block gaps
+# together, and the vertical hierarchy survives. Leading stays at its designed value; only when the
+# rhythm range cannot reach the target does phase 2 (the leading bisection below) take over, at the
+# rhythm bound phase 1 hit.
+RHYTHM_LO, RHYTHM_HI, RHYTHM_STEP = 0.85, 1.30, 0.005
+
+
+def _rhythm_phase(typ: str, original: str, expected: int, fmax: int, use_cli: bool,
+                  backend: PdfBackend) -> tuple[float, int | None]:
+    """Bisect the rhythm r in [RHYTHM_LO, RHYTHM_HI] (upper bound cut where the par spacing would pass
+    SPACING_CAP, never below the current rhythm) for the largest r that holds `expected` pages with fill <= fmax.
+    Returns (r, its fill); the fill is None when the floor itself fails the page count or is unmeasured."""
+    par, cur = _read_par(original), _read_rhythm(original)
+    if par is None or not cur or cur <= 0:
+        raise ValueError("_rhythm_phase needs a par rule and a rhythm line")
+    unit = par[1] / cur                                  # par spacing at rhythm 1
+    lo, hi = RHYTHM_LO, min(RHYTHM_HI, max(SPACING_CAP, par[1]) / unit)
+    hi = max(hi, min(cur, RHYTHM_HI))
+    lo = min(lo, hi)
+    print("rhythm phase: searching [%.3f, %.3f] with leading fixed at %.3fem" % (lo, hi, par[0]))
+    ok, fill = _probe_text(typ, _with_gap_scale(original, lo), expected, use_cli, backend)
+    if not ok:
+        return lo, None
+    best, best_fill = lo, fill
+    while hi - lo > RHYTHM_STEP:
+        mid = round((lo + hi) / 2, 3)
+        ok, fill = _probe_text(typ, _with_gap_scale(original, mid), expected, use_cli, backend)
+        print("  rhythm %.3f -> %s" % (mid, ("fill %s%%" % fill) if ok else "page count off"))
+        if ok and (fill is None or fill <= fmax):
+            lo = mid
+            if fill is not None:
+                best, best_fill = mid, fill
+        else:
+            hi = mid
+    return best, best_fill
 
 
 # Default search bounds [0.80 * l0, max(1.30 * l0, 1.10)] and bisection step 0.005em (~7-8 probes):
@@ -89,7 +152,8 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
          allow_placeholders: bool = False) -> tuple[int, str | None]:
     """--tune: bisect `#set par(leading:, spacing:)` in `typ` to the largest rhythm that holds
     `expected` pages, and keep it only if the fill lands in fmin-fmax. Returns (exit code, footer): the
-    code is 0 won, 1 no value in range, 2 no par line; the footer is the NEXT line the CLI prints last
+    code is 0 won, 1 no value in range, 2 no par line. With a `#let rhythm` line the rhythm is bisected first
+    (leading fixed), the leading only from the rhythm bound that was hit; the footer is the NEXT line the CLI prints last
     on a failure (None when preflight failed). Any failure restores the original file: a
     value that misses the target is worse than the rhythm the family was designed with."""
     deps_ok, use_cli, backend = preflight()
@@ -104,6 +168,28 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
         print("FAIL  no `#set par(... leading: Xem, spacing: Yem)` line to tune "
               "— the tuner edits that one declaration and nothing else")
         return 2, footer
+    orig_l0, orig_s0 = cur
+    r_text = original                     # the text the leading bisection starts from
+    best_r: float | None = None
+    if _read_rhythm(original) is not None:
+        try:
+            best_r, r_fill = _rhythm_phase(typ, original, expected, fmax, use_cli, backend)
+            if r_fill is not None and fmin <= r_fill <= fmax:
+                open(typ, "w", encoding="utf-8").write(_with_gap_scale(original, best_r))
+                print("OK    wrote rhythm %.3f (leading %.3fem unchanged) -> fill %s%% (target %s-%s%%)"
+                      % (best_r, orig_l0, r_fill, fmin, fmax))
+                print("      now run the gate itself: verify.py %s %s %s %s%s"
+                      % (typ, expected, fmin, fmax, allow))
+                return 0, footer
+            r_text = _with_gap_scale(original, best_r)
+            print("rhythm %.3f does not reach the target alone; bisecting leading at that rhythm" % best_r)
+        except BaseException:
+            open(typ, "w", encoding="utf-8").write(original)   # never leave a probe
+            raise
+        cur = _read_par(r_text)
+        if cur is None:
+            open(typ, "w", encoding="utf-8").write(original)
+            return 2, footer
     l0, s0 = cur
     delta = s0 - l0                       # the family's own rhythm, preserved
     lo_arg = lo   # kept to tell, on failure, whether the caller already passed a wide range
@@ -129,7 +215,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
               "the current leading; an under-filled page needs a real fact, not more air"
               % (cap, LEADING_WARN, SPACING_CAP, delta))
     try:
-        ok_lo, fill_lo = _probe(typ, original, lo, lo + delta, expected,
+        ok_lo, fill_lo = _probe(typ, r_text, lo, lo + delta, expected,
                                 use_cli, backend)
         if not ok_lo:
             open(typ, "w", encoding="utf-8").write(original)   # undo the probe
@@ -148,7 +234,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
         # break alone would step over a narrow window).
         while hi - lo > step:
             mid = (lo + hi) / 2
-            ok, fill = _probe(typ, original, mid, mid + delta, expected,
+            ok, fill = _probe(typ, r_text, mid, mid + delta, expected,
                               use_cli, backend)
             print("  leading %.3fem -> %s" % (
                 mid, ("fill %s%%" % fill) if ok else "page count off"))
@@ -166,7 +252,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
             under = best_fill is not None and best_fill < fmin
             print("FAIL  best leading %.3fem / spacing %.3fem -> fill %s%% "
                   "(target %s-%s%%); restored the original %.3fem/%.3fem"
-                  % (best, best + delta, best_fill, fmin, fmax, l0, s0))
+                  % (best, best + delta, best_fill, fmin, fmax, orig_l0, orig_s0))
             if under:
                 footer = _FOOTER_TUNE_UNDER
                 print("      the page is UNDER-FILLED: a fact is missing, not whitespace. "
@@ -193,9 +279,11 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
                          max(0.40, l0 * 0.65), max(1.40, l0 * 1.60), allow))
             return 1, footer
         open(typ, "w", encoding="utf-8").write(
-            _with_rhythm(original, best, best + delta))
-        print("OK    wrote leading %.3fem / spacing %.3fem -> fill %s%% "
-              "(target %s-%s%%)" % (best, best + delta, best_fill, fmin, fmax))
+            _with_rhythm(r_text, best, best + delta))
+        print("OK    wrote leading %.3fem / spacing %.3fem%s -> fill %s%% "
+              "(target %s-%s%%)" % (best, best + delta,
+                                    "" if best_r is None else " / rhythm %.3f" % best_r,
+                                    best_fill, fmin, fmax))
         print("      now run the gate itself: verify.py %s %s %s %s%s"
               % (typ, expected, fmin, fmax, allow))
         return 0, footer
