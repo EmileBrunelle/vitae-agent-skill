@@ -5,7 +5,7 @@ self-registration), and `run_gates` is the one place that prints a gate line.
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Protocol
@@ -48,7 +48,7 @@ _dump_lines: int | None = None
 
 
 @contextmanager
-def recording(sink: list[tuple[str, Level, str]]) -> Iterator[None]:
+def recording(sink: list[tuple[str, Level, str]]) -> Generator[None, None, None]:
     """While active, `run_gates` also appends (gate name, level, message) to `sink`: what `--json` reads."""
     global _sink, _dump_lines
     _sink, _dump_lines = sink, None
