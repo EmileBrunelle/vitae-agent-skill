@@ -222,7 +222,8 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
     if argv and argv[0] == "--tune":
         # verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]; the "--" makes every word a positional
         ap = _Parser("usage: verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX "
-                     "[LEADING_LO LEADING_HI] [--allow-placeholders]")
+                     "[LEADING_LO LEADING_HI] [--allow-placeholders]\n"
+                     "  stretches `#let rhythm` (all block gaps) before leading; a CV keeps that line from its template")
         ap.add_argument("typ")
         for name in ("pages", "fill_min", "fill_max"):
             ap.add_argument(name)
