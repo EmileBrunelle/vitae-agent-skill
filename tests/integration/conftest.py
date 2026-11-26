@@ -7,10 +7,11 @@ shared, every file in them named after its check.
 """
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -107,3 +108,19 @@ def fixtures_rendered(scratch: Path, out_dir: Path, log_dir: Path) -> tuple[Chec
     shutil.rmtree(fx, ignore_errors=True)
     fx.mkdir(parents=True)
     return run_check("fixtures-render", ["bash", "tests/fixtures/render.sh", fx], scratch, None, log_dir), fx
+
+
+@pytest.fixture(scope="module", params=["cli+poppler", "typst-py+pdfium"])
+def toolchain(request: pytest.FixtureRequest) -> Iterator[str]:
+    """The compile and read route of the gate: the reference tools, then the pure-Python ones (PATH hidden from the gate)."""
+    if request.param == "cli+poppler":
+        if not all(shutil.which(t) for t in ("typst", "pdftotext", "pdfinfo", "pdftoppm")):
+            pytest.skip("typst CLI / poppler missing")
+        yield request.param
+        return
+    if importlib.util.find_spec("typst") is None or importlib.util.find_spec("pypdfium2") is None:
+        pytest.skip("typst-py / pypdfium2 missing")
+    mp = pytest.MonkeyPatch()
+    mp.setattr(shutil, "which", lambda *a, **k: None)
+    yield request.param
+    mp.undo()
