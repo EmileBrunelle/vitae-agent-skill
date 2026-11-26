@@ -12,7 +12,7 @@ identical on 8, same set of lines on 10, 630 of poppler's 642 lines found verbat
 pdfium's, at most 5 lines apart, the same words everywhere. IDENTICAL ratchets those 8: any loss of an identical
 sequence FAILs; on the others, no word may change its neighbours inside a line.
 Needs pdftotext AND pypdfium2: SKIPs (exit 0) otherwise.
-Usage: tests/compare_backends.py <pdf>...   (run_all.sh passes the rendered fixtures)"""
+Usage: tests/compare_backends.py <pdf>...   (tests/integration passes the rendered fixtures)"""
 import collections
 import os
 import shutil

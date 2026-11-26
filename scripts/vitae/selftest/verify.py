@@ -13,7 +13,7 @@ print `SKIPPED` when they are missing instead of failing; the tuner block runs o
 when `preflight()` finds a PDF backend.
 
 How it is invoked: only through `python -I scripts/verify.py --selftest` (the
-`selftest-verify` case of tests/run_all.sh runs exactly that). There is no CLI of
+`selftest-verify` case of tests/integration runs exactly that). There is no CLI of
 its own, and the entry point is `run()`, which ends in `sys.exit(0)` or raises
 AssertionError. verify.py imports this module lazily inside its `--selftest` branch,
 so a normal run never loads it (the self-test is a large share of what
@@ -24,7 +24,7 @@ is_letter / is_academic.
 
 What it does not cover: verify_letter.py, verify_academic.py and pick_design.py each
 have their own `--selftest`; the end-to-end fixtures, the per-template gates and the
-backend comparisons live in tests/run_all.sh, not here.
+backend comparisons live in tests/integration, not here.
 
 Not printed by --help (verify.py's usage text is separate)."""
 

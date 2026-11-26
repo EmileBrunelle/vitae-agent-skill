@@ -123,7 +123,7 @@ scripts/                      # Python, stdlib d'abord
   look.py, measure_fill.py    #   aide au contrôle visuel ; mesure de couverture d'encre
   gen_palette.py              #   palettes validées en contraste
   harvest_icons.py            #   récupère les tracés d'icônes dans l'icons.typ du dossier du CV, à la construction
-tests/                        # run_all.sh (suite de gates), unit/, backend_equiv.py, fixtures
+tests/                        # integration/ (suite de gates), unit/, backend_equiv.py, fixtures
 docs/                         # sources.md, models.md (agents et modèles testés)
 assets/                       # image d'exemple du README, badges, aperçus des familles
 ```
