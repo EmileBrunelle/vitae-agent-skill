@@ -25,6 +25,7 @@ from vitae.verify.groups import (
 from vitae.verify.layout import check_font_fallback
 from vitae.verify.placeholders import check_placeholders
 from vitae.verify.registry import FnGate, Gate
+from vitae.verify.rhythm import check_rhythm
 from vitae.verify.runts import check_runts
 from vitae.verify.source import check_forced_linebreak, check_literal_tilde, check_no_split
 from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
@@ -117,7 +118,7 @@ def _bullet_chars(ctx: VerifyContext) -> list[Finding]:
 
 
 def _query_notice(ctx: VerifyContext) -> list[Finding]:
-    return [(Level.WARN, "grouping / date-adjacency / duplicate-name / bullet-runts / contact-line gates NOT checked (need the typst CLI or typst-py with query)")]
+    return [(Level.WARN, "grouping / date-adjacency / duplicate-name / bullet-runts / spacing-rhythm / contact-line gates NOT checked (need the typst CLI or typst-py with query)")]
 
 
 def _hidden_text(ctx: VerifyContext) -> list[Finding]:
@@ -160,6 +161,10 @@ def _date_adjacency(ctx: VerifyContext) -> list[Finding]:
 
 def _bullet_runts(ctx: VerifyContext) -> list[Finding]:
     return check_runts(ctx.marks, ctx.pdf, fail=lambda msg: _bad(ctx, msg))
+
+
+def _spacing_rhythm(ctx: VerifyContext) -> list[Finding]:
+    return check_rhythm(ctx.marks, ctx.pdf, fail=lambda msg: _bad(ctx, msg))
 
 
 def _contact_line(ctx: VerifyContext) -> list[Finding]:
@@ -217,6 +222,7 @@ LAYOUT_GATES: tuple[Gate, ...] = (
     FnGate("group-proximity", _group_proximity, _can_query),
     FnGate("date-adjacency", _date_adjacency, _can_query),
     FnGate("bullet-runts", _bullet_runts, _can_query),
+    FnGate("spacing-rhythm", _spacing_rhythm, _can_query),
     FnGate("contact-line", _contact_line, _can_query),
     FnGate("source-text", _source_text),
     FnGate("duplicate-names", _duplicate_names, _can_query),

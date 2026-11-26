@@ -29,6 +29,7 @@ RUNT_FRAC = 0.15
 _EDGE_SLACK = 1.5      # pt: continuation lines share the first line's edge within this
 _MARKER_BAND = 8.0     # pt: how far from the marker's y a text line may sit and still be its first line
 _CHANNEL = 0.4         # line heights: a gap this wide, free of words on every line below the marker, ends the column
+_HEAD_REACH = 40.0     # pt: an entry head this near the bullet's column (its role line sits left of the bullets) ends the bullet
 _BOTTOM_LINES = 2.3    # line heights: a bullet's last line this close to the content bottom may go on at the next page
 
 
@@ -137,6 +138,14 @@ def _follow(lines: list[_Line], start: int, edge: float, ltr: bool, nxt: float, 
     return True
 
 
+def _next_head(heads: list[HeadMark], page: int, after: float, col: tuple[float, float]) -> float:
+    """The y of the first entry head or part mark below `after` on `page`, in the bullet's column (within
+    _HEAD_REACH of its x range, so a sidebar's heads do not count): the next entry starts there, and its first
+    line is not a continuation of the bullet above even though it shares its edge."""
+    return min((h["y"] for h in heads if h["page"] == page and h["y"] > after
+                and col[0] - _HEAD_REACH <= h["x"] <= col[1] + _HEAD_REACH), default=float("inf"))
+
+
 def _at_bottom(pages: list[list[WordBox]], pg: int, col: tuple[float, float], last: BulletLine,
                page_h: float | None) -> bool:
     """True when the bullet's last line (on page `pg`, 1-based) sits where its column's content ends, so the
@@ -162,8 +171,15 @@ def bullet_lines(marks: list[Mark], pages: list[list[WordBox]],
     """Per bullet mark (page, lines top to bottom); a bullet whose first line cannot be located is dropped.
     Only the words of the marker's own column count, and a bullet runs on across a page break when its last
     line is at the bottom of the content (`heights`: the page heights)."""
+    return [(pos.page, got) for pos, got in located_bullets(marks, pages, heights)]
+
+
+def located_bullets(marks: list[Mark], pages: list[list[WordBox]],
+                    heights: list[float] | None = None) -> list[tuple[Pos, list[BulletLine]]]:
+    """bullet_lines with the bullet's marker position (page, x, y) instead of its page."""
     bullets = sorted(_positions(marks), key=lambda p: (p.page, p.y))
-    out: list[tuple[int, list[BulletLine]]] = []
+    heads: list[HeadMark] = [h for h in marks if is_placed(h) and h.get("kind") != "bullet"]
+    out: list[tuple[Pos, list[BulletLine]]] = []
     for i, m in enumerate(bullets):
         pg = m.page
         if not 1 <= pg <= len(pages):
@@ -181,15 +197,16 @@ def bullet_lines(marks: list[Mark], pages: list[list[WordBox]],
         edge = first.x0 if ltr else first.x1
         got = [BulletLine(pg, first, lines[j]["y1"] - lines[j]["y0"], " ".join(w[4] for w in lines[j]["words"]),
                             lines[j]["y1"])]
-        nxt = next((b.y for b in bullets[i + 1:] if b.page == pg and abs(b.x - m.x) <= _EDGE_SLACK and b.y > m.y + 1),
-                   float("inf"))
+        nxt = min(next((b.y for b in bullets[i + 1:] if b.page == pg and abs(b.x - m.x) <= _EDGE_SLACK and b.y > m.y + 1),
+                       float("inf")), _next_head(heads, pg, m.y + 1, col))
         at_end = _follow(lines, j + 1, edge, ltr, nxt, pg, got, lines[j])
         if at_end and pg < len(pages) and _at_bottom(pages, pg, col, got[-1], heights[pg - 1] if heights else None):
             # ran to the bottom of the column: the bullet may go on at the top of the next page, same column
             nxt = min((b.y for b in bullets if b.page == pg + 1 and abs(b.x - m.x) <= _EDGE_SLACK),
                       default=float("inf"))
+            nxt = min(nxt, _next_head(heads, pg + 1, float("-inf"), col))
             _follow(_window(pages[pg], col), 0, edge, ltr, nxt, pg + 1, got, None)
-        out.append((m.page, got))
+        out.append((m, got))
     return out
 
 
