@@ -75,7 +75,7 @@
       sub.step(); clause.display(); [.]; sub.display() }]
    #text(weight: "bold")[#cat]], items)
 
-#set list(marker: drawn-marker("dash", accent, bold: true), indent: 10pt,
+#set list(marker: list-marker("dash", accent, bold: true), indent: 10pt,
   spacing: 0.579em, body-indent: 6pt)
 
 // HEADER: TWO ZONES over a REFERENCE ROW. The identity block left, the contact
@@ -117,10 +117,10 @@
        ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
        sep: [ · ])]],
     text(size: 9pt, fill: muted)[
-      #contact-rows(4)#nb(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-      #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
-      #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
-      #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+      #contact-rows(4)#contact(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+      #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
+      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
+      #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
     align-cells: (left + top, right + top), gutter: 16pt,
     above: 0pt, below: 0pt)
 ]

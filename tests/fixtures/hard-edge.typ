@@ -139,11 +139,11 @@
     sep: [ | ])]
   #v(2pt)
   #text(font: monof, size: 8.5pt, fill: muted)[
-    #nb(ic.pin)[\[City, Region\]] #h(7pt)
-    #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)
-    #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
-    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
-    #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+    #contact(ic.pin)[\[City, Region\]] #h(7pt)
+    #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)
+    #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
+    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
+    #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
 ]
 
 // SECTION ORDER (this family's default): SKILLS SECOND, straight after the

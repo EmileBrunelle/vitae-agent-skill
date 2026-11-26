@@ -52,7 +52,7 @@
 // skills: serif bold label, thin accent tick (vector), sans items
 #let skill(cat, items) = srow([#text(font: dispf, size: 11pt, weight: "bold")[#cat] #box(width: 3pt, height: 3pt, fill: accent, baseline: -2pt)], items)
 
-#set list(marker: drawn-marker("dash", dark), indent: 10pt, spacing: 0.469em, body-indent: 6pt)
+#set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.469em, body-indent: 6pt)
 
 // header: oversized serif name, then role line left / contact column right (photo slot)
 #block(above: 0pt, below: 12pt)[
@@ -60,11 +60,11 @@
     [#text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
      #v(-2pt)
      #text(size: 10.5pt, fill: accent, weight: "semibold")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
-    text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #contact-rows(5)#nb(ic.pin)[\[City, Region\]] \
-      #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
-      #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-      #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
-      #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+    text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #contact-rows(5)#contact(ic.pin)[\[City, Region\]] \
+      #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
+      #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
+      #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
   )
 ]
 

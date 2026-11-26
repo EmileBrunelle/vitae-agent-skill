@@ -51,7 +51,7 @@
   text(weight: "bold", size: 9.5pt)[#upper(cat)], items,
   brk: true, brk-gap: 2pt, above: auto, below: 0pt)
 
-#set list(marker: drawn-marker("dot", accent2, bold: true), indent: 10pt,
+#set list(marker: list-marker("dot", accent2, bold: true), indent: 10pt,
   spacing: 0.631em, body-indent: 6pt)
 
 // header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
@@ -61,11 +61,11 @@
   #text(size: 10.5pt, fill: white, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-4pt)
   #text(size: 9pt, fill: white)[
-    #nb(ic.pin)[\[City, Region\]]
-    #h(6pt) #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
-    #h(6pt) #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]]
-    #h(6pt) #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(6pt) #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #contact(ic.pin)[\[City, Region\]]
+    #h(6pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
+    #h(6pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]]
+    #h(6pt) #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
+    #h(6pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
   ]
 ]
 

@@ -43,20 +43,24 @@
 // nbsp, leaving the value alone — no stray leading space.
 // `ghost`: see gate-icons below (a drawn icon switched off, height kept).
 #let ghost = "ghost"
-// CONTRACT: nb() is reserved for contact items. The contact-line gate counts every nb item as a
-// contact; text anywhere else (body, skills, dates) must not use it.
-// Every contact item is tagged <vitae-contact> (page, x, y of its start; pure metadata, no layout
-// effect) so verify.py can count the rows the contact block really occupies. A family that
-// designs more than one row (a column, a two-line block) says so with `contact-rows(n)`; without
-// it the block is declared to be ONE row, and an item that wraps onto another line is a FAIL.
-#let contact-mark = context [#metadata((text: "", page: here().position().page,
-  x: here().position().x.pt(), y: here().position().y.pt())) <vitae-contact>]
+// `nb` is the general mark+value primitive (Languages, skills, any inline pair). It is NOT tagged.
+// `contact` is `nb` for a header contact item: it also tags <vitae-contact> (page, x, y of its start;
+// pure metadata, no layout effect) so verify.py can count the rows the contact block really occupies.
+// A family that designs more than one row (a column, a two-line block) says so with `contact-rows(n)`;
+// without it the block is declared to be ONE row, and an item that wraps onto another line is a FAIL.
+// Every contact item (city and phone included) goes through `contact`; nothing else does.
+// The mark sits in a zero-size box on the item's BASELINE (a box's bottom edge rests on it), so its y is
+// the baseline whatever the height of the icon or glyph beside it.
+#let contact-mark = box(width: 0pt, height: 0pt, context [#metadata((text: "", page: here().position().page,
+  x: here().position().x.pt(), y: here().position().y.pt())) <vitae-contact>])
 #let contact-rows(n) = [#metadata(n) <vitae-contact-rows>]
-#let nb(mark, value) = {
-  if mark == none { box[#contact-mark#value] }
-  else if mark == ghost { box[#contact-mark#box(width: 0pt, height: 7.4pt, baseline: 1.4pt)#value] }
-  else { box[#contact-mark#mark~#value] }
+#let nb-item(tag, mark, value) = {
+  if mark == none { box[#tag#value] }
+  else if mark == ghost { box[#tag#box(width: 0pt, height: 7.4pt, baseline: 1.4pt)#value] }
+  else { box[#tag#mark~#value] }
 }
+#let nb(mark, value) = nb-item([], mark, value)
+#let contact(mark, value) = nb-item(contact-mark, mark, value)
 
 // ------------------------------------------------------------ workday mode
 // `typst compile --input workday=1 resume.typ` builds the PARSE-ONLY copy for
@@ -209,8 +213,9 @@
 #let has-text(c) = { let t = if c == none { none } else { head-plain(c) }; type(t) == str and t.trim() != "" }
 // `bullet-marked` tags a list marker (<vitae-bullet>): the page and the x/y where the
 // bullet starts. verify.py finds each bullet's lines by position from it, to FAIL a
-// wrapped bullet whose last line is a few characters alone. `drawn-marker` carries it;
-// a family drawing its own list marker wraps it: `marker: bullet-marked(box(..))`.
+// wrapped bullet whose last line is a few characters alone. `list-marker` carries it (only for
+// `#set list(marker: ..)`); a family drawing its own list marker wraps it: `marker: bullet-marked(box(..))`.
+// `drawn-marker` itself is untagged: it is also the inline separator dot of contact and Languages lines.
 #let bullet-marked(c) = [#context [#metadata((text: "", kind: "bullet",
   page: here().position().page, x: here().position().x.pt(), y: here().position().y.pt())) <vitae-bullet>]#c]
 #let sec-mark(t) = context [#metadata((
@@ -661,7 +666,7 @@
   "p052|r|dash": (0.503em, 0.063em), "liberation sans|r|dash": (0.560em, 0.074em),
   "libertinus serif|r|emdash": (0.671em, 0.055em), "stix two text|r|emdash": (0.949em, 0.060em),
 )
-#let drawn-marker(kind, fill, bold: false) = context {
+#let drawn-marker(kind, fill, bold: false, tag: false) = context {
   let sample = (dash: "–", emdash: "—", dot: "•", square: "▪", mid: "·").at(kind)
   let wt = if bold { "bold" } else { "regular" }
   let w = measure(text(weight: wt, sample)).width
@@ -676,10 +681,13 @@
   let (iw, ih) = marker-ink.at(key, default: fallback)
   let (iw, ih) = (iw.to-absolute(), ih.to-absolute())
   let fill = if fill == auto { text.fill } else { fill }
-  bullet-marked(box(width: w, height: 0pt, place(top + left, dx: (w - iw) / 2, dy: -asc,
+  let m = box(width: w, height: 0pt, place(top + left, dx: (w - iw) / 2, dy: -asc,
     if kind == "dot" or kind == "mid" { ellipse(width: iw, height: ih, fill: fill, stroke: none) }
-    else { rect(width: iw, height: ih, fill: fill, stroke: none) })))
+    else { rect(width: iw, height: ih, fill: fill, stroke: none) }))
+  if tag { bullet-marked(m) } else { m }
 }
+// The list marker: a drawn marker tagged <vitae-bullet>. Only `#set list(marker: list-marker(..))` uses it.
+#let list-marker(kind, fill, bold: false) = drawn-marker(kind, fill, bold: bold, tag: true)
 
 // masthead — full-bleed header band that GROWS with its content. A fixed-height
 // `place(rect(height: ..))` behind a flow block clips the last contact line as

@@ -28,10 +28,10 @@ SCRIPTS = {
 def _compile(tmp_path, name, font, bullet, rtl):
     for f in ("lib.typ", "icons.typ"):
         shutil.copy(ROOT / "templates" / f, tmp_path / f)
-    src = ('#import "lib.typ": drawn-marker\n#set page(width: 330pt, height: 200pt, margin: 20pt)\n'
+    src = ('#import "lib.typ": drawn-marker, list-marker\n#set page(width: 330pt, height: 200pt, margin: 20pt)\n'
            f'#set text(font: "{font}", size: 10pt{", dir: rtl" if rtl else ""})\n'
            '#set par(justify: false)\n'
-           '#set list(marker: drawn-marker("dot", black), indent: 0pt, spacing: 1em, body-indent: 6pt)\n'
+           '#set list(marker: list-marker("dot", black), indent: 0pt, spacing: 1em, body-indent: 6pt)\n'
            f"{bullet}\n")
     typ = tmp_path / f"{name}.typ"
     typ.write_text(src, encoding="utf-8")
@@ -131,9 +131,9 @@ def _compile_doc(tmp_path, name, page, body):
     """A CV drawn through lib.typ's marker with a free page setup and body."""
     for f in ("lib.typ", "icons.typ"):
         shutil.copy(ROOT / "templates" / f, tmp_path / f)
-    src = (f'#import "lib.typ": drawn-marker\n#set page({page})\n'
+    src = (f'#import "lib.typ": list-marker\n#set page({page})\n'
            '#set text(font: "Libertinus Serif", size: 10pt)\n#set par(justify: false)\n'
-           '#set list(marker: drawn-marker("dot", black), indent: 0pt, spacing: 1em, body-indent: 6pt)\n'
+           '#set list(marker: list-marker("dot", black), indent: 0pt, spacing: 1em, body-indent: 6pt)\n'
            f"{body}\n")
     typ = tmp_path / f"{name}.typ"
     typ.write_text(src, encoding="utf-8")
@@ -193,3 +193,15 @@ def test_runt_at_the_top_of_the_next_page_is_found(tmp_path):
     out = _bullet_runts(ctx)
     assert [lvl for lvl, _ in out] == [Level.FAIL], out
     assert "ms." in out[0][1]
+
+def test_inline_separator_is_not_a_bullet(tmp_path):
+    """drawn-marker used as an inline separator dot must not be tagged <vitae-bullet>; list-marker is."""
+    from vitae.verify.groups.query import _typst_values
+    for f in ("lib.typ", "icons.typ"):
+        shutil.copy(ROOT / "templates" / f, tmp_path / f)
+    typ = tmp_path / "sep.typ"
+    typ.write_text('#import "lib.typ": drawn-marker, list-marker\n#set page(width: 300pt, height: 100pt)\n'
+                   '#set list(marker: list-marker("dot", black))\n'
+                   'Nî #drawn-marker("dot", auto) Nî #drawn-marker("mid", auto) Nî\n\n- one\n- two\n', encoding="utf-8")
+    vals = _typst_values(str(typ), "<vitae-bullet>", str(tmp_path))
+    assert vals is not None and len(vals) == 2

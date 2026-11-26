@@ -116,11 +116,11 @@
   #v(1pt)
   // Contact gaps stay >= 12pt: poppler reads a narrower gap as a column break (1 line per item).
   #text(size: 9pt, fill: muted)[
-    #nb(ic.pin)[\[City, Region\]] #h(14pt)
-    #nb(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(14pt)
-    #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(14pt)
-    #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(14pt)
-    #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+    #contact(ic.pin)[\[City, Region\]] #h(14pt)
+    #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(14pt)
+    #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(14pt)
+    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(14pt)
+    #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
 ]
 
 // SECTION ORDER (this family's default): the narrative-led skeleton — profile,

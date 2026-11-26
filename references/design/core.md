@@ -180,6 +180,7 @@ The shared MECHANICS live in `templates/lib.typ`, imported with `#import "lib.ty
 | `chip` | a painted chip — `highlight`, never `box(fill:)`; `radius` is a passthrough so a family can shape a whole RUN of segments with one value | a box per item becomes its own text cluster and the rows interleave |
 | `specline` | the specialities line, items boxed, no `tracking` | letterspacing extracts as `N E X T`; an item split at a line end stops matching |
 | `nb` | mark + `~` + value inside a box | a mark orphaned at a line end separates from its value |
+| `contact` / `contact-rows(n)` | `nb` for a header contact item (city and phone too), also measured by the contact-line gate; declare a header of `n` designed rows with `#contact-rows(n)` before its first item (default 1) | an item that wraps onto a new line goes unseen; use `nb`, not `contact`, for Languages and skills |
 | `marks` / `pmark` | the platform logos as SVG path data, fetched into `icons.typ` at build time | an icon FONT leaks private-use codepoints into the extraction |
 | `icons-line` / `icons-solid` | the two generic icon styles, colour as a parameter | — (drawn from primitives: emits no text, and no `assets/` dir to hand over) |
 | `hrow` | the single-ROW alignment grid, right cell = the photo slot | multi-ROW data grids scramble order; single-row ones are safe *when each cell is one line* |

@@ -200,7 +200,7 @@
 // the construction is `nb(mk.x, seg[value])` — the mark outside, the `seg` on
 // the value only. `highlight` paints behind a text run and not behind an inline
 // image box, so there is no construction that puts a vector mark under the
-// paint; MEASURED, the version that wrapped the whole pair (`seg[#nb(mk.x)[…]]`)
+// paint; MEASURED, the version that wrapped the whole pair (`seg[#contact(mk.x)[…]]`)
 // therefore started its tint at the first GLYPH and its `extent: 2.2pt` then
 // reached 2.2pt BACK into the icon box — the paint edge cut every mark in half.
 // Wrapping only the value puts the whole 2.2pt extent inside the pair's own
@@ -212,11 +212,11 @@
 #let seg(b) = chip(b, fill: wash, extent: 2.2pt, radius: seg-radius)
 #block(above: 0pt, below: 9pt)[
   #text(font: monof, size: 8.5pt, fill: muted)[#{
-    (nb(mk.pin, seg[\[City, Region\]]),
-     nb(mk.phone, seg[#link("tel:+15555550100")[(555) 555-0100]]),
-     nb(mk.mail, seg[#link("mailto:me@example.com")[me\@example.com]]),
-     nb(mk.li, seg[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]),
-     nb(mk.gh, seg[#link("https://github.com/handle")[github.com/handle]])).join([#sym.space.quad])
+    (contact(mk.pin, seg[\[City, Region\]]),
+     contact(mk.phone, seg[#link("tel:+15555550100")[(555) 555-0100]]),
+     contact(mk.mail, seg[#link("mailto:me@example.com")[me\@example.com]]),
+     contact(mk.li, seg[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]),
+     contact(mk.gh, seg[#link("https://github.com/handle")[github.com/handle]])).join([#sym.space.quad])
   }]
   #v(5pt)
   #text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]

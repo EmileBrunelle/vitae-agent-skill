@@ -59,7 +59,7 @@
 // skills: small uppercase run-in label (no tracking), then the items
 #let skill(cat, items) = srow(text(size: 8.5pt, weight: "bold")[#upper(cat)], items)
 
-#set list(marker: drawn-marker("square", dark, bold: true), indent: 10pt,
+#set list(marker: list-marker("square", dark, bold: true), indent: 10pt,
   spacing: 0.42em, body-indent: 6pt)
 
 // header: ONE grid row — name/role left, contact column right (photo slot = right cell)
@@ -68,11 +68,11 @@
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
      #v(-3pt)
      #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
-    text(size: 9pt, fill: muted)[#contact-rows(5)#nb(mk.pin)[\[City, Region\]] \
-      #nb(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \
-      #nb(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-      #nb(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
-      #nb(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+    text(size: 9pt, fill: muted)[#contact-rows(5)#contact(mk.pin)[\[City, Region\]] \
+      #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \
+      #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
+      #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
   )
 ]
 

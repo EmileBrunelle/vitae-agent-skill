@@ -1,6 +1,6 @@
 """The contact-line gate: a header contact block must not wrap onto more rows than its template declares.
 
-lib.typ's `nb` tags every contact item <vitae-contact> (page, x, y where it starts); a family that
+lib.typ's `contact` tags every contact item <vitae-contact> (page, x, and y of its baseline); a family that
 designs several rows (a column, a two-line block) declares it with `contact-rows(n)` (<vitae-contact-rows>).
 Rows are counted from the items' measured y, never from what the text says; a CV with no tagged item
 is "not measured", never guessed.
@@ -10,7 +10,7 @@ from __future__ import annotations
 from vitae.core.level import Finding, Level
 from vitae.verify.groups.query import _is_num, _typst_values
 
-ROW_GAP = 4.0   # pt: items of one row differ by an icon baseline (~1.5pt); the closest designed rows are ~10pt apart
+ROW_GAP = 4.0   # pt: items of one row share a baseline (within ~1pt); the closest designed rows are ~10pt apart
 
 
 def _item_ys(values: list[object]) -> dict[int, list[float]]:
@@ -44,8 +44,11 @@ def check_contact_line(typ: str, root: str | None) -> list[Finding]:
         return [(Level.WARN, "contact line not measured: typst query unavailable")]
     by_page = _item_ys(items)
     if not by_page:
-        return [(Level.INFO, "contact line not measured: no contact item built with lib nb()")]
-    declared = _declared_rows(_typst_values(typ, "<vitae-contact-rows>", root))
+        return [(Level.INFO, "contact line not measured: no contact item built with lib contact()")]
+    declared_values = _typst_values(typ, "<vitae-contact-rows>", root)
+    if declared_values is None:
+        return [(Level.WARN, "contact line not measured: the declared row count could not be read (typst query failed)")]
+    declared = _declared_rows(declared_values)
     page, ys = next(iter(sorted(by_page.items())))
     rows = count_rows(ys)
     if rows > declared:
