@@ -16,12 +16,14 @@ SCRIPTS = {
     "latin": ("Libertinus Serif", "Reduced the nightly billing report time after profiling slow queries and",
               "adding indexes so the whole report now finishes well inside the maintenance window each night.",
               "ms.", False),
-    "arabic": ("Noto Naskh Arabic", "قمت بتقليل زمن تقرير الفوترة الليلي بعد تحليل الاستعلامات البطيئة وإضافة",
-               "الفهارس بحيث ينتهي التقرير كاملا داخل نافذة الصيانة كل ليلة دون أي تأخير.", "ثانية.", True),
-    "cjk": ("Noto Sans CJK JP", "遅いクエリを分析してインデックスを追加し、夜間の請求レポートの処理時間を大幅に短縮しました。" * 2,
-            "その結果、レポート全体が毎晩のメンテナンス時間内に余裕をもって完了するようになりました。" * 2, "分。", False),
-    "thai": ("Droid Sans Thai", "ลดเวลาการสร้างรายงานการเรียกเก็บเงินประจำคืนหลังจากวิเคราะห์คิวรีที่ช้าและเพิ่มดัชนี",
-             "ทำให้รายงานทั้งหมดเสร็จสิ้นภายในช่วงเวลาบำรุงรักษาทุกคืนโดยไม่มีความล่าช้าใดๆ ที่น่ากังวล", "วินาที", False),
+    # Non-Latin: forced line breaks (a backslash), every line well under the measure (at most about 60 % of it, so no plausible
+    # font wraps one on its own); the fonts are ones CI installs (noto-core), the test skips where Typst lacks them.
+    "arabic": ("Noto Naskh Arabic", "قمت بتقليل زمن التقرير بعد تحليل الاستعلامات البطيئة",
+               "وأضفت الفهارس اللازمة للتقرير الليلي", "ثانية.", True),
+    "cjk": ("Noto Sans CJK JP", "遅いクエリを分析してインデックス \\ を追加し処理時間を短縮しました",
+            "その結果レポートが夜間に完了します", "分。", False),
+    "thai": ("Noto Sans Thai", "ลดเวลาการสร้างรายงานประจำคืน \\ หลังจากวิเคราะห์คิวรีที่ช้า",
+             "ทำให้รายงานเสร็จสิ้นทุกคืน", "ที", False),
 }
 
 
@@ -41,7 +43,7 @@ def _compile(tmp_path, name, font, bullet, rtl):
 
 
 def _fonts():
-    return {f.lower() for f in typst.Fonts().families()} if hasattr(typst, "Fonts") else set()
+    return {f.lower() for f in typst.Fonts(include_system_fonts=True).families()} if hasattr(typst, "Fonts") else set()
 
 
 def _bullets(first, rest):
@@ -51,6 +53,8 @@ def _bullets(first, rest):
 @pytest.mark.parametrize("script", sorted(SCRIPTS))
 def test_runt_fails_full_last_line_and_one_line_pass(tmp_path, script):
     font, first, closing, runt, rtl = SCRIPTS[script]
+    if font.lower() not in _fonts():
+        pytest.skip(f"{font} is not visible to typst-py: the test would measure a fallback face")
     runt_cv = _compile(tmp_path, "runt", font, _bullets(first, f" \\ {runt}"), rtl)
     out = _bullet_runts(runt_cv)
     assert [lvl for lvl, _ in out] == [Level.FAIL], out
