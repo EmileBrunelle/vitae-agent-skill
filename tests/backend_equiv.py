@@ -78,10 +78,13 @@ def parse(out: str) -> dict:
 
 
 def run(env: str, work: str, args: list[str], tools: dict[str, str]) -> str:
+    # The scrubbed environment keeps the font variables (tests/ci_fonts.sh sets them): without them the
+    # children would see another font set than the one the bench runs under, and the engines would diverge.
+    font_env = {k: v for k, v in os.environ.items() if k.startswith("TYPST_") or k == "FONTCONFIG_FILE"}
     path = {"ref": os.environ["PATH"], "cli-pdfium": tools["bin_typst"], "pure": tools["bin_none"]}[env]
     r = subprocess.run([sys.executable, "-I", "scripts/verify.py"] + args, cwd=work, text=True,
                        capture_output=True, timeout=600, env={"PATH": path, "HOME": os.environ.get("HOME", "/"),
-                                                              "LANG": "C.UTF-8"})
+                                                              "LANG": "C.UTF-8", **font_env})
     return r.stdout + r.stderr
 
 
