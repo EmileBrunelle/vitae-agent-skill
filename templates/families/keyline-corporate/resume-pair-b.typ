@@ -30,7 +30,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.700em, spacing: 0.790em)
+#set par(justify: false, leading: 0.525em, spacing: 0.615em)
 
 // device: a `soft` rule ACROSS the boundary, plus the accent keyline down the
 // left of the title. The rule is what separates sections — the vertical
@@ -53,7 +53,7 @@
 // skills: the label itself carries the accent — no separator, no rule
 #let skill(cat, items) = srow(text(fill: accent, weight: "bold")[#cat], items)
 
-#set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.427em, body-indent: 6pt)
+#set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.675em, body-indent: 6pt)
 
 // header: name left + contact column right (photo slot = right cell), no rule
 #block(above: 0pt, below: 12pt)[
@@ -95,8 +95,6 @@
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].

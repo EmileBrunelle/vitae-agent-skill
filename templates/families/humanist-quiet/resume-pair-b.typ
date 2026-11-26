@@ -29,7 +29,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.581em, spacing: 0.676em)
+#set par(justify: false, leading: 0.560em, spacing: 0.655em)
 #show link: set text(fill: accent)
 
 // device: none — whitespace and a size/weight step do all the delimiting
@@ -49,7 +49,7 @@
 #let skill(cat, items) = srow([#drawn-marker("dash", accent, bold: true)#h(6pt)#text(weight: "semibold")[#cat] —], items, hang: 16pt)
 
 #set list(marker: list-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.580em, body-indent: 6pt)
+  spacing: 0.765em, body-indent: 6pt)
 
 // header: name + subtitle left, contacts on two left-aligned lines below
 #block(above: 0pt, below: 12pt)[
@@ -95,7 +95,6 @@ with the field's key terms in *bold*.]
 
 #job("[Role]", "[Employer]", "[Mon YYYY or YYYY, as stated] – [Mon YYYY or YYYY, as stated]",
   "[City] · [descriptor, only if stated] · [contract or mode, only if stated]")
-- [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
 - [Action verb] [what, from the facts][, outcome, if stated].
