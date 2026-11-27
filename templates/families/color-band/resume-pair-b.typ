@@ -23,13 +23,6 @@
 #let ic-tel = box(baseline: 1.4pt, width: 6pt, height: 7.4pt)[
   #place(horizon + center, rect(width: 4.6pt, height: 7.6pt, fill: ic-col))
   #place(bottom + center, dy: -1pt, rect(width: 2.4pt, height: 0.9pt, fill: accent))]
-#let ic-mail = box(baseline: 1.4pt, width: 8pt, height: 7.4pt)[
-  #place(horizon + center, rect(width: 8pt, height: 6pt, fill: ic-col))
-  #place(horizon + center, dy: -1.2pt, polygon(stroke: 1pt + accent, (0pt, 0pt), (4pt, 2.8pt), (8pt, 0pt)))]
-#let ic-web = box(baseline: 1.4pt, width: 7.6pt, height: 7.4pt)[
-  #place(horizon + center, circle(radius: 3.7pt, fill: ic-col))
-  #place(horizon + center, line(length: 7.4pt, stroke: 0.9pt + accent))
-  #place(horizon + center, ellipse(width: 3.6pt, height: 7.4pt, stroke: 0.9pt + accent))]
 
 // ---------- Platform marks (contact line) ----------
 // Same mechanism as every other family: `marks()` from lib.typ, reading the

@@ -107,7 +107,6 @@
   text(font: monof, size: 8pt, weight: "bold", fill: white)[#upper(cat)],
   fill: dark, extent: 1pt)
 #let skill(cat, items) = srow(stag(cat), items, above: auto, lift: -1.5pt, below: 0pt)
-#let sskill(cat, items) = skill(cat, items)
 
 // List marker: a hard-bordered SQUARE OUTLINE, drawn (emits no text). Nobody
 // else uses an outlined marker — mono-technical's is filled.

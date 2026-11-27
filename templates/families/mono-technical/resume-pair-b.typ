@@ -11,7 +11,6 @@
 #let accent2 = rgb("#8f2d3f")   // hue B — DATA: dates, list markers, icons
 #let pal = derive(accent)
 #let soft = pal.soft
-#let wash = color.mix((accent, 8%), (white, 92%))
 #let ink = pal.ink
 #let muted = ink
 #let dark = pal.dark

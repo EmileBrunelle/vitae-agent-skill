@@ -57,7 +57,7 @@
 #let dark = if screen { rgb("#e5e8eb") } else { pal.dark }
 // The theme SURFACE: a 14% wash of hue A, the light-theme equivalent of the
 // chrome panel a bar or a gutter is painted on. A surface, not a colour job —
-// the accent budget is unaffected (same construction as mono-technical's wash).
+// the accent budget is unaffected.
 #let wash = color.mix((accent, 14%), (paper, 86%))
 
 // SEGMENT SHAPE — the one variant axis of this family, and it is the harvested
@@ -177,7 +177,6 @@
   polygon(fill: accent2, (0pt, 0pt), (3.4pt, 2.1pt), (0pt, 4.2pt)))
 #let skill(cat, items) = srow(
   [#fold #text(font: monof, size: 8.5pt, weight: "medium")[#lower(cat)]], items)
-#let sskill(cat, items) = skill(cat, items)
 
 // List marker: a drawn hue-B VERTICAL BAR — the change sign an editor paints in
 // its gutter, and the rail's own shape one scale down (the family repeats its
