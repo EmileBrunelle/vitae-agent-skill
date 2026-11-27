@@ -126,3 +126,51 @@ def test_without_pikepdf_the_file_is_byte_identical(paren_pdf, monkeypatch):
     assert hexstrings.hexify_pdf(str(paren_pdf)) is False
     monkeypatch.undo()
     assert paren_pdf.read_bytes() == before
+
+
+@needs_pikepdf
+def test_a_too_old_pikepdf_leaves_the_file_untouched_and_the_doctor_says_so(paren_pdf, monkeypatch, capsys):
+    from vitae.core import env
+    pikepdf = importlib.import_module("pikepdf")
+    monkeypatch.setattr(pikepdf, "__version__", "10.7.0")
+    before = paren_pdf.read_bytes()
+    assert hexstrings.available() is False
+    assert hexstrings.hexify_pdf(str(paren_pdf)) is False
+    assert paren_pdf.read_bytes() == before
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "10.7.0")
+    env.check_pikepdf()
+    assert "INFO  pikepdf 10.7.0 too old (need >= 10.8.0), optional step skipped" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("v, t", [("10.8.0", (10, 8, 0)), ("10.18.3", (10, 18, 3)), ("11.0.0rc1", (11, 0, 0)), ("x", ())])
+def test_version_tuple(v, t):
+    assert hexstrings.version_tuple(v) == t
+
+
+@needs_pikepdf
+def test_an_unexpected_failure_leaves_the_file_and_warns_once(paren_pdf, monkeypatch, capsys):
+    def boom(pk, doc):
+        raise RuntimeError("x")
+    monkeypatch.setattr(hexstrings, "_rewrite", boom)
+    monkeypatch.setattr(hexstrings, "_warned", False)
+    before = paren_pdf.read_bytes()
+    assert hexstrings.hexify_pdf(str(paren_pdf)) is False and hexstrings.hexify_pdf(str(paren_pdf)) is False
+    assert paren_pdf.read_bytes() == before
+    assert capsys.readouterr().err.count("RuntimeError") == 1
+
+
+@needs_pikepdf
+def test_tiling_pattern_streams_are_rewritten_too(tmp_path):
+    typ = tmp_path / "t.typ"
+    typ.write_text(f"#set page(width: 200pt, height: 100pt)\n#rect(width: 100pt, height: 50pt, fill: tiling(size: (30pt, 30pt))[{LETTERS}])\n", encoding="utf-8")
+    out = tmp_path / "t.pdf"
+    typst.compile(str(typ), output=str(out))
+    pikepdf = importlib.import_module("pikepdf")
+
+    def patterns() -> list[bytes]:
+        with pikepdf.open(str(out)) as doc:
+            return [bytes(o.read_bytes()) for o in doc.objects if isinstance(o, pikepdf.Stream) and o.get("/PatternType") == 1]
+
+    assert any(nested_parens(b) for b in patterns())
+    assert hexstrings.hexify_pdf(str(out)) is True
+    assert patterns() and not any(nested_parens(b) for b in patterns())
