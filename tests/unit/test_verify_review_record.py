@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from vitae.core.env import PdfCheck
 from vitae.core.level import Level
 from vitae.verify import cv
 from vitae.verify.review_record import check_review_record, layout_report_line
@@ -36,7 +37,7 @@ def shared_gate_inputs(monkeypatch, lorem_render):
     for what these tests do not vary. The probe is stubbed to "all present" and the compile and the raster copy the shared
     render; the gates that read the PDF (page count, word boxes, text) still run on it."""
     pdf, png = lorem_render
-    monkeypatch.setattr(cv, "preflight", lambda: (True, "pdfium"))
+    monkeypatch.setattr(cv, "preflight", lambda: PdfCheck(True, "pdfium"))
 
     def compile_shared(typ, out):
         shutil.copy(pdf, out)
@@ -520,7 +521,7 @@ def gate(monkeypatch):
     monkeypatch.setattr(cv, "run_gates", lambda gates, ctx: 0)
     monkeypatch.setattr(cv, "check_whitespace", lambda *a, **k: [])
     monkeypatch.setattr(cv.measure_fill, "measure", lambda path: "ink from 10% to 80%")
-    return lambda typ, *args, **kw: cv._check_cv(str(typ), "1", *args, **kw)
+    return lambda typ, *args, **kw: cv._check_cv(str(typ), cv.PageTarget("1", *args), **kw)
 
 
 def _lines(capsys):

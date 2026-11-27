@@ -6,6 +6,7 @@ import re
 import signal
 
 import pytest
+from vitae.core.env import PdfCheck
 from vitae.verify import pdf as pdf_module
 from vitae.verify import tune as T
 from vitae.verify.typst import _read_par, _read_rhythm, _rhythm_unparsed, _write_par, _write_rhythm
@@ -17,7 +18,7 @@ BASE = "#let rhythm = 1.000\n" + BODY
 
 
 def install(monkeypatch, *, breakat=1000.0, raise_at=None, log=None, raise_if=None):
-    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: PdfCheck(True, "pypdf"))
     n = [0]
 
     def probe(typ, candidate, expected, backend):
@@ -50,7 +51,7 @@ def test_write_par_keeps_comment_inside_rule():
 def test_tune_keeps_comment_in_par_rule(tmp_path, monkeypatch):
     p = put(tmp_path, "#set par(leading: 0.500em, // tight\n  spacing: 0.600em)\n" + BODY.split("\n", 1)[1])
     install(monkeypatch)
-    code, _ = T.tune(str(p), 1, 74, 76)
+    code, _ = T.tune(str(p), T.FillTarget(1, 74, 76))
     assert code == 0 and "// tight\n" in p.read_text()
 
 
@@ -58,13 +59,13 @@ def test_crlf_preserved_on_success_and_failure(tmp_path, monkeypatch):
     crlf = BASE.replace("\n", "\r\n")
     p = put(tmp_path, crlf)
     install(monkeypatch)
-    assert T.tune(str(p), 1, 74, 76)[0] == 0
+    assert T.tune(str(p), T.FillTarget(1, 74, 76))[0] == 0
     out = p.read_bytes()
     assert b"\r\n" in out and out.replace(b"\r\n", b"").count(b"\n") == 0
     assert _read_rhythm(out.decode()) is not None
     p2 = put(tmp_path, crlf)
     install(monkeypatch, breakat=97)
-    assert T.tune(str(p2), 1, 99, 100)[0] == 1
+    assert T.tune(str(p2), T.FillTarget(1, 99, 100))[0] == 1
     assert p2.read_bytes() == crlf.encode()
 
 
@@ -73,7 +74,7 @@ def test_rhythm_zero_is_a_user_error(tmp_path, monkeypatch, capsys, zero):
     text = BASE.replace("1.000", zero)
     p = put(tmp_path, text)
     install(monkeypatch)
-    code, _ = T.tune(str(p), 1, 90, 96)
+    code, _ = T.tune(str(p), T.FillTarget(1, 90, 96))
     out = capsys.readouterr().out
     assert code == 2 and "rhythm" in out and "Traceback" not in out
     assert p.read_bytes() == text.encode()
@@ -83,14 +84,14 @@ def test_current_rhythm_below_floor_is_the_lower_bound(tmp_path, monkeypatch):
     log = []
     p = put(tmp_path, BASE.replace("1.000", "0.800"))
     install(monkeypatch, log=log)
-    T.tune(str(p), 1, 60, 62)
+    T.tune(str(p), T.FillTarget(1, 60, 62))
     assert min(_read_rhythm(c) or 9 for c in log) <= 0.8 + 1e-9
     assert _read_rhythm(log[0]) == pytest.approx(0.8)
 
 
 def test_floor_failure_keeps_original_as_candidate(tmp_path, monkeypatch):
     # pages hold only for rhythm >= 0.88 (a too-short floor): the original at 0.9 is the fallback
-    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: PdfCheck(True, "pypdf"))
 
     def probe(typ, candidate, expected, backend):
         T._write(typ, candidate)
@@ -98,7 +99,7 @@ def test_floor_failure_keeps_original_as_candidate(tmp_path, monkeypatch):
         return (r >= 0.88, round(50 * r + 25) if r >= 0.88 else None)
     monkeypatch.setattr(T, "_probe_text", probe)
     p = put(tmp_path, BASE.replace("1.000", "0.900"))
-    code, _ = T.tune(str(p), 1, 69, 71)
+    code, _ = T.tune(str(p), T.FillTarget(1, 69, 71))
     r = _read_rhythm(p.read_text())
     assert code == 0 and r is not None and 0.88 <= r <= 0.93
 
@@ -120,7 +121,7 @@ def test_unparsable_rhythm_gets_a_note_not_silence(tmp_path, monkeypatch, capsys
     assert _rhythm_unparsed(text) and _read_rhythm(text) is None
     p = put(tmp_path, text)
     install(monkeypatch)
-    T.tune(str(p), 1, 74, 76)
+    T.tune(str(p), T.FillTarget(1, 74, 76))
     assert "NOTE" in capsys.readouterr().out
 
 
@@ -130,7 +131,7 @@ def test_interrupt_in_phase_one_restores_original(tmp_path, monkeypatch, at):
     orig = p.read_bytes()
     install(monkeypatch, raise_at=at, breakat=105)
     with pytest.raises(KeyboardInterrupt):
-        T.tune(str(p), 1, 106, 108)
+        T.tune(str(p), T.FillTarget(1, 106, 108))
     assert p.read_bytes() == orig
 
 
@@ -146,7 +147,7 @@ def test_interrupt_between_the_phases_restores_original(tmp_path, monkeypatch):
             raise KeyboardInterrupt
     monkeypatch.setattr(T, "print", boom, raising=False)
     with pytest.raises(KeyboardInterrupt):
-        T.tune(str(p), 1, 106, 108)
+        T.tune(str(p), T.FillTarget(1, 106, 108))
     assert p.read_bytes() == orig
 
 
@@ -164,7 +165,7 @@ def test_termination_signal_mid_probe_restores_original(tmp_path, monkeypatch, s
         return False
     install(monkeypatch, raise_if=kill_on_third, breakat=105)
     with pytest.raises(T._Terminated) as ei:
-        T.tune(str(p), 1, 74, 76)
+        T.tune(str(p), T.FillTarget(1, 74, 76))
     assert not isinstance(ei.value, Exception) and calls[0] == 3
     assert p.read_bytes() == orig                   # no probe left in the CV
     assert signal.getsignal(sig) == before          # handler restored afterwards
@@ -188,7 +189,7 @@ def test_a_cv_that_does_not_compile_is_reported_and_never_probed(tmp_path, monke
     monkeypatch.setattr(T, "compile_or_messages", lambda typ, out: ("", pdf_module.compile_failure_messages(
         f"{refusal}\nerror: PDF/UA-1 error: missing document title\n")))
 
-    code, footer = T.tune(str(p), 1, 74, 76)
+    code, footer = T.tune(str(p), T.FillTarget(1, 74, 76))
 
     out = capsys.readouterr().out
     assert code == 1 and footer is None
@@ -201,18 +202,18 @@ def test_a_cv_that_compiles_is_tuned(tmp_path, monkeypatch, capsys):
     """Control of the test above: the same file with a compile that succeeds is tuned."""
     p = put(tmp_path, BASE)
     install(monkeypatch)
-    assert T.tune(str(p), 1, 74, 76)[0] == 0
+    assert T.tune(str(p), T.FillTarget(1, 74, 76))[0] == 0
     assert "nothing was tuned" not in capsys.readouterr().out
 
 
 def test_a_real_cv_without_a_title_never_prints_page_count_off(tmp_path, monkeypatch, capsys):
     """End to end (real Typst, real probes): the refusal comes from the first compile and names the title."""
     from vitae.core import env
-    if not env.check_typst() or not env.preflight()[0]:
+    if not env.check_typst() or not env.preflight().ok:
         pytest.skip("no Typst or no PDF reader available")
     monkeypatch.setattr(T, "compile_or_messages", pdf_module.compile_or_messages)     # the real one, not the conftest stub
     p = put(tmp_path, '#set page(width: 200pt, height: 100pt)\n' + BODY)
-    code, _ = T.tune(str(p), 1, 74, 76)
+    code, _ = T.tune(str(p), T.FillTarget(1, 74, 76))
     out = capsys.readouterr().out
     assert code == 1 and "page count off" not in out
     assert re.search(r"^FAIL  vitae:.*title", out, flags=re.MULTILINE)

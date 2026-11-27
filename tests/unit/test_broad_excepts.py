@@ -33,7 +33,7 @@ class TestIcons:
     def test_network_and_parse_failures_degrade_with_a_message(self, monkeypatch, capsys, exc):
         monkeypatch.setattr(icons, "fetch", _raiser(exc))
         assert icons.fetch_set("lucide", ["mail"]) == ({}, {})
-        assert "ICONS: lucide unreachable" in capsys.readouterr().err
+        assert "WARN  ICONS: lucide unreachable" in capsys.readouterr().err
 
     def test_deeply_nested_json_degrades_with_a_message(self, monkeypatch, capsys):
         class Reply:
@@ -47,7 +47,7 @@ class TestIcons:
 
         monkeypatch.setattr(icons.urllib.request, "urlopen", lambda *a, **k: Reply())
         assert icons.fetch_set("lucide", ["mail"]) == ({}, {})
-        assert "ICONS: lucide unreachable" in capsys.readouterr().err
+        assert "WARN  ICONS: lucide unreachable" in capsys.readouterr().err
 
     def test_a_bug_is_not_swallowed(self, monkeypatch):
         monkeypatch.setattr(icons, "fetch", _raiser(KeyError("boom")))
@@ -159,7 +159,8 @@ class TestEnv:
         monkeypatch.setattr(env.importlib, "import_module", lambda name, *a: mod)
         env._typst_py_probe.cache_clear()
         try:
-            return env._typst_py_probe()
+            p = env._typst_py_probe()
+            return p.module, p.version, p.problem, p.full
         finally:
             env._typst_py_probe.cache_clear()
 
@@ -175,7 +176,7 @@ class TestEnv:
         mod, ver, problem, full = self._probe(monkeypatch, has_eval=False)
         assert mod is not None and problem == "" and full is False and ver == "9.9"
         monkeypatch.setattr(env.shutil, "which", lambda n, *a, **k: None)
-        monkeypatch.setattr(env, "_typst_py_probe", lambda: (mod, ver, problem, full))
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(mod, ver, problem, full))
         assert env.check_typst() is True
         out = capsys.readouterr().out
         assert out.startswith("DEGRADED") and "BROKEN" not in out

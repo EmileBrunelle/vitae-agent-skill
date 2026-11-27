@@ -1,9 +1,10 @@
 """verify_letter.check_letter finds the employer name regardless of case and sharp s."""
 import vitae.verify.letter as vl
+from vitae.core.env import PdfCheck
 
 
 def _letter(monkeypatch, tmp_path, text, employer, title):
-    monkeypatch.setattr(vl, "preflight", lambda: (True, "x"))
+    monkeypatch.setattr(vl, "preflight", lambda: PdfCheck(True, "x"))
     monkeypatch.setattr(vl, "ensure_icons", lambda typ: None)
     monkeypatch.setattr(vl, "compile_or_messages", lambda typ, pdf: ("", []))
     monkeypatch.setattr(vl, "count_pages", lambda pdf, backend: "1")

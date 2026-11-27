@@ -118,39 +118,39 @@ def fetch_set(prefix: str, names: list[str]) -> tuple[dict[str, object], dict[st
         if not isinstance(data, dict) or not isinstance(coll, dict):
             raise ValueError("unexpected reply shape")
     except (OSError, http.client.HTTPException, ValueError, RecursionError) as e:   # network, DNS, HTTP, bad JSON (JSONDecodeError is a ValueError), JSON nested too deep
-        print(f"ICONS: {prefix} unreachable ({e}) — marks will be omitted, "
+        print(f"WARN  ICONS: {prefix} unreachable ({e}) — marks will be omitted, "
               f"contact lines keep their URLs as text", file=sys.stderr)
         return {}, {}
     if data.get("not_found"):
-        print(f"ICONS: {prefix}: not in set: {data['not_found']}", file=sys.stderr)
+        print(f"WARN  ICONS: {prefix}: not in set: {data['not_found']}", file=sys.stderr)
     return data, coll
 
 
 def usable(var: str, name: str, icon: object) -> str | None:
     """Body of a fill-based icon, or None with a reason on stderr."""
     if not isinstance(icon, dict) or not isinstance(body := icon.get("body"), str) or not body.strip():
-        print(f"ICONS: {var} ('{name}') has no usable body; omitted",
+        print(f"WARN  ICONS: {var} ('{name}') has no usable body; omitted",
               file=sys.stderr)
         return None
     try:
         body.encode("utf-8")
     except UnicodeEncodeError:
-        print(f"ICONS: {var} ('{name}') body is not valid text; omitted",
+        print(f"WARN  ICONS: {var} ('{name}') body is not valid text; omitted",
               file=sys.stderr)
         return None
     if "<" not in body or len(body) > 50_000:
-        print(f"ICONS: {var} ('{name}') body is not SVG markup; omitted",
+        print(f"WARN  ICONS: {var} ('{name}') body is not SVG markup; omitted",
               file=sys.stderr)
         return None
     if 'fill="none"' in body or re.search(r'\bstroke="(?!none)', body):
-        print(f"ICONS: {var} ('{name}') is stroke-based — pmark fills the "
+        print(f"WARN  ICONS: {var} ('{name}') is stroke-based — pmark fills the "
               f"path, so it would render as a blob; omitted", file=sys.stderr)
         return None
     if icon.get("hidden"):
         # Withdrawn-but-served marks (LinkedIn's, pulled over brand-guideline
         # enforcement): the licence grant holds, but the path stops tracking
         # the logo and may be purged. Say so rather than degrade silently.
-        print(f"ICONS: {var} ('{name}') is hidden/deprecated upstream — "
+        print(f"WARN  ICONS: {var} ('{name}') is hidden/deprecated upstream — "
               f"served for compatibility, no longer maintained", file=sys.stderr)
     return body
 
@@ -211,7 +211,7 @@ def main() -> None:
                 continue
             w, h = str(icon.get("width", dw)), str(icon.get("height", dh))
             if not (NUM.match(w) and NUM.match(h)):
-                print(f"ICONS: {var} ('{name}') has a non-numeric size; omitted",
+                print(f"WARN  ICONS: {var} ('{name}') has a non-numeric size; omitted",
                       file=sys.stderr)
                 lines += [f'#let {var}-body = ""', f'#let {var}-vb = ""']
                 continue
@@ -222,12 +222,12 @@ def main() -> None:
         lines.append("")
 
     if os.path.islink(out):
-        sys.exit(f"ICONS: {out} is a symlink — refusing to write through it")
+        sys.exit(f"FAIL  ICONS: {out} is a symlink — refusing to write through it")
     text = "\n".join(lines) + "\n"
     try:
         data_b = text.encode("utf-8")
     except UnicodeEncodeError as e:
-        sys.exit(f"ICONS: unencodable fetched text ({e}); {out} left untouched")
+        sys.exit(f"FAIL  ICONS: unencodable fetched text ({e}); {out} left untouched")
     tmp = f"{out}.tmp{os.getpid()}"
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL
                  | getattr(os, "O_NOFOLLOW", 0), 0o644)
@@ -249,5 +249,5 @@ def main() -> None:
               "web (globe) mark, the other contact marks are kept. Re-run with network to get them.",
               file=sys.stderr)
     elif got != len(ICONS):
-        print("ICONS: the default kit is complete; only the optional phosphor/bootstrap "
+        print("NOTE  ICONS: the default kit is complete; only the optional phosphor/bootstrap "
               "kits are missing (used only if a template asks for them).", file=sys.stderr)

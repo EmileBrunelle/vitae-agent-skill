@@ -8,7 +8,7 @@ from harness import pdf_tool
 from vitae.core.env import preflight
 from vitae.verify.letter import check_letter
 
-pytestmark = pytest.mark.skipif(not preflight()[0], reason="needs typst and a PDF text backend")
+pytestmark = pytest.mark.skipif(not preflight().ok, reason="needs typst and a PDF text backend")
 
 LETTER = ('#set document(title: "Test letter")\n#set page(paper: "us-letter")\n#set text(size: 11pt)\nDear Hiring Manager,\n\n'
           'I am writing to apply for the Data Analyst role at Acme Corp.\n')

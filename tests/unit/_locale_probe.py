@@ -20,8 +20,9 @@ def _write(path, text):
 
 
 def _check_cv_output(cv, typ):
+    from vitae.core.env import PdfCheck
     stubs = {
-        "preflight": lambda: (True, "pdftotext"), "check_lib_integrity": lambda t: [], "ensure_icons": lambda t: None,
+        "preflight": lambda: PdfCheck(True, "pdftotext"), "check_lib_integrity": lambda t: [], "ensure_icons": lambda t: None,
         "compile_or_messages": lambda t, p: ("", []), "count_pages": lambda pdf, backend: "1",
         "word_boxes": lambda pdf, with_text=False: None, "render_pngs": lambda t, tmp: [],
         "extract_text": lambda pdf, backend: "", "make_context": lambda *a, **k: object(), "GATES": (),
@@ -32,7 +33,7 @@ def _check_cv_output(cv, typ):
         for name, stub in stubs.items():
             stack.enter_context(mock.patch.object(cv, name, stub))
         stack.enter_context(contextlib.redirect_stdout(out))
-        cv._check_cv(typ, "1", None, None)
+        cv._check_cv(typ, cv.PageTarget("1"))
     return out.getvalue()
 
 

@@ -24,9 +24,9 @@ def hidden_text_msgs(pdf: str) -> list[tuple[bool | None, str]]:
 def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, str]], list[str]]:
     """Compile `typ`, run the checks against the declared `toml_path`.
     Returns (passed, (is_fail, msg) pairs, reported-only INFO lines); is_fail None = WARN."""
-    ok, backend = preflight()
-    if not shutil.which("pdftotext"):
-        ok = False
+    pf = preflight()
+    backend = pf.backend
+    ok = pf.ok and bool(shutil.which("pdftotext"))
     if not ok:
         return False, [(True, "missing dependency -- see --doctor output above")], []
 

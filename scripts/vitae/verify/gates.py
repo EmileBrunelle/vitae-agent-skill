@@ -26,7 +26,7 @@ from vitae.verify.groups import (
 from vitae.verify.layout import check_font_fallback
 from vitae.verify.pdf import _bbox_pages
 from vitae.verify.placeholders import check_placeholders
-from vitae.verify.registry import FnGate, Gate
+from vitae.verify.registry import FnGate
 from vitae.verify.rhythm import check_rhythm
 from vitae.verify.runts import bullet_layout, check_runts
 from vitae.verify.source import check_forced_linebreak, check_literal_tilde, check_no_split
@@ -208,7 +208,7 @@ def _has_facts(ctx: VerifyContext) -> bool:
     return bool(ctx.facts)
 
 
-EXTRACTION_GATES: tuple[Gate, ...] = (
+EXTRACTION_GATES: tuple[FnGate, ...] = (
     FnGate("extraction-empty", _extraction_empty),
     FnGate("letterspacing", _letterspaced),
     FnGate("orphaned-date", _orphaned_dates),
@@ -219,7 +219,7 @@ EXTRACTION_GATES: tuple[Gate, ...] = (
 )
 
 # Without `typst query` the grouping / date / duplicate-name gates are skipped, with a notice first.
-LAYOUT_GATES: tuple[Gate, ...] = (
+LAYOUT_GATES: tuple[FnGate, ...] = (
     FnGate("query-notice", _query_notice, _cannot_query),
     FnGate("mark-notes", _mark_notes, _can_query),
     FnGate("hidden-text", _hidden_text),
@@ -233,4 +233,4 @@ LAYOUT_GATES: tuple[Gate, ...] = (
     FnGate("duplicate-names", _duplicate_names, _can_query),
 )
 
-GATES: tuple[Gate, ...] = EXTRACTION_GATES + LAYOUT_GATES
+GATES: tuple[FnGate, ...] = EXTRACTION_GATES + LAYOUT_GATES

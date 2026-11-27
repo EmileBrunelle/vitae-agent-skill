@@ -49,8 +49,9 @@ def check_letter(typ: str, employer: str, job_title: str,
     """
     if allow_placeholders and not placeholders_allowed(typ):
         return False, [(True, _ALLOW_REFUSED.removeprefix("FAIL  "))]
-    ok, backend = preflight()
-    if not ok:
+    pf = preflight()
+    backend = pf.backend
+    if not pf.ok:
         return False, [(True, "missing dependency — see --doctor output above")]
 
     ensure_icons(typ)

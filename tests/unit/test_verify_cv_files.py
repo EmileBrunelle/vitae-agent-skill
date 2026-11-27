@@ -7,6 +7,7 @@ from typing import ClassVar
 
 import pytest
 from vitae.core.base import LEADING_FAMILY_RATIO_WARN, LOWERED_FILL_FLOOR
+from vitae.core.env import PdfCheck
 from vitae.core.level import Level
 from vitae.verify import cv
 from vitae.verify import gates as real_gates
@@ -432,7 +433,7 @@ def env(monkeypatch, tmp_path):
             return ret() if callable(ret) else ret
         return f
 
-    monkeypatch.setattr(cv, "preflight", lambda: (e.preflight_ok, e.backend))
+    monkeypatch.setattr(cv, "preflight", lambda: PdfCheck(e.preflight_ok, e.backend))
     monkeypatch.setattr(cv, "check_lib_integrity", lambda t: list(e.lib))
     monkeypatch.setattr(cv, "ensure_icons", lambda t: None)
     monkeypatch.setattr(cv, "compile_or_messages",
@@ -454,7 +455,7 @@ def env(monkeypatch, tmp_path):
     def run(src="body\n", expected="1", fmin=None, fmax=None, **kw):
         t = e.dir / "cv.typ"
         t.write_text(src, encoding="utf-8")
-        rc, footer = cv._check_cv(str(t), expected, fmin, fmax, **kw)
+        rc, footer = cv._check_cv(str(t), cv.PageTarget(expected, fmin, fmax), **kw)
         return rc, footer, e.capsys.readouterr().out
     e.run = run
     return e

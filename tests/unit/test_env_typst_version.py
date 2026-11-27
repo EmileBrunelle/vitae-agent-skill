@@ -65,7 +65,7 @@ class TestCheckTypstCli:
 
     def test_before_pdf_standards_is_broken_and_unavailable(self, cli, capsys, monkeypatch):
         cli("typst 0.13.1 (x)")
-        monkeypatch.setattr(env, "_typst_py_probe", lambda: (None, "", "", False))
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(None, "", "", False))
         assert env.check_typst() is False
         out = capsys.readouterr().out
         assert out.startswith("BROKEN  typst 0.13.1 (CLI)") and "needs Typst 0.14 or newer" in out and "OK    typst" not in out
@@ -92,10 +92,10 @@ class TestCheckTypstCli:
 
 @pytest.fixture
 def py_only(monkeypatch):
-    """No CLI on PATH; the Python package probe returns the injected tuple."""
+    """No CLI on PATH; the Python package probe returns the injected (module, version, problem, full)."""
     def install(probe):
         monkeypatch.setattr(env.shutil, "which", lambda name: None)
-        monkeypatch.setattr(env, "_typst_py_probe", lambda: probe)
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(*probe))
     return install
 
 
@@ -108,7 +108,7 @@ class TestCheckTypstPythonApi:
         assert "MISSING  typst" in capsys.readouterr().out
 
     def test_too_old_package_is_broken(self, py_only, capsys):
-        py_only((None, "", "TOOLOLD typst 0.11.1: no compile_with_warnings", False))
+        py_only((None, "", "typst 0.11.1: no compile_with_warnings", False, True))
         assert env.check_typst() is False
         assert "BROKEN  typst: the Python package `typst` is too old" in capsys.readouterr().out
 
@@ -152,7 +152,7 @@ class TestOldCliWithPythonApi:
 
     def _setup(self, cli, monkeypatch, probe):
         cli("typst 0.13.1 (x)")
-        monkeypatch.setattr(env, "_typst_py_probe", lambda: probe)
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(*probe))
 
     def test_working_api_is_used_instead_of_the_old_cli(self, cli, monkeypatch, capsys):
         self._setup(cli, monkeypatch, (self.MOD, "0.15.2", "", True))
@@ -180,8 +180,8 @@ class TestOldCliWithPythonApi:
         self._setup(cli, monkeypatch, (self.MOD, "0.15.2", "", True))
         monkeypatch.setattr(env, "check_pillow", lambda: True)
         monkeypatch.setattr(env, "check_fonts", lambda: None)
-        monkeypatch.setattr(env, "check_pdf_tools", lambda: (True, "pdfium"))
+        monkeypatch.setattr(env, "check_pdf_tools", lambda: env.PdfCheck(True, "pdfium"))
         monkeypatch.setattr(env, "importable", lambda m: True)
         monkeypatch.setattr(env, "check_pikepdf", lambda: None)
-        ok, _ = env.preflight()
+        ok = env.preflight().ok
         assert ok and env.typst_route().compile == "api"

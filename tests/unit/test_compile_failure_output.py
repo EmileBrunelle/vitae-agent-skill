@@ -8,6 +8,7 @@ import vitae.verify.academic.cli as academic_cli
 import vitae.verify.academic.gate as academic_gate
 import vitae.verify.letter as letter
 from _paths import ROOT
+from vitae.core.env import PdfCheck
 from vitae.verify import pdf
 
 TYPST_ERR = "error: PDF/UA-1 error: missing document title\n  = hint: set a title\n"
@@ -29,7 +30,7 @@ def test_a_compile_failure_without_advice_is_one_message() -> None:
 
 
 def test_letter_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPatch, tmp_path, capsys) -> None:
-    monkeypatch.setattr(letter, "preflight", lambda: (True, "x"))
+    monkeypatch.setattr(letter, "preflight", lambda: PdfCheck(True, "x"))
     monkeypatch.setattr(letter, "ensure_icons", lambda typ: None)
     monkeypatch.setattr(pdf, "compile_pdf", lambda typ, out: (False, REFUSED))
     typ = tmp_path / "letter.typ"
@@ -44,7 +45,7 @@ def test_letter_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPatc
 
 
 def test_academic_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPatch, tmp_path, capsys) -> None:
-    monkeypatch.setattr(academic_gate, "preflight", lambda: (True, "pdfium"))
+    monkeypatch.setattr(academic_gate, "preflight", lambda: PdfCheck(True, "pdfium"))
     monkeypatch.setattr(academic_gate.shutil, "which", lambda name: "/usr/bin/pdftotext")
     monkeypatch.setattr(pdf, "compile_pdf", lambda typ, out: (False, REFUSED))
     typ = tmp_path / "cv.typ"

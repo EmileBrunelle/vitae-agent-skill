@@ -14,6 +14,7 @@ import unicodedata
 import warnings
 from collections import Counter
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from functools import partial
 
 from PIL import Image
@@ -369,6 +370,16 @@ Run = tuple[str, float, float, float]   # (text, x, y, real size) of one text ru
 _NEVER_SKIP = (math.inf, -math.inf, math.inf)
 
 
+@dataclass(frozen=True, slots=True)
+class _Walk:
+    """One neighbour search of `is_script`: from run `start` in direction `step` (+1 or -1), stopping at the first run
+    that is larger than `limit` or off the baseline `y`."""
+    start: int
+    step: int
+    limit: float
+    y: float
+
+
 class _ScriptIndex:
     """Which run is a super/subscript of a larger neighbour, in O(log k) per run instead of a walk over the neighbours
     (k tiny runs on one baseline walked O(k^2) before). From run i the walk skips neighbours that are no larger than
@@ -403,22 +414,22 @@ class _ScriptIndex:
         """True if every run under `node` is no larger than `limit` and on the baseline `y`."""
         return (self._size[node] < limit and abs(self._ymin[node] - y) < 0.5 and abs(self._ymax[node] - y) < 0.5)
 
-    def _stop(self, node: int, lo: int, hi: int, start: int, step: int, limit: float, y: float) -> int:
-        """Index of the first run from `start` in direction `step` inside node [lo, hi) that the walk stops at, or -1."""
-        if (hi <= start if step > 0 else lo > start) or self._skipped(node, limit, y):
+    def _stop(self, node: int, lo: int, hi: int, walk: _Walk) -> int:
+        """Index of the first run from `walk.start` in direction `walk.step` inside node [lo, hi) that the walk stops at, or -1."""
+        if (hi <= walk.start if walk.step > 0 else lo > walk.start) or self._skipped(node, walk.limit, walk.y):
             return -1
         if hi - lo == 1:
             return lo
         mid = (lo + hi) // 2
-        first, second = ((2 * node, lo, mid), (2 * node + 1, mid, hi))[::step]
-        found = self._stop(*first, start, step, limit, y)
-        return found if found >= 0 else self._stop(*second, start, step, limit, y)
+        first, second = ((2 * node, lo, mid), (2 * node + 1, mid, hi))[::walk.step]
+        found = self._stop(*first, walk)
+        return found if found >= 0 else self._stop(*second, walk)
 
     def is_script(self, i: int) -> bool:
         _, x, y, sz = self._runs[i]
         limit = 1.15 * sz
         for step in (-1, 1):
-            j = self._stop(1, 0, len(self._runs), i + step, step, limit, y)
+            j = self._stop(1, 0, len(self._runs), _Walk(i + step, step, limit, y))
             if j >= 0:
                 _, xn, yn, szn = self._runs[j]
                 if szn >= limit and 0.05 * szn < abs(yn - y) < 0.6 * szn and (x >= xn if step < 0 else xn >= x):

@@ -4,6 +4,7 @@ The compile/measure probe and preflight are injected; the fake page is `50 * rhy
 from pathlib import Path
 
 import pytest
+from vitae.core.env import PdfCheck
 from vitae.verify import tune as T
 from vitae.verify.typst import (
     _doc_par_list,
@@ -38,10 +39,11 @@ def write(tmp_path, text):
     return p
 
 
-def install(monkeypatch, *, breakat=1000.0, weights=(50, 50), log=None, preflight=(True, "pypdf")):
+def install(monkeypatch, *, breakat=1000.0, weights=(50, 50), log=None, preflight=None):
     """Pages hold iff the fake height <= breakat; fill = round(height). Height reads the gate's own
     leading (_doc_leading) and the rhythm line, from the candidate text the tuner writes."""
-    monkeypatch.setattr(T, "preflight", lambda: preflight)
+    check = preflight or PdfCheck(True, "pypdf")
+    monkeypatch.setattr(T, "preflight", lambda: check)
 
     def probe(typ, candidate, expected, backend):
         Path(typ).write_text(candidate, encoding="utf-8")
@@ -66,7 +68,7 @@ class TestRhythmPhase:
     def test_lands_in_window_without_touching_leading(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
         install(monkeypatch)                                   # fill(r=1) = 90
-        code, _ = T.tune(str(p), 1, 94, 96)
+        code, _ = T.tune(str(p), T.FillTarget(1, 94, 96))
         r, (lead, spacing), lsp = state(p)
         assert code == 0 and r is not None and 1.0 < r < 1.30
         assert lead == 0.8 and round(50 * r + 40) in (94, 95, 96)
@@ -75,7 +77,7 @@ class TestRhythmPhase:
     def test_rhythm_hits_the_top_then_leading_takes_over(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
         install(monkeypatch)                                   # r tops out at 1.30 -> fill 105
-        code, _ = T.tune(str(p), 1, 106, 108)
+        code, _ = T.tune(str(p), T.FillTarget(1, 106, 108))
         r, (lead, spacing), lsp = state(p)
         assert code == 0 and r is not None and r == pytest.approx(1.30, abs=T.RHYTHM_STEP)
         assert lead > 0.8 and 106 <= round(50 * r + 50 * lead) <= 108
@@ -86,7 +88,7 @@ class TestRhythmPhase:
     def test_rhythm_hits_the_bottom_then_leading_comes_down(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
         install(monkeypatch)                                   # r = RHYTHM_LO -> fill 50*RHYTHM_LO+40 = 86, still over fmax 80
-        code, _ = T.tune(str(p), 1, 76, 80)
+        code, _ = T.tune(str(p), T.FillTarget(1, 76, 80))
         r, (lead, _), _ = state(p)
         assert code == 0 and r is not None and r == pytest.approx(T.RHYTHM_LO, abs=T.RHYTHM_STEP) and lead < 0.8
         assert 76 <= round(50 * r + 50 * lead) <= 80
@@ -96,7 +98,7 @@ class TestRhythmPhase:
         p = write(tmp_path, text)
         log = []
         install(monkeypatch, log=log)
-        code, _ = T.tune(str(p), 1, 100, 102)
+        code, _ = T.tune(str(p), T.FillTarget(1, 100, 102))
         _r, (_, spacing), _ = state(p)
         assert code == 0 and spacing <= T.SPACING_CAP + 1e-3
         assert max(_read_rhythm(c) or 0 for c in log) <= T.SPACING_CAP / 1.1 + 1e-9
@@ -104,19 +106,19 @@ class TestRhythmPhase:
     def test_unreachable_target_restores_every_byte_including_the_rhythm_line(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
         install(monkeypatch, breakat=95)                       # pages break before the fill target
-        code, _ = T.tune(str(p), 1, 99, 100)
+        code, _ = T.tune(str(p), T.FillTarget(1, 99, 100))
         assert code == 1 and p.read_text(encoding="utf-8") == RHYTHM_FILE
 
     def test_floor_failing_everywhere_restores(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
         install(monkeypatch, breakat=10)
-        assert T.tune(str(p), 1, 90, 96)[0] == 1
+        assert T.tune(str(p), T.FillTarget(1, 90, 96))[0] == 1
         assert p.read_text(encoding="utf-8") == RHYTHM_FILE
 
     @pytest.mark.parametrize("when", [1, 3, 12], ids=["floor", "phase1", "phase2"])
     def test_interrupt_restores_and_propagates(self, tmp_path, monkeypatch, when):
         p = write(tmp_path, RHYTHM_FILE)
-        monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+        monkeypatch.setattr(T, "preflight", lambda: PdfCheck(True, "pypdf"))
         calls = []
 
         def probe(typ, candidate, *a):
@@ -127,13 +129,13 @@ class TestRhythmPhase:
             return True, 50                                    # under-filled everywhere: runs through both phases
         monkeypatch.setattr(T, "_probe_text", probe)
         with pytest.raises(KeyboardInterrupt):
-            T.tune(str(p), 1, 94, 96)
+            T.tune(str(p), T.FillTarget(1, 94, 96))
         assert p.read_text(encoding="utf-8") == RHYTHM_FILE
 
     def test_footer_line_reports_the_rhythm(self, tmp_path, monkeypatch, capsys):
         p = write(tmp_path, RHYTHM_FILE)
         install(monkeypatch)
-        T.tune(str(p), 1, 106, 108)
+        T.tune(str(p), T.FillTarget(1, 106, 108))
         ok_line = next(ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("OK"))
         assert "rhythm %.3f" % (state(p)[0] or 0) in ok_line
 
@@ -143,7 +145,7 @@ class TestRhythmPhase:
         p = write(tmp_path, text)
         log = []
         install(monkeypatch, log=log)
-        T.tune(str(p), 1, 900, 1000)                           # unreachable: only the probes matter
+        T.tune(str(p), T.FillTarget(1, 900, 1000))                           # unreachable: only the probes matter
         top = max(_read_rhythm(c) or 0 for c in log)
         assert T.SPACING_CAP - 0.01 <= top <= T.SPACING_CAP + 1e-9   # unit spacing is 1.0em, so r stops at 1.24
 
@@ -153,7 +155,7 @@ class TestNoRhythmLine:
         p = write(tmp_path, OLD_FILE)
         log = []
         install(monkeypatch, log=log)
-        code, _ = T.tune(str(p), 1, 94, 96)
+        code, _ = T.tune(str(p), T.FillTarget(1, 94, 96))
         out = p.read_text(encoding="utf-8")
         assert code == 0 and "rhythm" not in out and "rhythm" not in capsys.readouterr().out
         assert all("rhythm" not in c for c in log)
@@ -166,7 +168,7 @@ class TestNoRhythmLine:
         p = write(tmp_path, text)
         log = []
         install(monkeypatch, log=log)
-        T.tune(str(p), 1, 94, 96)
+        T.tune(str(p), T.FillTarget(1, 94, 96))
         assert all(c.startswith("/*\n#let rhythm = 1.000\n*/\n") for c in log)
 
     def test_a_commented_or_non_numeric_rhythm_line_does_not_count(self, tmp_path, monkeypatch):
@@ -174,7 +176,7 @@ class TestNoRhythmLine:
         p = write(tmp_path, text)
         log = []
         install(monkeypatch, log=log)
-        T.tune(str(p), 1, 94, 96)
+        T.tune(str(p), T.FillTarget(1, 94, 96))
         assert all(c.startswith("// #let rhythm = 1.000\n#let rhythm = 1.0pt\n") for c in log)
 
 
@@ -194,7 +196,7 @@ class TestTwoParRules:
     def test_tuned_value_lands_on_the_measured_line(self, tmp_path, monkeypatch):
         p = write(tmp_path, TWO_PAR)
         install(monkeypatch, weights=(0, 100))                 # height = 100 * the gate's leading
-        code, _ = T.tune(str(p), 1, 74, 78)
+        code, _ = T.tune(str(p), T.FillTarget(1, 74, 78))
         out = p.read_text(encoding="utf-8")
         assert code == 0 and 74 <= round(100 * (_doc_leading(out) or 0)) <= 78
         assert out.startswith("#set par(justify: false, leading: 0.527em, spacing: 0.607em)\n#set list(spacing: 0.400em)\n")
@@ -202,7 +204,7 @@ class TestTwoParRules:
     def test_only_the_list_after_the_tuned_rule_is_scaled(self, tmp_path, monkeypatch):
         p = write(tmp_path, TWO_PAR)
         install(monkeypatch, weights=(0, 100))
-        T.tune(str(p), 1, 74, 78)
+        T.tune(str(p), T.FillTarget(1, 74, 78))
         out = p.read_text(encoding="utf-8")
         lead = _doc_leading(out) or 0
         assert "#set list(spacing: 0.400em)" in out

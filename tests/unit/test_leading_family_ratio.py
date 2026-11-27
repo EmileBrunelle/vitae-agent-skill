@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from vitae.core.base import LEADING_ABS_RATIO_WARN, LEADING_FAMILY_RATIO_WARN
+from vitae.core.env import PdfCheck
 from vitae.verify import tune as T
 from vitae.verify.cv import LEADING_WARN, _family_default, _leading_warn
 from vitae.verify.typst import _doc_par_list, _scale_list_spacing
@@ -102,7 +103,7 @@ def typ(tmp_path):
 
 
 def _install(monkeypatch, lstar=0.90):
-    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: PdfCheck(True, "pypdf"))
 
     def probe(path, text, leading, spacing, expected, backend):
         Path(path).write_text(T._with_rhythm(text, leading, spacing), encoding="utf-8")
@@ -113,7 +114,7 @@ def _install(monkeypatch, lstar=0.90):
 class TestTuneScalesList:
     def test_ratio_preserved(self, typ, monkeypatch):
         _install(monkeypatch)
-        assert T.tune(str(typ), 1, 80, 99)[0] == 0
+        assert T.tune(str(typ), T.FillTarget(1, 80, 99))[0] == 0
         lead, lsp = _doc_par_list(typ.read_text(encoding="utf-8"))
         assert lead is not None and lsp is not None
         assert lead > 0.7 and lead / lsp == pytest.approx(0.60 / 0.45, rel=3e-3)
@@ -122,7 +123,7 @@ class TestTuneScalesList:
         p = tmp_path / "cv.typ"
         p.write_text("#set par(leading: 0.60em, spacing: 0.70em)\n#set list(indent: 10pt)\nbody\n", encoding="utf-8")
         _install(monkeypatch)
-        assert T.tune(str(p), 1, 80, 99)[0] == 0
+        assert T.tune(str(p), T.FillTarget(1, 80, 99))[0] == 0
         assert "#set list(indent: 10pt)\n" in p.read_text(encoding="utf-8")
 
     def test_two_par_file_tunes_the_gates_line_and_leaves_an_earlier_list_alone(self):

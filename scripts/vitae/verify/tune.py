@@ -9,6 +9,7 @@ import shlex
 import signal
 import tempfile
 from collections.abc import Callable
+from dataclasses import dataclass
 from types import FrameType
 
 import vitae.fill as measure_fill
@@ -200,19 +201,37 @@ def _rhythm_phase(typ: str, original: str, expected: int, fmax: int,
     return best, best_fill
 
 
+@dataclass(frozen=True)
+class FillTarget:
+    """What --tune aims for: `pages` rendered pages whose last page is filled `fmin`-`fmax` percent."""
+    pages: int
+    fmin: int
+    fmax: int
+
+
+@dataclass(frozen=True)
+class LeadingBounds:
+    """The leading search: `lo`..`hi` in em (None = derived from the CV's own leading) and the bisection `step`."""
+    lo: float | None = None
+    hi: float | None = None
+    step: float = 0.005
+
+
 # Default search bounds [0.80 * l0, max(1.30 * l0, 1.10)] and bisection step 0.005em (~7-8 probes):
 # 0.005em changes a 1-page CV's bottom ink row by <0.5% of page height, finer than the 2%-wide fill band.
-def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
-         hi: float | None = None, step: float = 0.005, *,
-         allow_placeholders: bool = False) -> tuple[int, str | None]:
+def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
+          allow_placeholders: bool = False) -> tuple[int, str | None]:
     """--tune: bisect `#set par(leading:, spacing:)` in `typ` to the largest rhythm that holds
     `expected` pages, and keep it only if the fill lands in fmin-fmax. Returns (exit code, footer): the
     code is 0 won, 1 no value in range, 2 no par line. With a `#let rhythm` line the rhythm is bisected first
     (leading fixed), the leading only from the rhythm bound that was hit; the footer is the NEXT line the CLI prints last
     on a failure (None when preflight failed). Any failure restores the original file: a
     value that misses the target is worse than the rhythm the family was designed with."""
-    deps_ok, backend = preflight()
-    if not deps_ok:
+    expected, fmin, fmax = target.pages, target.fmin, target.fmax
+    lo, hi, step = bounds.lo, bounds.hi, bounds.step
+    pf = preflight()
+    backend = pf.backend
+    if not pf.ok:
         return 1, None
     allow = " --allow-placeholders" if allow_placeholders else ""   # carried into the printed follow-up commands
     footer = _FOOTER_TUNE
@@ -363,8 +382,7 @@ class _Terminated(BaseException):
     KeyboardInterrupt: no `except Exception` in between may swallow it)."""
 
 
-def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
-         hi: float | None = None, step: float = 0.005, *,
+def tune(typ: str, target: FillTarget, bounds: LeadingBounds | None = None, *,
          allow_placeholders: bool = False) -> tuple[int, str | None]:
     """`_tune` with SIGTERM and SIGHUP (a closed terminal, a `timeout`, a kill) turned into an exception for
     the duration of the call, so the CV is restored as it is on Ctrl-C instead of keeping a probe."""
@@ -377,7 +395,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
     except ValueError:      # not the main thread: no handler can be installed, nothing to restore
         pass
     try:
-        return _tune(typ, expected, fmin, fmax, lo, hi, step, allow_placeholders=allow_placeholders)
+        return _tune(typ, target, bounds or LeadingBounds(), allow_placeholders=allow_placeholders)
     finally:
         for sig, old in saved:
             signal.signal(sig, old if old is not None else signal.SIG_DFL)

@@ -70,7 +70,7 @@ def fake_cli(fresh_typst_probes, tmp_path, monkeypatch):
 
 def _api(monkeypatch, full: bool = True) -> None:
     FakeCompiler.calls = []
-    monkeypatch.setattr(env, "_typst_py_probe", lambda: (API, API_VERSION, "", full))
+    monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(API, API_VERSION, "", full))
 
 
 def _typ(tmp_path: Path) -> str:
@@ -186,7 +186,7 @@ class TestProbedOncePerProcess:
 
         monkeypatch.setattr(env.shutil, "which", which)
         monkeypatch.setattr(env.subprocess, "run", run)
-        monkeypatch.setattr(env, "_typst_py_probe", lambda: (None, "", "", False))
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(None, "", "", False))
         return seen
 
     def test_route_queries_fonts_and_doctor_share_one_probe(self, counts, capsys):

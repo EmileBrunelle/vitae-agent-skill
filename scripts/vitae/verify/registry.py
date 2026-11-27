@@ -9,21 +9,9 @@ from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Protocol
 
 from vitae.core.context import VerifyContext
 from vitae.core.level import Finding, Level
-
-
-class Gate(Protocol):
-    """One gate of the per-CV run. `applies` is the condition under which it runs at all (the typst
-    query is available, a facts file was given); `check` returns every line it prints."""
-    @property
-    def name(self) -> str: ...
-
-    def applies(self, ctx: VerifyContext) -> bool: ...
-
-    def check(self, ctx: VerifyContext) -> list[Finding]: ...
 
 
 def always(ctx: VerifyContext) -> bool:
@@ -32,7 +20,8 @@ def always(ctx: VerifyContext) -> bool:
 
 @dataclass(frozen=True)
 class FnGate:
-    """A gate made of two plain functions."""
+    """One gate of the per-CV run, made of two plain functions: `run` returns every line it prints, `when` is the
+    condition under which it runs at all (the typst query is available, a facts file was given)."""
     name: str
     run: Callable[[VerifyContext], list[Finding]]
     when: Callable[[VerifyContext], bool] = always
@@ -74,7 +63,7 @@ def note_extraction(text: str) -> None:
         rec.dump_lines = len(text.split("\n"))
 
 
-def run_gates(gates: Sequence[Gate], ctx: VerifyContext) -> int:
+def run_gates(gates: Sequence[FnGate], ctx: VerifyContext) -> int:
     """Print every applicable gate's lines in order; return 1 if any is a FAIL, else 0."""
     fail = 0
     for gate in gates:

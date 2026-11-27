@@ -14,17 +14,71 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import sysconfig
 import tempfile
+import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from types import ModuleType
 from typing import Literal, TextIO, TypeAlias
 
 # ---------- dependency preflight ("doctor") ----------
+
+# The PEP 723 reference regex (packaging.python.org, "Inline script metadata"): the `# /// script` block of an entry script.
+_PEP723 = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
+_SCRIPTS_DIR = Path(__file__).resolve().parents[2]
+
+
+def pep723_requirements(text: str) -> tuple[str, ...]:
+    """The `dependencies` of the `# /// script` block in `text` (the requirement strings, markers included), () when
+    there is no block."""
+    for m in _PEP723.finditer(text):
+        if m.group("type") == "script":
+            lines = m.group("content").splitlines(keepends=True)
+            meta = tomllib.loads("".join(ln[2:] if ln.startswith("# ") else ln[1:] for ln in lines))
+            deps = meta.get("dependencies", [])
+            return tuple(str(d) for d in deps) if isinstance(deps, list) else ()
+    return ()
+
+
+@functools.cache
+def script_requirements(script: str) -> tuple[str, ...]:
+    """The dependencies declared in the PEP 723 header of `scripts/<script>`, () when it is unreadable or has none."""
+    try:
+        return pep723_requirements((_SCRIPTS_DIR / script).read_text(encoding="utf-8"))
+    except OSError:
+        return ()
+
+
+def _running_script() -> str:
+    """Name of the entry script being run when it declares dependencies (else verify.py, whose header every gate shares)."""
+    name = Path(sys.argv[0]).name if sys.argv and sys.argv[0] else ""
+    return name if script_requirements(name) else "verify.py"
+
+
+def requirement(name: str) -> str:
+    """The requirement string for dependency `name` as the running script's header declares it (e.g. `typst==X`,
+    `pikepdf>=Y; sys_platform != ...`); the bare name when the header has none."""
+    for req in script_requirements(_running_script()):
+        if re.split(r"[=<>!~;\s\[]", req, maxsplit=1)[0].lower() == name.lower():
+            return req
+    return name
+
+
+def _pip(name: str, flags: str = "") -> str:
+    """`pip install [flags] '<requirement>'` for dependency `name`, the requirement read from the script header."""
+    return f"pip install {flags}{shlex.quote(requirement(name))}"
+
+
+def _uv_line() -> str:
+    """The first install advice: run the script through uv, which installs the header's dependencies itself."""
+    return (f"  uv run scripts/{_running_script()} ...   # the dependencies in its PEP 723 header install themselves "
+            "(`pipx run` works too); else:")
 
 def check_pillow() -> bool:
     """Doctor line for Pillow, which the fill, text-clip, hidden-text and crop measurements read rasters through:
@@ -35,13 +89,13 @@ def check_pillow() -> bool:
         return True
     except ImportError:
         print("MISSING  Pillow -- needed for the page-fill measurement:")
-        print("  sudo dnf install python3-pillow | sudo apt install python3-pil   # distro Python: official repos first (PEP 668)")
-        print("  uv pip install Pillow | pip3 install --user Pillow               # venvs / pip-only environments")
+        print(_uv_line())
+        print(f"  {_pip('Pillow')}   # no root: add --user, or use a venv")
         return False
 
 
 # Oldest typst the fill targets were calibrated on; an older one still works and is reported DEGRADED, not refused.
-TYPST_MIN = (0, 15)
+TYPST_MIN = (0, 15)   # tests/unit/test_env_requirements.py: equals the major.minor of the `typst==X` pin in the script headers
 # Oldest typst that can write the PDFs vitae asks for: `--pdf-standard ua-1` (typst-py `pdf_standards`) and `pdf.artifact`
 # both arrived in Typst 0.14.0 (Typst changelog 0.14.0, "PDF export"). Older is BROKEN: every compile would be refused.
 TYPST_STANDARDS_MIN = (0, 14)
@@ -51,8 +105,10 @@ TYPST_STANDARDS_MIN = (0, 14)
 # TYPST_STANDARDS_MIN: the floor is the first Typst that writes exactly these.
 PDF_STANDARDS = ("a-2a", "ua-1")
 _NO_STANDARDS = "PDF/UA-1 + PDF/A-2a output (`--pdf-standard`, `pdf.artifact`) needs Typst 0.14 or newer"
-_NEW_TYPST = ("fill targets are calibrated on typst 0.15; newer versions may measure differently "
-              "-- pin with pip install typst==0.15.2 if fills drift")
+def _new_typst() -> str:
+    return ("fill targets are calibrated on typst 0.15; newer versions may measure differently "
+            f"-- pin with {_pip('typst')} if fills drift")
+
 _OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
               "(0.13/0.14 miss 2 templates at 91% against 93-96%)")
 
@@ -74,7 +130,8 @@ def _before_pdf_standards(ver: str, via: str) -> bool:
     if ver == "?" or _ver_tuple(ver) >= TYPST_STANDARDS_MIN:
         return False
     print(f"BROKEN  typst {ver} ({via}): {_NO_STANDARDS}.")
-    print("  Upgrade with ONE of: pip install typst==0.15.2 | brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
+    print(_uv_line())
+    print(f"  {_pip('typst', '--upgrade ')}")
     return True
 
 
@@ -99,14 +156,12 @@ def _check_typst_cli(ver: str) -> bool:
     """Doctor lines for the typst CLI on PATH, whose version `ver` is new enough to write PDF/UA-1."""
     if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
         print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
-        print("  Upgrade with ONE of:")
-        print("  pip install typst==0.15.2   # no root: add --user, or use a venv; pip picks the CPU architecture")
-        print("  brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
-        print("  distro packages (dnf, apt, pacman) may be older: check `typst --version` after")
+        print(_uv_line())
+        print(f"  {_pip('typst', '--upgrade ')}   # no root: add --user, or use a venv; pip picks the CPU architecture")
         return True
     print(f"OK    typst {ver} (CLI)")
     if ver != "?" and _ver_tuple(ver) > TYPST_MIN:
-        print(f"  NOTE: {_NEW_TYPST}.")
+        print(f"  NOTE: {_new_typst()}.")
     return True
 
 
@@ -117,7 +172,6 @@ def _use_api_for_old_cli(cli_ver: str, mod: ModuleType | None, api_ver: str) -> 
         _before_pdf_standards(cli_ver, "CLI")
         return False
     print(f"DEGRADED  typst {cli_ver} (CLI): too old for PDF/UA-1 + PDF/A-2a, so the Python API (typst {api_ver}) is used instead.")
-    print("  To use the CLI again: brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
     return True
 
 
@@ -131,16 +185,19 @@ def check_typst() -> bool:
         if cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN:
             return _check_typst_cli(cli_ver)
         cli_old = cli_ver
-    mod, ver, why, full = _typst_py_probe()
+    probe = _typst_py_probe()
+    mod, ver, why, full = probe.module, probe.version, probe.problem, probe.full
     if cli_old and not _use_api_for_old_cli(cli_old, mod, ver):
         return False
-    if mod is None and why.startswith("TOOLOLD"):
-        print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
-        print("  Upgrade it: pip install typst==0.15.2   # or install the CLI (brew install typst | cargo install typst-cli)")
+    if mod is None and probe.too_old:
+        print(f"BROKEN  typst: the Python package `typst` is too old ({why}).")
+        print(_uv_line())
+        print(f"  Upgrade it: {_pip('typst', '--upgrade ')}")
         return False
     if mod is None and why:
         print(f"BROKEN  typst: the Python package `typst` is installed but does not work ({why}).")
-        print("  Reinstall it: pip install --force-reinstall typst   # or install the CLI (brew install typst | cargo install typst-cli)")
+        print(_uv_line())
+        print(f"  Reinstall it: {_pip('typst', '--force-reinstall ')}")
         return False
     if mod is not None and _before_pdf_standards(ver, "Python API"):
         return False
@@ -149,29 +206,26 @@ def check_typst() -> bool:
         print("  - date adjacency (needs `typst query`, and pdftotext)")
         print("  - group proximity (needs `typst query` and pdftotext)")
         print("  - the design font-availability check of pick_design.py (needs `typst fonts`)")
-        print("  Install the CLI with ONE of (the pip package `typst` is the Python API only, it ships no CLI):")
-        print("  brew install typst | cargo install typst-cli")
-        print("  winget install --id Typst.Typst | choco install typst | scoop install typst   # Windows")
+        print(_uv_line())
+        print(f"  Upgrade the Python package: {_pip('typst', '--upgrade ')}")
         return True
     if mod is not None:
         if _ver_tuple(ver) < TYPST_MIN:
             print(f"DEGRADED  typst {ver} (Python API): {_OLD_TYPST}.")
-            print("  pip install typst==0.15.2")
+            print(_uv_line())
+            print(f"  {_pip('typst', '--upgrade ')}")
             return True
         print(f"OK    typst {ver} (Python API: compile, query, fonts)")
         if _ver_tuple(ver) > TYPST_MIN:
-            print(f"  NOTE: {_NEW_TYPST}.")
+            print(f"  NOTE: {_new_typst()}.")
         return True
-    print("MISSING  typst -- install with ONE of:")
-    print("  pip install typst==0.15.2                    # no root (--user or a venv); no CLI needed: compiles, queries and lists fonts via the Python API")
-    print("  brew install typst                          # macOS")
-    print("  winget install --id Typst.Typst             # Windows")
-    print("  choco install typst | scoop install typst   # Windows, if you already use them")
-    print("  cargo install typst-cli                      # any, via Rust")
-    print("  (distro packages — dnf, apt, pacman — may be older than 0.15, the version the fill targets are calibrated on)")
+    print("MISSING  typst -- install it:")
+    print(_uv_line())
+    print(f"  {_pip('typst')}                    # no root (--user or a venv); no CLI needed: compiles, queries and lists fonts via the Python API")
+    print("  (a `typst` CLI already on PATH is used when present; there is nothing else to install for it)")
     print("  OFFLINE sandbox (no DNS / pip index)? On the user's own machine run:")
     plat, pyver = _wheel_platform_tag(), f"{sys.version_info.major}.{sys.version_info.minor}"
-    print(f"    pip download typst==0.15.2 --no-deps --only-binary=:all: --platform {plat} --python-version {pyver}")
+    print(f"    pip download {shlex.quote(requirement('typst'))} --no-deps --only-binary=:all: --platform {plat} --python-version {pyver}")
     print("    (if that platform has no wheel, `python3 -m pip debug --verbose` lists every compatible tag; never install a wheel built for another platform)")
     print("    (or pick the matching wheel from https://pypi.org/project/typst/#files), upload the .whl, then:")
     print("    pip install --no-index <path-to-wheel>")
@@ -209,8 +263,16 @@ def pdf_backend() -> PdfBackend:
     return None
 
 
-def check_pdf_tools() -> tuple[bool, PdfBackend]:
-    """Doctor lines for the PDF reader; returns (available, backend), the backend being the one pdf_backend() would
+@dataclass(frozen=True)
+class PdfCheck:
+    """Outcome of the PDF-reader doctor check: `ok` is False only when nothing can read a PDF; `backend` is the one
+    pdf_backend() would pick (None when there is none)."""
+    ok: bool
+    backend: PdfBackend
+
+
+def check_pdf_tools() -> PdfCheck:
+    """Doctor lines for the PDF reader; returns whether one is available and which backend, the one pdf_backend() would
     pick. A missing pdftoppm, or pypdf standing in for poppler, only degrades: the checks it cannot serve are named
     in the output."""
     if shutil.which("pdfinfo") and shutil.which("pdftotext"):
@@ -219,9 +281,9 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
             print("  - hidden-text ink check (also used by verify_letter.py / verify_academic.py)")
             print("  Weaker without a WARN: group proximity falls back to the pdftotext box gap instead of the ink gap")
             print("  poppler (academic mode only): install `poppler-utils` (or `poppler`) with the system package manager")
-            return True, "poppler"
+            return PdfCheck(True, "poppler")
         print("OK    poppler-utils (pdftotext, pdfinfo, pdftoppm)")
-        return True, "poppler"
+        return PdfCheck(True, "poppler")
     if importable("pypdfium2"):
         try:
             ver = importlib.metadata.version("pypdfium2")
@@ -229,22 +291,22 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
             ver = "?"
         print(f"OK    pdf: pypdfium2 {ver} (Python: text, word boxes, raster, metadata, attachments)")
         print("  - academic mode still needs poppler (verify_academic.py reads `pdftotext -layout`)")
-        return True, "pdfium"
+        return PdfCheck(True, "pdfium")
     if importable("pypdf"):
         print("DEGRADED  pypdf: Python fallback, no poppler. Page count is exact, but:")
         print("  - ATS text extraction is indicative only (spurious spaces, e.g. \"FORMA TION\")")
         print("  - SKIPPED (WARN): hidden-text gate and text-clip gate (need pdftotext and pdftoppm)")
         print("  - SKIPPED (WARN): group proximity and date adjacency (need pdftotext)")
         print("  - academic mode cannot run (verify_academic.py requires pdftotext)")
-        print("  - `pip install pypdfium2`: text, word boxes, raster and metadata then run in Python close to poppler's (see the CHANGELOG)")
+        print(f"  - `{_pip('pypdfium2')}`: text, word boxes, raster and metadata then run in Python close to poppler's (see the CHANGELOG)")
         print("  poppler (academic mode only): install `poppler-utils` (or `poppler`) with the system package manager")
-        return True, "pypdf"
+        return PdfCheck(True, "pypdf")
     print("MISSING  poppler-utils -- needed for page-count and ATS extraction checks:")
-    print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
-    print("  choco install poppler | scoop install poppler          # Windows")
-    print("  pip install pypdfium2                                  # fallback: text, boxes, raster and metadata in Python, close to poppler's (used automatically if present)")
-    print("  pip install pypdf                                      # last resort: exact page count, indicative extraction only (used automatically if present)")
-    return False, None
+    print("  poppler-utils: install it with your system package manager (academic mode requires it)")
+    print(_uv_line())
+    print(f"  {_pip('pypdfium2')}                                  # fallback: text, boxes, raster and metadata in Python, close to poppler's (used automatically if present)")
+    print(f"  {_pip('pypdf')}                                      # last resort: exact page count, indicative extraction only (used automatically if present)")
+    return PdfCheck(False, None)
 
 
 def check_pikepdf() -> None:
@@ -253,7 +315,7 @@ def check_pikepdf() -> None:
     need = ".".join(map(str, MIN_VERSION))
     if not importable("pikepdf"):
         print(f"INFO  pikepdf not installed (optional, >= {need}): compiled PDFs keep Typst's literal strings, which PHP's "
-              "smalot/pdfparser can truncate. `uv run` installs it; or `pip install 'pikepdf>=10.8.0'` or `sudo dnf install python3-pikepdf`")
+              f"smalot/pdfparser can truncate. `uv run` installs it; or `{_pip('pikepdf')}`")
         return
     try:
         ver = importlib.metadata.version("pikepdf")
@@ -319,8 +381,8 @@ class _CountDegraded(io.StringIO):
         return getattr(self.inner, name)
 
 
-def preflight() -> tuple[bool, PdfBackend]:
-    """Print the doctor output; returns (all_ok, pdf_backend). all_ok is False only when something
+def preflight() -> PdfCheck:
+    """Print the doctor output; returns all_ok and the pdf backend. all_ok is False only when something
     has no fallback (Pillow, typst, a PDF reader); DEGRADED lines leave it True."""
     counter = _CountDegraded(sys.stdout)
     with contextlib.redirect_stdout(counter):
@@ -329,8 +391,9 @@ def preflight() -> tuple[bool, PdfBackend]:
         route = typst_route()
         if route.query is not None:
             check_fonts()
-        pdf_ok, backend = check_pdf_tools()
-        all_ok = pillow_ok and typst_ok and pdf_ok
+        pdf = check_pdf_tools()
+        backend = pdf.backend
+        all_ok = pillow_ok and typst_ok and pdf.ok
         pypdf_missing = backend in ("poppler", "pdfium") and not importable("pypdf")
         if pypdf_missing:
             # the WARN check_hidden_text prints for this backend, quoted so the doctor and the gate agree
@@ -338,13 +401,13 @@ def preflight() -> tuple[bool, PdfBackend]:
                        "(WARN \"tiny-text check not run (pypdf missing)\")" if backend == "pdfium" else
                        "the off-page check of the hidden-text gate will NOT run "
                        "(WARN \"hidden text: off-page check not run (pypdf missing)\")")
-            print(f"DEGRADED  pypdf: not installed. {skipped}. Fix: pip install pypdf")
+            print(f"DEGRADED  pypdf: not installed. {skipped}. Fix: {_pip('pypdf')}")
         check_pikepdf()
         if (all_ok and not counter.n and route.compile != "cli" and backend == "pdfium" and typst_py() is not None
-                and _ver_tuple(_typst_py_probe()[1]) >= TYPST_MIN):
+                and _ver_tuple(_typst_py_probe().version) >= TYPST_MIN):
             print("OK (Python)  no typst CLI, no poppler: compile, query, fonts, text, boxes and raster all run in Python "
                   "(typst-py + pypdfium2 + pypdf + Pillow); academic mode still needs poppler")
-    return all_ok, backend
+    return PdfCheck(all_ok, backend)
 
 
 def typst_font_kw() -> dict[str, list[str]]:
@@ -360,22 +423,33 @@ def _ver_tuple(v: str) -> tuple[int, int]:
     return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
 
 
+@dataclass(frozen=True)
+class TypstPyProbe:
+    """Result of running the `typst` Python package: `module` (None when absent or unusable), `version`, `problem`
+    (text; "" when none) and `full` (also query, eval and Fonts)."""
+    module: ModuleType | None
+    version: str
+    problem: str
+    full: bool
+    too_old: bool = False   # a working but old wheel: `problem` then says which, and the doctor says "too old", not "broken"
+
+
 @functools.cache
-def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
-    """(module, version, problem, full) for the `typst` Python package, by running it: a tiny
+def _typst_py_probe() -> TypstPyProbe:
+    """The TypstPyProbe (module, version, problem, full) for the `typst` Python package, by running it: a tiny
     document is compiled and an expression evaluated, so a broken wheel is reported broken
     (an attribute check passes it). module None + problem "" = not installed; module None +
     problem = installed but unusable; full = also query, eval and Fonts."""
     try:
         mod = importlib.import_module("typst")   # ModuleType: attribute access is untyped (no stubs)
     except ImportError:
-        return None, "", "", False
+        return TypstPyProbe(None, "", "", False)
     except Exception as e:   # noqa: BLE001 - kept broad: a broken wheel may raise anything on import; reported as the probe's problem text, which the doctor prints
-        return None, "", f"import failed: {type(e).__name__}: {e}", False
+        return TypstPyProbe(None, "", f"import failed: {type(e).__name__}: {e}", False)
     comp_cls = getattr(mod, "Compiler", None)
     if comp_cls is not None and not hasattr(comp_cls, "compile_with_warnings"):
         # a working but old wheel (typst-py 0.11.x): the API this script drives is newer
-        return None, "", f"TOOLOLD typst {getattr(mod, '__version__', '?')}: its Compiler has no compile_with_warnings", False
+        return TypstPyProbe(None, "", f"typst {getattr(mod, '__version__', '?')}: its Compiler has no compile_with_warnings", False, too_old=True)
     try:
         with tempfile.TemporaryDirectory() as td:
             src = os.path.join(td, "probe.typ")
@@ -385,7 +459,7 @@ def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
             res = comp.compile_with_warnings()
             doc = res[0] if isinstance(res, tuple) else res      # (pdf bytes, warnings)
             if not isinstance(doc, bytes | bytearray) or not doc.startswith(b"%PDF"):
-                return None, "", "compiling a one-line document returned no PDF", False
+                return TypstPyProbe(None, "", "compiling a one-line document returned no PDF", False)
         ver = str(getattr(mod, "__version__", "?"))
         if hasattr(comp_cls, "eval"):   # typst-py 0.13.4-0.14.x has no Compiler.eval: DEGRADED, still compiles
             try:
@@ -398,17 +472,17 @@ def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
                     and bool(mod.Fonts(include_system_fonts=True, **typst_font_kw()).families()))
         except (RuntimeError, OSError):   # Fonts() failing: the module is compile-only, full stays False
             pass
-        return mod, ver, "", full
+        return TypstPyProbe(mod, ver, "", full)
     except Exception as e:   # noqa: BLE001 - kept broad: the probe runs a third-party wheel; any failure is reported as the problem text (type and message)
-        return None, "", f"{type(e).__name__}: {e}", False
+        return TypstPyProbe(None, "", f"{type(e).__name__}: {e}", False)
 
 
 def typst_py() -> ModuleType | None:
     """The `typst` Python module if it works and can run query/eval/fonts too (a working
     install, proven by `_typst_py_probe`), else None. A broken, old or compile-only module
     does not qualify."""
-    mod, _, _, full = _typst_py_probe()
-    return mod if full else None
+    probe = _typst_py_probe()
+    return probe.module if probe.full else None
 
 
 def _accepts(fn: Callable[..., object], keyword: str) -> bool:
@@ -461,7 +535,8 @@ def typst_route() -> TypstRoute:
     Probed once per process: `which`, `typst --version` and the typst-py probe each run once."""
     cli_ver = _cli_probe()
     cli_usable = cli_ver is not None and (cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN)
-    mod, _, _, full = _typst_py_probe()
+    probe = _typst_py_probe()
+    mod, full = probe.module, probe.full
     compile_route: Route = "cli" if cli_usable else "api" if mod is not None else None
     query_route: Route = "cli" if cli_usable else "api" if full else "cli" if cli_ver is not None else None
     return TypstRoute(compile_route, query_route, mod, _typst_py_caps(mod))

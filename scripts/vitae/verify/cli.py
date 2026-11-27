@@ -88,12 +88,12 @@ from typing import NoReturn
 from vitae.core import profiling
 from vitae.core.base import _FOOTER_GATE, HIDDEN_PPI, DetailRow
 from vitae.core.env import pdf_backend, preflight
-from vitae.verify.cv import _ALLOW_REFUSED, _check_cv, check_all, placeholders_allowed
+from vitae.verify.cv import _ALLOW_REFUSED, PageTarget, _check_cv, check_all, placeholders_allowed
 from vitae.verify.gates import LAYOUT_GATES, make_context
 from vitae.verify.pdf import extract_text, pdf_unreadable, render_crops, render_pages
 from vitae.verify.registry import run_gates
 from vitae.verify.source import _fill_args_ok
-from vitae.verify.tune import tune
+from vitae.verify.tune import FillTarget, LeadingBounds, tune
 
 
 class _Parser(argparse.ArgumentParser):
@@ -217,8 +217,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
                 print(note, file=sys.stderr)
         sys.exit(0)
     if argv and argv[0] == "--doctor":     # dependency preflight only; no cv.typ, no footer
-        ok, _ = preflight()
-        sys.exit(0 if ok else 1)
+        sys.exit(0 if preflight().ok else 1)
 
     if argv and argv[0] == "--tune":
         # verify.py --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI]; the "--" makes every word a positional
@@ -240,8 +239,8 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         if allow and not placeholders_allowed(ta.typ):
             print(_ALLOW_REFUSED)
             sys.exit(1)
-        return tune(ta.typ, int(ta.pages), int(ta.fill_min), int(ta.fill_max),
-                    lo=bounds[0], hi=bounds[1], allow_placeholders=allow)
+        return tune(ta.typ, FillTarget(int(ta.pages), int(ta.fill_min), int(ta.fill_max)),
+                    LeadingBounds(lo=bounds[0], hi=bounds[1]), allow_placeholders=allow)
 
     # Default mode: the one-file gate. --facts is the only option here, so it is cut out by hand.
     allow_placeholders = "--allow-placeholders" in argv
@@ -260,7 +259,8 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
     ap.add_argument("fill_min", nargs="?")
     ap.add_argument("fill_max", nargs="?")
     ca = ap.parse_known_args(["--", *argv])[0]
-    return _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path, allow_placeholders, rebuild)
+    return _check_cv(ca.typ, PageTarget(ca.expected, ca.fill_min, ca.fill_max), facts=facts_path,
+                     allow_placeholders=allow_placeholders, rebuild=rebuild)
 
 
 def _run() -> None:

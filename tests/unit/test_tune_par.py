@@ -1,6 +1,7 @@
 """The tuner's par reader/writer and the gate's leading reader (_read_par, _write_par, _doc_leading)."""
 import pytest
 from vitae.core.base import LEADING_WARN
+from vitae.core.env import PdfCheck
 from vitae.verify import tune as T
 from vitae.verify.typst import _doc_par_list, _read_par, _write_par
 
@@ -47,16 +48,16 @@ def test_doc_leading_is_the_last_top_level_rule_before_the_body(src, want):
     assert _doc_leading(src) == pytest.approx(want) if want is not None else _doc_leading(src) is None
 
 
-@pytest.mark.parametrize("under, rng", [(True, (0.40, 1.60)), (False, ())])
+@pytest.mark.parametrize("under, rng", [(True, T.LeadingBounds(0.40, 1.60)), (False, None)])
 def test_under_filled_document_fails_with_content_advice(tmp_path, monkeypatch, capsys, under, rng):
     """Under-filled even at the leading cap: FAIL with content advice, search clamped (never padded). A page that
     overflows at every leading keeps the old advice."""
-    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: PdfCheck(True, "pypdf"))
     monkeypatch.setattr(T, "_probe_text", lambda typ, cand, exp, be:
                         (True, 40 + int(20 * (_doc_leading(cand) or 0))) if under else (False, None))
     p = tmp_path / "cv.typ"
     p.write_text("#set par(leading: 0.6em, spacing: 0.7em)\nbody\n", encoding="utf-8")
-    rc, footer = T.tune(str(p), 1, 94, 96, *rng)
+    rc, footer = T.tune(str(p), T.FillTarget(1, 94, 96), rng)
     out = capsys.readouterr().out
     assert rc == 1 and ("UNDER-FILLED" in out) == under
     if under:
@@ -66,10 +67,10 @@ def test_under_filled_document_fails_with_content_advice(tmp_path, monkeypatch, 
 
 def test_probe_landing_in_the_window_is_kept_under_the_leading_cap(tmp_path, monkeypatch, capsys):
     """Fill grows with leading: the tuner keeps the largest leading whose fill stays within the window, never above the cap."""
-    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: PdfCheck(True, "pypdf"))
     monkeypatch.setattr(T, "_probe_text", lambda typ, cand, exp, be: (True, int(80 + 20 * (_doc_leading(cand) or 0))))
     p = tmp_path / "cv.typ"
     p.write_text("#set par(leading: 0.6em, spacing: 0.7em)\nbody\n", encoding="utf-8")
-    rc, _ = T.tune(str(p), 1, 88, 96, 0.40, 1.60)
+    rc, _ = T.tune(str(p), T.FillTarget(1, 88, 96), T.LeadingBounds(0.40, 1.60))
     leading, _ = _read_par(p.read_text()) or (None, None)
     assert rc == 0 and leading is not None and 0.6 < leading <= LEADING_WARN + 1e-9, (capsys.readouterr().out, leading)

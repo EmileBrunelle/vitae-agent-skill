@@ -55,7 +55,7 @@ def fake_typst(fresh_typst_probes, monkeypatch):
 
     def install(cli: str | None = None, api: ModuleType | None = None, full: bool = True) -> None:
         monkeypatch.setattr(env, "_cli_probe", lambda: cli)
-        monkeypatch.setattr(env, "_typst_py_probe", lambda: (api, "0.15.2" if api else "", "", full and api is not None))
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(api, "0.15.2" if api else "", "", full and api is not None))
         env.typst_route.cache_clear()
     return install
 

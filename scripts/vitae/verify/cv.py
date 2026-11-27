@@ -12,6 +12,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import vitae.fill as measure_fill
@@ -353,13 +354,21 @@ def _body_size_warn(typ: str) -> str:
     return ""
 
 
-def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
-              facts: str | None = None, allow_placeholders: bool = False,
+@dataclass(frozen=True)
+class PageTarget:
+    """The command-line page target, as typed: `expected` pages and the optional FILL_MIN / FILL_MAX percentages."""
+    expected: str
+    fmin: str | None = None
+    fmax: str | None = None
+
+
+def _check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_placeholders: bool = False,
               rebuild: bool = False) -> tuple[int, str | None]:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Returns (exit code,
     footer): 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix; the
     footer is the NEXT line the CLI prints last on a failure, None until preflight passed.
     The order of the gates is the one documented in the module docstring."""
+    expected, fmin, fmax = target.expected, target.fmin, target.fmax
     pdf = re.sub(r"\.typ$", "", typ) + ".pdf"
     fail = 0
     footer: str | None = None
@@ -394,8 +403,9 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
             lowered = f"{drawn[0]}-{drawn[1]} → {fmin}-{fmax}"
             print(_LOWERED_WARN.format(a=f"{drawn[0]}-{drawn[1]}"))
 
-    deps_ok, backend = preflight()
-    if not deps_ok:
+    pf = preflight()
+    backend = pf.backend
+    if not pf.ok:
         return 1, footer
     footer = _FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
 
