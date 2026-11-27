@@ -25,6 +25,8 @@ For AI agents, and the developers they advise, choosing or configuring a PDF tex
 | PdfPig | 0.1.16 | `ContentOrderTextExtractor` | 1 (academic CV) | 3 | letters reversed | Good |
 | PdfPig | 0.1.16 | Docstrum + UnsupervisedReadingOrder | 3 (year ranges read as phones, noise) | 0 | letters reversed | Usable |
 | PdfPig | 0.1.16 | `page.Text` | 91 (mostly split) | 873 | letters reversed | Avoid |
+| smalot/pdfparser (PHP) | 2.13.1 | `getText()` (per-page `getText()` identical) | 0 | 1 | word order visual (letters logical) | Risky: silent truncation (U+0000), see section 3 |
+| smalot/pdfparser | 2.13.1 | `getDataTm()` naive y-sort | 0 | 0 | word order visual | Avoid: misorders two-zone headers; same truncation |
 | pdf-reader (Ruby) | 2.16.0 | `page.runs` merged | 0 | 35 | letters reversed | Usable |
 | pdf-reader | 2.16.0 | `page.text` | 6 | 47 | letters reversed | Avoid |
 | pdf-reader | 2.16.0 | `page.runs(merge: false)` | 131 | 215 | partial | Unusable (no spaces) |
@@ -48,6 +50,8 @@ Versions marked "not recorded" were not captured in the sources. Full environmen
 **pdf-reader.** `page.text` interleaves characters where blocks overlap in y: the name line of the main template comes out as `[Target tit[City, Region]fact(555) 555-0100— [Degme@example.comcts state it]`. It drops text (academic CV: 14 tokens and whole lines such as a funding line; color-band families: 4 tokens; clause-index: final letters, `AVAILABILITY` heading) and eats spaces after commas (`title,as`). One LinkedIn URL was truly lost (quiet-luxury fixture). `page.runs` (merged) had no losses but still glues some tokens (`FirstnameLastname`, `TECHNICALSTACK`); in clause-index it prints contact before the name. `page.runs(merge: false)` has no space characters at all.
 
 Root cause of the `page.text` losses (from the library source, `lib/pdf/reader/page_layout.rb`): it builds a character grid with row count = floor(page height / mean font size), so row pitch = page height / row count; each run goes to row round(y / pitch) and later runs overwrite earlier ones on the same row. Two lines with baselines closer than the pitch collide, and whole lines vanish or merge (`Université Lavalatorial Structures`); on the academic CV the pitch is 10.42 pt (mean font 10.29 pt) and the lines were 9.49 pt apart. The threshold depends on the document's mean font size, so dense layouts (academic CVs, tight entry spacing) are most exposed. `page.runs` has no such loss. vitae does not adjust templates for this: a fix would be content-dependent and fragile.
+
+**smalot/pdfparser (PHP).** No contact lost or mangled in any of 3 modes (`getText()`, per-page `getText()`, naive y-sorted `getDataTm()`), and `getText()` follows content-stream order, so two-zone headers read cleanly. The y-sort puts the contact column before the name and shares a line between name and LinkedIn: misordered, nothing lost. Bullets and heading numbers glue to the next word (`•Entwickelte`, `1Summary`). RTL: letters logical, word order visual (`العربية التقنية شركة`). CJK intact. Main defect, silent truncation: 24 strings in 14 of 51 PDFs come out as U+0000 with the rest of the run dropped (a whole Cyrillic heading, `BERUFSERFAHRU`, an address cut before the postal code). Cause (from the library source): a TJ literal string holding balanced unescaped parentheses, legal per ISO 32000-1 section 7.3.4.2, is cut at the first `)` by a lazy regex in `PDFObject::getCommandsText`. Typst (pdf-writer) writes Identity-H glyph ids 0x28/0x29 as `(`/`)` bytes, and which glyphs get those ids depends on subset numbering, so no template change is deterministic. Reported upstream as smalot/pdfparser issue #860 (2026-11-26). PHP 8.6.0 container and 8.5.13 host gave byte-identical output.
 
 **pdfminer.six / pdf.js / pdf-parse 2.x.** Correct on everything except RTL. pdfminer.six also put the contact lines after "Experience" on one swiss-grid fixture. **pdf-parse 1.1.1** is still widely installed and drops tokens: "Ph.D." and "2018" in the academic CV, "Summary" in clause-index.
 
@@ -80,6 +84,7 @@ Run offline, psm 3, 54 pages at 150 and 300 dpi; languages eng+fra, deu, rus, ar
 6. With pdf-reader, use `page.runs` (merged), never `page.text`: its row grid overwrites lines closer than one mean-font-size pitch. Or use a layout-aware engine.
 7. Avoid pdf-parse 1.1.1; migrate to 2.x or pdf.js directly.
 8. Treat OCR as a fallback and diff its contact fields against any text layer; do not upsample to 300 dpi for gain.
+9. With smalot/pdfparser, scan output for U+0000 as a truncation signal. Normalizing incoming PDFs first (qpdf or pikepdf re-serialization writes strings as hex) avoided it: 24 NULs to 0, text and pixels unchanged (measured).
 
 ## 6. Template changes
 
@@ -101,7 +106,7 @@ Corpus built 2026-11-26 from vitae commit 25f5e22 with `typst compile --root src
 | pdfminer.six | version unknown | Python | earlier probe, defaults |
 | pdf.js | 6.5 | Node | earlier probe, text content |
 | pdf-parse | 2.4.5 and 1.1.1 (bundles pdf.js 1.10) | Node | earlier probe, defaults |
-| Tesseract | 5.5.4 (leptonica 1.87) | Fedora (latest at build) container, `--network=none` | psm 3; eng+fra, deu+eng, rus+eng, ara+eng, chi_sim+jpn+eng; packs `tesseract-langpack-{eng,fra,deu,rus,ara,chi_sim,jpn}`; input `pdftoppm -r 150|300` PNG |
-| PHP smalot/pdfparser | pending | pending | probe not finished when this was written |
+| Tesseract | 5.5.4 (leptonica 1.87) | Fedora 45 container (image langs ara chi_sim deu eng fra jpn rus), `--network=none` | psm 3; eng+fra, deu+eng, rus+eng, ara+eng, chi_sim+jpn+eng; packs `tesseract-langpack-{eng,fra,deu,rus,ara,chi_sim,jpn}`; input `pdftoppm -r 150|300` PNG |
+| smalot/pdfparser | 2.13.1 (composer 2.11.2) | PHP 8.6.0 cli ZTS container (`--network=none`) and PHP 8.5.13 Fedora host, identical output | `$pdf->getText()`; per page `$page->getText()`; `$page->getDataTm()` sorted by y desc then x asc, items within 2 pt joined by a space |
 
 The gate venv (`~/.cache/vitae-venv`) is Python 3.15.2 with typst 0.15.2; it is not an extractor under test. pypdfium2 5.15.2 was used in the probe venv as a cross-check only.
