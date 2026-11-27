@@ -186,7 +186,7 @@ BOX = (0.0, 0.0, 600.0, 800.0)
 
 @st.composite
 def _run_lists(draw: st.DrawFn) -> list[Run]:
-    sizes = st.sampled_from([0.0, 2.0, 3.0, 4.9, 5.0, 5.5, 6.0, 6.9, 8.0, 9.6, 12.0, math.nan, math.inf])
+    sizes = st.sampled_from([0.0, 2.0, 2.3, 3.0, 4.0, 4.6, 4.9, 5.0, 5.5, 6.0, 6.9, 8.0, 9.6, 12.0, math.nan, math.inf])
     ys = st.sampled_from([100.0, 100.0, 100.3, 100.5, 101.0, 102.4, 103.0, 106.0, 99.5, 400.0, -9.0, 900.0, math.nan, math.inf])
     xs = st.sampled_from([10.0, 20.0, 30.0, 50.0, 700.0, -50.0, 15.5])
     n = draw(st.integers(0, 14))
@@ -254,10 +254,10 @@ def test_merged_runs_equivalence_is_not_vacuous() -> None:
 
 @pytest.mark.slow
 def test_merged_runs_bound_time_on_one_long_run() -> None:
-    stats = _stats([(1, True)] * 40000)
+    stats = _stats([(1, True)] * 150000)
     start = time.perf_counter()
 
     out = text._merged_runs(stats, lambda s: True)
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.02 s; growing the string took ~1 s at 40000 words
-    assert len(out) == 1 and out[0][1].count(" ") == 39999
+    assert time.perf_counter() - start < 1.0     # measured ~0.02 s; growing the string took ~3 s at 150000 words
+    assert len(out) == 1 and out[0][1].count(" ") == 149999
