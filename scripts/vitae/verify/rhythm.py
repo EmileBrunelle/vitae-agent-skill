@@ -16,8 +16,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from statistics import median
 
-from vitae.core.base import Mark, WordBox, is_placed
+from vitae.core.base import HeadMark, Mark, WordBox, is_placed
 from vitae.core.level import Finding, Level
+from vitae.verify.bounds import too_dense
 from vitae.verify.pdf import _bbox_pages
 from vitae.verify.runts import BulletLine, Pos, located_bullets
 
@@ -46,9 +47,9 @@ class _HeadIndex:
 
     def __init__(self, marks: list[Mark]) -> None:
         by_page: dict[int, list[tuple[float, float]]] = {}
-        for m in marks:
-            if is_placed(m) and m.get("kind") != "bullet":
-                by_page.setdefault(m["page"], []).append((m["y"], m["x"]))
+        heads: list[HeadMark] = [m for m in marks if is_placed(m) and m.get("kind") != "bullet"]
+        for h in heads:
+            by_page.setdefault(h["page"], []).append((h["y"], h["x"]))
         self._ys: dict[int, list[float]] = {}
         self._xs: dict[int, list[float]] = {}
         for page, pts in by_page.items():
@@ -120,7 +121,10 @@ def check_rhythm(marks: list[Mark] | None, pdf: str, *, fail: Callable[[str], Fi
     sized = _bbox_pages(pdf)
     if sized is None:
         return [(Level.WARN, "spacing rhythm not measured: word positions unavailable")]
-    cols = measure_columns(marks, [items for _, _, items in sized], [h for _, h, _ in sized])
+    pages = [items for _, _, items in sized]
+    if (dense := too_dense("spacing rhythm", pages, marks)) is not None:
+        return [fail(dense)]
+    cols = measure_columns(marks, pages, [h for _, h, _ in sized])
     out: list[Finding] = []
     measured = 0
     for c in cols:
