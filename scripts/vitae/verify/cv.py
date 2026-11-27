@@ -28,6 +28,7 @@ from vitae.core.level import Finding, Level
 from vitae.core.typst_source import strip_typst_comments
 from vitae.design.libapi import OLD_LIB_NOTE, is_old_lib
 from vitae.verify import placeholders
+from vitae.verify.bounds import too_many_pages
 from vitae.verify.gates import GATES, make_context
 from vitae.verify.layout import check_text_clip, check_whitespace
 from vitae.verify.pdf import (
@@ -38,6 +39,7 @@ from vitae.verify.pdf import (
     extract_text,
     family_from_path,
     render_pngs,
+    run_memo,
     word_boxes,
 )
 from vitae.verify.registry import note_extraction, run_gates
@@ -389,6 +391,13 @@ class PageTarget:
 
 def check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_placeholders: bool = False,
               rebuild: bool = False) -> tuple[int, str | None]:
+    """`_check_cv` in its own memo scope: each tool runs once per file state in this gate run and never across runs."""
+    with run_memo():
+        return _check_cv(typ, target, facts=facts, allow_placeholders=allow_placeholders, rebuild=rebuild)
+
+
+def _check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_placeholders: bool = False,
+              rebuild: bool = False) -> tuple[int, str | None]:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Returns (exit code,
     footer): 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix; the
     footer is the NEXT line the CLI prints last on a failure, None until preflight passed.
@@ -456,6 +465,10 @@ def check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_pl
         print(err)
 
     pages = count_pages(pdf, backend)
+    too_long = too_many_pages(os.path.basename(pdf), pages)
+    if too_long:
+        print(f"FAIL  {too_long}")
+        return 1, footer
     if pages == expected:
         print(f"OK    pages: {pages}")
     else:
@@ -485,7 +498,7 @@ def check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_pl
         for i, path in enumerate(pngs):
             result = measure_fill.measure(path)
             if "blank page" in result:
-                print(f"FAIL  fill: {path}: {result}")
+                print(f"FAIL  fill: {os.path.basename(path)}: {result}")
                 fail = 1
                 continue
             m = re.search(r"to (\d+)%", result)
@@ -496,16 +509,16 @@ def check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_pl
                     continue
                 y = int(m.group(1))
                 if y < int(fmin) or y > int(fmax):
-                    print(f"FAIL  fill: {path}: {result} (target {fmin}-{fmax}%) — "
+                    print(f"FAIL  fill: {os.path.basename(path)}: {result} (target {fmin}-{fmax}%) — "
                           f"run `scripts/verify.py --tune {shlex.quote(typ)} {expected} {fmin} {fmax}{allow}` "
                           "(adjusts leading), or add/cut real content")
                     if y < int(fmin):
                         under_fills.append(y)
                     fail = 1
                 else:
-                    print(f"OK    fill: {path}: {result}")
+                    print(f"OK    fill: {os.path.basename(path)}: {result}")
             else:
-                print(f"INFO  fill: {path}: {result} (target = (100 - bottom-margin%) - 0..2%)")
+                print(f"INFO  fill: {os.path.basename(path)}: {result} (target = (100 - bottom-margin%) - 0..2%)")
             boxes = pages_boxes[i] if pages_boxes and i < len(pages_boxes) else None
             if pages_text is None and i == 0:
                 print(f"WARN  text-clip gate skipped: {boxes_unavailable(pdf)}")

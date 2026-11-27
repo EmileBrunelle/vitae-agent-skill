@@ -25,7 +25,14 @@ from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
 from vitae.verify.lang import is_latin, strip_latin_marks
-from vitae.verify.pdf import bbox_pages, boxes_unavailable, pdf_unreadable, pdfium_doc, render_pages_png
+from vitae.verify.pdf import (
+    bbox_pages,
+    boxes_unavailable,
+    pdf_unreadable,
+    pdfinfo_output,
+    pdfium_doc,
+    render_pages_png,
+)
 
 # Date and number patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
@@ -312,7 +319,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
         except (OSError, RuntimeError):   # pypdfium2 cannot open or read the file (PdfiumError is a RuntimeError)
             pass
     elif shutil.which("pdfinfo"):
-        for line in proc.run(["pdfinfo", pdf], proc.POPPLER_S).stdout.splitlines():
+        for line in pdfinfo_output(pdf).splitlines():
             k, _, v = line.partition(":")
             if k in ("Keywords", "Title", "Author", "Subject"):
                 info[k] = v.strip()

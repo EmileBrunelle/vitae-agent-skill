@@ -15,7 +15,9 @@ import os
 import re
 import shutil
 import tempfile
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Generator, Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
 from types import ModuleType
 from typing import Literal, overload
 
@@ -30,7 +32,59 @@ from vitae.core.typst_source import strip_typst_comments
 from vitae.verify.hexstrings import hexify_pdf
 from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
 
-# ---------- compile / page-count / extraction, native or fallback ----------
+# ---------- one gate run asks each tool once ----------
+
+_FileKey = tuple[str, int, int]       # (resolved path, mtime_ns, size): the state of a file the tool read
+BboxPages = list[tuple[float, float, list[WordBox]]]
+
+
+class RunMemo:
+    """What one gate run already asked its tools: each result is computed once and shared by every gate."""
+
+    def __init__(self) -> None:
+        self.pdfinfo: dict[_FileKey, str] = {}
+        self.bbox: dict[tuple[_FileKey, str], BboxPages | None] = {}
+        self.values: dict[tuple[_FileKey, str, str | None], list[object] | None] = {}
+
+
+_memo: ContextVar[RunMemo | None] = ContextVar("vitae_run_memo", default=None)
+
+
+@contextmanager
+def run_memo() -> Generator[RunMemo]:
+    """While active (one gate run) the tool results below are kept by the file's resolved path, mtime and size; a fresh
+    scope starts empty and its results die with it, so a later run never reads an earlier one's."""
+    memo = RunMemo()
+    token = _memo.set(memo)
+    try:
+        yield memo
+    finally:
+        _memo.reset(token)
+
+
+def current_memo() -> RunMemo | None:
+    """The memo of the gate run in progress, None outside one."""
+    return _memo.get()
+
+
+def file_key(path: str) -> _FileKey | None:
+    """The state of `path` for a memo key, None when it cannot be read (then nothing is memoized)."""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return os.path.realpath(path), st.st_mtime_ns, st.st_size
+
+
+def pdfinfo_output(pdf: str) -> str:
+    """The stdout of `pdfinfo pdf`, run once per PDF state inside `run_memo`."""
+    memo, key = _memo.get(), file_key(pdf)
+    if memo is not None and key is not None and key in memo.pdfinfo:
+        return memo.pdfinfo[key]
+    out = proc.run(["pdfinfo", pdf], proc.POPPLER_S).stdout
+    if memo is not None and key is not None:
+        memo.pdfinfo[key] = out
+    return out
 
 def auto_root(typ: str) -> str | None:
     """Typst project root a file needs, or None for the default (its own folder).
@@ -179,7 +233,7 @@ def count_pages(pdf: str, backend: PdfBackend) -> str | None:
     if backend == "pdfium":
         return str(len(pdfium_doc(pdf)))
     if backend == "poppler":
-        out = proc.run(["pdfinfo", pdf], proc.POPPLER_S).stdout
+        out = pdfinfo_output(pdf)
         for line in out.splitlines():
             if line.startswith("Pages:"):
                 return line.split()[1]
@@ -349,10 +403,20 @@ def word_boxes(pdf: str, with_text: bool = False) -> list[list[Box]] | list[list
     return [[b for b, _ in items] for _, _, items in pages]
 
 
-def bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
-    """[(page_w, page_h, [((x0, y0, x1, y1), word), ...]), ...] from
+def bbox_pages(pdf: str) -> BboxPages | None:
+    """Memoized per run (see `run_memo`): the same PDF is read once. [(page_w, page_h, [((x0, y0, x1, y1), word), ...]), ...] from
     `pdftotext -bbox` (PDF points), or None when pdftotext is missing/fails.
     With the pdfium backend the words are built from pypdfium2's character boxes."""
+    memo, key = _memo.get(), file_key(pdf)
+    if memo is None or key is None:
+        return _read_bbox_pages(pdf)
+    slot = (key, pdf_backend() or "")
+    if slot not in memo.bbox:
+        memo.bbox[slot] = _read_bbox_pages(pdf)
+    return memo.bbox[slot]
+
+
+def _read_bbox_pages(pdf: str) -> BboxPages | None:
     if pdf_backend() == "pdfium":
         return _pdfium_bbox_pages(pdf)[0]
     try:

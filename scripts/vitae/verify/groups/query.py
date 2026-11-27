@@ -10,7 +10,7 @@ from vitae.core import proc
 from vitae.core.base import Mark, TextLine, Word
 from vitae.core.env import typst_font_kw, typst_py, typst_route
 from vitae.core.narrow import is_object_dict, is_object_list
-from vitae.verify.pdf import auto_root
+from vitae.verify.pdf import auto_root, current_memo, file_key
 
 if TYPE_CHECKING:
     # type checking only: typing_extensions is never imported at run time (annotations are strings here)
@@ -87,7 +87,18 @@ def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None
 
 
 def typst_values(typ: str, selector: str, root: str | None = None) -> list[object] | None:
-    """JSON list of the values of every element labelled `selector`, or None."""
+    """JSON list of the values of every element labelled `selector`, or None. Asked once per source state and selector
+    inside a gate run (see pdf.run_memo)."""
+    memo, key = current_memo(), file_key(typ)
+    if memo is None or key is None:
+        return _typst_values(typ, selector, root)
+    slot = (key, selector, root)
+    if slot not in memo.values:
+        memo.values[slot] = _typst_values(typ, selector, root)
+    return memo.values[slot]
+
+
+def _typst_values(typ: str, selector: str, root: str | None) -> list[object] | None:
     root = root or auto_root(typ)
     if typst_route().query != "cli":
         return _values_py(typ, selector, root)

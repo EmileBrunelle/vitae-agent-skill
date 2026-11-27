@@ -2,7 +2,8 @@
 import pytest
 from vitae.core.base import Mark
 from vitae.core.level import Level
-from vitae.verify.bounds import MAX_PAGE_WORK, density_guard, page_at, too_dense
+from vitae.core.limits import PAGES_MAX
+from vitae.verify.bounds import MAX_PAGE_WORK, density_guard, page_at, too_dense, too_many_pages
 
 
 def _marks(n: int, page: int = 1) -> list[Mark]:
@@ -54,3 +55,13 @@ def test_density_guard_returns_the_gates_failure_for_a_dense_page_and_none_other
     assert dense is not None and [lvl for lvl, _ in dense] == [Level.FAIL] and dense[0][1].startswith("g not measured")
     assert density_guard("g", [_page(2000)], _marks(MAX_PAGE_WORK // 2000), lambda m: (Level.FAIL, m)) is None
 
+
+
+def test_page_count_bound_is_inclusive() -> None:
+    assert too_many_pages("a.pdf", str(PAGES_MAX)) is None
+    assert too_many_pages("a.pdf", str(PAGES_MAX + 1)) == "a.pdf: 101 pages exceeds the 100-page bound"
+
+
+def test_unreadable_page_count_is_not_a_bound_failure() -> None:
+    assert too_many_pages("a.pdf", None) is None
+    assert too_many_pages("a.pdf", "") is None

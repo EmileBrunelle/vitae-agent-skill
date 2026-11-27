@@ -14,10 +14,19 @@ from typing import TypeVar
 
 from vitae.core.base import Mark
 from vitae.core.level import Finding
+from vitae.core.limits import PAGES_MAX
 
 _T = TypeVar("_T")
 
 MAX_PAGE_WORK = 2_000_000      # marks on a page x words on it
+# pages of one PDF: PAGES_MAX (core/limits.py) bounds the PAGES argument and, past it, the per-page work is not started
+
+
+def too_many_pages(name: str, pages: str | None) -> str | None:
+    """The FAIL message when the page count `pages` (pdfinfo's text) is over PAGES_MAX, else None."""
+    if pages is not None and pages.isdigit() and int(pages) > PAGES_MAX:
+        return f"{name}: {int(pages)} pages exceeds the {PAGES_MAX}-page bound"
+    return None
 
 
 def page_at(pages: Sequence[_T], number: int) -> _T | None:

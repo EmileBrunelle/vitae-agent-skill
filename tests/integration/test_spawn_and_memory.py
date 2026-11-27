@@ -112,16 +112,16 @@ def runs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Run]:
 # that quietly stops running a check; the upper one a spawn added).
 _COMMON = {
     "typst compile": (2, 2),        # the PDF, and the PNG raster of the layout check: once per deliverable and format
-    "typst query": (1, 4),          # current: 4, target: 3 (`<vitae-sec>` is queried twice, query.py:98)
+    "typst query": (1, 3),          # the lib's marks, the sections and one more selector: each once per gate run
     "pdftotext": (1, 1),            # the reading text, once
-    "pdftotext -bbox": (1, 5),      # current: 5, target: 1 (the word boxes of one PDF, pdf.py:356 called from 5 gates)
-    "pdfinfo": (1, 2),              # current: 2, target: 1 (pdf.py:179 and text.py:315 ask the same question)
+    "pdftotext -bbox": (1, 1),      # the word boxes of one PDF, read once and shared by every gate (pdf.run_memo)
+    "pdfinfo": (1, 1),              # the page count and the metadata read the same output
     "pdfdetach": (1, 1),
 }
 BUDGET = {
     "resume-1page": {**_COMMON, "pdftoppm": (2, 2)},           # one 150-ppi render, one 300-ppi ink page
     "resume-2page": {**_COMMON, "pdftoppm": (3, 3)},           # the ink page once per page
-    "academic": {**_COMMON, "typst query": (1, 4), "pdftotext -bbox": (1, 3), "pdftoppm": (1, 1)},
+    "academic": {**_COMMON, "pdftoppm": (1, 1)},
 }
 # Peak of Python-side allocations in KiB, measured on the gate after a warm-up: bound = 2 x measured
 # (1557 KiB 1 page, 2048 KiB 2 pages, 1587 KiB academic; the 2-page résumé is the largest).
@@ -178,3 +178,41 @@ def test_bullet_layout_memory_grows_linearly() -> None:
     ratio = _bullet_peak_kib(200) / _bullet_peak_kib(100)
 
     assert ratio <= 2.5, f"peak x{ratio:.2f} when the page doubles"
+
+
+def _long_cv(tmp_path: Path, pages: int) -> str:
+    """A bare Typst file of `pages` pages (one word each): only its page count matters to the bound."""
+    typ = tmp_path / f"long{pages}.typ"
+    typ.write_text('#set document(title: [Long])\n#set page(width: 100pt, height: 100pt)\n#for i in range(' + str(pages) + ') [p#i #pagebreak(weak: true)]\n',
+                   encoding="utf-8")
+    return str(typ)
+
+
+def _gate_long(typ: str) -> tuple[Counter[str], str]:
+    from vitae.verify.cv import PageTarget, check_cv
+    out = io.StringIO()
+    _SPAWNED.clear()
+    _ACTIVE[0] = True
+    try:
+        with contextlib.redirect_stdout(out):
+            check_cv(typ, PageTarget("1"))
+    finally:
+        _ACTIVE[0] = False
+    return Counter(_kind(a) for a in _SPAWNED), out.getvalue()
+
+
+def test_page_bound_is_inclusive_at_100(tmp_path: Path) -> None:
+    from vitae.core.limits import PAGES_MAX
+    assert PAGES_MAX == 100
+    spawns, out = _gate_long(_long_cv(tmp_path, 100))
+
+    assert "page bound" not in out
+    assert spawns["pdfinfo"] == 1 and spawns["pdftotext -bbox"] == 1, dict(spawns)
+
+
+def test_page_bound_stops_at_101_before_per_page_work(tmp_path: Path) -> None:
+    spawns, out = _gate_long(_long_cv(tmp_path, 101))
+
+    assert "FAIL  long101.pdf: 101 pages exceeds the 100-page bound" in out
+    assert spawns["pdfinfo"] == 1, dict(spawns)
+    assert spawns["pdftoppm"] == 0 and spawns["pdftotext -bbox"] == 0 and spawns["pdftotext"] == 0, dict(spawns)

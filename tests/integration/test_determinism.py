@@ -3,15 +3,13 @@
 Across processes: `verify.py --json` on shipped templates under two PYTHONHASHSEED values must print byte-identical
 stdout. Within a process: the same file gated twice, with another file in between (A, B, A), must report the same
 thing both times, which catches an lru_cache keyed too loosely, a ContextVar left set, or a warn-once flag leaking into the report.
-The one field that legitimately varies is normalized (`_norm`): the `fill:` message names the page PNG, which the
-gate renders into a fresh mkdtemp folder each run. Nothing else varies (no timing, no absolute path otherwise).
+The output is compared raw: nothing in it varies (no timing, no temp path: the `fill:` message names the page file only).
 """
 from __future__ import annotations
 
 import io
 import json
 import os
-import re
 import subprocess
 import sys
 from contextlib import redirect_stderr, redirect_stdout
@@ -23,6 +21,7 @@ from vitae.verify import registry
 from vitae.verify.cli import _dispatch
 from vitae.verify.jsonout import run_json
 from vitae.verify.letter import check_letter
+from vitae.verify.pdf import current_memo
 
 pytestmark = pytest.mark.skipif(not preflight().ok, reason="needs typst and a PDF text backend")
 
@@ -39,15 +38,6 @@ LETTER = "templates/letter.typ"
 LETTER_RUN = ("import json, sys; sys.path.insert(0, 'scripts')\n"
               "from vitae.verify.letter import check_letter\n"
               f"print(json.dumps(check_letter({LETTER!r}, 'Employer', 'Job Title', allow_placeholders=True)))\n")
-
-
-_TMPDIR = re.compile(r"[^\s:\"]*/tmp[a-z0-9_]{8}/")
-
-
-def _norm(text: str) -> str:
-    """Replace the mkdtemp folder of the `fill: <dir>/p1.png: ink from X% to Y%` message by `<tmp>/`: a random name per run
-    (tempfile.mkdtemp in the page rendering), the only part of the report that is not a function of the input."""
-    return _TMPDIR.sub("<tmp>/", text)
 
 
 def _argv(cv: tuple[str, int, int | None, int | None]) -> list[str]:
@@ -75,7 +65,7 @@ def test_seed_really_changes_hashing(scratch: Path) -> None:
 def test_json_is_identical_across_hash_seeds(scratch: Path, cv: tuple[str, int, int | None, int | None]) -> None:
     outs = [_seeded(scratch, ["scripts/verify.py", *_argv(cv), "--json"], s) for s in SEEDS]
     assert json.loads(outs[0])["verdict"] in ("PASS", "FAIL")     # a real verdict, not an ERROR object
-    assert _norm(outs[0]) == _norm(outs[1])
+    assert outs[0] == outs[1]
 
 
 def test_letter_gate_is_identical_across_hash_seeds(scratch: Path) -> None:
@@ -103,9 +93,10 @@ def test_gate_twice_in_one_process_same_report(scratch: Path, monkeypatch: pytes
     assert json.loads(ra1[1])["verdict"] in ("PASS", "FAIL")
     assert json.loads(rb[1])["file"] != json.loads(ra1[1])["file"]
     assert ra1[0] == ra2[0]
-    assert _norm(ra1[1]) == _norm(ra2[1])      # the JSON report
-    assert _norm(ra1[2]) == _norm(ra2[2])      # and the diagnostics (stderr), so a warn-once shown only the first time would show here
+    assert ra1[1] == ra2[1]      # the JSON report
+    assert ra1[2] == ra2[2]      # and the diagnostics (stderr), so a warn-once shown only the first time would show here
     assert registry._recorder.get() is None     # the recorder ContextVar is reset after each run
+    assert current_memo() is None     # the run memo is scoped to one gate run
 
 
 def test_letter_gate_twice_in_one_process(scratch: Path, monkeypatch: pytest.MonkeyPatch) -> None:
