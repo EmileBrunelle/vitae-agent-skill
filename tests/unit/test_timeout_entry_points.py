@@ -5,6 +5,7 @@ SubprocessError` between a tool call and the entry point that swallows the timeo
 """
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -25,6 +26,8 @@ def _raise(argv, limit, *, name=None, capture=True):
 @pytest.fixture
 def hung(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fresh_typst_probes):
     monkeypatch.setattr(proc, "run", _raise)
+    # tool PRESENCE is faked too: the timeout path must be reached on a host with no typst / poppler on PATH
+    monkeypatch.setattr(shutil, "which", lambda name, *a, **k: f"/fake/bin/{name}")
     monkeypatch.setattr(pdf, "pdf_backend", lambda: "poppler")
     monkeypatch.setattr(verify_cli, "pdf_backend", lambda: "poppler")
     monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(None, "", "", False))

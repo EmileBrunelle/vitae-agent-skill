@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 from contextlib import redirect_stderr, redirect_stdout
@@ -77,6 +78,7 @@ def test_json_is_identical_across_hash_seeds(scratch: Path, cv: tuple[str, int, 
     assert outs[0] == outs[1]
 
 
+@pytest.mark.skipif(not shutil.which("pdftotext"), reason="academic mode needs poppler's pdftotext")
 def test_academic_gate_is_identical_across_hash_seeds(scratch: Path) -> None:
     outs = [_seeded(scratch, ACADEMIC, s) for s in SEEDS]
     assert "mechanical gates: PASS" in outs[0]
