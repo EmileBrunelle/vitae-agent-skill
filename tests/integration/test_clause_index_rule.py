@@ -17,7 +17,9 @@ def variant(scratch: Path, name: str, value: str) -> Path:
     src = (fam / f"{name}.typ").read_text(encoding="utf-8")
     assert src.count(DEFAULT) == 1, f"{name}.typ: the section-rule declaration moved"
     out = fam / f"_rule-{name}-{value}.typ"
-    out.write_text(src.replace(DEFAULT, f'#let section-rule = "{value}"'), encoding="utf-8")
+    # no /CreationDate: Typst stamps it at 1 s resolution, which would make two compiles of one source differ
+    out.write_text("#set document(date: none)\n" + src.replace(DEFAULT, f'#let section-rule = "{value}"'),
+                   encoding="utf-8")
     return out
 
 
@@ -40,11 +42,16 @@ def test_every_section_rule_is_one_page_and_text_neutral(scratch: Path, name: st
         assert tokens[value] == tokens["none"], f"section-rule={value} changed the extracted words"
 
 
-def test_each_value_draws_something_different(scratch: Path) -> None:
+@pytest.mark.parametrize("name", ["resume", "resume-pair-b"])
+def test_each_value_draws_something_different(scratch: Path, name: str) -> None:
     # guards a value that silently falls through to another branch (e.g. to "none")
+    ok, err, pdf = build(variant(scratch, name, "inline"))
+    assert ok, err
+    again = build(variant(scratch, name, "inline"))[2]
+    assert pdf.read_bytes() == again.read_bytes(), "same source must compile to identical bytes"
     pdfs = {}
     for value in VALUES:
-        ok, err, pdf = build(variant(scratch, "resume", value))
+        ok, err, pdf = build(variant(scratch, name, value))
         assert ok, err
         pdfs[value] = pdf.read_bytes()
     assert len(set(pdfs.values())) == len(VALUES)

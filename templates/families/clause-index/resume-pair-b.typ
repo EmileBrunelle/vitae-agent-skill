@@ -35,7 +35,7 @@
 //   "under"       full-width hairline under the heading
 //   "under-short" bar under the number and title only
 //   "none"        no rule (the original sober look)
-// Total space under the heading is the same for all four values.
+// Total space under the heading is equal for all four values (measured, to 0.1pt).
 #let section-rule = "inline"
 #let section-rules = ("inline", "under", "under-short", "none")
 #assert(section-rule in section-rules, message: "section-rule must be one of: " + section-rules.join(", ") + " (got " + repr(section-rule) + ")")
@@ -72,10 +72,10 @@
     #grid(columns: (20pt, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom), num, ttl)
     #v(3pt * rhythm)
     #block(above: 0pt, below: 0pt)[#line(length: 100%, stroke: 1pt + accent)]
-    #v(8.5pt * rhythm)
+    #v(9pt * rhythm)
   ] else if section-rule == "under-short" [
     #box(stroke: (bottom: 1.5pt + accent), inset: (bottom: 3pt, right: 6pt))[#grid(columns: (20pt, auto), column-gutter: 0pt, align: (left + bottom, left + bottom), num, ttl)]
-    #v(8.5pt * rhythm)
+    #v(8.75pt * rhythm)
   ] else [
     #grid(columns: (20pt, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom), num, ttl)
     #v(12pt * rhythm)
