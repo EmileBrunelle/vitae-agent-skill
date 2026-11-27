@@ -151,6 +151,37 @@ def test_an_error_that_is_not_the_standards_gets_no_vitae_advice(tmp_path: Path)
     assert not ok and "FAIL  vitae" not in err
 
 
-def test_an_unrecognised_standard_refusal_offers_both_fixes() -> None:
-    advice = pdf.standard_failure_advice("error: PDF/UA-1 error: something new")
-    assert "document(title" in advice and "pdf.artifact" in advice
+NEUTRAL = "Typst refused the PDF/UA-1 + PDF/A-2a output; its hint below says what to change"
+
+
+def test_a_pdf_a_2a_only_refusal_is_recognised() -> None:
+    """The standard name has a lower-case letter (`PDF/A-2a`): the refusal is still a standard's, with the right fix."""
+    advice = pdf.standard_failure_advice("error: PDF/A-2a error: missing document title\n")
+    assert advice.startswith("FAIL  vitae:") and "doc-name" in advice and "alt:" not in advice
+
+
+def test_a_mixed_refusal_is_recognised() -> None:
+    advice = pdf.standard_failure_advice("error: PDF/UA-1, PDF/A-2a error: missing alt text for image\n")
+    assert advice.startswith("FAIL  vitae:") and "pdf.artifact(image(" in advice and "doc-name" not in advice
+
+
+@pytest.mark.parametrize("what", ["something new", "an alt-ernative cause", "the title of nothing"],
+                         ids=["unknown", "bare-alt-substring", "bare-title-substring"])
+def test_an_unrecognised_refusal_gets_the_neutral_line_and_no_fix(what: str) -> None:
+    advice = pdf.standard_failure_advice(f"error: PDF/UA-1 error: {what}")
+    assert NEUTRAL in advice and what in advice
+    assert "document(title" not in advice and "alt:" not in advice and "To fix" not in advice
+
+
+@pytest.mark.parametrize("use_cli", CLI_OR_PY)
+def test_a_skipped_heading_level_gets_the_neutral_line(tmp_path: Path, use_cli: bool) -> None:
+    ok, err = _compile(tmp_path, TITLE + "= A\n=== B\n", use_cli)
+    assert not ok and err.startswith("FAIL  vitae:") and NEUTRAL in err
+    assert "skipped from heading level 1 to 3" in err and "To fix" not in err
+
+
+@pytest.mark.parametrize("use_cli", CLI_OR_PY)
+def test_a_private_use_codepoint_gets_the_neutral_line(tmp_path: Path, use_cli: bool) -> None:
+    ok, err = _compile(tmp_path, TITLE + '#set text(font: "Libertinus Serif")\n= A\n\uE000 x\n', use_cli)
+    assert not ok and err.startswith("FAIL  vitae:") and NEUTRAL in err
+    assert "To fix" not in err

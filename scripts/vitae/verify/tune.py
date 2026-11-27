@@ -21,7 +21,7 @@ from vitae.core.base import (
     LOWERED_FILL_FLOOR,
 )
 from vitae.core.env import PdfBackend, preflight
-from vitae.verify.pdf import compile_pdf, count_pages, render_pngs
+from vitae.verify.pdf import compile_failure_messages, compile_pdf, count_pages, render_pngs
 from vitae.verify.typst import (
     _par_scope,
     _read_par,
@@ -107,6 +107,14 @@ def _probe_text(typ: str, candidate: str, expected: int, use_cli: bool,
             return False, None
         m = re.search(r"to (\d+)%", measure_fill.measure(pngs[-1]))
         return True, (int(m.group(1)) if m else None)
+
+
+def _original_compile_failure(typ: str, use_cli: bool) -> list[str]:
+    """The messages (printed after `FAIL  `) when the CV as it stands does not compile, [] when it does: every probe of the
+    tuner would fail the same way, which reads as "page count off" and hides the real cause."""
+    with tempfile.TemporaryDirectory() as tmp:
+        ok, err = compile_pdf(typ, os.path.join(tmp, "t.pdf"), use_cli)
+    return [] if ok else compile_failure_messages(err)
 
 
 def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
@@ -202,6 +210,12 @@ def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None
     if _rhythm_unparsed(original):
         print("NOTE  the last `#let rhythm` line is not a plain `#let rhythm = <number>`: "
               "tuning leading and spacing only, the rhythm is left alone")
+    failure = _original_compile_failure(typ, use_cli)
+    if failure:
+        for msg in failure:
+            print(f"FAIL  {msg}")
+        print("      nothing was tuned: the CV must compile before its spacing can be fitted")
+        return 1, None
     try:
         orig_l0, orig_s0 = cur
         r_text = original                     # the text the leading bisection starts from

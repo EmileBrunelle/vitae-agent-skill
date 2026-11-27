@@ -35,7 +35,7 @@ from vitae.core.env import preflight
 from vitae.core.level import Level  # noqa: E402
 from vitae.verify.cv import _ALLOW_REFUSED, placeholders_allowed
 from vitae.verify.gates import _placeholders, make_context
-from vitae.verify.pdf import compile_pdf, count_pages, ensure_icons, extract_text
+from vitae.verify.pdf import compile_failure_messages, compile_pdf, count_pages, ensure_icons, extract_text
 from vitae.verify.text import check_hidden_text
 
 
@@ -61,7 +61,7 @@ def check_letter(typ: str, employer: str, job_title: str,
         pdf = os.path.join(tmp, "letter.pdf")
         compiled, err = compile_pdf(typ, pdf, use_cli)
         if not compiled:
-            return False, [(True, f"compile failed: {err}")]
+            return False, [(True, m) for m in compile_failure_messages(err)]
 
         pages = count_pages(pdf, backend)
         if pages != "1":

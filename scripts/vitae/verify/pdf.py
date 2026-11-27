@@ -15,7 +15,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from types import ModuleType
 from typing import Literal, overload
 
@@ -73,28 +73,33 @@ def _standard_cli() -> list[str]:
 # Typst words a refusal caused by a standard `PDF/UA-1 error: <what>` (one or several standards before `error:`), the same
 # text from the CLI and from typst-py. The prefix is what says "a standard refused this"; the cause is read from Typst's
 # own (English, whatever the CV's language) wording, never from the CV's text.
-_STANDARD_ERROR = re.compile(r"\bPDF/[A-Z0-9-]+(?:, PDF/[A-Z0-9-]+)* error: (?P<what>[^\n]*)")
+_STANDARD_ERROR = re.compile(r"\bPDF/[A-Za-z0-9-]+(?:, PDF/[A-Za-z0-9-]+)* error: (?P<what>[^\n]*)")
 _FIX_TITLE = ('add `#set document(title: "<name>")` to the CV (the templates carry it as `#let doc-name = "<name>"` '
               'then `#set document(title: doc-name, author: doc-name)`)')
 _FIX_ALT = ('give the image `alt: "<what it shows>"` when it carries information, or wrap it in `pdf.artifact(image(..))` '
             'when it is decoration (`alt: none` is refused by PDF/A-2a)')
 
 
+_ADVICE_PREFIX = "FAIL  vitae:"
+
+
 def standard_failure_advice(err: str) -> str:
     """The FAIL line telling what to add when Typst refused to write the PDF because of PDF/UA-1 / PDF/A-2a; "" when the
-    failure is not a standard's refusal. A title or alt-text refusal gets its exact fix; any other refusal by the standard
-    gets both fixes (no guess at the cause)."""
+    failure is not a standard's refusal. Typst's two exact phrases `missing document title` and `missing alt text` get
+    their fix; any other refusal by the standard (a skipped heading level, a private-use codepoint, ...) gets a neutral
+    line, never a guessed fix: Typst's own hint, printed below, says what to change."""
     m = _STANDARD_ERROR.search(err)
     if m is None:
         return ""
     what = m.group("what").lower()
-    if "title" in what:
+    if "missing document title" in what:
         fix = _FIX_TITLE
-    elif "alt" in what:
+    elif "missing alt text" in what:
         fix = _FIX_ALT
     else:
-        fix = f"if the document has no title, {_FIX_TITLE}; if an image has no description, {_FIX_ALT}"
-    return (f"FAIL  vitae: the PDF must conform to PDF/UA-1 + PDF/A-2a, and Typst refused to write it ({m.group('what').strip()}). "
+        return (f"{_ADVICE_PREFIX} Typst refused the PDF/UA-1 + PDF/A-2a output; its hint below says what to change "
+                f"({m.group('what').strip()}).")
+    return (f"{_ADVICE_PREFIX} the PDF must conform to PDF/UA-1 + PDF/A-2a, and Typst refused to write it ({m.group('what').strip()}). "
             f"To fix: {fix}. Typst's own error follows.")
 
 
@@ -103,6 +108,15 @@ def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
     ok, err = _compile_pdf(typ, pdf, use_cli)
     advice = "" if ok else standard_failure_advice(err)
     return ok, f"{advice}\n{err}" if advice else err
+
+
+def compile_failure_messages(err: str) -> list[str]:
+    """The gate messages (printed after `FAIL  `) for a failed compile_pdf: when the text starts with the standard's
+    advice line, that line comes first on its own, so it prints as `FAIL  vitae: ...` and not nested in the next one."""
+    head, sep, rest = err.partition("\n")
+    if sep and head.startswith(_ADVICE_PREFIX):
+        return [head.removeprefix("FAIL  "), f"compile failed: {rest}"]
+    return [f"compile failed: {err}"]
 
 
 def _compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
@@ -361,6 +375,39 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
     return pages
 
 
+def _attach_side_pieces(sides: list[int], rows_below: range, by_row: list[list[int]], is_side: set[int],
+                        geo: list[tuple[float, float, float, float]], parent: list[int],
+                        find: Callable[[int], int]) -> None:
+    """Join each piece of `sides` (one row, left to right, none overlapping another) to the leftmost piece that is not a
+    side piece and overlaps its x-range, in the first of `rows_below` that has one. One sweep down the rows: a row is
+    read once for all the side pieces still waiting, each of which is settled by the first row that holds a match."""
+    lefts = [geo[n][0] for n in sides]
+    rights = [geo[n][1] for n in sides]
+    waiting = len(sides)
+    skip = list(range(len(sides) + 1))                 # skip[i]: the first still-waiting index >= i (path-compressed)
+
+    def next_waiting(i: int) -> int:
+        while skip[i] != i:
+            skip[i] = skip[skip[i]]
+            i = skip[i]
+        return i
+
+    for r in rows_below:
+        if not waiting:
+            return
+        for m in by_row[r]:                            # left to right: the first match of a row is its leftmost
+            if m in is_side:
+                continue
+            first = bisect.bisect_right(rights, geo[m][0])        # first side piece ending right of m's left edge
+            last = bisect.bisect_left(lefts, geo[m][1])           # side pieces from here on start at or after m's right edge
+            i = next_waiting(first)
+            while i < last:
+                parent[find(sides[i])] = find(m)
+                skip[i] = i + 1
+                waiting -= 1
+                i = next_waiting(i + 1)
+
+
 def _reading_order(words: list[WordBox]) -> list[WordBox]:
     """pdftotext's reading order, approximated: pdfium lists words in content-stream
     order, poppler in layout order. Words on one baseline form a line, cut where the gap
@@ -372,17 +419,18 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
     if not words:
         return words
     rows: list[list[int]] = []
+    row_sum = row_min_h = 0.0                          # running sum of the baselines and min box height of the last row
     for i in sorted(range(len(words)), key=lambda k: (words[k][0][1] + words[k][0][3]) / 2):
         wb = words[i][0]
         yc, hh = (wb[1] + wb[3]) / 2, wb[3] - wb[1]
-        if rows:
-            rb = [words[k][0] for k in rows[-1]]
-            ryc = sum((q[1] + q[3]) / 2 for q in rb) / len(rb)
-            # 0.4x box height (~4pt on 10pt text): keeps bold/regular or small-caps words on one baseline together
-            if abs(yc - ryc) <= 0.4 * min(hh, min(q[3] - q[1] for q in rb)):
-                rows[-1].append(i)
-                continue
-        rows.append([i])
+        # 0.4x box height (~4pt on 10pt text): keeps bold/regular or small-caps words on one baseline together
+        if rows and abs(yc - row_sum / len(rows[-1])) <= 0.4 * min(hh, row_min_h):
+            rows[-1].append(i)
+            row_sum += yc
+            row_min_h = min(row_min_h, hh)
+        else:
+            rows.append([i])
+            row_sum, row_min_h = yc, hh
     pieces: list[list[int]] = []                       # word indexes, left to right, one row each
     piece_row: list[int] = []
     for r, row in enumerate(rows):
@@ -427,13 +475,12 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
     side = [n for n in range(len(pieces)) if geo[n][0] > row_left[piece_row[n]]]
     is_side = set(side)
     side_rows = sorted({piece_row[n] for n in side})
+    by_start: dict[int, list[int]] = {}                # the side pieces of each row, left to right (pieces never overlap on a row)
     for n in side:
-        stop = side_rows[bisect.bisect_right(side_rows, piece_row[n])] if piece_row[n] < side_rows[-1] else len(rows)
-        for r in range(piece_row[n] + 1, stop):
-            under = [m for m in by_row[r] if m not in is_side and geo[m][0] < geo[n][1] and geo[n][0] < geo[m][1]]
-            if under:
-                parent[find(n)] = find(min(under, key=lambda m: geo[m][0]))
-                break
+        by_start.setdefault(piece_row[n], []).append(n)
+    for start, sides in by_start.items():
+        stop = side_rows[bisect.bisect_right(side_rows, start)] if start < side_rows[-1] else len(rows)
+        _attach_side_pieces(sides, range(start + 1, stop), by_row, is_side, geo, parent, find)
     blocks: dict[int, list[int]] = {}
     for n in range(len(pieces)):
         blocks.setdefault(find(n), []).append(n)

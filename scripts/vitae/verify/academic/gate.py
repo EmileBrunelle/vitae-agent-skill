@@ -12,7 +12,7 @@ from vitae.core.level import Level
 from vitae.verify.academic.checks import analyze
 from vitae.verify.academic.parse import extract_layout_text
 from vitae.verify.academic.spec import build_sections_spec, check_headings_table, declared_statuses, printed_headings
-from vitae.verify.pdf import compile_pdf, count_pages, render_pngs
+from vitae.verify.pdf import compile_failure_messages, compile_pdf, count_pages, render_pngs
 from vitae.verify.text import check_hidden_text
 
 
@@ -44,7 +44,7 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
         pdf = os.path.join(tmp, "cv.pdf")
         compiled, err = compile_pdf(typ, pdf, use_cli)
         if not compiled:
-            return False, [(True, f"compile failed: {err}")], []
+            return False, [(True, m) for m in compile_failure_messages(err)], []
 
         text = extract_layout_text(pdf)
         extra, declared = printed_headings(data)

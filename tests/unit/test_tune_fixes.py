@@ -2,9 +2,11 @@
 rhythm edge values, and which `#let rhythm` line is edited. The probe is injected (fake page height
 `50 * rhythm + 50 * leading`)."""
 import os
+import re
 import signal
 
 import pytest
+from vitae.verify import pdf as pdf_module
 from vitae.verify import tune as T
 from vitae.verify.typst import _read_par, _read_rhythm, _rhythm_unparsed, _write_par, _write_rhythm
 
@@ -172,3 +174,42 @@ def test_a_longer_identifier_is_not_the_rhythm_line():
     assert not _rhythm_unparsed(text) and _read_rhythm(text) == 1.0
     assert _read_rhythm("#let rhythm-big = 2\n" + BODY) is None
     assert not _rhythm_unparsed("#let rhythm-big = 2\n" + BODY)
+
+
+# ---- the CV must compile before it is tuned: a refusal is reported as such, not as "page count off"
+
+def test_a_cv_that_does_not_compile_is_reported_and_never_probed(tmp_path, monkeypatch, capsys):
+    p = put(tmp_path, BASE)
+    log = []
+    install(monkeypatch, log=log)
+    refusal = pdf_module.standard_failure_advice("error: PDF/UA-1 error: missing document title\n")
+    monkeypatch.setattr(T, "compile_pdf", lambda typ, out, use_cli: (False, f"{refusal}\nerror: PDF/UA-1 error: missing document title\n"))
+
+    code, footer = T.tune(str(p), 1, 74, 76)
+
+    out = capsys.readouterr().out
+    assert code == 1 and footer is None
+    assert re.search(r"^FAIL  vitae:.*title", out, flags=re.M) and "missing document title" in out
+    assert "page count off" not in out
+    assert log == [] and p.read_text() == BASE        # no probe was compiled, the file is untouched
+
+
+def test_a_cv_that_compiles_is_tuned(tmp_path, monkeypatch, capsys):
+    """Control of the test above: the same file with a compile that succeeds is tuned."""
+    p = put(tmp_path, BASE)
+    install(monkeypatch)
+    assert T.tune(str(p), 1, 74, 76)[0] == 0
+    assert "nothing was tuned" not in capsys.readouterr().out
+
+
+def test_a_real_cv_without_a_title_never_prints_page_count_off(tmp_path, monkeypatch, capsys):
+    """End to end (real Typst, real probes): the refusal comes from the first compile and names the title."""
+    from vitae.core import env
+    if not env.check_typst()[0] or not env.preflight()[0]:
+        pytest.skip("no Typst or no PDF reader available")
+    monkeypatch.setattr(T, "compile_pdf", pdf_module.compile_pdf)     # the real one, not the conftest stub
+    p = put(tmp_path, '#set page(width: 200pt, height: 100pt)\n' + BODY)
+    code, _ = T.tune(str(p), 1, 74, 76)
+    out = capsys.readouterr().out
+    assert code == 1 and "page count off" not in out
+    assert re.search(r"^FAIL  vitae:.*title", out, flags=re.M)

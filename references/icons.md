@@ -8,14 +8,14 @@ Where the contact-line marks and the family devices come from. Drafting rules (w
 
 The file is written UNCONDITIONALLY, including on a network or API failure — then with empty strings, loudly on stderr, exit status still 0. Typst has no "if this file exists", so unconditional generation is what buys graceful degradation with no conditional logic in the document: an empty body makes `pmark` return `none`, `nb` and `contact` drop the mark and its nbsp, and the contact line keeps the URL it already carries in plain text (whatever address the facts gave). The CV stays valid and ATS-readable, one notch plainer. The script still refuses a stroke-based body (it would fill into a blob) and prints a NOTE for a mark flagged `hidden` upstream (LinkedIn's, withdrawn over brand guidelines). Always look at the render: upstream can redraw a path and shift its optical weight at 7pt with every mechanical check unchanged.
 
-Provenance travels in the generated file's header. The mark is inlined as an SVG string via `image(bytes(…), format: "svg")`, so it is vector, emits no text (verified at the gate in every family) and its colour is a parameter rather than baked into a file:
+Provenance travels in the generated file's header. The mark is inlined as an SVG string via `image(bytes(…), format: "svg")` inside `pdf.artifact(kind: "layout", ..)` (PDF/UA-1 refuses an image that is neither described with `alt:` nor an artifact), so it is vector, emits no text (verified at the gate in every family) and its colour is a parameter rather than baked into a file:
 
 ```typst
 #let pmark(body, vb, c, h: 7pt) = if body == "" { none } else {
-  box(baseline: 0.5pt, image(
+  box(baseline: 0.5pt, pdf.artifact(kind: "layout", image(
     bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
       + "\">" + body.replace("currentColor", c.to-hex()) + "</svg>"),
-    format: "svg", height: h))
+    format: "svg", height: h)))
 }
 ```
 

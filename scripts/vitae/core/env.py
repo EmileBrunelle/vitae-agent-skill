@@ -39,6 +39,10 @@ def check_pillow() -> bool:
 
 # Oldest typst the fill targets were calibrated on; an older one still works and is reported DEGRADED, not refused.
 TYPST_MIN = (0, 15)
+# Oldest typst that can write the PDFs vitae asks for: `--pdf-standard ua-1` (typst-py `pdf_standards`) and `pdf.artifact`
+# both arrived in Typst 0.14.0 (Typst changelog 0.14.0, "PDF export"). Older is BROKEN: every compile would be refused.
+TYPST_STANDARDS_MIN = (0, 14)
+_NO_STANDARDS = "PDF/UA-1 + PDF/A-2a output (`--pdf-standard`, `pdf.artifact`) needs Typst 0.14 or newer"
 _NEW_TYPST = ("fill targets are calibrated on typst 0.15; newer versions may measure differently "
               "-- pin with pip install typst==0.15.2 if fills drift")
 _OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
@@ -57,26 +61,42 @@ def _wheel_platform_tag() -> str:
     return re.sub(r"[-.]", "_", sysconfig.get_platform())
 
 
+def _before_pdf_standards(ver: str, via: str) -> bool:
+    """Print the BROKEN lines and return True when `ver` (unreadable "?" counts as fine) is older than TYPST_STANDARDS_MIN."""
+    if ver == "?" or _ver_tuple(ver) >= TYPST_STANDARDS_MIN:
+        return False
+    print(f"BROKEN  typst {ver} ({via}): {_NO_STANDARDS}.")
+    print("  Upgrade with ONE of: pip install typst==0.15.2 | brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
+    return True
+
+
+def _check_typst_cli() -> tuple[bool, bool]:
+    """Doctor lines for the typst CLI on PATH."""
+    try:
+        ver = subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
+    except (OSError, subprocess.SubprocessError, IndexError):   # cannot run, or no version token in the output
+        ver = "?"
+    if _before_pdf_standards(ver, "CLI"):
+        return False, False
+    if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
+        print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
+        print("  Upgrade with ONE of:")
+        print("  pip install typst==0.15.2   # no root: add --user, or use a venv; pip picks the CPU architecture")
+        print("  brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
+        print("  distro packages (dnf, apt, pacman) may be older: check `typst --version` after")
+        return True, True
+    print(f"OK    typst {ver} (CLI)")
+    if ver != "?" and _ver_tuple(ver) > TYPST_MIN:
+        print(f"  NOTE: {_NEW_TYPST}.")
+    return True, True
+
+
 def check_typst() -> tuple[bool, bool]:
     """Doctor lines for typst; returns (available, use_cli). The CLI is preferred, the Python API is the fallback and
     is judged by running it, not by its attributes. Older than TYPST_MIN, or a Python API without query/fonts, is
     DEGRADED (still available); a broken or missing install is not."""
     if shutil.which("typst"):
-        try:
-            ver = subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
-        except (OSError, subprocess.SubprocessError, IndexError):   # cannot run, or no version token in the output
-            ver = "?"
-        if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
-            print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
-            print("  Upgrade with ONE of:")
-            print("  pip install typst==0.15.2   # no root: add --user, or use a venv; pip picks the CPU architecture")
-            print("  brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
-            print("  distro packages (dnf, apt, pacman) may be older: check `typst --version` after")
-            return True, True
-        print(f"OK    typst {ver} (CLI)")
-        if ver != "?" and _ver_tuple(ver) > TYPST_MIN:
-            print(f"  NOTE: {_NEW_TYPST}.")
-        return True, True
+        return _check_typst_cli()
     mod, ver, why, full = _typst_py_probe()
     if mod is None and why.startswith("TOOLOLD"):
         print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
@@ -85,6 +105,8 @@ def check_typst() -> tuple[bool, bool]:
     if mod is None and why:
         print(f"BROKEN  typst: the Python package `typst` is installed but does not work ({why}).")
         print("  Reinstall it: pip install --force-reinstall typst   # or install the CLI (brew install typst | cargo install typst-cli)")
+        return False, False
+    if mod is not None and _before_pdf_standards(ver, "Python API"):
         return False, False
     if mod is not None and not full:
         print("DEGRADED  typst: Python API only, no typst CLI. Compiling and fill measurement work, but these checks are SKIPPED (WARN):")

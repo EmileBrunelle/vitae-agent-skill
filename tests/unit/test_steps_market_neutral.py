@@ -51,12 +51,14 @@ def market_names(root=REGIONAL):
 
 
 def strip_paths(text):
-    """Drop link targets and every backticked literal.
+    """Drop link targets, backticked path spans (a `/` or a `.md` in them) and fenced code blocks.
 
-    A backticked entry is a literal (a file path, or measured test data quoted as logged), not an instruction.
+    A path names a file, not a market rule. A fenced block holds data or logs (measured strings quoted exactly as
+    logged), not instructions. Any other backticked span is an instruction's wording and stays scanned.
     """
+    text = re.sub(r"^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[ \t]*$", "", text, flags=re.S | re.M)
     text = re.sub(r"\]\([^)\s]*\)", "]", text)
-    return re.sub(r"`[^`\n]*`", "", text)
+    return re.sub(r"`[^`\n]*(?:/|\.md)[^`\n]*`", "", text)
 
 
 def find_market_names(text, names):
@@ -87,8 +89,10 @@ def test_detector_finds_a_name_and_ignores_paths():
     assert find_market_names("Margins on US Letter.", names) == []
     assert find_market_names("The US market.", names) == ["us"]
     assert find_market_names("See [x](regional/asia/east-asia/japan.md) and `asia/japan.md`.", names) == []
-    assert find_market_names("Measured on `Tokyo (Japan)` input.", names) == []  # a backticked literal is data
-    assert find_market_names("Measured on Tokyo (Japan) input.", names) == ["japan"]  # the same text in prose is not
+    assert find_market_names("Measured on Tokyo (Japan) input.", names) == ["japan"]  # prose is scanned
+    assert find_market_names("For `Japan` employers, write the date first.", names) == ["japan"]  # a backticked word too
+    assert find_market_names("Measured:\n```\nTokyo (Japan)\n```\nDone.", names) == []  # a fenced block is data
+    assert find_market_names("```\nx\n```\nThen Japan applies.", names) == ["japan"]  # control: text after the block
 
 
 def test_scan_covers_references_and_skips_exclusions():

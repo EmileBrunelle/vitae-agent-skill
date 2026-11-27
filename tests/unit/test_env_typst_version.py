@@ -60,6 +60,17 @@ class TestCheckTypstCli:
         out = capsys.readouterr().out
         assert "DEGRADED  typst 0.14.9" in out and "OK    typst" not in out
 
+    def test_before_pdf_standards_is_broken_and_unavailable(self, cli, capsys):
+        cli("typst 0.13.1 (x)")
+        assert env.check_typst() == (False, False)
+        out = capsys.readouterr().out
+        assert out.startswith("BROKEN  typst 0.13.1 (CLI)") and "needs Typst 0.14 or newer" in out and "OK    typst" not in out
+
+    def test_first_pdf_standards_release_is_not_broken(self, cli, capsys):
+        cli("typst 0.14.0 (x)")
+        assert env.check_typst() == (True, True)
+        assert "BROKEN" not in capsys.readouterr().out
+
     def test_unreadable_version_output_is_assumed_fine(self, cli, capsys):
         cli("")
         assert env.check_typst() == (True, True)
@@ -112,6 +123,13 @@ class TestCheckTypstPythonApi:
         assert env.check_typst() == (True, False)
         out = capsys.readouterr().out
         assert "OK    typst 0.15.0 (Python API" in out and "NOTE" not in out
+
+    @pytest.mark.parametrize("full", [True, False], ids=["full-api", "no-query"])
+    def test_before_pdf_standards_is_broken_and_unavailable(self, py_only, capsys, full):
+        py_only((self.MOD, "0.13.2", "", full))
+        assert env.check_typst() == (False, False)
+        out = capsys.readouterr().out
+        assert out.startswith("BROKEN  typst 0.13.2 (Python API)") and "needs Typst 0.14 or newer" in out
 
     def test_full_api_older_is_degraded(self, py_only, capsys):
         py_only((self.MOD, "0.14.0", "", True))

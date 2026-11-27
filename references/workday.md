@@ -68,13 +68,24 @@ The real CV is never changed for Workday.
 
 Every template (`templates/resume.typ`, each family's `resume*.typ`) has a built-in parse-only mode, selected by a `sys.inputs` flag:
 
-    typst compile --input workday=1 resume.typ resume-workday.pdf
+    typst compile --pdf-standard a-2a,ua-1 --input workday=1 resume.typ resume-workday.pdf
 
 With the flag, each `entry` is stacked one field per line (Employer / Title / Dates; education School / Degree / Dates) followed by the descriptor line and bullets, the Profile/Summary section is omitted, and a leading city is dropped from education descriptors. Volunteer/involvement sections keep the normal entries; a Projects section is DROPPED (rule 3). The page is pinned to a 40cm-wide, one-page-tall layout (rules 4-5). Without the flag the output is unchanged.
 
 Section titles are normalised (lowercase, accents stripped, spaces collapsed) and matched against built-in lists in EN, FR, DE, ES, IT, PT (profile/objective: Profil, Sommaire, Objective, Personal Statement, Executive Summary, Objectif, Kurzprofil, Perfil, Profilo...; education: Formation, Etudes, Ausbildung, Formacion, Formazione, Formacao...; keep: Volunteer Work, Leadership, Benevolat, Implications, Engagement, Ehrenamt, Voluntariado, Volontariato... Projects/Projets are NOT kept: they are dropped, see rule 3). Profile and keep titles match exactly; education titles also match as a whole-word stem, so compound titles ("Education & Certifications", "Education et formation", "Formation et certifications") count as education. A title in none of them is not matched (profile kept, education city kept): add it with comma lists, `--input workday-omit="Mon profil"`, `--input workday-edu="..."`, `--input workday-keep="..."` (normalised the same way, added to the lists). A title given as content is matched on its plain text. A projects title (`projects`, `projets`, `projekte`, ...) is dropped unless it is also given to `--input workday-keep="..."`, which keeps it as plain entries.
 
-City stripping in education descriptors only removes the first " · " segment when it has a place shape: letters, spaces and `.'-`, FOLLOWED BY ", Region" or " (Region)", at most 40 chars, no digits. "Toronto, Ontario · 5 weeks" and `Montréal (Québec) · …` are stripped; "Honours · …", "Cum laude · …" and "GPA 3.8 · …" are kept. Limit: a bare city with no region ("Montréal · …") is kept, and an all-letter "X, Y" phrase that is not a place would be stripped. Other limits: the section name is never reset, so an entry placed between sections inherits the previous section's kind; the margin-index `earlyline` only acts on a string `org` split on " — ". The mechanics are in `templates/lib.typ` (`workday`, `entry`, `wd-section`); each template's one hook is `#let section = wd-section(section)`. Notes given as Typst content (not a string) are never city-stripped. Academic CV template: not covered.
+City stripping in education descriptors only removes the first " · " segment when it has a place shape: letters, spaces and `.'-`, FOLLOWED BY ", Region" or " (Region)", at most 40 chars, no digits. The measured descriptors are in the block below (stripped, then kept). Limit: a bare city with no region is kept, and an all-letter "X, Y" phrase that is not a place would be stripped. Other limits: the section name is never reset, so an entry placed between sections inherits the previous section's kind; the margin-index `earlyline` only acts on a string `org` split on " — ". The mechanics are in `templates/lib.typ` (`workday`, `entry`, `wd-section`); each template's one hook is `#let section = wd-section(section)`. Notes given as Typst content (not a string) are never city-stripped. Academic CV template: not covered.
+
+Measured descriptors (city stripping), exactly as measured:
+
+```
+stripped: "Toronto, Ontario · 5 weeks"
+stripped: "Montréal (Québec) · …"
+kept:     "Honours · …"
+kept:     "Cum laude · …"
+kept:     "GPA 3.8 · …"
+kept:     "Montréal · …"
+```
 
 ## Parse-copy rules from the second measurement round (real tenant, 2026-10)
 
@@ -89,7 +100,12 @@ Source: the CV author's test log (lots 2-3, variants L1/L6b/L11/L12 and the fina
 5. (V for the drop, observed on a capture only for the fix, not DOM-verified) Workday DROPS THE LAST LINE OF EACH PAGE (seen in L7/L10/L11); the fix, a single page of free height (`height: auto`, template behaviour; read on a capture in L12), is not DOM-checked. Typst gotcha: `set` inside `if {}` is block-scoped, so families use `#set page(..wd-page) if workday` right after their `#set page(...)`. A family with a manual `#pagebreak()` must skip it in workday mode, and its running head (`runhead`) too (swiss-grid `resume-2page` does). Rule 4's wd-page assumes US Letter; a family with side margin x != 1.5cm passes it (`wd-page-x(x)`), so the header keeps its own content width.
 
 6. (V, T; L13/L16/L17, DOCX and PDF autofill, one tenant: a financial-sector employer, 2026-10-28) An in-progress job is recognised ONLY when its end is written « Present » (English, capital P). Then Workday fills Location from the descriptor line, ticks "I currently work here" and leaves End date empty. With « présent », « aujourd'hui », « à ce jour » it leaves Location empty, never ticks the box and invents an end date = the current month. (With a past end date Location was filled, L16: it is the in-progress parsing.) Template: in workday mode, stacked Job/Education entries rewrite a trailing present-type word in a string date run to « Present » (`wd-present` in `lib.typ`; en present/current/now, fr présent/aujourd'hui/à ce jour/en cours, es actualidad/presente, pt atual/presente, it presente/oggi, de heute/derzeit; case-insensitive, end of string). Volunteer/keep sections and content-typed dates are left untouched. The real CV keeps its own language.
-7. (V) Location punctuation is stripped: `Montréal (Québec)` and `Montréal, Québec` both become `Montréal Québec`. Nothing to do.
+7. (V) Location punctuation is stripped (measured strings below). Nothing to do.
+
+   ```
+   « Montréal (Québec) » -> « Montréal Québec »
+   « Montréal, Québec »  -> « Montréal Québec »
+   ```
 8. (V) LinkedIn URL: filled from the PDF, empty from a DOCX even with a real hyperlink: one more reason the PDF parse copy is the default (PDF value DOM-verified, L18/L19).
 9. (V, T; L18/L19, a financial-sector tenant, PDF) Month names: French « févr. » is not recognised and falls back to January; the full « février » is read as 2 (workday mode rewrites it). « janv. », « mars », « avr. », « juin », « sept. » are read correctly; « déc. » is untested. An ENGLISH month in a French copy (« Feb 2014 – Present ») breaks the whole date line: dates empty, line pushed into the description — keep months in the copy's language (only « Present » is the exception, rule 6).
 

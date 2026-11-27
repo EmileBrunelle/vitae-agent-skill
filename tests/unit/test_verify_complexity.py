@@ -40,6 +40,21 @@ def test_reading_order_matches_the_quadratic_version(seed: int) -> None:
     assert pdf._reading_order(words) == reading_order_quadratic(words)
 
 
+@pytest.mark.parametrize("seed", range(300))
+def test_reading_order_row_grouping_matches_on_mixed_heights_and_near_baselines(seed: int) -> None:
+    """Words of different heights on baselines a few points apart: whether one joins the row depends on the smallest
+    box already in it, and on the mean baseline of the words already in it."""
+    rng = random.Random(seed)
+    words: list[WordBox] = []
+    for k in range(rng.randint(3, 14)):
+        h = rng.choice((3.0, 6.0, 10.0))
+        y = rng.uniform(0, 8)
+        x = rng.uniform(0, 400)
+        words.append(((x, y, x + rng.uniform(5, 40), y + h), f"w{k}"))
+
+    assert pdf._reading_order(words) == reading_order_quadratic(words)
+
+
 def test_reading_order_equivalence_is_not_vacuous() -> None:
     # control: the random pages exercise the side-piece (right-flushed date) branch, which reorders words
     moved = sum(pdf._reading_order(w) != sorted(w, key=lambda t: (t[0][1], t[0][0]))
@@ -73,6 +88,52 @@ def test_reading_order_bounds_time_on_a_large_table() -> None:
 
     assert time.perf_counter() - start < 1.0     # measured ~0.05 s; the quadratic version takes ~6 s
     assert len(out) == len(words)
+
+
+def _one_baseline(n: int) -> list[WordBox]:
+    """Worst case of the row grouping: every word on one baseline (n words, one row, no gap wide enough to split it)."""
+    return [((10.0 + i * 5, 10.0, 14.0 + i * 5, 20.0), f"w{i}") for i in range(n)]
+
+
+def _side_then_rows(n: int) -> list[WordBox]:
+    """Worst case of the side-piece pass: n right-flushed pieces beside a head on one row, then n rows of one piece
+    each, none under a side piece (so no row ends the search early)."""
+    words: list[WordBox] = [((10.0, 10.0, 40.0, 20.0), "head")]
+    words += [((100.0 + i * 40, 10.0, 120.0 + i * 40, 20.0), f"s{i}") for i in range(n)]
+    words += [((10.0, 30.0 + r * 12, 40.0, 40.0 + r * 12), f"r{r}") for r in range(n)]
+    return words
+
+
+@pytest.mark.slow
+def test_reading_order_bounds_time_on_a_single_baseline() -> None:
+    words = _one_baseline(8000)
+    start = time.perf_counter()
+
+    out = pdf._reading_order(words)
+
+    assert time.perf_counter() - start < 1.0     # measured ~0.03 s; recomputing the row's mean per word took ~4 s
+    assert out == words
+
+
+@pytest.mark.slow
+def test_reading_order_bounds_time_on_many_side_pieces_then_many_rows() -> None:
+    words = _side_then_rows(3000)
+    start = time.perf_counter()
+
+    out = pdf._reading_order(words)
+
+    assert time.perf_counter() - start < 0.5     # measured ~0.03 s; rescanning the rows per side piece took ~1.8 s
+    assert len(out) == len(words)
+
+
+def test_reading_order_matches_the_oracle_on_the_side_piece_worst_cases() -> None:
+    """The scale-down of the two worst cases above, plus side pieces that overlap rows below (control: they do reorder)."""
+    for words in (_one_baseline(60), _side_then_rows(25)):
+        assert pdf._reading_order(words) == reading_order_quadratic(words)
+    under = _side_then_rows(8) + [((105.0 + i * 80, 33.0 + i * 12, 150.0 + i * 80, 43.0 + i * 12), f"u{i}") for i in range(4)]
+    got = pdf._reading_order(under)
+    assert got == reading_order_quadratic(under)
+    assert got != sorted(under, key=lambda t: (t[0][1], t[0][0]))
 
 
 # ------------------------------------------------------------------ _stuffed

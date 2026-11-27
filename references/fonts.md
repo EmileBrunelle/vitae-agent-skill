@@ -46,7 +46,7 @@ If the family does not appear, Typst will silently fall back to the next entry i
 Useful in CI, in a container, or when you do not want to touch the user profile. Keep the files anywhere and point Typst at the directory:
 
 ```sh
-typst compile --font-path ./fonts cv.typ cv.pdf
+typst compile --font-path ./fonts --pdf-standard a-2a,ua-1 cv.typ cv.pdf
 ```
 
 The environment variable `TYPST_FONT_PATHS` does the same thing for every invocation in a shell session (colon-separated on Unix, semicolon on Windows):
