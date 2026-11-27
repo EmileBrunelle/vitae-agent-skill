@@ -30,7 +30,7 @@ import sys
 import tempfile
 from typing import NoReturn
 
-from vitae.core import proc
+from vitae.core import limits, proc
 from vitae.core.env import preflight
 from vitae.core.level import Level
 from vitae.verify.cv import ALLOW_REFUSED, placeholders_allowed
@@ -128,6 +128,7 @@ def main() -> None:
         ap.error("expected letter.typ EMPLOYER JOB_TITLE")
 
     typ, employer, job_title = parsed.args
+    limits.check_size(typ, limits.MAX_TYP_BYTES)
     ok, msgs = proc.guarded(lambda: check_letter(typ, employer, job_title, allow_placeholders))
     for is_fail, msg in msgs:
         print(f"{'FAIL' if is_fail else 'WARN' if is_fail is None else 'OK  '}  {msg}")

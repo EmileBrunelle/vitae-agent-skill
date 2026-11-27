@@ -43,7 +43,7 @@ import shutil
 import sys
 from typing import NoReturn
 
-from vitae.core import proc, profiling
+from vitae.core import limits, proc, profiling
 from vitae.core.env import preflight
 from vitae.core.level import Level
 from vitae.verify.academic.gate import run_gate
@@ -90,6 +90,8 @@ def main() -> None:
         ap.error("expected cv.typ data.toml")
 
     typ, toml_path = args.paths
+    limits.check_size(typ, limits.MAX_TYP_BYTES)
+    limits.check_size(toml_path, limits.MAX_TOML_BYTES)
     ok, msgs, reported = run_gate(typ, toml_path)
     for is_fail, msg in msgs:
         print(f"{'FAIL' if is_fail else 'WARN' if is_fail is None else 'OK  '}  {msg}")

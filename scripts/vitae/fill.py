@@ -27,6 +27,7 @@ from typing import NoReturn
 
 from PIL import Image
 
+from vitae.core import limits
 from vitae.core.pixels import threshold_lut
 
 
@@ -172,6 +173,8 @@ def main() -> None:
     args = ap.parse_args(["--", *sys.argv[1:]])   # any other argument is a positional, even "-x"
     if not args.paths:
         ap.error("no image given")
+    for path in args.paths:
+        limits.check_size(path, limits.MAX_PNG_BYTES)
     for path in args.paths:
         print(f"{path}: {measure(path)}")
         h, runs = gaps(path)

@@ -85,7 +85,7 @@ import tempfile
 from pathlib import Path
 from typing import NoReturn
 
-from vitae.core import proc, profiling
+from vitae.core import limits, proc, profiling
 from vitae.core.base import FOOTER_GATE, HIDDEN_PPI, DetailRow
 from vitae.core.env import pdf_backend, preflight
 from vitae.verify.cv import ALLOW_REFUSED, PageTarget, check_all, check_cv, placeholders_allowed
@@ -109,6 +109,8 @@ class _Parser(argparse.ArgumentParser):
         self._usage_text, self._code, self._plain = usage_text, code, plain
 
     def error(self, message: str) -> NoReturn:
+        if limits.is_limit_error(message):
+            limits.fail(message)
         if self._plain:
             sys.exit(self._usage_text)
         print(self._usage_text, file=sys.stderr)
@@ -176,6 +178,8 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         ga = ap.parse_known_args(argv[1:])[0]
         rows: list[DetailRow] = []
         backend = pdf_backend()
+        limits.check_size(ga.typ, limits.MAX_TYP_BYTES)
+        limits.check_size(ga.pdf, limits.MAX_PDF_BYTES)
         src = Path(ga.typ).read_text(encoding="utf-8")
         rc = run_gates(LAYOUT_GATES, make_context(ga.typ, ga.pdf, extract_text(ga.pdf, backend), src, backend,
                                                   root=ga.root, detail=rows))
@@ -189,9 +193,10 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
                      code=1, plain=True)
         ap.add_argument("pdf")
         ap.add_argument("--out", default=None)
-        ap.add_argument("--ppi", type=int, default=HIDDEN_PPI)
+        ap.add_argument("--ppi", type=limits.int_in(limits.PPI_MIN, limits.PPI_MAX), default=HIDDEN_PPI)
         ap.add_argument("--crops", action="store_true")
         ra = ap.parse_known_args(argv[1:])[0]
+        limits.check_size(ra.pdf, limits.MAX_PDF_BYTES)
         if not os.path.isfile(ra.pdf):
             sys.exit(f"FAIL  {argv[0]}: cannot read {ra.pdf}")
         if pdf_unreadable(ra.pdf):
@@ -202,8 +207,6 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
                 sys.exit("FAIL  --text: no PDF reader (install poppler-utils, or `pip install pypdfium2`)")
             sys.stdout.write(extract_text(ra.pdf, backend))
             sys.exit(0)
-        if ra.ppi < 1:
-            sys.exit("FAIL  --render: --ppi must be a positive number")
         out_dir = ra.out or tempfile.mkdtemp(prefix="vitae-render-")
         pngs = render_pages(ra.pdf, out_dir, ra.ppi)
         if not pngs:
@@ -225,12 +228,14 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
                      "[LEADING_LO LEADING_HI] [--allow-placeholders]\n"
                      "  stretches `#let rhythm` (all block gaps) before leading; a CV keeps that line from its template")
         ap.add_argument("typ")
-        for name in ("pages", "fill_min", "fill_max"):
-            ap.add_argument(name)
-        ap.add_argument("lo", nargs="?")
-        ap.add_argument("hi", nargs="?")
+        ap.add_argument("pages", type=limits.digits_in(limits.PAGES_MIN, limits.PAGES_MAX))
+        for name in ("fill_min", "fill_max"):
+            ap.add_argument(name, type=limits.digits_in(limits.FILL_MIN_PCT, limits.FILL_MAX_PCT))
+        ap.add_argument("lo", nargs="?", type=limits.number_text_in(limits.LEADING_MIN, limits.LEADING_MAX))
+        ap.add_argument("hi", nargs="?", type=limits.number_text_in(limits.LEADING_MIN, limits.LEADING_MAX))
         # the placeholder gate is not part of --tune; the flag is only carried into the follow-up commands it prints
         ta = ap.parse_known_args(["--"] + [a for a in argv[1:] if a != "--allow-placeholders"])[0]
+        limits.check_size(ta.typ, limits.MAX_TYP_BYTES)
         if not fill_args_ok(ta.pages, ta.fill_min, ta.fill_max):
             sys.exit(1)
         # LO alone is ignored: the bounds come as a pair or not at all
@@ -255,10 +260,13 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         argv = argv[:i] + argv[i + 2:]
     ap = _Parser(_usage(prog))
     ap.add_argument("typ")
-    ap.add_argument("expected")
-    ap.add_argument("fill_min", nargs="?")
-    ap.add_argument("fill_max", nargs="?")
+    ap.add_argument("expected", type=limits.digits_in(limits.PAGES_MIN, limits.PAGES_MAX))
+    for name in ("fill_min", "fill_max"):
+        ap.add_argument(name, nargs="?", type=limits.digits_in(limits.FILL_MIN_PCT, limits.FILL_MAX_PCT))
     ca = ap.parse_known_args(["--", *argv])[0]
+    limits.check_size(ca.typ, limits.MAX_TYP_BYTES)
+    if facts_path is not None:
+        limits.check_size(facts_path, limits.MAX_FACTS_BYTES)
     return check_cv(ca.typ, PageTarget(ca.expected, ca.fill_min, ca.fill_max), facts=facts_path,
                      allow_placeholders=allow_placeholders, rebuild=rebuild)
 
