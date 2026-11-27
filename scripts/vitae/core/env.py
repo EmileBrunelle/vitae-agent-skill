@@ -193,6 +193,24 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
         return False, None
 
 
+def check_pikepdf() -> None:
+    """Doctor line for the optional PDF post-step (verify/hexstrings.py); never a failure or a DEGRADED."""
+    from vitae.verify.hexstrings import MIN_VERSION, version_tuple
+    need = ".".join(map(str, MIN_VERSION))
+    if not _importable("pikepdf"):
+        print(f"INFO  pikepdf not installed (optional, >= {need}): compiled PDFs keep Typst's literal strings, which PHP's "
+              "smalot/pdfparser can truncate. `pip install pikepdf` or `sudo dnf install python3-pikepdf`")
+        return
+    try:
+        ver = importlib.metadata.version("pikepdf")
+    except importlib.metadata.PackageNotFoundError:
+        ver = "?"
+    if version_tuple(ver) < MIN_VERSION:
+        print(f"INFO  pikepdf {ver} too old (need >= {need}), optional step skipped")
+    else:
+        print(f"OK    pikepdf {ver} (optional: PDF text strings re-serialised with escaped parentheses so PHP's smalot/pdfparser reads them whole)")
+
+
 def check_fonts() -> None:
     """Doctor line for fonts (typst CLI or typst-py; local, no network, 20 s cap).
 
@@ -266,6 +284,7 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
                        "the off-page check of the hidden-text gate will NOT run "
                        "(WARN \"hidden text: off-page check not run (pypdf missing)\")")
             print(f"DEGRADED  pypdf: not installed. {skipped}. Fix: pip install pypdf")
+        check_pikepdf()
         if (all_ok and not counter.n and not use_cli and backend == "pdfium" and typst_py() is not None
                 and _ver_tuple(_typst_py_probe()[1]) >= TYPST_MIN):
             print("OK (Python)  no typst CLI, no poppler: compile, query, fonts, text, boxes and raster all run in Python "
