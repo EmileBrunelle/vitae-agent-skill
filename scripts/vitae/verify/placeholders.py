@@ -12,36 +12,9 @@ from pathlib import Path
 
 from vitae.core.context import VerifyContext
 from vitae.core.level import Finding, Level
+from vitae.core.typst_source import strip_comments_keep_urls
 
 TEMPLATES = Path(__file__).resolve().parents[3] / "templates"
-
-
-def strip_comments(src: str) -> str:
-    """`src` without its Typst comments: `/* ... */` (not nested; an unclosed `/*` is plain text) and `// ...` to the
-    end of the line, but not a `//` right after a word character or `:` (a URL). One left-to-right pass, linear:
-    the regex it replaced (`/\\*.*?\\*/|(?<![:\\w])//[^\\n]*`) rescanned to the end of the text from every unclosed `/*`,
-    13.9 s on 100 000 characters of them."""
-    out: list[str] = []
-    n = len(src)
-    last = i = 0
-    closes = True            # False once a search for `*/` failed: no later `/*` can close either
-    while (i := src.find("/", i)) >= 0:
-        if closes and src.startswith("/*", i):
-            end = src.find("*/", i + 2)
-            if end < 0:
-                closes = False
-            else:
-                out.append(src[last:i])
-                last = i = end + 2
-                continue
-        if src.startswith("//", i) and not (i and (src[i - 1] == ":" or src[i - 1].isalnum() or src[i - 1] == "_")):
-            end = src.find("\n", i)
-            out.append(src[last:i])
-            last = i = n if end < 0 else end
-            continue
-        i += 1
-    out.append(src[last:])
-    return "".join(out)
 
 
 # A bracketed span as written in a template: no nested bracket, no Typst code (#, \, ^), a letter in it; it may
@@ -121,7 +94,7 @@ def _matcher(p: str) -> re.Pattern[str]:
 def placeholders_in(src: str) -> set[str]:
     """The placeholder strings one template source renders: bracketed spans (written bare in a string or in markup,
     or with escaped brackets in a content-block argument) and the bare sample contact shapes."""
-    src = strip_comments(src)
+    src = strip_comments_keep_urls(src)
     found = {"[" + " ".join(m.group(1).split()) + "]" for rx in (_SPAN, _ESCAPED_SPAN) for m in rx.finditer(src)
              if re.search(r"[A-Za-z]", m.group(1)) and not any(r.fullmatch(m.group(1)) for r in _SAMPLES)}
     for rx in _SAMPLES[1:]:

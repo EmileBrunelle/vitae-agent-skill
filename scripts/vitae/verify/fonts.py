@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from enum import StrEnum
 
 from vitae.core.level import Finding, Level
-from vitae.verify.typst import strip_block_comments
+from vitae.core.typst_source import strip_block_comments
 
 # A family that EXISTS but lacks the glyphs (fontsource's `*-latin-ext-*` files carry the
 # family name and no basic Latin and shadow the `*-latin-*` ones) draws the text in whatever

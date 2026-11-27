@@ -5,76 +5,18 @@ non-markup stripped, `#set par/text/list` leading and size) and returns values. 
 opens a PDF or looks at page geometry; verify.py owns the checks, the reporting
 and the rendering, and imports these names explicitly.
 
-This module imports nothing from this package (never verify). No module state beyond compiled regular expressions.
+This module imports only vitae.core (never verify). No module state beyond compiled regular expressions.
 """
 from __future__ import annotations
 
 import re
 from bisect import bisect_left
 
+from vitae.core.typst_source import strip_typst_comments
 
-def strip_block_comments(src: str) -> str:
-    """`src` without its non-nested `/* ... */` blocks; an unclosed `/*` stays as text. Same result as
-    `re.sub(r"/\\*.*?\\*/", "", src, flags=re.S)`, which rescans to the end of the text from every unclosed `/*`
-    (11 s on 100 000 characters of them); here one failed search for `*/` ends the scan, no later block can close."""
-    out: list[str] = []
-    i = 0
-    while (start := src.find("/*", i)) >= 0:
-        end = src.find("*/", start + 2)
-        if end < 0:
-            break
-        out.append(src[i:start])
-        i = end + 2
-    out.append(src[i:])
-    return "".join(out)
-
-
-def _strip_typst_comments(src: str) -> str:
-    """src without // line comments and (nested) /* */ blocks. Double-quoted
-    strings are respected but never span a newline (a stray 6" in markup must
-    not swallow the rest of the file); backtick raw spans are skipped whole."""
-    out, i, n, q = [], 0, len(src), False
-    while i < n:
-        c = src[i]
-        if c == "\n":
-            q = False
-            out.append(c)
-        elif q:
-            out.append(c)
-            if c == "\\" and i + 1 < n and src[i + 1] != "\n":
-                out.append(src[i + 1]); i += 1
-            elif c == '"':
-                q = False
-        elif c == "\\" and i + 1 < n and src[i + 1] != "\n":
-            out.append(c + src[i + 1]); i += 1          # escaped char (\//, \", \`)
-        elif c == "`":
-            e = len(src[i:]) - len(src[i:].lstrip("`"))   # opening run of backticks
-            close = src.find("`" * e, i + e)
-            j = n if close < 0 else close + e
-            out.append(" ")                # raw text is not code: drop it
-            i = j
-            continue
-        elif c == '"':
-            q = True; out.append(c)
-        # A `//` right after a colon is a URL scheme (`https://`), not a comment.
-        elif src.startswith("//", i) and (i == 0 or src[i - 1] != ":"):
-            while i < n and src[i] != "\n":
-                i += 1
-            continue
-        elif src.startswith("/*", i):
-            depth, i = 1, i + 2
-            while i < n and depth:
-                if src.startswith("/*", i):
-                    depth += 1; i += 2
-                elif src.startswith("*/", i):
-                    depth -= 1; i += 2
-                else:
-                    i += 1
-            continue
-        else:
-            out.append(c)
-        i += 1
-    return "".join(out)
+# Transitional name for cv.py and pdf.py, which still import it; they should import
+# vitae.core.typst_source.strip_typst_comments directly, then this line goes.
+_strip_typst_comments = strip_typst_comments
 
 
 def _mask_non_markup(src: str) -> str:
@@ -108,7 +50,7 @@ def _mask_non_markup(src: str) -> str:
                 else:
                     j += 1
             blank(j)
-        # Same URL-scheme exception as _strip_typst_comments.
+        # Same URL-scheme exception as strip_typst_comments.
         elif src.startswith("//", i) and (i == 0 or src[i - 1] != ":"):
             j = src.find("\n", i)
             blank(n if j < 0 else j)

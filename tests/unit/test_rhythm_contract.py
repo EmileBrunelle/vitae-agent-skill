@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from _paths import ROOT
+from vitae.core.typst_source import strip_typst_comments
 
 pytestmark = pytest.mark.lint
 
@@ -24,10 +25,6 @@ PASSES_RHYTHM = re.compile(r"(?<![\w-])rhythm:\s*rhythm(?![\w-])")
 SCALING_CALLS = ("entry", "wd-entry")
 # (file name, slot, expression) -> reason. Keep it empty unless a gap truly cannot be scaled.
 ALLOW: dict[tuple[str, str, str], str] = {}
-
-
-def _strip_comments(text: str) -> str:
-    return re.sub(r"(?m)(?<!:)//.*$", lambda m: " " * len(m.group()), text)
 
 
 def _span(text: str, start: int) -> tuple[str, int]:
@@ -150,7 +147,7 @@ def _span_to_close(text: str, start: int) -> int:
 
 def scan(text: str) -> list[tuple[str, str, str]]:
     """Violations as (slot, expression, problem)."""
-    text = _strip_comments(text)
+    text = strip_typst_comments(text)
     found: list[tuple[str, str, str]] = []
     for m in SLOT.finditer(text):
         slot = m.group(1) or "v("

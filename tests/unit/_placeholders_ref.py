@@ -7,6 +7,7 @@ from pathlib import Path
 
 from vitae.core.context import VerifyContext
 from vitae.core.level import Finding, Level
+from vitae.core.typst_source import strip_comments_keep_urls
 from vitae.verify.placeholders import (
     _ANY_SPAN,
     _ESCAPED_SPAN,
@@ -19,12 +20,11 @@ from vitae.verify.placeholders import (
     _matcher,
     _squash,
     placeholders_from,
-    strip_comments,
 )
 
 
 def placeholders_in_scanning(src: str) -> set[str]:
-    src = strip_comments(src)
+    src = strip_comments_keep_urls(src)
     found = {"[" + " ".join(m.group(1).split()) + "]" for rx in (_SPAN, _ESCAPED_SPAN) for m in rx.finditer(src)
              if re.search(r"[A-Za-z]", m.group(1)) and not any(r.fullmatch(m.group(1)) for r in _SAMPLES)}
     for rx in _SAMPLES:

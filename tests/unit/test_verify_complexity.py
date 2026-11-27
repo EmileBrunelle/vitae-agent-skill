@@ -9,8 +9,9 @@ import time
 import pytest
 from _comments_ref import strip_block_comments_regex, strip_comments_regex
 from _reading_order_ref import reading_order_quadratic
+from vitae.core import typst_source
 from vitae.core.base import WordBox
-from vitae.verify import fonts, pdf, placeholders, text, typst
+from vitae.verify import fonts, pdf, text
 
 # ------------------------------------------------------------------ _reading_order
 
@@ -260,7 +261,7 @@ def test_font_style_bounds_time_on_a_pathological_name(s: str) -> None:
     assert out is None
 
 
-# ------------------------------------------------------------------ placeholders.strip_comments
+# ------------------------------------------------------------------ typst_source.strip_comments_keep_urls
 
 @pytest.mark.parametrize("seed", range(600))
 def test_strip_comments_matches_the_regex_on_random_text(seed: int) -> None:
@@ -268,7 +269,7 @@ def test_strip_comments_matches_the_regex_on_random_text(seed: int) -> None:
     alphabet = ["/", "/", "*", "*", ":", "a", "Z", "_", "é", " ", "\n", "//", "/*", "*/", "[x]", "http://"]
     src = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
 
-    assert placeholders.strip_comments(src) == strip_comments_regex(src)
+    assert typst_source.strip_comments_keep_urls(src) == strip_comments_regex(src)
 
 
 @pytest.mark.parametrize("src, want", [
@@ -285,7 +286,7 @@ def test_strip_comments_matches_the_regex_on_random_text(seed: int) -> None:
     ("", ""),
 ])
 def test_strip_comments_cases(src: str, want: str) -> None:
-    assert placeholders.strip_comments(src) == want == strip_comments_regex(src)
+    assert typst_source.strip_comments_keep_urls(src) == want == strip_comments_regex(src)
 
 
 def test_strip_comments_equivalence_is_not_vacuous() -> None:
@@ -294,7 +295,7 @@ def test_strip_comments_equivalence_is_not_vacuous() -> None:
     alphabet = ["/", "*", ":", "a", "\n", "//", "/*", "*/"]
     srcs = ["".join(rng.choice(alphabet) for _ in range(40)) for _ in range(200)]
 
-    assert sum(placeholders.strip_comments(s) != s for s in srcs) > 100
+    assert sum(typst_source.strip_comments_keep_urls(s) != s for s in srcs) > 100
 
 
 @pytest.mark.slow
@@ -303,13 +304,13 @@ def test_strip_comments_bounds_time_on_unclosed_block_comments(unit: str) -> Non
     src = unit * (100_000 // len(unit))
     start = time.perf_counter()
 
-    out = placeholders.strip_comments(src)
+    out = typst_source.strip_comments_keep_urls(src)
 
     assert time.perf_counter() - start < 0.5      # measured ~0.01 s; the regex takes ~12 s on the first case
     assert isinstance(out, str)
 
 
-# ------------------------------------------------------------------ typst.strip_block_comments
+# ------------------------------------------------------------------ typst_source.strip_block_comments
 
 @pytest.mark.parametrize("seed", range(600))
 def test_strip_block_comments_matches_the_regex_on_random_text(seed: int) -> None:
@@ -317,7 +318,7 @@ def test_strip_block_comments_matches_the_regex_on_random_text(seed: int) -> Non
     alphabet = ["/", "*", "/", "*", "a", "\n", "/*", "*/", "/**/", " "]
     src = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
 
-    assert typst.strip_block_comments(src) == strip_block_comments_regex(src)
+    assert typst_source.strip_block_comments(src) == strip_block_comments_regex(src)
 
 
 @pytest.mark.parametrize("src, want", [
@@ -332,7 +333,7 @@ def test_strip_block_comments_matches_the_regex_on_random_text(seed: int) -> Non
     ("", ""),
 ])
 def test_strip_block_comments_cases(src: str, want: str) -> None:
-    assert typst.strip_block_comments(src) == want == strip_block_comments_regex(src)
+    assert typst_source.strip_block_comments(src) == want == strip_block_comments_regex(src)
 
 
 @pytest.mark.slow
