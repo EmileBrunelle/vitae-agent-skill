@@ -2,16 +2,20 @@
 from __future__ import annotations
 
 import statistics
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import Literal
 
 from vitae.core.base import (
     DetailRow,
     GapFn,
+    GroupMeasure,
     GroupRow,
     HeadMark,
     LineBox,
     Mark,
+    Measure,
     SecMark,
+    SecMeasure,
     SecRow,
     Word,
     _Line,
@@ -25,19 +29,38 @@ from vitae.verify.groups.ink import _page_ink_gap
 from vitae.verify.groups.query import LineSet, PageIndex, _gnorm, _typst_query
 from vitae.verify.pdf import _boxes_unavailable, word_boxes
 
-if TYPE_CHECKING:
-    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
-    from typing_extensions import ReadOnly
 
-
-class _KMark(SecMark):
+@dataclass(frozen=True, slots=True)
+class _KMark:
     """A head or section mark tagged with its kind: "h" head / "s" section (a section has no x)."""
-    _k: ReadOnly[str]
+    k: Literal["h", "s"]
+    text: str
+    page: int
+    y: float
+    x: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class _NextBlock:
+    """The block after a head: its mark, its words in the PDF, and whether it is a rail title."""
+    mark: _KMark
+    words: list[Word]
+    rail: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _HeadSpot:
+    """Where a head sits in the PDF text: the words of its first line, its left edge and the lines of its column
+    with the index of that line."""
+    hx: float
+    lines: LineSet
+    run: list[Word]
+    i0: int
 
 
 def _dx(m: _KMark, h: HeadMark) -> float:
     """Horizontal distance from head `h` to mark `m`; a section mark has no x, so it is infinitely far."""
-    return abs(m["x"] - h["x"]) if "x" in m else float("inf")
+    return abs(m.x - h["x"]) if m.x is not None else float("inf")
 
 
 def _org_on_one_line(org: str, line: _Line) -> bool:
@@ -56,11 +79,11 @@ def _box(ln: _Line) -> LineBox:
 
 
 def _next_block(h: HeadMark, hx: float, idx: PageIndex, page_marks: list[_KMark],
-                later: list[_KMark]) -> tuple[_KMark, list[Word], bool] | None:
-    """The block after head `h`: (its mark, its words, whether it is a rail title), or None when its
-    text is not located in the PDF. `page_marks`: the marks on `h`'s page."""
-    m = min(later, key=lambda m: m["y"])
-    mrun = idx.find_run(m["text"], m["y"])
+                later: list[_KMark]) -> _NextBlock | None:
+    """The block after head `h`, or None when its text is not located in the PDF.
+    `page_marks`: the marks on `h`'s page."""
+    m = min(later, key=lambda m: m.y)
+    mrun = idx.find_run(m.text, m.y)
     if mrun is None:
         return None
     # a rail title sits wholly LEFT of the body column (margin-index); a title
@@ -72,21 +95,22 @@ def _next_block(h: HeadMark, hx: float, idx: PageIndex, page_marks: list[_KMark]
         # + gap), a few pt ABOVE the body's first line, so matching it by
         # y-centre lands one line too low. If an in-column head opens within
         # that window, THAT is the next block of this column's flow.
-        h2 = [x for x in page_marks if x["_k"] == "h"
-              and _dx(x, h) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
+        h2 = [x for x in page_marks if x.k == "h"
+              and _dx(x, h) <= 60 and m.y - 3 <= x.y <= m.y + 15]
         if h2:
-            m = min(h2, key=lambda x: x["y"])
-            mrun = idx.find_run(m["text"], m["y"])
+            m = min(h2, key=lambda x: x.y)
+            mrun = idx.find_run(m.text, m.y)
             if mrun is None:
                 return None
-    return m, mrun, rail
+    return _NextBlock(m, mrun, rail)
 
 
-def _next_line_index(idx: PageIndex, hx: float, lines: LineSet, run: list[Word], i0: int,
-                     mrun: list[Word], rail: bool) -> tuple[LineSet, int | None, int | None]:
+def _next_line_index(idx: PageIndex, spot: _HeadSpot, nb: _NextBlock) -> tuple[LineSet, int | None, int | None]:
     """(lines, index of the head's line, index of the next block's line) once the next block is
     known; either index is None when it cannot be placed."""
-    if not rail:
+    hx, lines, run, i0 = spot.hx, spot.lines, spot.run, spot.i0
+    mrun = nb.words
+    if not nb.rail:
         mx0 = min(w[0] for w in mrun)
         i0n: int | None = i0
         if mx0 < hx - 2:               # in-flow title starting left of an indented head
@@ -101,8 +125,8 @@ def _next_line_index(idx: PageIndex, hx: float, lines: LineSet, run: list[Word],
 
 
 def _group_row(h: HeadMark, m: _KMark, lines: list[_Line], i0: int, i_next: int,
-               gap_fn: GapFn) -> GroupRow:
-    """The DETAIL row of the group running from line i0 through line i_next (the next block's)."""
+               gap_fn: GapFn) -> GroupMeasure:
+    """The measured row of the group running from line i0 through line i_next (the next block's)."""
     ls = [_box(ln) for ln in lines[i0:i_next + 1]]
     tx = [" ".join(w[4] for w in sorted(ln["words"], key=lambda w: w[0])[:4])[:28]
           for ln in lines[i0:i_next + 1]]
@@ -119,15 +143,15 @@ def _group_row(h: HeadMark, m: _KMark, lines: list[_Line], i0: int, i_next: int,
     org = h.get("org")
     if h.get("kind") == "entry" and org and n >= 4 and _org_on_one_line(org, lines[i0 + 1]):
         hb, pitch = gaps[1], statistics.median(gaps[2:])
-    return {"kind": "group", "text": h["text"], "page": h["page"], "n": n, "hkind": h.get("kind"),
-            "next_sec": m["_k"] == "s", "head_gap": hb, "pitch": pitch,
-            "gaps": gaps, "internal": internal, "between": between,
-            "ratio": (between / internal) if internal > 0 else float("inf"), "ls": ls,
-            "pair_in": (tx[wi], tx[wi + 1]), "pair_btw": (tx[-2], tx[-1])}
+    return GroupMeasure(text=h["text"], page=h["page"], n=n, hkind=h.get("kind"),
+                        next_sec=m.k == "s", head_gap=hb, pitch=pitch,
+                        gaps=gaps, internal=internal, between=between,
+                        ratio=(between / internal) if internal > 0 else float("inf"), ls=ls,
+                        pair_in=(tx[wi], tx[wi + 1]), pair_btw=(tx[-2], tx[-1]))
 
 
 def _measure_head(h: HeadMark, page_marks: list[_KMark], idx: PageIndex | None,
-                  gap_fn: GapFn) -> tuple[GroupRow | None, bool]:
+                  gap_fn: GapFn) -> tuple[GroupMeasure | None, bool]:
     """(row, skipped) for one head: a row when its group is measurable; skipped when its text or its next
     block could not be located; neither for a last block on its page or a single-line group. `idx`: the index of
     the head's page (None when the PDF has no such page), `page_marks`: the marks on that page."""
@@ -142,24 +166,23 @@ def _measure_head(h: HeadMark, page_marks: list[_KMark], idx: PageIndex | None,
     if i0 is None:
         return None, True
     # next block head on this page (entry head, skill label or section title)
-    later = [m for m in page_marks if m["y"] > h["y"] + 2
-             and not (m["_k"] == "h" and _dx(m, h) > 60)]
+    later = [m for m in page_marks if m.y > h["y"] + 2
+             and not (m.k == "h" and _dx(m, h) > 60)]
     if not later:
         return None, False                 # last block on its page: no next head
     nb = _next_block(h, hx, idx, page_marks, later)
     if nb is None:
         return None, True
-    m, mrun, rail = nb
-    lines, i0n, i_next = _next_line_index(idx, hx, lines, run, i0, mrun, rail)
+    lines, i0n, i_next = _next_line_index(idx, _HeadSpot(hx, lines, run, i0), nb)
     if i_next is None or i0n is None or i_next <= i0n + 1:
         return None, False                 # single-line group (or no next head): nothing inside
-    return _group_row(h, m, lines.lines, i0n, i_next, gap_fn), False
+    return _group_row(h, nb.mark, lines.lines, i0n, i_next, gap_fn), False
 
 
 def _section_rows(heads: list[HeadMark], secs: list[SecMark], pages: list[PageIndex],
-                  gap_fn: GapFn) -> list[SecRow]:
+                  gap_fn: GapFn) -> list[SecMeasure]:
     """Section rows: previous block's last line -> title (bar) vs title -> first line."""
-    rows: list[SecRow] = []
+    rows: list[SecMeasure] = []
     xs: dict[int, list[float]] = {}
     for h in heads:
         xs.setdefault(h["page"], []).append(h["x"])
@@ -178,13 +201,13 @@ def _section_rows(heads: list[HeadMark], secs: list[SecMark], pages: list[PageIn
             continue
         up, t, lo = _box(lines.lines[i - 1]), _box(lines.lines[i]), _box(lines.lines[i + 1])
         before, after = gap_fn(pg, up, t), gap_fn(pg, t, lo)
-        rows.append({"kind": "sec", "text": sc["text"], "page": pg, "before": before,
-                     "after": after, "ratio": (before / after) if after > 0 else float("inf")})
+        rows.append(SecMeasure(text=sc["text"], page=pg, before=before, after=after,
+                               ratio=(before / after) if after > 0 else float("inf")))
     return rows
 
 
 def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[Word]],
-                   gap_fn: GapFn | None = None) -> tuple[list[DetailRow], int]:
+                   gap_fn: GapFn | None = None) -> tuple[list[Measure], int]:
     """Whole-group proximity. A group is an entry/skill row from its FIRST line
     (the role / label) through its LAST line (org line, bullets, wrapped lines
     included), up to the next block's head (entry head, skill label or section
@@ -194,20 +217,20 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     gap_fn is given (default: pdftotext box gap). Section titles are measured
     too: sbefore = last line of the previous block -> title (its bar), safter =
     title -> first line of its section. Returns (rows, skipped); rows are
-    {kind: "group"|"sec", text, page, ...}. Single-line groups, last blocks on a
+    GroupMeasure / SecMeasure. Single-line groups, last blocks on a
     page, rail titles beside the body and unlocated text are skipped."""
     gap_fn = gap_fn or (lambda page, up, lo: lo[2] - up[3])
     # a partial mark has no position to measure from: skipped
     placed: list[HeadMark] = [h for h in heads if is_placed(h)]
     placed_secs: list[SecMark] = [sc for sc in secs if is_sec_placed(sc)]
-    rows: list[DetailRow] = []
+    rows: list[Measure] = []
     skipped = 0
     # the marks tagged with their kind ("h" head / "s" section)
-    marks: list[_KMark] = [{**h, "_k": "h"} for h in placed]
-    marks.extend({**s, "_k": "s"} for s in placed_secs)
+    marks: list[_KMark] = [_KMark("h", h["text"], h["page"], h["y"], h["x"]) for h in placed]
+    marks.extend(_KMark("s", s["text"], s["page"], s["y"], s.get("x")) for s in placed_secs)
     by_page: dict[int, list[_KMark]] = {}
     for m in marks:
-        by_page.setdefault(m["page"], []).append(m)
+        by_page.setdefault(m.page, []).append(m)
     # one index per page, built once for every head and title on it
     pages = [PageIndex(words) for words in pages_words]
     for h in sorted(placed, key=lambda h: (h["page"], h["y"])):
@@ -234,28 +257,28 @@ def _hier_advice(kind: str | None) -> str:
 PROX_FAIL, PROX_WARN, PROX_HIER = 0.7, 0.85, 1.2
 
 
-def _print_detail(rows: list[DetailRow], grp: list[GroupRow]) -> None:
+def _print_detail(rows: list[Measure], grp: list[GroupMeasure]) -> None:
     """The machine-readable DETAIL lines (the tests and --gates read them)."""
     for r in grp:
-        hp = "" if r["head_gap"] is None or r["pitch"] is None else \
-            f' head-gap={r["head_gap"]:.2f}pt pitch={r["pitch"]:.2f}pt'
-        print(f'DETAIL group "{r["text"][:30]}" p{r["page"]} lines={r["n"]} internal={r["internal"]:.2f}pt '
-              f'between={r["between"]:.2f}pt ratio={r["ratio"]:.2f}{hp}{" next=section" if r["next_sec"] else ""}')
+        hp = "" if r.head_gap is None or r.pitch is None else \
+            f' head-gap={r.head_gap:.2f}pt pitch={r.pitch:.2f}pt'
+        print(f'DETAIL group "{r.text[:30]}" p{r.page} lines={r.n} internal={r.internal:.2f}pt '
+              f'between={r.between:.2f}pt ratio={r.ratio:.2f}{hp}{" next=section" if r.next_sec else ""}')
     for row in rows:
-        if row["kind"] == "sec":
-            print(f'DETAIL section "{row["text"][:30]}" p{row["page"]} before-bar={row["before"]:.2f}pt '
-                  f'bar-to-first={row["after"]:.2f}pt ratio={row["ratio"]:.2f}')
+        if isinstance(row, SecMeasure):
+            print(f'DETAIL section "{row.text[:30]}" p{row.page} before-bar={row.before:.2f}pt '
+                  f'bar-to-first={row.after:.2f}pt ratio={row.ratio:.2f}')
 
 
-def _section_finding(sec: list[SecRow]) -> Finding:
+def _section_finding(sec: list[SecMeasure]) -> Finding:
     """The verdict on the section titles: a title belongs to what FOLLOWS it, so the gap above it (previous
     block's last line -> title or its bar) must not be much smaller than the gap below it (title -> first
     line). Same calibration as groups."""
-    s = min(sec, key=lambda r: r["ratio"])
-    sw = (f'(worst "{s["text"][:30]}": gap above {s["before"]:.1f}pt, gap below '
-          f'{s["after"]:.1f}pt, ratio {s["ratio"]:.2f}')
-    sbad = [r for r in sec if not r["ratio"] >= PROX_FAIL]
-    sweak = [r for r in sec if not r["ratio"] >= PROX_WARN]
+    s = min(sec, key=lambda r: r.ratio)
+    sw = (f'(worst "{s.text[:30]}": gap above {s.before:.1f}pt, gap below '
+          f'{s.after:.1f}pt, ratio {s.ratio:.2f}')
+    sbad = [r for r in sec if not r.ratio >= PROX_FAIL]
+    sweak = [r for r in sec if not r.ratio >= PROX_WARN]
     if sbad:
         return (Level.FAIL, f"section proximity: {len(sbad)}/{len(sec)} titles sit closer to the block "
                 f"above than to their own first line {sw}; need >= {PROX_FAIL}) — fix the family's "
@@ -264,42 +287,42 @@ def _section_finding(sec: list[SecRow]) -> Finding:
         return (Level.WARN, f"section proximity: {len(sweak)}/{len(sec)} titles barely separated from "
                 f"the block above {sw}; aim for >= {PROX_WARN})")
     return (Level.OK, f'section proximity: {len(sec)} titles, gap above >= {PROX_WARN} x gap below '
-            f'(tightest "{s["text"][:30]}": ratio {s["ratio"]:.2f})')
+            f'(tightest "{s.text[:30]}": ratio {s.ratio:.2f})')
 
 
 def _q(t: str) -> str:
     return '"' + t + '"'
 
 
-def _flat_finding(flat: list[GroupRow], grp: list[GroupRow]) -> Finding:
+def _flat_finding(flat: list[GroupMeasure], grp: list[GroupMeasure]) -> Finding:
     """The WARN for entries (or skill rows) too close to the next one to read as separate units."""
-    f = min(flat, key=lambda r: r["ratio"])
+    f = min(flat, key=lambda r: r.ratio)
     # Plural names every flat group (mixed kinds read as entries); the worst-case clause names f's own kind.
-    many, a_one = (("skill rows", "a skill row") if all(r["hkind"] == "skill" for r in flat)
+    many, a_one = (("skill rows", "a skill row") if all(r.hkind == "skill" for r in flat)
                    else ("entries", "an entry"))
-    one = "skill row" if f["hkind"] == "skill" else "entry"
-    fw = (f'(worst {_q(f["text"][:30])}: gap to the next {one} {f["between"]:.1f}pt vs {f["internal"]:.1f}pt '
-          f'inside it, ratio {f["ratio"]:.2f})')
+    one = "skill row" if f.hkind == "skill" else "entry"
+    fw = (f'(worst {_q(f.text[:30])}: gap to the next {one} {f.between:.1f}pt vs {f.internal:.1f}pt '
+          f'inside it, ratio {f.ratio:.2f})')
     return (Level.WARN, f"group proximity: {many} barely separated: gap between {many} ≈ gap inside "
             f"{a_one} in {len(flat)}/{len(grp)} groups {fw}; aim for >= {PROX_HIER}\n"
-            + _hier_advice(f["hkind"]))
+            + _hier_advice(f.hkind))
 
 
-def _group_finding(grp: list[GroupRow]) -> Finding:
+def _group_finding(grp: list[GroupMeasure]) -> Finding:
     """The verdict on the entry/skill groups: the first of FAIL, WARN, hierarchy WARN, OK that applies."""
-    m = min(grp, key=lambda r: r["ratio"])
-    worst = (f'(worst {_q(m["text"][:30])}: largest gap inside {m["internal"]:.1f}pt '
-             f'({_q(m["pair_in"][0])} -> {_q(m["pair_in"][1])}), gap to the next block '
-             f'{m["between"]:.1f}pt ({_q(m["pair_btw"][0])} -> {_q(m["pair_btw"][1])}), ratio {m["ratio"]:.2f}')
+    m = min(grp, key=lambda r: r.ratio)
+    worst = (f'(worst {_q(m.text[:30])}: largest gap inside {m.internal:.1f}pt '
+             f'({_q(m.pair_in[0])} -> {_q(m.pair_in[1])}), gap to the next block '
+             f'{m.between:.1f}pt ({_q(m.pair_btw[0])} -> {_q(m.pair_btw[1])}), ratio {m.ratio:.2f}')
     # `not x >= t` rather than `x < t`: a NaN ratio must count as failing
-    bad = [r for r in grp if not r["ratio"] >= PROX_FAIL]
+    bad = [r for r in grp if not r.ratio >= PROX_FAIL]
     if bad:
         return (Level.FAIL, f'group proximity: {len(bad)}/{len(grp)} groups sit closer to the next block than '
                 f'their own lines are to each other {worst}; need >= {PROX_FAIL})\n'
                 "      do not override entry/srow above/gap/below per entry; look for a manual #v, linebreak "
                 "or blank line inside that entry (a gap that is too big inside is as bad as one too small after);\n"
                 "      if the CV uses the family file as shipped, report it: it is a template bug (never edit lib.typ)")
-    weak = [r for r in grp if not r["ratio"] >= PROX_WARN]
+    weak = [r for r in grp if not r.ratio >= PROX_WARN]
     if weak:
         return (Level.WARN, f'group proximity: {len(weak)}/{len(grp)} groups barely separated from the next block '
                 f'{worst}; aim for >= {PROX_WARN})\n'
@@ -307,11 +330,28 @@ def _group_finding(grp: list[GroupRow]) -> Finding:
                 "blank line inside that entry")
     # hierarchy: an entry must also read as ONE unit, so the gap to the next entry has to be visibly
     # larger than the gaps inside it. Groups before a section title are left to the section rules.
-    flat = [r for r in grp if not r["next_sec"] and not r["ratio"] >= PROX_HIER]
+    flat = [r for r in grp if not r.next_sec and not r.ratio >= PROX_HIER]
     if flat:
         return _flat_finding(flat, grp)
     return (Level.OK, f"group proximity: {len(grp)} groups, gap to next block >= {PROX_WARN} x internal gap "
-            f'(tightest "{m["text"][:30]}": ratio {m["ratio"]:.2f}, {m["between"]:.1f}pt vs {m["internal"]:.1f}pt)')
+            f'(tightest "{m.text[:30]}": ratio {m.ratio:.2f}, {m.between:.1f}pt vs {m.internal:.1f}pt)')
+
+
+def group_detail(r: GroupMeasure) -> GroupRow:
+    """The DETAIL row of a group (the key order is the order of the printed JSON)."""
+    return {"kind": "group", "text": r.text, "page": r.page, "n": r.n, "hkind": r.hkind, "next_sec": r.next_sec,
+            "head_gap": r.head_gap, "pitch": r.pitch, "gaps": r.gaps, "internal": r.internal,
+            "between": r.between, "ratio": r.ratio, "ls": r.ls, "pair_in": r.pair_in, "pair_btw": r.pair_btw}
+
+
+def sec_detail(r: SecMeasure) -> SecRow:
+    """The DETAIL row of a section title."""
+    return {"kind": "sec", "text": r.text, "page": r.page, "before": r.before, "after": r.after, "ratio": r.ratio}
+
+
+def detail_row(r: Measure) -> DetailRow:
+    """The DETAIL row (the JSON shape) of a measured row: the serialization boundary of measure_groups."""
+    return group_detail(r) if isinstance(r, GroupMeasure) else sec_detail(r)
 
 
 def check_group_proximity(typ: str, pdf: str, root: str | None = None,
@@ -365,8 +405,8 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     # DETAIL lines are machine-readable and printed here, not returned: the tests and --gates read them
     rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
     if detail is not None:
-        detail.extend(rows)
-    grp = [r for r in rows if r["kind"] == "group"]
+        detail.extend(detail_row(r) for r in rows)
+    grp = [r for r in rows if isinstance(r, GroupMeasure)]
     if not grp:
         return [(Level.WARN, f"group proximity: no checkable group ({skipped} head(s) not located) — unchecked")]
     _print_detail(rows, grp)
@@ -374,7 +414,7 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     if skipped:
         out.append((Level.WARN, f"group proximity not measured for {skipped} head(s) (multi-column layout, "
                     "rail title or head not located in the PDF text)"))
-    sec = [r for r in rows if r["kind"] == "sec"]
+    sec = [r for r in rows if isinstance(r, SecMeasure)]
     if sec:
         out.append(_section_finding(sec))
     return [*out, _group_finding(grp)]

@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from typing import ClassVar
 
 import pytest
-from vitae.core.base import DetailRow, GroupRow, Mark, SecRow, _Line
+from vitae.core.base import DetailRow, GroupMeasure, Mark, Measure, SecMeasure, _EntryRecord, _Line
 from vitae.core.level import Level
 from vitae.verify import groups
 from vitae.verify.groups import dates, proximity, query
@@ -143,17 +143,17 @@ def sec(text: str, y: float, page: int = 1, x: float = 10.0) -> Mark:
     return Mark(text=text, page=page, x=x, y=y)
 
 
-def only_group(rows: Sequence[DetailRow]) -> GroupRow:
+def only_group(rows: Sequence[Measure]) -> GroupMeasure:
     """The single row of `rows`, which must be an entry/skill group."""
     (r,) = rows
-    assert r["kind"] == "group"
+    assert isinstance(r, GroupMeasure)
     return r
 
 
-def only_sec(rows: Sequence[DetailRow]) -> SecRow:
+def only_sec(rows: Sequence[Measure]) -> SecMeasure:
     """The single section-title row among `rows`."""
-    (r,) = [r for r in rows if r["kind"] == "sec"]
-    assert r["kind"] == "sec"
+    (r,) = [r for r in rows if isinstance(r, SecMeasure)]
+    assert isinstance(r, SecMeasure)
     return r
 
 
@@ -163,15 +163,15 @@ class TestMeasureGroups:
         rows, skipped = groups.measure_groups([head("Role", 0), head("Next", 50)], [], [words])
         assert skipped == 0
         r = only_group(rows)
-        assert (r["kind"], r["text"], r["page"], r["n"]) == ("group", "Role", 1, 3)
-        assert r["gaps"] == [2.0, 2.0]
-        assert (r["internal"], r["between"], r["ratio"]) == (2.0, 16.0, 8.0)
-        assert r["pair_in"] == ("Role", "Org") and r["pair_btw"] == ("Bullet", "Next")
+        assert (r.text, r.page, r.n) == ("Role", 1, 3)
+        assert r.gaps == [2.0, 2.0]
+        assert (r.internal, r.between, r.ratio) == (2.0, 16.0, 8.0)
+        assert r.pair_in == ("Role", "Org") and r.pair_btw == ("Bullet", "Next")
 
     def test_the_largest_internal_gap_names_its_pair(self):
         words = [line("A", 0), line("B", 12), line("C", 40), line("Next", 80)]
         r = only_group(groups.measure_groups([head("A", 0), head("Next", 80)], [], [words])[0])
-        assert r["internal"] == 18.0 and r["pair_in"] == ("B", "C")
+        assert r.internal == 18.0 and r.pair_in == ("B", "C")
 
     def test_custom_gap_function_is_used(self):
         words = [line("A", 0), line("B", 12), line("Next", 50)]
@@ -181,13 +181,13 @@ class TestMeasureGroups:
             calls.append((page, up[2], lo[2]))
             return 4.0
         r = only_group(groups.measure_groups([head("A", 0), head("Next", 50)], [], [words], gap)[0])
-        assert r["internal"] == 4.0 and r["between"] == 4.0 and r["ratio"] == 1.0
+        assert r.internal == 4.0 and r.between == 4.0 and r.ratio == 1.0
         assert calls == [(1, 0.0, 12.0), (1, 12.0, 50.0)]
 
     def test_zero_internal_gap_is_an_infinite_ratio(self):
         words = [line("A", 0), line("B", 10), line("Next", 40)]            # B touches A
         r = only_group(groups.measure_groups([head("A", 0), head("Next", 40)], [], [words])[0])
-        assert r["internal"] == 0 and math.isinf(r["ratio"])
+        assert r.internal == 0 and math.isinf(r.ratio)
 
     def test_single_line_group_is_not_a_row_and_not_skipped(self):
         words = [line("A", 0), line("Next", 30)]
@@ -213,14 +213,14 @@ class TestMeasureGroups:
         # (Side shares B's text line: were it taken as the next block, A would read as a two-line group)
         words = [line("A", 0), line("B", 12), line("Side", 12, x=110), line("Next", 50)]
         rows, _ = groups.measure_groups([head("A", 0), head("Side", 12, x=110), head("Next", 50)], [], [words])
-        r = only_group([r for r in rows if r["text"] == "A"])
-        assert r["pair_btw"][1] == "Next" and r["between"] == 28.0
+        r = only_group([r for r in rows if r.text == "A"])
+        assert r.pair_btw[1] == "Next" and r.between == 28.0
 
     def test_next_head_exactly_sixty_points_right_still_counts_as_same_column(self):
         words = [line("A", 0), line("B", 12), line("Next", 50, x=70)]
         # Next is the nearest block below, 60 pt right of A: kept in the flow (> 60 would be another column)
         rows, _ = groups.measure_groups([head("A", 0), head("Next", 50, x=70)], [], [words])
-        assert [r["text"] for r in rows] == ["A"]
+        assert [r.text for r in rows] == ["A"]
 
     def test_marks_must_be_more_than_two_points_below_the_head(self):
         # a mark 2pt lower is the head's own marker, not a next block
@@ -231,23 +231,22 @@ class TestMeasureGroups:
         # the cut is "more than 2 pt below"; a mark that close but past it opens the next block
         words = [line("A", 0), line("B", 12), line("C", 24)]
         rows, _ = groups.measure_groups([head("A", 0), head("C", 2.5)], [], [words])
-        got = [r for r in rows if r["text"] == "A"]
-        assert [(r["kind"], r["text"], r["pair_btw"]) for r in got if r["kind"] == "group"] == [
-            ("group", "A", ("B", "C"))]
-        assert all(r["kind"] == "group" for r in got)
+        got = [r for r in rows if r.text == "A"]
+        assert [(r.text, r.pair_btw) for r in got if isinstance(r, GroupMeasure)] == [("A", ("B", "C"))]
+        assert all(isinstance(r, GroupMeasure) for r in got)
 
     def test_in_flow_title_starting_left_of_an_indented_head_is_read_in_the_flow(self):
         # gutter-rail style: the head is indented (x=30) and its next block, a title, starts just left of it
         # (27.9 < 30 - 2) yet extends past the body edge, so it is not a rail title
         words = [line("A", 0, x=30), line("B", 12, x=30), line("TITLE", 40, x=27.9, w=60)]
         rows, _ = groups.measure_groups([head("A", 0, x=30)], [sec("TITLE", 40, x=27.9)], [words])
-        r = only_group([r for r in rows if r["kind"] == "group"])
-        assert r["pair_btw"] == ("B", "TITLE")
+        r = only_group([r for r in rows if isinstance(r, GroupMeasure)])
+        assert r.pair_btw == ("B", "TITLE")
 
     def test_section_title_is_a_next_block_of_the_group_above(self):
         words = [line("A", 0), line("B", 12), line("EDU", 40)]
         r = only_group(groups.measure_groups([head("A", 0)], [sec("EDU", 40)], [words])[0])
-        assert r["pair_btw"] == ("B", "EDU")
+        assert r.pair_btw == ("B", "EDU")
 
     def test_rail_title_left_of_the_body_reads_the_head_in_its_window(self):
         # section title wholly left of the body column (margin index): the next block is the in-column
@@ -256,8 +255,8 @@ class TestMeasureGroups:
                  line("Next", 42, x=100)]
         rows, _ = groups.measure_groups([head("A", 0, x=100), head("Next", 42, x=100)], [sec("RAIL", 40, x=10)],
                                         [words])
-        r = only_group([r for r in rows if r["kind"] == "group"])
-        assert r["pair_btw"][1] == "Next"
+        r = only_group([r for r in rows if isinstance(r, GroupMeasure)])
+        assert r.pair_btw[1] == "Next"
 
     def test_rail_title_whose_in_column_head_is_not_located_is_skipped(self):
         # the in-column head opening in the rail title's window has no words at its position: the group is
@@ -266,26 +265,26 @@ class TestMeasureGroups:
                  line("Next", 80, x=100)]
         rows, skipped = groups.measure_groups([head("A", 0, x=100), head("Next", 42, x=100)],
                                               [sec("RAIL", 40, x=10)], [words])
-        assert [r for r in rows if r["kind"] == "group"] == []
+        assert [r for r in rows if isinstance(r, GroupMeasure)] == []
         assert skipped == 2      # A (its next block is not located) and Next (not located itself)
 
     def test_section_rows_measure_gap_above_and_below_the_title(self):
         words = [line("A", 0), line("B", 12), line("EDU", 40), line("Item", 62)]
         rows, _ = groups.measure_groups([head("A", 0)], [sec("EDU", 40)], [words])
         s = only_sec(rows)
-        assert (s["before"], s["after"], s["ratio"]) == (18.0, 12.0, 1.5)
+        assert (s.before, s.after, s.ratio) == (18.0, 12.0, 1.5)
 
     def test_section_without_a_line_above_or_below_is_not_measured(self):
         heads = [head("A", 0)]
         first = [line("EDU", 0), line("Item", 12)]
         last = [line("A", 0), line("EDU", 12)]
-        assert [r for r in groups.measure_groups(heads, [sec("EDU", 0)], [first])[0] if r["kind"] == "sec"] == []
-        assert [r for r in groups.measure_groups(heads, [sec("EDU", 12)], [last])[0] if r["kind"] == "sec"] == []
+        assert [r for r in groups.measure_groups(heads, [sec("EDU", 0)], [first])[0] if isinstance(r, SecMeasure)] == []
+        assert [r for r in groups.measure_groups(heads, [sec("EDU", 12)], [last])[0] if isinstance(r, SecMeasure)] == []
 
     def test_section_mark_beyond_the_pdf_is_ignored(self):
         words = [line("A", 0), line("B", 12), line("EDU", 40), line("Item", 62)]
         rows, _ = groups.measure_groups([head("A", 0)], [sec("EDU", 40, page=3)], [words])
-        assert [r for r in rows if r["kind"] == "sec"] == []
+        assert [r for r in rows if isinstance(r, SecMeasure)] == []
 
     @pytest.mark.parametrize("partial", [
         ("head", Mark(kind="entry", text="Ghost", page=1, y=20)),                   # no x
@@ -300,13 +299,13 @@ class TestMeasureGroups:
         (heads if partial[0] == "head" else secs).append(partial[1])
         rows, _ = groups.measure_groups(heads, secs, [words])
         r = only_group(rows)
-        assert (r["text"], r["internal"], r["between"], r["ratio"]) == ("A", 2.0, 28.0, 14.0)
+        assert (r.text, r.internal, r.between, r.ratio) == ("A", 2.0, 28.0, 14.0)
 
     def test_section_title_beside_the_body_is_skipped(self):
         # starts more than 5pt left of the leftmost head of the page: a rail title
         words = [line("A", 0), line("B", 12), line("EDU", 40, x=2, w=5), line("Item", 62)]
         assert [r for r in groups.measure_groups([head("A", 0)], [sec("EDU", 40, x=2)], [words])[0]
-                if r["kind"] == "sec"] == []
+                if isinstance(r, SecMeasure)] == []
 
 
 # ---------------------------------------------------------------- check_group_proximity
@@ -363,8 +362,8 @@ class TestCheckGroupProximity:
     def test_nan_ratio_counts_as_failing(self, monkeypatch):
         # `not ratio >= PROX_FAIL`, not `ratio < PROX_FAIL`: a NaN must never pass as fine
         heads, words = _two_lines_then_next(7)
-        rows: list[DetailRow] = [GroupRow(
-            kind="group", text="t", page=1, n=2, gaps=[1.0], internal=1.0, between=float("nan"),
+        rows: list[Measure] = [GroupMeasure(
+            text="t", page=1, n=2, gaps=[1.0], internal=1.0, between=float("nan"),
             ratio=float("nan"), hkind=None, ls=[], pair_in=("a", "b"), pair_btw=("c", "d"), next_sec=False,
             head_gap=None, pitch=None)]
         monkeypatch.setattr(proximity, "measure_groups", lambda *a, **k: (rows, 0))
@@ -457,18 +456,18 @@ class TestEntryRecords:
     def test_parts_attach_to_the_preceding_head_with_emission_order(self):
         e, d, o = mk("entry", text="a"), mk("date"), mk("org")
         (r,) = groups._entry_records([e, d, o])
-        assert r == {"head": e, "date": d, "org": o, "date_first": True}
+        assert r == _EntryRecord(head=e, date=d, org=o, date_first=True)
         (r,) = groups._entry_records([e, o, d])
-        assert r["date_first"] is False
+        assert r.date_first is False
 
     def test_first_part_of_a_kind_wins_and_date_first_is_set_once(self):
         e, o1, o2, d = mk("entry"), mk("org", "1"), mk("org", "2"), mk("date")
         (r,) = groups._entry_records([e, o1, o2, d])
-        assert r["org"] is o1 and r["date"] is d and r["date_first"] is False
+        assert r.org is o1 and r.date is d and r.date_first is False
 
     def test_entry_without_parts(self):
         (r,) = groups._entry_records([mk("entry")])
-        assert (r["date"], r["org"], r["date_first"]) == (None, None, None)
+        assert (r.date, r.org, r.date_first) == (None, None, None)
 
     def test_parts_before_any_entry_are_ignored(self):
         assert groups._entry_records([mk("date"), mk("org")]) == []
@@ -476,16 +475,16 @@ class TestEntryRecords:
     def test_a_skill_row_ends_the_entry_so_later_parts_are_orphans(self):
         e, d = mk("entry"), mk("date")
         (r,) = groups._entry_records([e, mk("skill"), d])
-        assert r["date"] is None
+        assert r.date is None
 
     def test_other_part_kinds_are_ignored_and_do_not_reset(self):
         e, d = mk("entry"), mk("date")
         (r,) = groups._entry_records([e, mk("date-col"), d])
-        assert r["date"] is d
+        assert r.date is d
 
     def test_one_record_per_entry(self):
         recs = groups._entry_records([mk("entry"), mk("date"), mk("entry"), mk("org")])
-        assert [(r["date"] is not None, r["org"] is not None) for r in recs] == [(True, False), (False, True)]
+        assert [(r.date is not None, r.org is not None) for r in recs] == [(True, False), (False, True)]
 
 
 # ---------------------------------------------------------------- _first_word
@@ -760,4 +759,4 @@ class TestMarkValidation:
         unplaced = Mark(kind="entry", text="a")
         placed = Mark(kind="entry", text="b", page=1, x=0.0, y=0.0)
         recs = groups._entry_records([unplaced, placed])
-        assert [r["head"]["text"] for r in recs] == ["b"]
+        assert [r.head["text"] for r in recs] == ["b"]

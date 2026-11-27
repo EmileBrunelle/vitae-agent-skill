@@ -76,12 +76,13 @@ def is_sec_placed(m: Mark) -> TypeIs[SecMark]:
     return "page" in m and "y" in m
 
 
-class _EntryRecord(TypedDict):
-    """_entry_records(): an entry head with the part marks that follow it."""
-    head: ReadOnly[HeadMark]
-    date: ReadOnly[HeadMark | None]
-    org: ReadOnly[HeadMark | None]
-    date_first: ReadOnly[bool | None]
+@dataclass(frozen=True, slots=True)
+class _EntryRecord:
+    """_entry_records(): an entry head with the part marks that follow it (built in process, never serialized)."""
+    head: HeadMark
+    date: HeadMark | None
+    org: HeadMark | None
+    date_first: bool | None
 
 
 class _Line(TypedDict):
@@ -93,32 +94,65 @@ class _Line(TypedDict):
     words: ReadOnly[list[Word]]
 
 
+@dataclass(frozen=True, slots=True)
+class GroupMeasure:
+    """measure_groups() row of an entry or skill group (built in process; `group_detail` turns it into the DETAIL
+    row at the serialization boundary)."""
+    text: str
+    page: int
+    n: int                                    # lines in the group, less one
+    gaps: list[float]                         # gaps between consecutive lines inside it
+    internal: float                           # the largest of them
+    between: float                            # last line -> next block's first line
+    ratio: float                              # between / internal
+    hkind: str | None                         # the head mark kind: "entry" or "skill"
+    next_sec: bool                            # the next block is a section title
+    head_gap: float | None                    # org line -> first bullet (entries with an org line and >= 2 bullet lines)
+    pitch: float | None                       # median gap between the bullet lines
+    ls: list[LineBox]
+    pair_in: tuple[str, str]                  # the line pair behind `internal`
+    pair_btw: tuple[str, str]                 # the line pair behind `between`
+
+
+@dataclass(frozen=True, slots=True)
+class SecMeasure:
+    """measure_groups() row of a section title (built in process; see GroupMeasure)."""
+    text: str
+    page: int
+    before: float                             # previous block -> title (its bar)
+    after: float                              # title -> first line of its section
+    ratio: float
+
+
+Measure: TypeAlias = GroupMeasure | SecMeasure
+
+
 class GroupRow(TypedDict):
-    """measure_groups() / DETAIL row of an entry or skill group."""
+    """DETAIL row of an entry or skill group: the JSON shape of a GroupMeasure (`DETAIL ` line of the verify CLI)."""
     kind: ReadOnly[Literal["group"]]
     text: ReadOnly[str]
     page: ReadOnly[int]
-    n: ReadOnly[int]                          # lines in the group, less one
-    gaps: ReadOnly[list[float]]               # gaps between consecutive lines inside it
-    internal: ReadOnly[float]                 # the largest of them
-    between: ReadOnly[float]                  # last line -> next block's first line
-    ratio: ReadOnly[float]                    # between / internal
-    hkind: ReadOnly[str | None]               # the head mark kind: "entry" or "skill"
-    next_sec: ReadOnly[bool]                  # the next block is a section title
-    head_gap: ReadOnly[float | None]          # org line -> first bullet (entries with an org line and >= 2 bullet lines)
-    pitch: ReadOnly[float | None]             # median gap between the bullet lines
+    n: ReadOnly[int]
+    gaps: ReadOnly[list[float]]
+    internal: ReadOnly[float]
+    between: ReadOnly[float]
+    ratio: ReadOnly[float]
+    hkind: ReadOnly[str | None]
+    next_sec: ReadOnly[bool]
+    head_gap: ReadOnly[float | None]
+    pitch: ReadOnly[float | None]
     ls: ReadOnly[list[LineBox]]
-    pair_in: ReadOnly[tuple[str, str]]        # the line pair behind `internal`
-    pair_btw: ReadOnly[tuple[str, str]]       # the line pair behind `between`
+    pair_in: ReadOnly[tuple[str, str]]
+    pair_btw: ReadOnly[tuple[str, str]]
 
 
 class SecRow(TypedDict):
-    """measure_groups() / DETAIL row of a section title."""
+    """DETAIL row of a section title: the JSON shape of a SecMeasure."""
     kind: ReadOnly[Literal["sec"]]
     text: ReadOnly[str]
     page: ReadOnly[int]
-    before: ReadOnly[float]                   # previous block -> title (its bar)
-    after: ReadOnly[float]                    # title -> first line of its section
+    before: ReadOnly[float]
+    after: ReadOnly[float]
     ratio: ReadOnly[float]
 
 

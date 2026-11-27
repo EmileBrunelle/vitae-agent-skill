@@ -7,19 +7,19 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from vitae.core.base import (
-    DetailRow,
     GapFn,
-    GroupRow,
+    GroupMeasure,
     HeadMark,
     Mark,
+    Measure,
     SecMark,
-    SecRow,
+    SecMeasure,
     Word,
     _Line,
     is_placed,
     is_sec_placed,
 )
-from vitae.verify.groups.proximity import _box, _dx, _group_row, _KMark
+from vitae.verify.groups.proximity import _box, _dx, _group_row, _KMark, _NextBlock
 from vitae.verify.groups.query import _gnorm
 
 
@@ -83,11 +83,11 @@ def line_index_scanning(lines: list[_Line], run: list[Word]) -> int | None:
 
 
 def next_block_filtering(h: HeadMark, hx: float, words: list[Word], marks: list[_KMark],
-                later: list[_KMark]) -> tuple[_KMark, list[Word], bool] | None:
+                later: list[_KMark]) -> _NextBlock | None:
     """The block after head `h`: (its mark, its words, whether it is a rail title), or None when its
     text is not located in the PDF."""
-    m = min(later, key=lambda m: m["y"])
-    mrun = find_run_scanning(words, m["text"], m["y"])
+    m = min(later, key=lambda m: m.y)
+    mrun = find_run_scanning(words, m.text, m.y)
     if mrun is None:
         return None
     # a rail title sits wholly LEFT of the body column (margin-index); a title
@@ -99,14 +99,14 @@ def next_block_filtering(h: HeadMark, hx: float, words: list[Word], marks: list[
         # + gap), a few pt ABOVE the body's first line, so matching it by
         # y-centre lands one line too low. If an in-column head opens within
         # that window, THAT is the next block of this column's flow.
-        h2 = [x for x in marks if x["_k"] == "h" and x["page"] == h["page"]
-              and _dx(x, h) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
+        h2 = [x for x in marks if x.k == "h" and x.page == h["page"]
+              and _dx(x, h) <= 60 and m.y - 3 <= x.y <= m.y + 15]
         if h2:
-            m = min(h2, key=lambda x: x["y"])
-            mrun = find_run_scanning(words, m["text"], m["y"])
+            m = min(h2, key=lambda x: x.y)
+            mrun = find_run_scanning(words, m.text, m.y)
             if mrun is None:
                 return None
-    return m, mrun, rail
+    return _NextBlock(m, mrun, rail)
 
 
 def next_line_index_rebuilding(words: list[Word], hx: float, lines: list[_Line], run: list[Word], i0: int,
@@ -128,7 +128,7 @@ def next_line_index_rebuilding(words: list[Word], hx: float, lines: list[_Line],
 
 
 def measure_head_rebuilding(h: HeadMark, marks: list[_KMark], pages_words: list[list[Word]],
-                  gap_fn: GapFn) -> tuple[GroupRow | None, bool]:
+                  gap_fn: GapFn) -> tuple[GroupMeasure | None, bool]:
     """(row, skipped) for one head: a row when its group is measurable; skipped when its text or its next
     block could not be located; neither for a last block on its page or a single-line group."""
     if not 1 <= h["page"] <= len(pages_words):
@@ -143,24 +143,23 @@ def measure_head_rebuilding(h: HeadMark, marks: list[_KMark], pages_words: list[
     if i0 is None:
         return None, True
     # next block head on this page (entry head, skill label or section title)
-    later = [m for m in marks if m["page"] == h["page"] and m["y"] > h["y"] + 2
-             and not (m["_k"] == "h" and _dx(m, h) > 60)]
+    later = [m for m in marks if m.page == h["page"] and m.y > h["y"] + 2
+             and not (m.k == "h" and _dx(m, h) > 60)]
     if not later:
         return None, False                 # last block on its page: no next head
     nb = next_block_filtering(h, hx, words, marks, later)
     if nb is None:
         return None, True
-    m, mrun, rail = nb
-    lines, i0n, i_next = next_line_index_rebuilding(words, hx, lines, run, i0, mrun, rail)
+    lines, i0n, i_next = next_line_index_rebuilding(words, hx, lines, run, i0, nb.words, nb.rail)
     if i_next is None or i0n is None or i_next <= i0n + 1:
         return None, False                 # single-line group (or no next head): nothing inside
-    return _group_row(h, m, lines, i0n, i_next, gap_fn), False
+    return _group_row(h, nb.mark, lines, i0n, i_next, gap_fn), False
 
 
 def section_rows_rebuilding(heads: list[HeadMark], secs: list[SecMark], pages_words: list[list[Word]],
-                  gap_fn: GapFn) -> list[SecRow]:
+                  gap_fn: GapFn) -> list[SecMeasure]:
     """Section rows: previous block's last line -> title (bar) vs title -> first line."""
-    rows: list[SecRow] = []
+    rows: list[SecMeasure] = []
     xs: dict[int, list[float]] = {}
     for h in heads:
         xs.setdefault(h["page"], []).append(h["x"])
@@ -179,13 +178,13 @@ def section_rows_rebuilding(heads: list[HeadMark], secs: list[SecMark], pages_wo
             continue
         up, t, lo = _box(lines[i - 1]), _box(lines[i]), _box(lines[i + 1])
         before, after = gap_fn(pg, up, t), gap_fn(pg, t, lo)
-        rows.append({"kind": "sec", "text": sc["text"], "page": pg, "before": before,
-                     "after": after, "ratio": (before / after) if after > 0 else float("inf")})
+        rows.append(SecMeasure(text=sc["text"], page=pg, before=before, after=after,
+                               ratio=(before / after) if after > 0 else float("inf")))
     return rows
 
 
 def measure_groups_rebuilding(heads: list[Mark], secs: list[Mark], pages_words: list[list[Word]],
-                   gap_fn: GapFn | None = None) -> tuple[list[DetailRow], int]:
+                   gap_fn: GapFn | None = None) -> tuple[list[Measure], int]:
     """Whole-group proximity. A group is an entry/skill row from its FIRST line
     (the role / label) through its LAST line (org line, bullets, wrapped lines
     included), up to the next block's head (entry head, skill label or section
@@ -201,11 +200,11 @@ def measure_groups_rebuilding(heads: list[Mark], secs: list[Mark], pages_words: 
     # a partial mark has no position to measure from: skipped
     placed: list[HeadMark] = [h for h in heads if is_placed(h)]
     placed_secs: list[SecMark] = [sc for sc in secs if is_sec_placed(sc)]
-    rows: list[DetailRow] = []
+    rows: list[Measure] = []
     skipped = 0
     # the marks tagged with their kind ("h" head / "s" section)
-    marks: list[_KMark] = [{**h, "_k": "h"} for h in placed]
-    marks.extend({**s, "_k": "s"} for s in placed_secs)
+    marks: list[_KMark] = [_KMark("h", h["text"], h["page"], h["y"], h["x"]) for h in placed]
+    marks.extend(_KMark("s", s["text"], s["page"], s["y"], s.get("x")) for s in placed_secs)
     for h in sorted(placed, key=lambda h: (h["page"], h["y"])):
         row, skip = measure_head_rebuilding(h, marks, pages_words, gap_fn)
         skipped += skip

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from bisect import bisect_left
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from itertools import chain, islice
 
 from vitae.core.base import (
@@ -97,10 +98,20 @@ class _Window:
         return j if abs(lines[j]["c"] - y) <= band else None
 
 
-def _follow(win: _Window, start: int, edge: float, ltr: bool, nxt: float, pg: int,
-            got: list[BulletLine], prev: _Line | None) -> bool:
+@dataclass(frozen=True, slots=True)
+class _Track:
+    """Where the lines of one bullet continue on one page: the edge they share (left when `ltr`, else right), the y
+    of the next bullet or head that ends them (inf when none) and the page."""
+    edge: float
+    ltr: bool
+    nxt: float
+    pg: int
+
+
+def _follow(win: _Window, start: int, track: _Track, got: list[BulletLine], prev: _Line | None) -> bool:
     """Append the lines from `start` that continue the bullet, up to the next bullet's first line; True when
     it ran to the end of the column (so it may go on at the top of the next page)."""
+    edge, ltr, nxt, pg = track.edge, track.ltr, track.nxt, track.pg
     lines = win.lines
     stop = win.first_line(nxt) if nxt != float("inf") else None
     for k in range(start, len(lines)):
@@ -293,14 +304,14 @@ def located_bullets(marks: list[Mark], pages: list[list[WordBox]],
         got = [BulletLine(pg, first, lines[j]["y1"] - lines[j]["y0"], " ".join(w[4] for w in lines[j]["words"]),
                             lines[j]["y1"])]
         nxt = min(_next_marker(bullets, i, m), _next_head(doc.heads_on.get(pg, ()), pg, m.y + 1, col))
-        at_end = _follow(win, j + 1, edge, ltr, nxt, pg, got, lines[j])
+        at_end = _follow(win, j + 1, _Track(edge, ltr, nxt, pg), got, lines[j])
         following = doc.page(pg + 1) if at_end else None
         if following is not None and doc.at_bottom(pg, col, got[-1], heights[pg - 1] if heights else None):
             # ran to the bottom of the column: the bullet may go on at the top of the next page, same column
             nxt = min((b.y for b in doc.bullets_on.get(pg + 1, ()) if abs(b.x - m.x) <= _EDGE_SLACK),
                       default=float("inf"))
             nxt = min(nxt, _next_head(doc.heads_on.get(pg + 1, ()), pg + 1, float("-inf"), col))
-            _follow(following.window(col), 0, edge, ltr, nxt, pg + 1, got, None)
+            _follow(following.window(col), 0, _Track(edge, ltr, nxt, pg + 1), got, None)
         out.append((m, got))
     return out
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 
 from vitae.core.base import HeadMark, Mark, WordBox, _EntryRecord, is_placed
 from vitae.core.env import pdf_backend
@@ -21,7 +22,7 @@ ENTRY_MARKS = "selector(<vitae-head>).or(<vitae-part>).or(<vitae-bullet>)"
 
 def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
     """Marks in document order -> one record per entry head:
-    {"head": mark, "date": mark|None, "org": mark|None, "date_first": bool}.
+    _EntryRecord(head, date, org, date_first).
     A part mark belongs to the entry head emitted before it; `date_first` records which of the
     two was emitted first, since the emission order is what an ATS extraction follows."""
     recs: list[_EntryRecord] = []
@@ -31,16 +32,16 @@ def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
             continue
         k = m.get("kind")
         if k == "entry":
-            cur = {"head": m, "date": None, "org": None, "date_first": None}
+            cur = _EntryRecord(head=m, date=None, org=None, date_first=None)
             recs.append(cur)
         elif k in ("date", "org") and cur is not None:
             # a record is never edited in place: the filled copy replaces it (cur is always the last record)
-            first = cur["date_first"]
-            if k == "date" and cur["date"] is None:
-                cur = {**cur, "date": m, "date_first": True if first is None else first}
+            first = cur.date_first
+            if k == "date" and cur.date is None:
+                cur = replace(cur, date=m, date_first=True if first is None else first)
                 recs[-1] = cur
-            elif k == "org" and cur["org"] is None:
-                cur = {**cur, "org": m, "date_first": False if first is None else first}
+            elif k == "org" and cur.org is None:
+                cur = replace(cur, org=m, date_first=False if first is None else first)
                 recs[-1] = cur
         elif k == "skill":
             cur = None                     # other part kinds ("date-col") are ignored
@@ -71,8 +72,28 @@ _WHY = (" (pdftotext, like the ATS extractors that cluster lines the same way, r
         "references/ats.md, Entry-with-no-bullets trap)")
 
 
-def _date_action(name: str, h: HeadMark, d: HeadMark, o: HeadMark | None) -> str:
+@dataclass(frozen=True, slots=True)
+class _DatedEntry:
+    """A dated entry under judgement: its display name and its head, date and org-line marks."""
+    name: str
+    h: HeadMark
+    d: HeadMark
+    o: HeadMark | None
+
+
+@dataclass(frozen=True, slots=True)
+class _ReadIndices:
+    """Reading-order indices of the words of one entry: its date's (non-empty) and, when found, its org line's
+    first word, the next entry head's first word and the first word set below the head block."""
+    date: list[int]
+    org: int | None
+    next_head: int | None
+    below: int | None
+
+
+def _date_action(e: _DatedEntry) -> str:
     """The FIRST clause of a FAIL: what to change in cv.typ that clears it."""
+    name, h, d, o = e.name, e.h, e.d, e.o
     if "anchor" not in h:
         return (f"rebuild {name} with the current lib's entry() / the family's job() "
                 "(recopy the skill's lib.typ if the CV's copy is older): its markers come "
@@ -119,21 +140,23 @@ def _next_head_word(pw: list[WordBox], recs: list[_EntryRecord], ix: int, h: Hea
                     cr: float) -> int | None:
     """Reading-order index of the first word of the next entry head in the same column, or None."""
     nr = next((n for n in recs[ix + 1:]
-               if (n["head"].get("page") or 1) == pg and abs(n["head"]["x"] - h["x"]) <= 2), None)
+               if (n.head.get("page") or 1) == pg and abs(n.head["x"] - h["x"]) <= 2), None)
     if nr is None:
         return None
-    nxt = nr["head"]
-    nd = nr["date"]
+    nxt = nr.head
+    nd = nr.date
     n_end = nd["x"] - 1 if nd is not None and nd.get("page") == pg else cr
     return _first_word(pw, nxt["x"], nxt["y"], nxt["y"] + 40, x_end=n_end)
 
 
-def _read_order_failure(name: str, h: HeadMark, d: HeadMark, o: HeadMark | None, pw: list[WordBox], di: list[int],
-                        oi: int | None, ni: int | None, bi: int | None, warn: Callable[[str], object]) -> str | None:
+def _read_order_failure(e: _DatedEntry, pw: list[WordBox], ix: _ReadIndices,
+                        warn: Callable[[str], object]) -> str | None:
     """The FAIL message when the date is read out of order, else None (warning when the org line's
     words were not found). `di` is non-empty. Words of the role (head rows, left of a right-flushed
     date / before an inline one): the date must not be read before any of them. Checks run in order
     of how specific the symptom is; the first that matches is reported."""
+    name, h, d, o = e.name, e.h, e.d, e.o
+    di, oi, ni, bi = ix.date, ix.org, ix.next_head, ix.below
     last = max(di)
     dl = sum(_yc(pw[i]) for i in di) / len(di)
     rw = [i for i, w in enumerate(pw) if i not in di and w[0][0] >= h["x"] - 1.5
@@ -141,17 +164,17 @@ def _read_order_failure(name: str, h: HeadMark, d: HeadMark, o: HeadMark | None,
           and (w[0][2] <= d["x"] - 1 if not d.get("inline") else
                (_yc(w) < dl - 3 or w[0][2] <= d["x"] - 1))]
     if rw and max(rw) > min(di):
-        return (_date_action(name, h, d, o) + f" \u2014 measured: {name}'s date is read in the "
+        return (_date_action(e) + f" \u2014 measured: {name}'s date is read in the "
                 f'middle of its role (before "{pw[max(rw)][1][:30]}")' + _WHY)
     if ni is not None and last > ni:
-        return (_date_action(name, h, d, o) + f" — measured: {name}'s date is emitted AFTER "
+        return (_date_action(e) + f" — measured: {name}'s date is emitted AFTER "
                 "the next entry starts, so it is read with the wrong entry" + _WHY)
     if oi is not None and last > oi:
-        return (_date_action(name, h, d, o) + f" — measured: the extracted text reads "
+        return (_date_action(e) + f" — measured: the extracted text reads "
                 f"{name}'s employer line BEFORE its date, so a parser reads the date as "
                 "missing" + _WHY)
     if bi is not None and last > bi:
-        return (_date_action(name, h, d, o) + f" — measured: {name}'s date is emitted "
+        return (_date_action(e) + f" — measured: {name}'s date is emitted "
                 f'AFTER text set below the entry head (read first: "{pw[bi][1][:30]}")' + _WHY)
     if o is not None and oi is None:
         warn(f"{name}: employer line words not found at the marker position")
@@ -163,7 +186,7 @@ def _check_entry(ix: int, recs: list[_EntryRecord], words: list[list[WordBox]], 
     """The FAIL message for entry `recs[ix]` (None when fine, skipped or only noted); updates the
     measured / undated / unmeasured counts in `st`."""
     r = recs[ix]
-    h, d, o = r["head"], r["date"], r["org"]
+    h, d, o = r.head, r.date, r.org
     name = f'entry "{(h.get("text") or "")[:40]}"'
     if "dated" not in h:
         warn(f"{name}: no lib markers")
@@ -175,7 +198,7 @@ def _check_entry(ix: int, recs: list[_EntryRecord], words: list[list[WordBox]], 
     if d is None:
         warn(f"{name}: dated but no date marker")
         return None
-    if o is not None and not r["date_first"]:
+    if o is not None and not r.date_first:
         return (f"rebuild {name} with the family's job() / lib entry(), cells in lib "
                 "order: its employer line is EMITTED before its date (hand-built or "
                 "reordered entry), so a parser reads the date as missing")
@@ -205,7 +228,7 @@ def _check_entry(ix: int, recs: list[_EntryRecord], words: list[list[WordBox]], 
               if _yc(w) > d_bot and w[0][0] < cr and w[0][2] > cl), default=None)
     st["unmeasured"] -= 1
     st["measured"] += 1
-    return _read_order_failure(name, h, d, o, pw, di, oi, ni, bi, warn)
+    return _read_order_failure(_DatedEntry(name, h, d, o), pw, _ReadIndices(di, oi, ni, bi), warn)
 
 
 def check_date_adjacency(typ: str, pdf: str, marks: list[Mark] | None = None, root: str | None = None,
@@ -231,7 +254,7 @@ def check_date_adjacency(typ: str, pdf: str, marks: list[Mark] | None = None, ro
     st.update(measured=0, undated=0, unmeasured=0)
     if not recs:
         return out
-    if not any("dated" in r["head"] for r in recs):
+    if not any("dated" in r.head for r in recs):
         warn("no lib markers (entry heads carry no date/org part marks: old lib.typ "
              "or hand-built heads)")
         return out
