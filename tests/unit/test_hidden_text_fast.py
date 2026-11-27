@@ -18,6 +18,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from PIL import Image
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
+from vitae.core.colour import rel_luminance
 from vitae.core.pixels import gray_profile
 from vitae.verify import text
 
@@ -149,7 +150,7 @@ def test_word_stats_compute_one_luminance_per_page_colour(kind: str) -> None:
     im, page = _text_like_page(400, 300, 200, kind)
     colours = len(im.getcolors(400 * 300) or [])
     calls = 0
-    real = text._lum
+    real = rel_luminance
 
     def counting(rgb: tuple[int, ...]) -> float:
         nonlocal calls
