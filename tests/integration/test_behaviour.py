@@ -353,11 +353,11 @@ def _title_lines(pdf: Path) -> int:
 
 @pytest.mark.parametrize("family", ["swiss-grid", "editorial-serif", "keyline-corporate"])
 def test_header_contact_block_is_bounded(check: Check, py: str, scratch: Path, family: str) -> None:
-    if not all(shutil.which(t) for t in ("typst", "pdftotext")):
-        pytest.skip("typst CLI / poppler missing (the title lines are read with pdftotext -bbox)")
     """Five extra links after GitHub: the contact block wraps INSIDE its column (it is capped at 55% of the measure), so the
     title keeps its width (placeholder title on at most 2 lines, as with the standard contacts), and the contact-line gate FAILs
     loudly (declared 2 rows) instead of letting the layout drift silently."""
+    if not all(shutil.which(t) for t in ("typst", "pdftotext")):
+        pytest.skip("typst CLI / poppler missing (the title lines are read with pdftotext -bbox)")
     d = scratch / "templates" / "families" / family
     src = (d / "resume.typ").read_text(encoding="utf-8")
     gh = re.search(r'#contact\((?:mk|ic)\.gh\)\[#link\("https://github\.com/handle"\)\[github\.com/handle\]\]', src)
