@@ -2,7 +2,7 @@
 
 The gate code still prints its text lines; they are captured here and turned into the object. Gate lines
 come from the `(Level, message)` tuples `registry.run_gates` recorded (so the check id is the gate's name
-and a multi-line message stays whole); the few lines `_check_cv` prints itself are read back by their
+and a multi-line message stays whole); the few lines `check_cv` prints itself are read back by their
 level word. Whatever is not a check (the extraction dump, compile noise, the PASS banner) goes to stderr.
 
 Verdicts: PASS (exit 0), FAIL (exit 1, the gate said so), ERROR (exit 2: usage error, unsupported mode, or an
@@ -45,7 +45,8 @@ def skill_version() -> str | None:
 
 def _checks(text: str, sink: list[tuple[str, Level, str]], dump_len: int | None = None) -> tuple[list[dict[str, str]], str | None]:
     """(checks, the PASS banner line) from the captured stdout; every other line goes to stderr."""
-    lines, checks, banner, i, k, dumped = text.split("\n"), [], None, 0, 0, False
+    lines, banner, i, k, dumped = text.split("\n"), None, 0, 0, False
+    checks: list[dict[str, str]] = []
     while i < len(lines):
         if dumped and dump_len:     # the dump's length is known: its lines are CV text, whatever shape they have
             for ln in lines[i:i + dump_len]:

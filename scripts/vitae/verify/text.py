@@ -24,8 +24,8 @@ from vitae.core.colour import contrast_from_lum, counted_luminances, rel_luminan
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
-from vitae.verify.lang import _is_latin, _strip_latin_marks
-from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png, pdf_unreadable
+from vitae.verify.lang import is_latin, strip_latin_marks
+from vitae.verify.pdf import bbox_pages, boxes_unavailable, pdf_unreadable, pdfium_doc, render_pages_png
 
 # Date and number patterns of check_facts_coverage, matched on folded text (`_fold`, `_fold1`).
 _NUM_MY_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})[-/.](0?[1-9]|1[0-2])(?!\d)|(?<!\d)(0?[1-9]|1[0-2])[-/.]((?:19|20)\d{2})(?!\d)")
@@ -40,9 +40,9 @@ _NUM_RE = re.compile(r"[$€£]?(\d+(?:[.,]\d+)*)\s?(%|[kKmM](?![^\W\d_])|)")
 def _fold1(s: str) -> str:
     """Length-preserving fold (one output char per input char): accents go on Latin letters only, so the vowels
     and tones of Devanagari or Thai keep their code points."""
-    out = []
+    out: list[str] = []
     for c in s:
-        d = unicodedata.normalize("NFKD", c)[0] if _is_latin(c) else c
+        d = unicodedata.normalize("NFKD", c)[0] if is_latin(c) else c
         low = d.lower()
         out.append(low if len(low) == 1 else d)
     return "".join(out)
@@ -50,7 +50,7 @@ def _fold1(s: str) -> str:
 
 def _fold(s: str) -> str:
     """Lower-case, accents stripped from Latin letters, dashes unified, whitespace collapsed."""
-    s = _strip_latin_marks(s).lower()
+    s = strip_latin_marks(s).lower()
     s = re.sub(r"[–—‒−]", "-", s).replace("’", "'")
     return re.sub(r"\s+", " ", s)
 
@@ -142,7 +142,7 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
     no word of any language, so names, titles and month names are left to the agent's own comparison."""
     facts = _fold(facts_text)
     facts_years = set(_YEAR_RE.findall(facts))
-    facts_my = set()
+    facts_my: set[tuple[int, int]] = set()
     for m in _NUM_MY_RE.finditer(facts):
         y, mo = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
         facts_my.add((int(mo), int(y)))
@@ -255,7 +255,7 @@ def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] 
     direction (dark ink on light, light ink on dark). White text on white paper, text in
     the band's colour, text under an opaque shape: a flat box, ratio 1.0. None when no
     raster is available."""
-    pages = _bbox_pages(pdf) if pages is None else pages
+    pages = bbox_pages(pdf) if pages is None else pages
     out: list[HiddenStat] = []
     for pno, (pw, ph, items) in enumerate(pages or [], 1):
         im = _page_raster(pngs, pno)
@@ -306,7 +306,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
     doc: PdfiumDoc | None = None
     if pdf_backend() == "pdfium":
         try:
-            doc = _pdfium_doc(pdf)
+            doc = pdfium_doc(pdf)
             meta: dict[str, str] = doc.get_metadata_dict()
             info = {k: (meta.get(k) or "").strip() for k in ("Keywords", "Title", "Author", "Subject")}
         except (OSError, RuntimeError):   # pypdfium2 cannot open or read the file (PdfiumError is a RuntimeError)
@@ -325,8 +325,8 @@ def check_pdf_metadata(pdf: str) -> list[str]:
             try:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    md = pypdf.PdfReader(pdf).metadata or {}
-                info = {k: str(md.get("/" + k) or "") for k in ("Keywords", "Title", "Author", "Subject")}
+                    md = pypdf.PdfReader(pdf).metadata
+                info = {k: str((md.get("/" + k) if md else None) or "") for k in ("Keywords", "Title", "Author", "Subject")}
             except (OSError, ValueError, pypdf.errors.PyPdfError):   # file unreadable or malformed for pypdf
                 pass
             except Exception as e:   # noqa: BLE001 - broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
@@ -552,12 +552,12 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
     Known limits (a raster cannot tell): white text over a textured image or a gradient
     that has ink in the box; a visible strike or rule drawn through white text; hidden
     text laid exactly over visible text."""
-    pages = _bbox_pages(pdf)
+    pages = bbox_pages(pdf)
     if pages is None:
-        return [(Level.WARN, f"hidden-text gate skipped: {_boxes_unavailable(pdf)}")]
+        return [(Level.WARN, f"hidden-text gate skipped: {boxes_unavailable(pdf)}")]
     msgs: list[Finding] = []
     with tempfile.TemporaryDirectory() as tmp:
-        pngs = _render_pages_png(pdf, tmp)
+        pngs = render_pages_png(pdf, tmp)
         if not pngs:
             msgs.append((Level.WARN, "hidden-text ink check skipped: pdftoppm not found (install poppler-utils); "
                                  "size and off-page checks still ran"))

@@ -14,6 +14,7 @@ sequence FAILs; SAME_WORDS requires the identical word sequence; on the others, 
 Needs pdftotext AND pypdfium2: SKIPs (exit 0) otherwise.
 Usage: tests/compare_backends.py <pdf>...   (tests/integration passes the rendered fixtures)"""
 import collections
+import importlib
 import os
 import shutil
 import sys
@@ -48,7 +49,7 @@ def bigrams_ok(a: list[str], b: list[str]) -> bool:
 
 def main() -> int:
     try:
-        import pypdfium2  # noqa: F401
+        importlib.import_module("pypdfium2")    # availability probe only
     except ImportError:
         print("SKIP compare_backends: pypdfium2 not installed")
         return 0

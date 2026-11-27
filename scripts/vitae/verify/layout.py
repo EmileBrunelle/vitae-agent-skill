@@ -4,7 +4,7 @@ No `import verify`.
 """
 from __future__ import annotations
 
-import importlib.util
+import importlib
 from collections.abc import Iterator, Sequence
 
 from PIL import Image
@@ -14,9 +14,9 @@ from vitae.core.base import Band, Box, WordBox
 from vitae.core.env import importable
 from vitae.core.level import Finding, Level
 from vitae.core.pixels import colour_counts, far_in_any_channel, gray_pixels
-from vitae.verify.fonts import _font_sources, classify_font_fallback, requested_families
+from vitae.verify.fonts import classify_font_fallback, font_sources, requested_families
 from vitae.verify.page import BOUNDARY_RATIO, FURNITURE_SCALE, boundary_ink, furniture_ink, near_boundary
-from vitae.verify.pdf import _pdfium_doc
+from vitae.verify.pdf import pdfium_doc
 
 # ---------- whitespace structure: section boundaries + canyons ----------
 
@@ -135,7 +135,7 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
         right = [y for y in column_edges(x1 * s + 2, ya, yb) if lo <= y <= hi]
         if any(abs(a - b) <= 2 for a in left for b in right):
             found.append(("cut", ya, word))
-    out = []
+    out: list[str] = []
     for kind in ("cut", "hidden"):
         lines: list[tuple[int, list[str]]] = []   # words of one kind, grouped by text line (rows within 4px)
         for _, row, word in sorted(f for f in found if f[0] == kind):
@@ -277,7 +277,7 @@ def pdf_char_fonts(pdf: str) -> list[tuple[str, str]] | None:
         import ctypes
         raw = importlib.import_module("pypdfium2.raw")
         out: list[tuple[str, str]] = []
-        for pg in _pdfium_doc(pdf):
+        for pg in pdfium_doc(pdf):
             tp = pg.get_textpage()
             if not tp.count_chars():
                 continue
@@ -306,5 +306,5 @@ def check_font_fallback(typ: str, pdf: str, root: str | None = None) -> list[Fin
         return [(Level.WARN, "font fallback NOT checked (needs pypdfium2: pip install pypdfium2); "
                          "by hand: pdffonts cv.pdf, every family listed must be one cv.typ asks for")]
     firsts: set[str] = set()
-    req = requested_families(_font_sources(typ, root), firsts)
+    req = requested_families(font_sources(typ, root), firsts)
     return classify_font_fallback(chars, req, firsts)

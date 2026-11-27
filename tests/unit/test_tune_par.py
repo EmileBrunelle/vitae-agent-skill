@@ -1,14 +1,14 @@
-"""The tuner's par reader/writer and the gate's leading reader (_read_par, _write_par, _doc_leading)."""
+"""The tuner's par reader/writer and the gate's leading reader (read_par, write_par, _doc_leading)."""
 import pytest
 from vitae.core.base import LEADING_WARN
 from vitae.core.env import PdfCheck
 from vitae.verify import tune as T
-from vitae.verify.typst import _doc_par_list, _read_par, _write_par
+from vitae.verify.typst import doc_par_list, read_par, write_par
 
 
 def _doc_leading(text):
-    """The gate's leading reader: the first of `_doc_par_list`."""
-    return _doc_par_list(text)[0]
+    """The gate's leading reader: the first of `doc_par_list`."""
+    return doc_par_list(text)[0]
 
 
 pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
@@ -17,9 +17,9 @@ PAR = '#set page(paper: "us-letter")\n#set par(justify: false, leading: 0.555em,
 
 
 def test_write_then_read_round_trips_and_stops_at_the_declaration():
-    out = _write_par(PAR, 0.61, 0.7)
+    out = write_par(PAR, 0.61, 0.7)
     assert "leading: 0.610em, spacing: 0.700em" in out and "body 0.999em" in out
-    assert _read_par(PAR) == (0.555, 0.615) and _read_par(out) == (0.61, 0.7)
+    assert read_par(PAR) == (0.555, 0.615) and read_par(out) == (0.61, 0.7)
 
 
 @pytest.mark.parametrize("src", [
@@ -27,7 +27,7 @@ def test_write_then_read_round_trips_and_stops_at_the_declaration():
     "#set par(spacing: 0.7em, leading: 0.6em)\n",      # not the template's order: would write the two swapped
 ])
 def test_a_declaration_the_tuner_cannot_rewrite_is_not_read(src):
-    assert _read_par(src) is None and _write_par(src, 0.9, 1.0) == src
+    assert read_par(src) is None and write_par(src, 0.9, 1.0) == src
 
 
 @pytest.mark.parametrize("src, want", [
@@ -62,7 +62,7 @@ def test_under_filled_document_fails_with_content_advice(tmp_path, monkeypatch, 
     assert rc == 1 and ("UNDER-FILLED" in out) == under
     if under:
         assert "never invent" in out and f"clamped to {LEADING_WARN:.3f}em" in out
-        assert footer is not None and "under-filled" in footer and _read_par(p.read_text()) == (0.6, 0.7)
+        assert footer is not None and "under-filled" in footer and read_par(p.read_text()) == (0.6, 0.7)
 
 
 def test_probe_landing_in_the_window_is_kept_under_the_leading_cap(tmp_path, monkeypatch, capsys):
@@ -72,5 +72,5 @@ def test_probe_landing_in_the_window_is_kept_under_the_leading_cap(tmp_path, mon
     p = tmp_path / "cv.typ"
     p.write_text("#set par(leading: 0.6em, spacing: 0.7em)\nbody\n", encoding="utf-8")
     rc, _ = T.tune(str(p), T.FillTarget(1, 88, 96), T.LeadingBounds(0.40, 1.60))
-    leading, _ = _read_par(p.read_text()) or (None, None)
+    leading, _ = read_par(p.read_text()) or (None, None)
     assert rc == 0 and leading is not None and 0.6 < leading <= LEADING_WARN + 1e-9, (capsys.readouterr().out, leading)

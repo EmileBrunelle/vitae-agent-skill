@@ -84,6 +84,14 @@ jobs:
       - name: Type check (mypy.ini, strict)
         run: python -m mypy
 
+      - name: Type check (pyproject.toml, pyright strict)
+        # One leg is enough: pyright reads pythonVersion from pyproject.toml, and only 3.x has pikepdf installed.
+        # numpy is only there so Pillow's types resolve (its `Image.point` signature names numpy arrays).
+        if: matrix.python-version == '3.x'
+        run: |
+          pip install pyright==1.1.414 numpy typing_extensions
+          pyright
+
       - name: Lint (pyproject.toml)
         run: ruff check scripts tests evals
 

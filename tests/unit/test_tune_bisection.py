@@ -32,8 +32,8 @@ def install(monkeypatch, *, lstar, fill_of=lambda l: round(l * 100), preflight=N
 
 
 def written_leading(path):
-    from vitae.verify.typst import _read_par
-    par = _read_par(path.read_text(encoding="utf-8"))
+    from vitae.verify.typst import read_par
+    par = read_par(path.read_text(encoding="utf-8"))
     assert par is not None
     return par[0]
 
@@ -46,10 +46,10 @@ class TestSuccess:
         assert code == 0 and 0.93 - 0.005 - 1e-9 <= lead <= 0.93 + 1e-9
 
     def test_spacing_keeps_the_familys_delta(self, typ, monkeypatch):
-        from vitae.verify.typst import _read_par
+        from vitae.verify.typst import read_par
         install(monkeypatch, lstar=0.93)
         T.tune(str(typ), T.FillTarget(1, 80, 99))
-        par = _read_par(typ.read_text(encoding="utf-8"))
+        par = read_par(typ.read_text(encoding="utf-8"))
         assert par is not None
         lead, spacing = par
         assert spacing - lead == pytest.approx(0.10, abs=2e-3)
@@ -140,13 +140,13 @@ class TestFailures:
     def test_under_filled_page_is_refused_with_the_underfill_footer(self, typ, monkeypatch):
         install(monkeypatch, lstar=0.95, fill_of=lambda l: 60)
         code, footer = T.tune(str(typ), T.FillTarget(1, 90, 96))
-        assert (code, footer) == (1, T._FOOTER_TUNE_UNDER)
+        assert (code, footer) == (1, T.FOOTER_TUNE_UNDER)
         assert typ.read_text(encoding="utf-8") == PAR
 
     def test_unreachable_target_restores_original_rhythm(self, typ, monkeypatch):
         install(monkeypatch, lstar=0.95, fill_of=lambda l: 99)   # overshoots fmax everywhere
         code, footer = T.tune(str(typ), T.FillTarget(1, 80, 90))
-        assert code == 1 and footer != T._FOOTER_TUNE_UNDER and typ.read_text(encoding="utf-8") == PAR
+        assert code == 1 and footer != T.FOOTER_TUNE_UNDER and typ.read_text(encoding="utf-8") == PAR
 
     def test_interrupt_mid_probe_restores_file_and_propagates(self, typ, monkeypatch):
         monkeypatch.setattr(T, "preflight", lambda: PdfCheck(True, "pypdf"))

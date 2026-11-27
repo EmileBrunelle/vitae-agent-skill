@@ -10,7 +10,7 @@ from vitae.core import env
 from vitae.core.base import DetailRow, Mark
 from vitae.core.level import Level
 from vitae.verify.groups import PROX_FAIL, check_group_proximity
-from vitae.verify.page import _xheight_band
+from vitae.verify.page import xheight_band
 from vitae.verify.pdf import typst_compile, word_boxes
 
 X_HEIGHT_ONLY = "a sure sun runs very scarce, even once"
@@ -59,4 +59,4 @@ def test_a_squeezed_layout_fails_below_the_threshold(ratio: Ratio) -> None:
     ([5, 9, 300, 310, 0, 0, 0, 290, 280, 300, 40], (7, 9)),        # a blank stretch does: the lower dense run is the band
 ])
 def test_xheight_band_across_a_rule_row(profile: list[int], band: tuple[int, int]) -> None:
-    assert _xheight_band(profile) == band
+    assert xheight_band(profile) == band

@@ -114,7 +114,7 @@ def classify(text: str, headings_set: set[str], surname: str,
     return pages_lines, stream, per_page_footer, per_page_surname
 
 
-def _canonical_headings(text: str, declared: set[str]) -> str:
+def canonical_headings(text: str, declared: set[str]) -> str:
     """Rewrite each line equal, up to case, to a heading DECLARED under `[headings]` into that heading's own
     spelling. The English defaults are never folded: they match as an exact uppercase whole line only, so a body line
     such as "Teaching" is not a heading."""

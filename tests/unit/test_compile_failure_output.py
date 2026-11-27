@@ -30,7 +30,7 @@ def test_a_compile_failure_without_advice_is_one_message() -> None:
 
 
 def test_letter_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPatch, tmp_path, capsys) -> None:
-    monkeypatch.setattr(letter, "preflight", lambda: PdfCheck(True, "x"))
+    monkeypatch.setattr(letter, "preflight", lambda: PdfCheck(True, "pypdf"))
     monkeypatch.setattr(letter, "ensure_icons", lambda typ: None)
     monkeypatch.setattr(pdf, "compile_pdf", lambda typ, out: (False, REFUSED))
     typ = tmp_path / "letter.typ"

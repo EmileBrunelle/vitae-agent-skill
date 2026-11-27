@@ -4,14 +4,14 @@ from vitae.core.env import PdfCheck
 
 
 def _letter(monkeypatch, tmp_path, text, employer, title):
-    monkeypatch.setattr(vl, "preflight", lambda: PdfCheck(True, "x"))
+    monkeypatch.setattr(vl, "preflight", lambda: PdfCheck(True, "pypdf"))
     monkeypatch.setattr(vl, "ensure_icons", lambda typ: None)
     monkeypatch.setattr(vl, "compile_or_messages", lambda typ, pdf: ("", []))
     monkeypatch.setattr(vl, "count_pages", lambda pdf, backend: "1")
     monkeypatch.setattr(vl, "extract_text", lambda pdf, backend: text)
     monkeypatch.setattr(vl, "check_hidden_text", lambda pdf: [])
     monkeypatch.setattr(vl, "make_context", lambda *a, **k: None)
-    monkeypatch.setattr(vl, "_placeholders", lambda ctx: [])
+    monkeypatch.setattr(vl, "placeholder_gate", lambda ctx: [])
     typ = tmp_path / "letter.typ"
     typ.write_text(text, encoding="utf-8")
     return vl.check_letter(str(typ), employer, title)

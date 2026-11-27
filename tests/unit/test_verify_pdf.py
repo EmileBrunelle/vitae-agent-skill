@@ -218,7 +218,7 @@ class TestWordBoxes:
     def test_boxes_unavailable_names_the_reason(self, tmp_path, backend):
         bad = tmp_path / "bad.pdf"
         bad.write_bytes(b"not a pdf")
-        msg = pdf._boxes_unavailable(str(bad))
+        msg = pdf.boxes_unavailable(str(bad))
         assert (backend == "pdfium") == ("pypdfium2 could not read the PDF" in msg)
 
 
@@ -234,7 +234,7 @@ class TestBboxPagesPoppler:
             stdout = out
         monkeypatch.setattr(pdf, "pdf_backend", lambda: "poppler")
         monkeypatch.setattr(pdf.subprocess, "run", lambda *a, **k: R())
-        assert pdf._bbox_pages("x.pdf") == [
+        assert pdf.bbox_pages("x.pdf") == [
             (100.0, 50.5, [((1.5, 2.0, 10.0, 12.0), "A&B"), ((-3.0, 2.0, 4.0, 12.0), "x")]),
             (10.0, 10.0, [])]
 
@@ -244,12 +244,12 @@ class TestBboxPagesPoppler:
             stdout = ""
         monkeypatch.setattr(pdf, "pdf_backend", lambda: "poppler")
         monkeypatch.setattr(pdf.subprocess, "run", lambda *a, **k: R())
-        assert pdf._bbox_pages("x.pdf") is None
+        assert pdf.bbox_pages("x.pdf") is None
 
         def boom(*a, **k):
             raise FileNotFoundError("pdftotext")
         monkeypatch.setattr(pdf.subprocess, "run", boom)
-        assert pdf._bbox_pages("x.pdf") is None
+        assert pdf.bbox_pages("x.pdf") is None
 
 
 # ---------------------------------------------------------------- reading order
@@ -335,12 +335,12 @@ class TestPdfUnreadable:
 
 class TestRender:
     def test_pdfium_render_size_matches_page_at_ppi(self, two_page):
-        ims = pdf._pdfium_render(two_page, 144)
+        ims = pdf.pdfium_render(two_page, 144)
         assert [im.size for im in ims] == [(400, 200)] * 2
         assert all(im.mode == "RGB" for im in ims)
 
     def test_pdfium_render_gray_and_page_selection(self, two_page):
-        ims = pdf._pdfium_render(two_page, 72, gray=True, pages=[2])
+        ims = pdf.pdfium_render(two_page, 72, gray=True, pages=[2])
         assert len(ims) == 1 and ims[0].mode == "L" and ims[0].size == (200, 100)
 
     def test_render_pages_writes_one_png_per_page(self, two_page, tmp_path):

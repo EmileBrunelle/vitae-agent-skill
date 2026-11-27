@@ -1,7 +1,7 @@
-"""_drawn_fill: the family banner is the authority for the fill target, the editable header only a witness."""
+"""drawn_fill: the family banner is the authority for the fill target, the editable header only a witness."""
 import pytest
 from vitae.design.tables import FAMILIES
-from vitae.verify.source import _drawn_fill
+from vitae.verify.source import drawn_fill
 
 FAM = next(iter(FAMILIES))
 LO, HI = (int(x) for x in FAMILIES[FAM]["page"]["fill"].split("-"))
@@ -20,6 +20,6 @@ BANNER = f"// FAMILY: {FAM}\n"
 def test_drawn_fill_target(tmp_path, body, target, warns):
     f = tmp_path / "cv.typ"
     f.write_text(body, encoding="utf-8")
-    got, w = _drawn_fill(str(f))
+    got, w = drawn_fill(str(f))
     assert got == target and len(w) == warns
     assert all(str(LO) in x and str(HI) in x for x in w)

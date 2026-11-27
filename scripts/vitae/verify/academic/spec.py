@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, NotRequired, TypeAlias, TypedDict
 
+from vitae.core.narrow import is_object_dict, is_object_list
+
 if TYPE_CHECKING:
     # type checking only: typing_extensions is never imported at run time (annotations are strings here)
     from typing_extensions import ReadOnly
@@ -71,7 +73,7 @@ def dget(d: object, path: tuple[str, ...], default: object = 0) -> object:
     """Nested dict lookup along `path`; `default` as soon as a key is absent or a level is not a dict."""
     cur = d
     for k in path:
-        if not isinstance(cur, dict) or k not in cur:
+        if not is_object_dict(cur) or k not in cur:
             return default
         cur = cur[k]
     return cur
@@ -103,7 +105,7 @@ def build_sections_spec(data: Toml) -> list[Section]:
 
 
 def _leaf_paths(table: object, prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
-    if not isinstance(table, dict):
+    if not is_object_dict(table):
         return [prefix]
     return [p for k, v in table.items() for p in _leaf_paths(v, (*prefix, k))]
 
@@ -118,7 +120,7 @@ def check_headings_table(data: Toml) -> list[Result]:
     table. A key that is not one of those, a table where a string belongs, a string where a table of subsections
     belongs, or a value that is not a non-empty string, is a FAIL naming it."""
     raw = data.get("headings", {})
-    if not isinstance(raw, dict):
+    if not is_object_dict(raw):
         return [("A", False, "[headings] must be a table")]
     known = {cpath for _, cpath, _, _ in SECTION_DEFS} | {(EXTRA_KEY,)}
     out: list[Result] = []
@@ -144,7 +146,7 @@ def printed_headings(data: Toml) -> tuple[tuple[str, ...], list[str]]:
     """(extra headings the CV prints, every declared `[headings]` string). The affiliations heading defaults to the
     English one."""
     raw = data.get("headings", {})
-    tbl: Toml = raw if isinstance(raw, dict) else {}
+    tbl: Toml = raw if is_object_dict(raw) else {}
     found = [dget(tbl, p, default=None) for p in _leaf_paths(tbl) if p]
     declared = [d for d in found if isinstance(d, str) and d.strip()]
     aff = tbl.get(EXTRA_KEY)
@@ -156,7 +158,12 @@ def declared_statuses(data: Toml) -> list[str]:
     """`[meta] entry_status`: the words the CV's author declares for entries that start with a status instead of a
     year (e.g. ["Sous presse", "Soumis"]). Absent -> [], and the gate then recognises years only."""
     meta = data.get("meta", {})
-    raw = meta.get("entry_status", []) if isinstance(meta, dict) else []
-    if not isinstance(raw, list) or not all(isinstance(w, str) for w in raw):
+    raw = meta.get("entry_status") if is_object_dict(meta) else None
+    if raw is None:
+        return []
+    if not is_object_list(raw):
         raise ValueError("[meta] entry_status must be a list of strings")
-    return raw
+    words = [w for w in raw if isinstance(w, str)]
+    if len(words) != len(raw):
+        raise ValueError("[meta] entry_status must be a list of strings")
+    return words

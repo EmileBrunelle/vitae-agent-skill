@@ -16,7 +16,7 @@ from _proximity_ref import (
 )
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from vitae.core.base import HeadMark, Mark, SecMark, Word, is_placed
+from vitae.core.base import HeadMark, Mark, SecMark, Word
 from vitae.core.level import Level
 from vitae.verify.bounds import MAX_PAGE_WORK
 from vitae.verify.groups import proximity
@@ -64,19 +64,24 @@ def _heads_and_secs(draw: st.DrawFn, n_pages: int) -> tuple[list[Mark], list[Mar
     heads: list[Mark] = []
     for _ in range(draw(st.integers(0, 6))):
         toks = draw(st.lists(st.sampled_from(_VOCAB), min_size=1, max_size=3))
-        h = HeadMark(text=" ".join(toks), page=draw(st.integers(0, n_pages + 1)), x=draw(st.sampled_from([5.0, 10.0, 40.0, 100.0, 140.0])),
-                     y=draw(st.sampled_from([0.0, 1.0, 10.0, 11.0, 20.0, 30.0, 33.0, 50.0, 70.0])))
-        h["kind"] = draw(st.sampled_from(["entry", "skill"]))
+        page = draw(st.integers(0, n_pages + 1))
+        x = draw(st.sampled_from([5.0, 10.0, 40.0, 100.0, 140.0]))
+        y = draw(st.sampled_from([0.0, 1.0, 10.0, 11.0, 20.0, 30.0, 33.0, 50.0, 70.0]))
+        kind = draw(st.sampled_from(["entry", "skill"]))
         if draw(st.booleans()):
-            h["org"] = " ".join(draw(st.lists(st.sampled_from(_VOCAB), min_size=1, max_size=2)))
-        heads.append(h)
+            org = " ".join(draw(st.lists(st.sampled_from(_VOCAB), min_size=1, max_size=2)))
+            heads.append(HeadMark(text=" ".join(toks), page=page, x=x, y=y, kind=kind, org=org))
+        else:
+            heads.append(HeadMark(text=" ".join(toks), page=page, x=x, y=y, kind=kind))
     secs: list[Mark] = []
     for _ in range(draw(st.integers(0, 3))):
-        s = SecMark(text=draw(st.sampled_from(_VOCAB)), page=draw(st.integers(0, n_pages + 1)),
-                    y=draw(st.sampled_from([0.0, 10.0, 20.0, 40.0, 60.0])))
+        text = draw(st.sampled_from(_VOCAB))
+        page = draw(st.integers(0, n_pages + 1))
+        y = draw(st.sampled_from([0.0, 10.0, 20.0, 40.0, 60.0]))
         if draw(st.booleans()):
-            s["x"] = draw(st.sampled_from([5.0, 10.0, 100.0]))
-        secs.append(s)
+            secs.append(SecMark(text=text, page=page, y=y, x=draw(st.sampled_from([5.0, 10.0, 100.0]))))
+        else:
+            secs.append(SecMark(text=text, page=page, y=y))
     return heads, secs
 
 
@@ -181,7 +186,7 @@ def test_check_group_proximity_measures_a_page_at_the_declared_size() -> None:
 def test_a_head_on_a_page_outside_the_document_is_skipped_not_read_from_the_last_page(page: int) -> None:
     heads, pages = _cv_words(3)
     assert proximity.measure_groups(heads, [], pages)[0]         # the same heads on page 1 do measure (not vacuous)
-    moved: list[Mark] = [head_mark(h["y"], h["x"], page, h["text"]) for h in heads if is_placed(h)]
+    moved: list[Mark] = [head_mark(y, x, page, h["text"]) for h in heads if (y := h.get("y")) is not None and (x := h.get("x")) is not None]
 
     rows, skipped = proximity.measure_groups(moved, [], pages)
 

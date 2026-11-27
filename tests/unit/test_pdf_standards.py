@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 from _paths import ROOT
 from pypdf import PdfReader
+from pypdf.generic import StreamObject
 from vitae.verify import hexstrings, pdf
 
 # 52 distinct glyphs: the 40th and 41st get the codes 0x28/0x29, so the raw content stream has nested parentheses and
@@ -36,8 +37,10 @@ def _write(tmp_path: Path, src: str, name: str = "a") -> Path:
 
 def declaration(path: Path) -> dict[str, object]:
     """What a PDF declares about being accessible/archival: structure tree, marked content, language, title, XMP parts."""
-    root = PdfReader(str(path)).trailer["/Root"]
-    xmp = root["/Metadata"].get_object().get_data().decode("utf-8")
+    root = PdfReader(str(path)).root_object
+    metadata = root["/Metadata"].get_object()
+    assert isinstance(metadata, StreamObject)
+    xmp = metadata.get_data().decode("utf-8")
     mark = root.get("/MarkInfo")
     return {
         "struct": "/StructTreeRoot" in root,

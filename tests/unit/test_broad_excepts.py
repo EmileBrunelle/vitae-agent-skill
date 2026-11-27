@@ -63,11 +63,11 @@ class TestPdfCharFonts:
 
     @pytest.mark.parametrize("exc", [OSError("gone"), RuntimeError("PdfiumError: bad file"), ImportError("libpdfium")])
     def test_unreadable_pdf_reads_as_cannot_check(self, monkeypatch, exc):
-        monkeypatch.setattr(layout, "_pdfium_doc", _raiser(exc))
+        monkeypatch.setattr(layout, "pdfium_doc", _raiser(exc))
         assert layout.pdf_char_fonts("x.pdf") is None
 
     def test_a_bug_in_the_scan_raises_instead_of_a_clean_gate(self, monkeypatch):
-        monkeypatch.setattr(layout, "_pdfium_doc", _raiser(KeyError("boom")))
+        monkeypatch.setattr(layout, "pdfium_doc", _raiser(KeyError("boom")))
         with pytest.raises(KeyError):
             layout.pdf_char_fonts("x.pdf")
 
@@ -245,9 +245,9 @@ class TestTextGates:
 
     def test_hidden_text_gate_warns_when_the_pypdf_scan_crashed(self, monkeypatch):
         self._use(monkeypatch, NotImplementedError("unsupported"))
-        monkeypatch.setattr(text, "_boxes_unavailable", lambda pdf: "")
-        monkeypatch.setattr(text, "_bbox_pages", lambda pdf: [])
-        monkeypatch.setattr(text, "_render_pages_png", lambda *a, **k: [])
+        monkeypatch.setattr(text, "boxes_unavailable", lambda pdf: "")
+        monkeypatch.setattr(text, "bbox_pages", lambda pdf: [])
+        monkeypatch.setattr(text, "render_pages_png", lambda *a, **k: [])
         monkeypatch.setattr(text, "check_pdf_metadata", lambda pdf: [])
         msgs = text.check_hidden_text("x.pdf")
         assert any(lvl is text.Level.WARN and m.startswith("hidden-text pypdf scan failed: NotImplementedError")

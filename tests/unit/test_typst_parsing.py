@@ -1,6 +1,6 @@
 """verify.typst: parsing of Typst source (`spacing:` argument, document body size)."""
 import pytest
-from vitae.verify.typst import _doc_body_size, _spacing_arg
+from vitae.verify.typst import _spacing_arg, doc_body_size
 
 
 @pytest.mark.parametrize("args, found, groups", [
@@ -25,4 +25,4 @@ def test_spacing_arg(args, found, groups):
     ("", None),
 ])
 def test_doc_body_size(text, expected):
-    assert _doc_body_size(text) == expected
+    assert doc_body_size(text) == expected

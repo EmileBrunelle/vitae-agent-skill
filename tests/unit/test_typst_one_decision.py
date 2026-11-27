@@ -103,7 +103,7 @@ class TestOldCliWithPythonApi:
     def test_query_goes_through_the_api(self, fake_cli, tmp_path, monkeypatch):
         log = fake_cli("0.13.1")
         _api(monkeypatch)
-        assert query._typst_values(_typ(tmp_path), "<m>") == [{"text": "from-api"}]
+        assert query.typst_values(_typ(tmp_path), "<m>") == [{"text": "from-api"}]
         assert _calls(log) == []
 
     def test_old_cli_still_answers_query_and_fonts_when_the_api_cannot(self, fake_cli, tmp_path, monkeypatch):
@@ -111,7 +111,7 @@ class TestOldCliWithPythonApi:
         log = fake_cli("0.13.1")
         _api(monkeypatch, full=False)
         assert env.typst_fonts() == ["CliFont"]
-        assert query._typst_values(_typ(tmp_path), "<m>") == [{"text": "from-cli"}]
+        assert query.typst_values(_typ(tmp_path), "<m>") == [{"text": "from-cli"}]
         assert [c.split()[0] for c in _calls(log)] == ["fonts", "query"]
 
 

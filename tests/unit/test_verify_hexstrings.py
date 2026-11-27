@@ -4,6 +4,7 @@
 The PDF is generated: the 40th and 41st distinct glyphs of a Typst document get the codes 0x28 and 0x29."""
 import builtins
 import importlib
+import importlib.metadata
 
 import pytest
 import typst

@@ -14,24 +14,24 @@ from types import FrameType
 
 import vitae.fill as measure_fill
 from vitae.core.base import (
-    _FOOTER_TUNE,
-    _FOOTER_TUNE_NOPAR,
-    _FOOTER_TUNE_UNDER,
-    _FOOTER_TUNE_WIDE,
+    FOOTER_TUNE,
+    FOOTER_TUNE_NOPAR,
+    FOOTER_TUNE_UNDER,
+    FOOTER_TUNE_WIDE,
     LEADING_WARN,
     LOWERED_FILL_FLOOR,
 )
 from vitae.core.env import PdfBackend, preflight
 from vitae.verify.pdf import compile_or_messages, compile_pdf, count_pages, render_pngs
 from vitae.verify.typst import (
-    _doc_par_list_size,
-    _par_scope,
-    _read_par,
-    _read_rhythm,
-    _rhythm_unparsed,
-    _scale_list_spacing,
-    _write_par,
-    _write_rhythm,
+    doc_par_list_size,
+    par_scope,
+    read_par,
+    read_rhythm,
+    rhythm_unparsed,
+    scale_list_spacing,
+    write_par,
+    write_rhythm,
 )
 
 # ---------- auto-tuner: the fill loop, run by bisection instead of by hand ----------
@@ -59,24 +59,24 @@ def _with_rhythm(text: str, leading: float, spacing: float) -> str:
     """text with par leading/spacing set and the list spacing scaled by leading / original leading.
 
     Read and write target the `#set par` rule the gate measures (the last column-0 one); with several
-    par rules only the list spacings after it are scaled (see _par_scope)."""
-    par = _read_par(text)
-    out = _write_par(text, leading, spacing)
+    par rules only the list spacings after it are scaled (see par_scope)."""
+    par = read_par(text)
+    out = write_par(text, leading, spacing)
     if not par or par[0] <= 0:
         return out
-    return _scale_list_spacing(out, leading / par[0], _par_scope(text))
+    return scale_list_spacing(out, leading / par[0], par_scope(text))
 
 
 def _with_gap_scale(text: str, rhythm: float) -> str:
     """text with `#let rhythm` set to `rhythm` and the gaps outside the family's pt constants scaled
     with it: par spacing = spacing x rhythm / current rhythm, numeric list spacing likewise. Leading is
     untouched. `text` must carry the rhythm line; a text without one comes back unchanged."""
-    par, cur = _read_par(text), _read_rhythm(text)
+    par, cur = read_par(text), read_rhythm(text)
     if par is None or not cur or cur <= 0:
         return text
     factor = rhythm / cur
-    out = _write_par(_write_rhythm(text, rhythm), par[0], par[1] * factor)
-    out = _scale_list_spacing(out, factor, _par_scope(text))
+    out = write_par(write_rhythm(text, rhythm), par[0], par[1] * factor)
+    out = scale_list_spacing(out, factor, par_scope(text))
     return _hold_list_gap(text, out)
 
 
@@ -89,15 +89,15 @@ def _hold_list_gap(before: str, after: str) -> str:
     """`after` with its explicit list spacing raised to leading + the gap floor when scaling pushed (list
     spacing - leading) under it. A file that already sat under the floor keeps its own gap (never worse
     than `before`); no explicit numeric list spacing leaves `after` alone. Deterministic, 3 decimals."""
-    lead0, lsp0, _ = _doc_par_list_size(before)
-    lead, lsp, _ = _doc_par_list_size(after)
+    lead0, lsp0, _ = doc_par_list_size(before)
+    lead, lsp, _ = doc_par_list_size(after)
     if lead0 is None or lsp0 is None or lead is None or lsp is None or lsp <= 0:
         return after
     floor = min(LIST_GAP_FLOOR, lsp0 - lead0)
     if lsp - lead >= floor:
         return after
     # +0.0005 so the 3-decimal rounding cannot land under the floor
-    return _scale_list_spacing(after, (lead + floor + 0.0005) / lsp, _par_scope(before))
+    return scale_list_spacing(after, (lead + floor + 0.0005) / lsp, par_scope(before))
 
 
 def _read(typ: str) -> str:
@@ -170,7 +170,7 @@ def _rhythm_phase(typ: str, original: str, expected: int, fmax: int,
     """Bisect the rhythm r in [RHYTHM_LO, RHYTHM_HI] (upper bound cut where the par spacing would pass
     SPACING_CAP, never below the current rhythm) for the largest r that holds `expected` pages with fill <= fmax.
     Returns (r, its fill); the fill is None when the floor itself fails the page count or is unmeasured."""
-    par, cur = _read_par(original), _read_rhythm(original)
+    par, cur = read_par(original), read_rhythm(original)
     if par is None or not cur or cur <= 0:
         raise ValueError("_rhythm_phase needs a par rule and a rhythm line")
     unit = par[1] / cur                                  # par spacing at rhythm 1
@@ -234,20 +234,20 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
     if not pf.ok:
         return 1, None
     allow = " --allow-placeholders" if allow_placeholders else ""   # carried into the printed follow-up commands
-    footer = _FOOTER_TUNE
+    footer = FOOTER_TUNE
     original = _read(typ)
-    cur = _read_par(original)
+    cur = read_par(original)
     if cur is None:
-        footer = _FOOTER_TUNE_NOPAR
+        footer = FOOTER_TUNE_NOPAR
         print("FAIL  no `#set par(... leading: Xem, spacing: Yem)` line to tune "
               "— the tuner edits that one declaration and nothing else")
         return 2, footer
-    rhy = _read_rhythm(original)
+    rhy = read_rhythm(original)
     if rhy is not None and rhy <= 0:
         print("FAIL  `#let rhythm = %s` must be positive: the tuner scales every gap by it; "
               "set the family's rhythm (1.000 as shipped) and run it again" % ("%g" % rhy))
         return 2, footer
-    if _rhythm_unparsed(original):
+    if rhythm_unparsed(original):
         print("NOTE  the last `#let rhythm` line is not a plain `#let rhythm = <number>`: "
               "tuning leading and spacing only, the rhythm is left alone")
     failure = _original_compile_failure(typ)
@@ -260,7 +260,7 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
         orig_l0, orig_s0 = cur
         r_text = original                     # the text the leading bisection starts from
         best_r: float | None = None
-        if _read_rhythm(original) is not None:
+        if read_rhythm(original) is not None:
             best_r, r_fill = _rhythm_phase(typ, original, expected, fmax, backend)
             if r_fill is not None and fmin <= r_fill <= fmax:
                 _write(typ, _with_gap_scale(original, best_r))
@@ -271,7 +271,7 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
                 return 0, footer
             r_text = _with_gap_scale(original, best_r)
             print("rhythm %.3f does not reach the target alone; bisecting leading at that rhythm" % best_r)
-            cur = _read_par(r_text)
+            cur = read_par(r_text)
             if cur is None:
                 _write(typ, original)
                 return 2, footer
@@ -338,7 +338,7 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
                   "(target %s-%s%%); restored the original %.3fem/%.3fem"
                   % (best, best + delta, best_fill, fmin, fmax, orig_l0, orig_s0))
             if under:
-                footer = _FOOTER_TUNE_UNDER
+                footer = FOOTER_TUNE_UNDER
                 print("      the page is UNDER-FILLED: a fact is missing, not whitespace. "
                       "Leading is capped at %.2fem (never widen the range). Add a real fact "
                       "from the candidate's facts (a bullet with a measurable result, a "
@@ -351,7 +351,7 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
                       % (cap, shlex.quote(typ), expected, fmax, allow, LOWERED_FILL_FLOOR, LOWERED_FILL_FLOOR))
             else:
                 if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
-                    footer = _FOOTER_TUNE_WIDE
+                    footer = FOOTER_TUNE_WIDE
                 print("      no leading in the searched range reaches the target at "
                       "%s page(s). Widen the range by passing the bounds "
                       "positionally after FILL_MAX, e.g.\n"

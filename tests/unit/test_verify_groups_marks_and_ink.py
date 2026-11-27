@@ -1,5 +1,5 @@
 """vitae.verify.groups on real Typst output: the `typst query` mark reader (CLI and typst-py routes) and the
-optical line-gap measure that group proximity is judged on (_page_ink_gap, on a raster of a compiled PDF)."""
+optical line-gap measure that group proximity is judged on (page_ink_gap, on a raster of a compiled PDF)."""
 import shutil
 
 import pytest
@@ -35,36 +35,36 @@ Body
 
 class TestTypstQuery:
     def test_values_of_every_labelled_element(self, tmp_path, route):
-        vals = groups._typst_values(_typ(tmp_path, MARKS), "<vitae-head>")
+        vals = groups.typst_values(_typ(tmp_path, MARKS), "<vitae-head>")
         assert vals == [{"kind": "entry", "text": "Dev", "page": 1, "x": 10.5, "y": 20},
                         {"kind": "skill", "text": "Tools", "page": 1, "x": 10, "y": 40}, "not a dict"]
 
     def test_marks_drop_everything_that_is_not_an_object(self, tmp_path, route):
-        marks = groups._typst_query(_typ(tmp_path, MARKS), "<vitae-head>")
+        marks = groups.typst_query(_typ(tmp_path, MARKS), "<vitae-head>")
         assert marks is not None
         assert [m["text"] for m in marks] == ["Dev", "Tools"]
 
     def test_no_match_is_an_empty_list_not_none(self, tmp_path, route):
-        assert groups._typst_query(_typ(tmp_path, MARKS), "<vitae-part>") == []
+        assert groups.typst_query(_typ(tmp_path, MARKS), "<vitae-part>") == []
 
     def test_a_document_that_does_not_compile_is_none(self, tmp_path, route):
-        assert groups._typst_values(_typ(tmp_path, "#let x = ("), "<vitae-head>") is None
+        assert groups.typst_values(_typ(tmp_path, "#let x = ("), "<vitae-head>") is None
 
     def test_a_sibling_import_of_the_folder_is_resolved(self, tmp_path, route):
         (tmp_path / "lib.typ").write_text('#let m() = [#metadata((text: "L")) <vitae-sec>]', encoding="utf-8")
         typ = _typ(tmp_path, '#import "lib.typ": m\n#m()')
-        assert groups._typst_query(typ, "<vitae-sec>") == [{"text": "L"}]
+        assert groups.typst_query(typ, "<vitae-sec>") == [{"text": "L"}]
 
     def test_an_import_above_the_file_needs_the_auto_root(self, tmp_path, route):
         (tmp_path / "lib.typ").write_text('#let m() = [#metadata((text: "UP")) <vitae-sec>]', encoding="utf-8")
         sub = tmp_path / "fam"
         sub.mkdir()
         typ = _typ(sub, '#import "../lib.typ": m\n#m()', "cv.typ")
-        assert groups._typst_query(typ, "<vitae-sec>") == [{"text": "UP"}]
+        assert groups.typst_query(typ, "<vitae-sec>") == [{"text": "UP"}]
 
     def test_without_cli_or_package_it_is_none(self, tmp_path, fake_typst):
         fake_typst()
-        assert groups._typst_values(_typ(tmp_path, MARKS), "<vitae-head>") is None
+        assert groups.typst_values(_typ(tmp_path, MARKS), "<vitae-head>") is None
 
 
 # ---------------------------------------------------------------- optical gap
@@ -89,7 +89,7 @@ def _line_boxes(path):
 class TestPageInkGap:
     def _gap(self, path, i=0):
         ls = _line_boxes(path)
-        return groups._page_ink_gap(path)(1, ls[i], ls[i + 1]), ls
+        return groups.page_ink_gap(path)(1, ls[i], ls[i + 1]), ls
 
     def test_the_gap_follows_the_layout_one_for_one(self, tmp_path):
         small, _ = self._gap(_pdf(tmp_path, "s", "Hello world foo\n#v(4pt)\nHello world foo"))
@@ -125,20 +125,20 @@ class TestPageInkGap:
         assert far - near == pytest.approx(20, abs=1.0)
 
     def test_without_a_raster_it_falls_back_to_the_box_gap(self, tmp_path):
-        gap = groups._page_ink_gap(str(tmp_path / "missing.pdf"))
+        gap = groups.page_ink_gap(str(tmp_path / "missing.pdf"))
         assert gap(1, [10, 50, 0, 10], [10, 50, 25.5, 35]) == 15.5
 
     def test_an_empty_pdf_path_means_box_gaps(self):
-        assert groups._page_ink_gap("")(1, [0, 10, 0, 10], [0, 10, 30, 40]) == 20
+        assert groups.page_ink_gap("")(1, [0, 10, 0, 10], [0, 10, 30, 40]) == 20
 
     def test_lines_overlapping_in_the_raster_have_no_gap(self, tmp_path):
         path = _pdf(tmp_path, "o", "Hello world foo\n#v(4pt)\nHello world foo")
         ls = _line_boxes(path)
-        assert groups._page_ink_gap(path)(1, ls[1], ls[0]) == 0.0      # lower line given above the upper one
+        assert groups.page_ink_gap(path)(1, ls[1], ls[0]) == 0.0      # lower line given above the upper one
 
     def test_a_text_line_with_no_ink_falls_back_to_the_box_gap(self, tmp_path):
         path = _pdf(tmp_path, "e", "Hello world foo\n#v(40pt)\nHello world foo")
         blank = [[20.0, 80.0, 120.0, 130.0]]                           # empty paper where no text was set
-        gap = groups._page_ink_gap(path)
+        gap = groups.page_ink_gap(path)
         up = _line_boxes(path)[0]
         assert gap(1, up, blank[0]) == blank[0][2] - up[3]

@@ -1,4 +1,4 @@
-"""The per-CV gate: header parsing, file classification, check_all, lib integrity, the new-gate runner and _check_cv.
+"""The per-CV gate: header parsing, file classification, check_all, lib integrity, the new-gate runner and check_cv.
 
 No `import verify`.
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import vitae.fill as measure_fill
 from vitae.core.base import (
-    _FOOTER_GATE,
+    FOOTER_GATE,
     LEADING_ABS_RATIO_WARN,
     LEADING_FAMILY_RATIO_WARN,
     LEADING_WARN,
@@ -31,7 +31,7 @@ from vitae.verify import placeholders
 from vitae.verify.gates import GATES, make_context
 from vitae.verify.layout import check_text_clip, check_whitespace
 from vitae.verify.pdf import (
-    _boxes_unavailable,
+    boxes_unavailable,
     compile_or_messages,
     count_pages,
     ensure_icons,
@@ -42,8 +42,8 @@ from vitae.verify.pdf import (
 )
 from vitae.verify.registry import note_extraction, run_gates
 from vitae.verify.review_record import check_review_record, layout_report_line
-from vitae.verify.source import _drawn_fill, _fill_args_ok
-from vitae.verify.typst import _doc_body_size, _doc_par_list
+from vitae.verify.source import drawn_fill, fill_args_ok
+from vitae.verify.typst import doc_body_size, doc_par_list
 
 # ---------- main gate ----------
 
@@ -131,7 +131,7 @@ def placeholders_allowed(typ: str) -> bool:
     return Path(typ).resolve().is_relative_to(placeholders.TEMPLATES.resolve())
 
 
-_ALLOW_REFUSED = "FAIL  --allow-placeholders is only for the shipped templates (a file under the skill's templates/ folder)"
+ALLOW_REFUSED = "FAIL  --allow-placeholders is only for the shipped templates (a file under the skill's templates/ folder)"
 
 
 def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = False) -> int:
@@ -155,7 +155,8 @@ def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = 
         print(f"{skipped} skipped, 0 checked" if skipped
               else f"no .typ found under {directory}")
         return 1
-    fail, unchecked = 0, []
+    fail = 0
+    unchecked: list[str] = []
     for typ in typs:
         with open(typ, encoding="utf-8") as fh:
             m = HEADER_RE.search(fh.read(4096))
@@ -212,7 +213,8 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
     skill_dir = skill_dir or os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     ref = os.path.join(skill_dir, "templates", "lib.typ")
     # Follow local #import "x.typ" chains (cv.typ -> family.typ -> lib.typ).
-    lib, shown, seen, todo = None, None, set(), [os.path.abspath(typ_path)]
+    lib, shown, todo = None, None, [os.path.abspath(typ_path)]
+    seen: set[str] = set()
     direct = False   # the CV's own file imports lib.typ (not a family file)
     while todo and lib is None:
         f = todo.pop(0)
@@ -295,7 +297,7 @@ def _family_default(family: str, pages: int) -> tuple[float, float] | None:
     d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "templates", "families", family)
     for name in (("resume-2page.typ",) if pages >= 2 else ()) + ("resume.typ",):
         try:
-            lead, lsp = _doc_par_list(Path(os.path.join(d, name)).read_text(encoding="utf-8"))
+            lead, lsp = doc_par_list(Path(os.path.join(d, name)).read_text(encoding="utf-8"))
         except OSError:
             continue
         if lead and lsp:
@@ -310,7 +312,7 @@ def _leading_warn(typ: str, pages: int = 1) -> str:
     leading check takes precedence), else ''. A WARN, never a FAIL: the page may be honestly full; the
     message points at the facts to add instead."""
     try:
-        lead, lsp = _doc_par_list(Path(typ).read_text(encoding="utf-8"))
+        lead, lsp = doc_par_list(Path(typ).read_text(encoding="utf-8"))
     except OSError:
         return ""
     if lead is None:
@@ -346,7 +348,7 @@ _BODY_SIZE_WARN = ("WARN  body text {z:g}pt (shipped templates stay at 10.5-11pt
 def _body_size_warn(typ: str) -> str:
     """The WARN line when cv.typ's top-level body text size is above BODY_SIZE_WARN, else ''."""
     try:
-        size = _doc_body_size(Path(typ).read_text(encoding="utf-8"))
+        size = doc_body_size(Path(typ).read_text(encoding="utf-8"))
     except OSError:
         return ""
     if size is not None and size > BODY_SIZE_WARN + 1e-9:
@@ -362,7 +364,7 @@ class PageTarget:
     fmax: str | None = None
 
 
-def _check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_placeholders: bool = False,
+def check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_placeholders: bool = False,
               rebuild: bool = False) -> tuple[int, str | None]:
     """The one-file gate: cv.typ PAGES [FILL_MIN FILL_MAX] [--facts facts.md]. Returns (exit code,
     footer): 0 on PASS and 1 on any FAIL, after printing every line so one run lists every fix; the
@@ -373,15 +375,15 @@ def _check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_p
     fail = 0
     footer: str | None = None
     if allow_placeholders and not placeholders_allowed(typ):
-        print(_ALLOW_REFUSED)
+        print(ALLOW_REFUSED)
         allow_placeholders, fail = False, 1
     allow = " --allow-placeholders" if allow_placeholders else ""
     # The drawn fill target lives in the cv.typ header; the command line may
     # not quietly lower it (a lowered target is a WARN carried to the PASS line).
     # The leading and body-size WARNs print up front and again after PASS, where they are read.
-    if not _fill_args_ok(fmin, fmax):
+    if not fill_args_ok(fmin, fmax):
         return 1, footer
-    drawn, drawn_warns = _drawn_fill(typ)
+    drawn, drawn_warns = drawn_fill(typ)
     for w in drawn_warns:
         print(w)
     lead_warn = _leading_warn(typ, int(expected) if str(expected).isdigit() else 1)
@@ -407,7 +409,7 @@ def _check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_p
     backend = pf.backend
     if not pf.ok:
         return 1, footer
-    footer = _FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
+    footer = FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
 
     for level, msg in check_lib_integrity(typ):
         print(f"{level}  {msg}")
@@ -483,7 +485,7 @@ def _check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_p
                 print(f"INFO  fill: {path}: {result} (target = (100 - bottom-margin%) - 0..2%)")
             boxes = pages_boxes[i] if pages_boxes and i < len(pages_boxes) else None
             if pages_text is None and i == 0:
-                print(f"WARN  text-clip gate skipped: {_boxes_unavailable(pdf)}")
+                print(f"WARN  text-clip gate skipped: {boxes_unavailable(pdf)}")
             for msg in check_text_clip(path, pages_text[i] if pages_text and i < len(pages_text) else None):
                 print("FAIL  " + msg)
                 fail = 1

@@ -16,12 +16,10 @@ _coord = st.integers(0, 12).map(float)
 @st.composite
 def _mark(draw: st.DrawFn) -> Mark:
     kind = draw(st.sampled_from(["bullet", "entry", "skill", "part", None]))
-    mark = Mark(text="t", page=draw(st.integers(1, 2)), x=draw(_coord), y=draw(_coord))
-    if kind is not None:
-        mark["kind"] = kind
-    if draw(st.booleans()) and draw(st.integers(0, 4)) == 0:
-        del mark["x"]          # a partial mark carries no position
-    return mark
+    page, x, y = draw(st.integers(1, 2)), draw(_coord), draw(_coord)
+    if draw(st.booleans()) and draw(st.integers(0, 4)) == 0:     # a partial mark carries no position
+        return Mark(text="t", page=page, y=y) if kind is None else Mark(text="t", page=page, y=y, kind=kind)
+    return Mark(text="t", page=page, x=x, y=y) if kind is None else Mark(text="t", page=page, x=x, y=y, kind=kind)
 
 
 @settings(max_examples=800, deadline=None)

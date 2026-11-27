@@ -1,12 +1,12 @@
 """Design emit: the Typst preamble for a drawn recipe."""
 from __future__ import annotations
 
-from vitae.design.fonts import _installed
+from vitae.design.fonts import installed_face
 from vitae.design.pick import Pick
 from vitae.design.tables import FONTS, Font, Page
 
 
-def _chain(pool: list[Font], drawn: Font, role: str,
+def font_chain(pool: list[Font], drawn: Font, role: str,
            have: set[str] | None = None) -> str:
     """Typst font fallback chain: the drawn face first, then the rest of the
     family's own pool, and always ENDING on a face a standard Linux font set
@@ -15,16 +15,16 @@ def _chain(pool: list[Font], drawn: Font, role: str,
     if have is not None:                # font check on: emit installed names only
         inst = [drawn[0]]               # the chosen face is always kept
         for n, _ in pool:
-            got = _installed(n, have)
+            got = installed_face(n, have)
             if got and got not in inst:
                 inst.append(got)
         names = inst
     tail = "DejaVu Sans Mono" if role == "mono" else "Noto Sans"
     if not any(("local" in prov or "Linux:" in prov) for n, prov in pool
-               if n in names or _installed(n, have or set()) in names):
+               if n in names or installed_face(n, have or set()) in names):
         if have is None:
             names.append(tail)
-        elif (inst_tail := _installed(tail, have)):
+        elif (inst_tail := installed_face(tail, have)):
             names.append(inst_tail)
     return "(" + ", ".join('"%s"' % n for n in names) + ")"
 
@@ -42,7 +42,7 @@ def _icon_colour(icons: str) -> str:
     return "ink"
 
 
-def _vitae_header(pg: Page) -> str:
+def vitae_header(pg: Page) -> str:
     """The FIRST line of a drawn cv.typ: verify.py reads the drawn fill target
     from it, so a lowered target on the command line cannot pass unnoticed."""
     return "// vitae: pages=1 fill=%s" % pg["fill"]
@@ -61,9 +61,10 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
     lo, hi = pg["fill"].split("-")
     try:                                  # the duotone hue jobs live next door
         from vitae.palette import DUOTONE
+        duotone: dict[str, tuple[str, str, str]] = DUOTONE
     except ImportError:
-        DUOTONE = {}
-    o = [_vitae_header(pg),
+        duotone = {}
+    o = [vitae_header(pg),
          "// %s — %s / %s, drawn for key %r"
          % (p.family, p.career, market, p.key),
          "// PREAMBLE ONLY. The hand-off is TWO files: this .typ and lib.typ "
@@ -80,7 +81,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
          "",
          "// ---------- Palette (scripts/gen_palette.py validates every "
          "contrast) ----------"]
-    jobs = DUOTONE.get(p.family)
+    jobs = duotone.get(p.family)
     o.append('#let accent = rgb("%s")%s' % (
         p.accent, "        // hue A — %s" % jobs[1] if jobs else ""))
     if p.accent2:
@@ -95,12 +96,12 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "#let dark = pal.dark        // body ink",
           "",
           "// ---------- Type: %s ----------" % p.font_register,
-          "#let bodyf = %s" % _chain(fp["body"], p.body, "body", p.have),
-          "#let dispf = %s" % _chain(fp["display"], p.display, "display", p.have)]
+          "#let bodyf = %s" % font_chain(fp["body"], p.body, "body", p.have),
+          "#let dispf = %s" % font_chain(fp["display"], p.display, "display", p.have)]
     mono_pool = fp.get("mono")
     if p.mono and mono_pool is not None:
         o.append("#let monof = %s   // ALL metadata sits in this face"
-                 % _chain(mono_pool, p.mono, "mono", p.have))
+                 % font_chain(mono_pool, p.mono, "mono", p.have))
     col = _icon_colour(d["icons"])
     o += ["",
           "// ---------- Contact icons + platform marks ----------",

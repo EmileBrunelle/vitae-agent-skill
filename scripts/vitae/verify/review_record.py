@@ -2,7 +2,7 @@
 
 Objective checks only (file exists and is fresh, declared runtime, core personas named, a layout line, every finding
 resolved as applied or rejected with a reason); whether the review was any good is not judged. The format is
-documented in references/steps/7-review.md. Run by `cv._check_cv` after every mechanical gate passed.
+documented in references/steps/7-review.md. Run by `cv.check_cv` after every mechanical gate passed.
 """
 from __future__ import annotations
 

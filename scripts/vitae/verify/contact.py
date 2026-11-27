@@ -10,7 +10,8 @@ from __future__ import annotations
 import itertools
 
 from vitae.core.level import Finding, Level
-from vitae.verify.groups.query import _is_num
+from vitae.core.narrow import is_object_dict
+from vitae.verify.groups.query import is_num
 
 ROW_GAP = 4.0   # pt: items of one row share a baseline (within ~1pt); the closest designed rows are ~10pt apart
 
@@ -19,10 +20,10 @@ def _item_ys(values: list[object]) -> dict[int, list[float]]:
     """The y of every tagged contact item, per page (a value that is not a placed item is dropped)."""
     by_page: dict[int, list[float]] = {}
     for v in values:
-        if not isinstance(v, dict):
+        if not is_object_dict(v):
             continue
         page, y = v.get("page"), v.get("y")
-        if isinstance(page, int) and _is_num(y) and isinstance(y, (int, float)):
+        if isinstance(page, int) and is_num(y) and isinstance(y, (int, float)):
             by_page.setdefault(page, []).append(float(y))
     return by_page
 
@@ -39,8 +40,8 @@ def _declared_rows(values: list[object]) -> tuple[int, str | None]:
     declared: list[int] = []
     bad: list[object] = []
     for v in values:
-        n = v.get("rows") if isinstance(v, dict) else None
-        if _is_num(n) and isinstance(n, (int, float)) and n == int(n) and n >= 1:
+        n = v.get("rows") if is_object_dict(v) else None
+        if is_num(n) and isinstance(n, (int, float)) and n == int(n) and n >= 1:
             declared.append(int(n))
         else:
             bad.append(n)

@@ -5,7 +5,7 @@ import re
 import sys
 from dataclasses import dataclass
 
-from vitae.design.fonts import _family_usable, _fonts_available, _pick_font
+from vitae.design.fonts import family_usable, fonts_available, pick_font
 from vitae.design.tables import (
     CAREER,
     DOMAIN_REGISTER,
@@ -18,7 +18,7 @@ from vitae.design.tables import (
     Audacity,
     Family,
     Font,
-    _idx,
+    table_index,
 )
 
 
@@ -111,7 +111,7 @@ def pick(req: PickRequest) -> Pick:
     if not any(_field_has(req.field, t) for t in GUTTER_RAIL_DOMAIN):
         hard = [f for f in hard if f != "gutter-rail"]
     have = req.have_fonts if req.have_fonts is not None else (
-        _fonts_available() if req.check_fonts else None)
+        fonts_available() if req.check_fonts else None)
     # In an offline sandbox (--offline), restrict `hard` to families whose font
     # roles all have at least one locally installed face (when at least one
     # eligible family is usable), so the draw never lands on a family whose
@@ -121,7 +121,7 @@ def pick(req: PickRequest) -> Pick:
         print("warning: --offline is ignored with --no-font-check (no installed-font "
               "list to filter by); drawing from the full pool", file=sys.stderr)
     elif req.offline and have is not None:
-        usable = [f for f in hard if _family_usable(f, have)]
+        usable = [f for f in hard if family_usable(f, have)]
         if usable:
             hard = usable
         else:
@@ -153,33 +153,33 @@ def pick(req: PickRequest) -> Pick:
                 pool.append(f)
     eligible = sorted(pool)
 
-    fam = eligible[_idx(key, len(eligible))]
+    fam = eligible[table_index(key, len(eligible))]
     d = FAMILIES[fam]
-    ai = _idx(key, len(d["accents"]), "accent|")
+    ai = table_index(key, len(d["accents"]), "accent|")
     fp = FONTS[fam]
-    disp, _, disp_note = _pick_font(fp["display"], key, "display|", have)
-    body, _, body_note = _pick_font(fp["body"], key, "body|", have)
+    disp, _, disp_note = pick_font(fp["display"], key, "display|", have)
+    body, _, body_note = pick_font(fp["body"], key, "body|", have)
     mono = mono_note = None
     if "mono" in fp:                    # optional third role
-        mono, _, mono_note = _pick_font(fp["mono"], key, "mono|", have)
+        mono, _, mono_note = pick_font(fp["mono"], key, "mono|", have)
     # a family MAY declare its own variant axis (only gutter-rail does: the
     # square-vs-pill segment binary its current documents). Drawn from the same
     # hash, so it stays deterministic per candidate like everything else.
     variant = None
     if "variants" in d:
-        variant = d["variants"][_idx(key, len(d["variants"]), "variant|")]
+        variant = d["variants"][table_index(key, len(d["variants"]), "variant|")]
     lab: dict[str, str] = {}
     for role, default in (("profile", d["labels"]["profile"]), ("skills", d["labels"]["skills"])):
         # the family's own default is in the pool, so it can be drawn back.
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
-        lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
+        lab[role] = opts[table_index(key, len(opts), "label|%s|" % role)]
     return Pick(key=key, family=fam, have=have, offline=req.offline, eligible=eligible, recipe=d,
                 mono=mono, mono_note=mono_note, variant=variant,
                 career=req.career, domain=dom or "none, full pool", audacity=audacity,
                 accent=d["accents"][ai],
                 accent2=d.get("accents2", [None] * len(d["accents"]))[ai],
-                marker=d["markers"][_idx(key, len(d["markers"]), "marker|")],
-                markset=MARK_SETS[_idx(key, len(MARK_SETS), "markset|")],
+                marker=d["markers"][table_index(key, len(d["markers"]), "marker|")],
+                markset=MARK_SETS[table_index(key, len(MARK_SETS), "markset|")],
                 labels=lab, font_register=fp["register"],
                 display=disp, display_note=disp_note,
                 body=body, body_note=body_note)

@@ -8,7 +8,6 @@ import contextlib
 import functools
 import importlib
 import importlib.metadata
-import importlib.util
 import inspect
 import io
 import json
@@ -27,6 +26,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Literal, TextIO, TypeAlias
 
+from vitae.core.narrow import is_object_list, is_object_tuple
+
 # ---------- dependency preflight ("doctor") ----------
 
 # The PEP 723 reference regex (packaging.python.org, "Inline script metadata"): the `# /// script` block of an entry script.
@@ -42,7 +43,7 @@ def pep723_requirements(text: str) -> tuple[str, ...]:
             lines = m.group("content").splitlines(keepends=True)
             meta = tomllib.loads("".join(ln[2:] if ln.startswith("# ") else ln[1:] for ln in lines))
             deps = meta.get("dependencies", [])
-            return tuple(str(d) for d in deps) if isinstance(deps, list) else ()
+            return tuple(str(d) for d in deps) if is_object_list(deps) else ()
     return ()
 
 
@@ -331,17 +332,17 @@ def check_fonts() -> None:
     """Doctor line for fonts (typst CLI or typst-py; local, no network, 20 s cap).
 
     Reuses pick_design's own logic: a design family is usable when every role of
-    its pool has at least one installed member (`_installed`). pick_design
+    its pool has at least one installed member (`installed_face`). pick_design
     draws from at least MIN_POOL families, so fewer usable ones means it will
     substitute."""
     import vitae.design.fonts as design_fonts
     from vitae.design.tables import FONTS, MIN_POOL
-    have = design_fonts._fonts_available()
+    have = design_fonts.fonts_available()
     if have is None:
         print("WARN  fonts not checked (`typst fonts` failed or timed out)")
         return
     pools = FONTS
-    usable = sum(1 for f in pools if design_fonts._family_usable(f, have))
+    usable = sum(1 for f in pools if design_fonts.family_usable(f, have))
     if usable < MIN_POOL:
         print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
               f"(pick_design draws from at least {MIN_POOL}), so it will substitute.")
@@ -456,8 +457,8 @@ def _typst_py_probe() -> TypstPyProbe:
             with open(src, "w", encoding="utf-8") as fh:
                 fh.write("#set page(width: 50pt, height: 50pt)\nprobe\n")
             comp = mod.Compiler(src, **typst_font_kw())
-            res = comp.compile_with_warnings()
-            doc = res[0] if isinstance(res, tuple) else res      # (pdf bytes, warnings)
+            res: object = comp.compile_with_warnings()
+            doc = res[0] if is_object_tuple(res) else res      # (pdf bytes, warnings)
             if not isinstance(doc, bytes | bytearray) or not doc.startswith(b"%PDF"):
                 return TypstPyProbe(None, "", "compiling a one-line document returned no PDF", False)
         ver = str(getattr(mod, "__version__", "?"))

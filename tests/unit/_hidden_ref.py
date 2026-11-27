@@ -10,7 +10,7 @@ from PIL import Image
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
 from vitae.core.colour import rel_luminance as _lum
 from vitae.core.pixels import colour_counts
-from vitae.verify.pdf import _bbox_pages
+from vitae.verify.pdf import bbox_pages
 from vitae.verify.text import HIDDEN_PAD_PX
 
 
@@ -24,7 +24,7 @@ def hidden_word_stats_per_colour(pdf: str, pages: list[tuple[float, float, list[
     direction (dark ink on light, light ink on dark). White text on white paper, text in
     the band's colour, text under an opaque shape: a flat box, ratio 1.0. None when no
     raster is available."""
-    pages = _bbox_pages(pdf) if pages is None else pages
+    pages = bbox_pages(pdf) if pages is None else pages
     out: list[HiddenStat] = []
     sc = HIDDEN_PPI / 72.0
     for pno, (pw, ph, items) in enumerate(pages or [], 1):

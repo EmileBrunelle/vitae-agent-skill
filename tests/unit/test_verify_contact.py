@@ -82,13 +82,13 @@ def test_count_rows(ys, n):
 
 
 def _query_count(tmp_path, body, label="<vitae-contact>"):
-    from vitae.verify.groups.query import _typst_values
+    from vitae.verify.groups.query import typst_values
     for name in ("lib.typ", "icons.typ"):
         shutil.copy(TEMPLATES / name, tmp_path / name)
     typ = tmp_path / "q.typ"
     typ.write_text('#import "lib.typ": nb, contact, contact-rows, drawn-marker\n#set page(width: 300pt, height: 120pt)\n'
                    f"{body}\n", encoding="utf-8")
-    vals = _typst_values(str(typ), label, str(tmp_path))
+    vals = typst_values(str(typ), label, str(tmp_path))
     assert vals is not None
     return len(vals)
 
@@ -122,8 +122,8 @@ def test_a_verify_runs_one_typst_query_for_all_labels(tmp_path, monkeypatch):
     """The marks, the bullets and both contact labels come from ONE query (one compile), not three."""
     from vitae.verify.groups import query
     calls = []
-    real = query._typst_values
-    monkeypatch.setattr(query, "_typst_values", lambda typ, sel, root=None: calls.append(sel) or real(typ, sel, root))
+    real = query.typst_values
+    monkeypatch.setattr(query, "typst_values", lambda typ, sel, root=None: calls.append(sel) or real(typ, sel, root))
     out = _check(tmp_path, _items(["Montreal", "555-0100", "me@x.org"]))
     assert out[0][0] == Level.OK
     assert len(calls) == 1
@@ -133,8 +133,8 @@ def test_a_verify_runs_one_typst_query_for_all_labels(tmp_path, monkeypatch):
 @pytest.mark.parametrize("rel", ["resume.typ", "families/engraved-card/resume.typ"])
 def test_every_header_contact_item_is_tagged(tmp_path, rel):
     """City, phone, mail, profile or portfolio: four tagged items, so a wrap of any of them is seen."""
-    from vitae.verify.groups.query import _typst_values
-    vals = _typst_values(str(TEMPLATES / rel), "<vitae-contact>", str(ROOT))
+    from vitae.verify.groups.query import typst_values
+    vals = typst_values(str(TEMPLATES / rel), "<vitae-contact>", str(ROOT))
     assert vals is not None and len(vals) == 4
 
 
@@ -144,8 +144,8 @@ def test_contact_is_recognised_by_its_explicit_kind_only(tmp_path, monkeypatch):
     shaped = {"text": "", "page": 1, "x": 5.0, "y": 10.0}
     tagged = {"kind": "contact", "text": "", "page": 1, "x": 5.0, "y": 10.0}
     decl = {"kind": "contact-rows", "rows": 2}
-    monkeypatch.setattr(query, "_typst_values", lambda *a, **k: [shaped, tagged, decl, {"page": 1, "y": 3.0}])
-    marks, note, contact = query._typst_marks_and_contact("x.typ", "sel")
+    monkeypatch.setattr(query, "typst_values", lambda *a, **k: [shaped, tagged, decl, {"page": 1, "y": 3.0}])
+    marks, note, contact = query.typst_marks_and_contact("x.typ", "sel")
     assert contact is not None
     assert contact.items == [tagged]
     assert contact.rows == [decl]
@@ -159,7 +159,7 @@ def test_contact_rows_accepts_a_whole_number_float(tmp_path):
 
 
 def test_contact_rows_declaration_unreadable_is_warn():
-    items = [{"kind": "contact", "page": 1, "y": 10.0}]
+    items: list[object] = [{"kind": "contact", "page": 1, "y": 10.0}]
     for bad in (2.5, 0, "2", None):
         out = check_contact_line(items, [{"kind": "contact-rows", "rows": bad}])
         assert out[0][0] == Level.WARN and "contact-rows" in out[0][1]

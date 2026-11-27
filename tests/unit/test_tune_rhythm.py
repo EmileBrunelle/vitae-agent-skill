@@ -7,16 +7,16 @@ import pytest
 from vitae.core.env import PdfCheck
 from vitae.verify import tune as T
 from vitae.verify.typst import (
-    _doc_par_list,
-    _read_par,
-    _read_rhythm,
-    _write_par,
+    doc_par_list,
+    read_par,
+    read_rhythm,
+    write_par,
 )
 
 
 def _doc_leading(text):
-    """The gate's leading reader: the first of `_doc_par_list`."""
-    return _doc_par_list(text)[0]
+    """The gate's leading reader: the first of `doc_par_list`."""
+    return doc_par_list(text)[0]
 
 
 pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
@@ -47,7 +47,7 @@ def install(monkeypatch, *, breakat=1000.0, weights=(50, 50), log=None, prefligh
 
     def probe(typ, candidate, expected, backend):
         Path(typ).write_text(candidate, encoding="utf-8")
-        r = _read_rhythm(candidate) or 1.0
+        r = read_rhythm(candidate) or 1.0
         lead = _doc_leading(candidate)
         assert lead is not None
         if log is not None:
@@ -59,9 +59,9 @@ def install(monkeypatch, *, breakat=1000.0, weights=(50, 50), log=None, prefligh
 
 def state(path):
     text = path.read_text(encoding="utf-8")
-    par = _read_par(text)
+    par = read_par(text)
     assert par is not None
-    return _read_rhythm(text), par, _doc_par_list(text)[1]
+    return read_rhythm(text), par, doc_par_list(text)[1]
 
 
 class TestRhythmPhase:
@@ -101,7 +101,7 @@ class TestRhythmPhase:
         code, _ = T.tune(str(p), T.FillTarget(1, 100, 102))
         _r, (_, spacing), _ = state(p)
         assert code == 0 and spacing <= T.SPACING_CAP + 1e-3
-        assert max(_read_rhythm(c) or 0 for c in log) <= T.SPACING_CAP / 1.1 + 1e-9
+        assert max(read_rhythm(c) or 0 for c in log) <= T.SPACING_CAP / 1.1 + 1e-9
 
     def test_unreachable_target_restores_every_byte_including_the_rhythm_line(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
@@ -146,7 +146,7 @@ class TestRhythmPhase:
         log = []
         install(monkeypatch, log=log)
         T.tune(str(p), T.FillTarget(1, 900, 1000))                           # unreachable: only the probes matter
-        top = max(_read_rhythm(c) or 0 for c in log)
+        top = max(read_rhythm(c) or 0 for c in log)
         assert T.SPACING_CAP - 0.01 <= top <= T.SPACING_CAP + 1e-9   # unit spacing is 1.0em, so r stops at 1.24
 
 
@@ -159,9 +159,9 @@ class TestNoRhythmLine:
         out = p.read_text(encoding="utf-8")
         assert code == 0 and "rhythm" not in out and "rhythm" not in capsys.readouterr().out
         assert all("rhythm" not in c for c in log)
-        lead, spacing = _read_par(out) or (0, 0)
+        lead, spacing = read_par(out) or (0, 0)
         assert lead > 0.8 and spacing - lead == pytest.approx(0.1, abs=2e-3)
-        assert _doc_par_list(out)[1] == pytest.approx(0.5 * lead / 0.8, abs=2e-3)
+        assert doc_par_list(out)[1] == pytest.approx(0.5 * lead / 0.8, abs=2e-3)
 
     def test_a_rhythm_line_inside_a_block_comment_does_not_count(self, tmp_path, monkeypatch):
         text = "/*\n#let rhythm = 1.000\n*/\n" + OLD_FILE
@@ -182,16 +182,16 @@ class TestNoRhythmLine:
 
 class TestTwoParRules:
     def test_write_targets_the_line_the_gate_reads(self):
-        out = _write_par(TWO_PAR, 0.75, 0.85)
-        assert _doc_leading(out) == 0.75 and _read_par(out) == (0.75, 0.85)
+        out = write_par(TWO_PAR, 0.75, 0.85)
+        assert _doc_leading(out) == 0.75 and read_par(out) == (0.75, 0.85)
         assert "leading: 0.527em, spacing: 0.607em" in out        # page 1's declaration untouched
 
     def test_read_returns_the_last_rule(self):
-        assert _read_par(TWO_PAR) == (0.7, 0.8)
+        assert read_par(TWO_PAR) == (0.7, 0.8)
 
     def test_a_last_rule_the_tuner_cannot_rewrite_is_refused_not_misdirected(self):
         text = TWO_PAR + "#set par(leading: 14pt)\n"
-        assert _read_par(text) is None and _write_par(text, 0.9, 1.0) == text
+        assert read_par(text) is None and write_par(text, 0.9, 1.0) == text
 
     def test_tuned_value_lands_on_the_measured_line(self, tmp_path, monkeypatch):
         p = write(tmp_path, TWO_PAR)
@@ -208,4 +208,4 @@ class TestTwoParRules:
         out = p.read_text(encoding="utf-8")
         lead = _doc_leading(out) or 0
         assert "#set list(spacing: 0.400em)" in out
-        assert _doc_par_list(out)[1] == pytest.approx(0.6 * lead / 0.7, abs=2e-3)
+        assert doc_par_list(out)[1] == pytest.approx(0.6 * lead / 0.7, abs=2e-3)

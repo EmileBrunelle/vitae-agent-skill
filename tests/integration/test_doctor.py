@@ -129,7 +129,7 @@ class TestPipOnly:
         """Any DEGRADED line (here: fonts) withholds the OK (Python) summary."""
         d = doctor_env(out_dir / "doctor-sim-degfonts", ["python3"])
         code = ("import sys; sys.path.insert(0, 'scripts')\nimport vitae.design.fonts as design_fonts\n"
-                "from vitae.core.env import preflight\ndesign_fonts._fonts_available = lambda: {'DejaVu Sans'}\npreflight()")
+                "from vitae.core.env import preflight\ndesign_fonts.fonts_available = lambda: {'DejaVu Sans'}\npreflight()")
         r = run_check("doctor-degraded-no-ok", [sys.executable, "-c", code], scratch, {"PATH": str(d / "bin")}, log_dir)
         assert grep(r.output, r"^DEGRADED  fonts"), f"no DEGRADED fonts line\n{r.output}"
         assert not grep(r.output, r"^OK \(Python\)"), "OK (Python) after a DEGRADED line"

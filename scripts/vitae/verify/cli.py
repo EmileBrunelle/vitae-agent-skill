@@ -19,7 +19,7 @@ Usage:
 are agent-facing helpers; their usage text is in main(). That function also owns the usage text of every
 mode: it is what a usage error and --help print, and this docstring is not printed anywhere.
 
-Gate order for one CV (`_check_cv`; every line is printed as OK, WARN, FAIL or INFO, and the exit code is 1 if any
+Gate order for one CV (`check_cv`; every line is printed as OK, WARN, FAIL or INFO, and the exit code is 1 if any
 was a FAIL): dependency preflight, lib.typ integrity, compile, page count, then per rendered page the fill, the
 text-clip gate and the whitespace structure; template-default markers; the checks on the extracted text (spaced
 capitals, orphaned dates, no section split across a page break, --facts coverage of years and numbers,
@@ -86,13 +86,13 @@ from pathlib import Path
 from typing import NoReturn
 
 from vitae.core import profiling
-from vitae.core.base import _FOOTER_GATE, HIDDEN_PPI, DetailRow
+from vitae.core.base import FOOTER_GATE, HIDDEN_PPI, DetailRow
 from vitae.core.env import pdf_backend, preflight
-from vitae.verify.cv import _ALLOW_REFUSED, PageTarget, _check_cv, check_all, placeholders_allowed
+from vitae.verify.cv import ALLOW_REFUSED, PageTarget, check_all, check_cv, placeholders_allowed
 from vitae.verify.gates import LAYOUT_GATES, make_context
 from vitae.verify.pdf import extract_text, pdf_unreadable, render_crops, render_pages
 from vitae.verify.registry import run_gates
-from vitae.verify.source import _fill_args_ok
+from vitae.verify.source import fill_args_ok
 from vitae.verify.tune import FillTarget, LeadingBounds, tune
 
 
@@ -143,7 +143,7 @@ def main() -> tuple[int, str | None]:
     --doctor, --tune; anything else is the one-file gate. Modes that need no
     cv.typ (--doctor, --render, --text) come before the positional parsing, which
     would otherwise reject them for a missing `typ`. Every mode ends in sys.exit, except the
-    gate modes, which return (exit code, footer): the footer is the NEXT line `_run` prints last
+    gate modes, which return (exit code, footer): the footer is the NEXT line `run_cli` prints last
     on a non-zero exit, None until the mode's preflight passed."""
     argv = sys.argv[1:]
     if [a for a in argv if a != "--json"][:1] in (["-h"], ["--help"]):   # before --json: help is not a usage error
@@ -180,7 +180,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         rc = run_gates(LAYOUT_GATES, make_context(ga.typ, ga.pdf, extract_text(ga.pdf, backend), src, backend,
                                                   root=ga.root, detail=rows))
         print("DETAIL " + json.dumps(rows))
-        return rc, _FOOTER_GATE
+        return rc, FOOTER_GATE
     if argv and argv[0] in ("--render", "--text"):
         # agent-facing look/read helpers, so no instruction has to name pdftoppm or pdftotext
         ap = _Parser("usage: verify.py --render cv.pdf [--out DIR] [--ppi N] [--crops]   one PNG per page, <stem>-p<N>.png\n"
@@ -231,13 +231,13 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         ap.add_argument("hi", nargs="?")
         # the placeholder gate is not part of --tune; the flag is only carried into the follow-up commands it prints
         ta = ap.parse_known_args(["--"] + [a for a in argv[1:] if a != "--allow-placeholders"])[0]
-        if not _fill_args_ok(ta.pages, ta.fill_min, ta.fill_max):
+        if not fill_args_ok(ta.pages, ta.fill_min, ta.fill_max):
             sys.exit(1)
         # LO alone is ignored: the bounds come as a pair or not at all
         bounds = ((float(ta.lo), float(ta.hi)) if ta.hi is not None else (None, None))
         allow = "--allow-placeholders" in argv
         if allow and not placeholders_allowed(ta.typ):
-            print(_ALLOW_REFUSED)
+            print(ALLOW_REFUSED)
             sys.exit(1)
         return tune(ta.typ, FillTarget(int(ta.pages), int(ta.fill_min), int(ta.fill_max)),
                     LeadingBounds(lo=bounds[0], hi=bounds[1]), allow_placeholders=allow)
@@ -259,11 +259,11 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
     ap.add_argument("fill_min", nargs="?")
     ap.add_argument("fill_max", nargs="?")
     ca = ap.parse_known_args(["--", *argv])[0]
-    return _check_cv(ca.typ, PageTarget(ca.expected, ca.fill_min, ca.fill_max), facts=facts_path,
+    return check_cv(ca.typ, PageTarget(ca.expected, ca.fill_min, ca.fill_max), facts=facts_path,
                      allow_placeholders=allow_placeholders, rebuild=rebuild)
 
 
-def _run() -> None:
+def run_cli() -> None:
     """Entry point: run main(), and on a non-zero exit print the mode's footer last, so the
     next step is the final thing a reader sees. Exit codes are passed through unchanged."""
     rc, footer = profiling.run(main, profiling.take_flag())

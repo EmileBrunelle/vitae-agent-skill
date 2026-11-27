@@ -21,7 +21,7 @@ from vitae import fill
 from vitae.core.base import WordBox
 from vitae.verify.layout import check_text_clip
 from vitae.verify.page import FURNITURE_SCALE
-from vitae.verify.pdf import _pdfium_render, typst_compile, word_boxes
+from vitae.verify.pdf import pdfium_render, typst_compile, word_boxes
 
 S = FURNITURE_SCALE
 WHITE = (255, 255, 255)
@@ -46,7 +46,7 @@ def _random_page(rng: random.Random) -> tuple[Image.Image, list[WordBox]]:
         y = rng.randint(0, 195)
         im.paste((0, 0, 0), (rng.randint(0, 100), y, rng.randint(150, 300), y + rng.randint(1, 2)))
     boxes: list[WordBox] = []
-    for k in range(rng.randint(4, 14)):
+    for _ in range(rng.randint(4, 14)):
         x, y = rng.randint(5, 220), rng.randint(2, 170)
         w, h = rng.randint(20, 70), rng.randint(8, 18)
         ink = rng.choice([WHITE, (0, 0, 0), (200, 30, 30), paper, (paper[0] ^ 20, paper[1], paper[2])])
@@ -99,7 +99,7 @@ def _rendered_page(pdf: str, tmp_path: Path) -> tuple[str, list[WordBox]]:
     if not pages:
         pytest.skip("no word boxes available for the compiled templates/resume.typ")
     png = tmp_path / "resume.png"
-    _pdfium_render(pdf, 90)[0].save(png)
+    pdfium_render(pdf, 90)[0].save(png)
     return str(png), pages[0]
 
 
@@ -150,10 +150,9 @@ def test_bands_match_the_per_row_version(rng: random.Random) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         png = str(Path(tmp) / "p.png")
         _random_bands_page(rng).save(png)
-        kw = {"thr": rng.choice([100, 150, 200]), "rule": rng.choice([0.0, 0.01, 0.04, 0.08, 0.9]),
-              "contrast": rng.choice([5, 20, 60])}
+        thr, rule, contrast = rng.choice([100, 150, 200]), rng.choice([0.0, 0.01, 0.04, 0.08, 0.9]), rng.choice([5, 20, 60])
 
-        assert fill.bands(png, **kw) == bands_per_row(png, **kw)
+        assert fill.bands(png, thr=thr, rule=rule, contrast=contrast) == bands_per_row(png, thr=thr, rule=rule, contrast=contrast)
 
 
 def test_bands_equivalence_is_not_vacuous(tmp_path: Path) -> None:

@@ -4,16 +4,16 @@ from __future__ import annotations
 import re
 
 from vitae.core.env import typst_fonts
-from vitae.design.tables import FONTS, Font, _idx
+from vitae.design.tables import FONTS, Font, table_index
 
 
-def _fonts_available() -> set[str] | None:
+def fonts_available() -> set[str] | None:
     """Set of family names Typst reports (see `env.typst_fonts`), or None if it cannot list them."""
     have = typst_fonts()
     return None if have is None else set(have)
 
 
-def _installed(name: str, have: set[str]) -> str | None:
+def installed_face(name: str, have: set[str]) -> str | None:
     """The name Typst reports for pool family `name`, or None. A variable font
     with an optical-size axis installs as "X <digits>pt" (references/fonts.md),
     so "X" matches that variant and the FULL installed name is what to emit."""
@@ -27,19 +27,19 @@ def _installed(name: str, have: set[str]) -> str | None:
     return best[1] if best else None
 
 
-def _pick_font(pool: list[Font], key: str, salt: str,
+def pick_font(pool: list[Font], key: str, salt: str,
                have: set[str] | None) -> tuple[Font, Font | None, str]:
     """Deterministic draw, then availability: if the drawn face is missing
     locally, fall through the pool in order and report BOTH — never a silent
     fallback (a missing font only warns in Typst and swaps itself out)."""
-    drawn = pool[_idx(key, len(pool), salt)]
+    drawn = pool[table_index(key, len(pool), salt)]
     if have is None:
         return drawn, None, "unverified (no `typst fonts` here — check by hand)"
-    got = _installed(drawn[0], have)
+    got = installed_face(drawn[0], have)
     if got:
         return (got, drawn[1]), None, "available locally"
     for cand in pool:
-        got = _installed(cand[0], have)
+        got = installed_face(cand[0], have)
         if got:
             return (got, cand[1]), drawn, ("SUBSTITUTED: drawn %s (%s) not installed, using the "
                                  "installed face shown — install %s for the exact design"
@@ -47,8 +47,8 @@ def _pick_font(pool: list[Font], key: str, salt: str,
     return drawn, None, "NO pool member installed — install one before drafting"
 
 
-def _family_usable(fam: str, have: set[str]) -> bool:
+def family_usable(fam: str, have: set[str]) -> bool:
     """Every font role of `fam` has at least one member installed in `have`."""
     fp = FONTS[fam]
     pools = [fp["display"], fp["body"], *([fp["mono"]] if "mono" in fp else [])]
-    return all(any(_installed(n, have) for n, _ in pool) for pool in pools)
+    return all(any(installed_face(n, have) for n, _ in pool) for pool in pools)

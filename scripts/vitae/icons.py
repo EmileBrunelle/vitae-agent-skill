@@ -41,6 +41,8 @@ import unicodedata
 import urllib.request
 from typing import NoReturn
 
+from vitae.core.narrow import is_object_dict
+
 API = "https://api.iconify.design"
 
 # Typst variable name -> "<iconify prefix>:<icon name>". lib.typ reads
@@ -96,7 +98,7 @@ NUM = re.compile(r"\d{1,6}(?:\.\d{1,6})?\Z")
 def typst_str(s: str) -> str:
     """A Typst string literal for `s`: backslash and quote escaped first, every
     control char / line separator as \\u{..}, so no content can leave the string."""
-    out = []
+    out: list[str] = []
     for ch in s:
         if ch == "\\":
             out.append("\\\\")
@@ -113,9 +115,9 @@ def fetch_set(prefix: str, names: list[str]) -> tuple[dict[str, object], dict[st
     """(icons dict, collection meta) for one set; ({}, {}) on any failure."""
     try:
         colls = fetch(f"{API}/collections?prefix={prefix}")
-        coll = colls.get(prefix, {}) if isinstance(colls, dict) else None
+        coll = colls.get(prefix, {}) if is_object_dict(colls) else None
         data = fetch(f"{API}/{prefix}.json?icons={','.join(names)}")
-        if not isinstance(data, dict) or not isinstance(coll, dict):
+        if not is_object_dict(data) or not is_object_dict(coll):
             raise ValueError("unexpected reply shape")
     except (OSError, http.client.HTTPException, ValueError, RecursionError) as e:   # network, DNS, HTTP, bad JSON (JSONDecodeError is a ValueError), JSON nested too deep
         print(f"WARN  ICONS: {prefix} unreachable ({e}) — marks will be omitted, "
@@ -128,7 +130,7 @@ def fetch_set(prefix: str, names: list[str]) -> tuple[dict[str, object], dict[st
 
 def usable(var: str, name: str, icon: object) -> str | None:
     """Body of a fill-based icon, or None with a reason on stderr."""
-    if not isinstance(icon, dict) or not isinstance(body := icon.get("body"), str) or not body.strip():
+    if not is_object_dict(icon) or not isinstance(body := icon.get("body"), str) or not body.strip():
         print(f"WARN  ICONS: {var} ('{name}') has no usable body; omitted",
               file=sys.stderr)
         return None
@@ -193,11 +195,11 @@ def main() -> None:
     for prefix, wanted in by_prefix.items():
         data, coll = fetch_set(prefix, [n for _, n in wanted])
         icons = data.get("icons", {})
-        if not isinstance(icons, dict):
+        if not is_object_dict(icons):
             icons = {}
         dw, dh = data.get("width", 16), data.get("height", 16)
         lic = coll.get("license", {})
-        if not isinstance(lic, dict):
+        if not is_object_dict(lic):
             lic = {}
         lines.append(f"// {clean(coll.get('name', prefix))} — "
                      f"{clean(lic.get('title', '?'))} "
@@ -206,7 +208,7 @@ def main() -> None:
         for var, name in wanted:
             icon = icons.get(name)
             body = usable(var, name, icon) if icon else None
-            if body is None or not isinstance(icon, dict):   # usable() only accepts a dict
+            if body is None or not is_object_dict(icon):   # usable() only accepts a dict
                 lines += [f'#let {var}-body = ""', f'#let {var}-vb = ""']
                 continue
             w, h = str(icon.get("width", dw)), str(icon.get("height", dh))

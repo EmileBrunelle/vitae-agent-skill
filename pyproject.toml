@@ -53,13 +53,19 @@ max-statements = 50     # ruff default
 "scripts/vitae/verify/tune.py" = ["C901", "PLR0915"]
 "scripts/vitae/verify/typst.py" = ["C901"]
 "tests/backend_equiv.py" = ["C901", "PLR0915"]
-"tests/unit/_typst_ref.py" = ["C901"]   # the replaced _mask_non_markup, verbatim (oracle)
+"tests/unit/_typst_ref.py" = ["C901"]   # the replaced mask_non_markup, verbatim (oracle)
 
 [tool.pyright]
 # Mirrors mypy.ini: the minimum supported Python (CI tests 3.11), and scripts/ on the import path the way tests/conftest.py puts it there, so `vitae` and the façades resolve in editors and the CLI.
 pythonVersion = "3.11"
-include = ["scripts"]
+include = ["scripts", "tests"]
+typeCheckingMode = "strict"
 extraPaths = ["scripts"]
+# Tests are not annotated (mypy.ini checks scripts/ only): strict stays on for real type errors, but the rules that only flag missing annotations or intended access to module internals are off under tests/, and so is reportMissingTypeStubs (pypdfium2 ships no stubs; scripts/ reaches it through the typed vitae.core.pdfium wrapper).
+executionEnvironments = [
+    { root = "tests", extraPaths = ["scripts"], reportMissingParameterType = false, reportUnknownParameterType = false, reportUnknownArgumentType = false, reportUnknownMemberType = false, reportUnknownVariableType = false, reportUnknownLambdaType = false, reportPrivateUsage = false, reportMissingTypeStubs = false },
+    { root = "scripts" },
+]
 
 [tool.pytest.ini_options]
 # Unmarked tests are pure unit tests. `pytest tests/unit` runs everything; `-m "not integration and not lint"` is the fast loop.

@@ -9,7 +9,7 @@ import pytest
 from vitae.core.env import PdfCheck
 from vitae.verify import pdf as pdf_module
 from vitae.verify import tune as T
-from vitae.verify.typst import _read_par, _read_rhythm, _rhythm_unparsed, _write_par, _write_rhythm
+from vitae.verify.typst import read_par, read_rhythm, rhythm_unparsed, write_par, write_rhythm
 
 pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
 
@@ -28,8 +28,8 @@ def install(monkeypatch, *, breakat=1000.0, raise_at=None, log=None, raise_if=No
             log.append(candidate)
         if (raise_at is not None and n[0] == raise_at) or (raise_if and raise_if(candidate)):
             raise KeyboardInterrupt
-        r = _read_rhythm(candidate) or 1.0
-        par = _read_par(candidate)
+        r = read_rhythm(candidate) or 1.0
+        par = read_par(candidate)
         assert par is not None
         h = 50 * r + 50 * par[0]
         return (True, round(h)) if h <= breakat else (False, None)
@@ -44,7 +44,7 @@ def put(tmp_path, text):
 
 def test_write_par_keeps_comment_inside_rule():
     src = "#set par(leading: 0.500em, // tight\n  spacing: 0.600em)\nx\n"
-    out = _write_par(src, 0.7, 0.8)
+    out = write_par(src, 0.7, 0.8)
     assert out == "#set par(leading: 0.700em, // tight\n  spacing: 0.800em)\nx\n"
 
 
@@ -62,7 +62,7 @@ def test_crlf_preserved_on_success_and_failure(tmp_path, monkeypatch):
     assert T.tune(str(p), T.FillTarget(1, 74, 76))[0] == 0
     out = p.read_bytes()
     assert b"\r\n" in out and out.replace(b"\r\n", b"").count(b"\n") == 0
-    assert _read_rhythm(out.decode()) is not None
+    assert read_rhythm(out.decode()) is not None
     p2 = put(tmp_path, crlf)
     install(monkeypatch, breakat=97)
     assert T.tune(str(p2), T.FillTarget(1, 99, 100))[0] == 1
@@ -85,8 +85,8 @@ def test_current_rhythm_below_floor_is_the_lower_bound(tmp_path, monkeypatch):
     p = put(tmp_path, BASE.replace("1.000", "0.800"))
     install(monkeypatch, log=log)
     T.tune(str(p), T.FillTarget(1, 60, 62))
-    assert min(_read_rhythm(c) or 9 for c in log) <= 0.8 + 1e-9
-    assert _read_rhythm(log[0]) == pytest.approx(0.8)
+    assert min(read_rhythm(c) or 9 for c in log) <= 0.8 + 1e-9
+    assert read_rhythm(log[0]) == pytest.approx(0.8)
 
 
 def test_floor_failure_keeps_original_as_candidate(tmp_path, monkeypatch):
@@ -95,30 +95,30 @@ def test_floor_failure_keeps_original_as_candidate(tmp_path, monkeypatch):
 
     def probe(typ, candidate, expected, backend):
         T._write(typ, candidate)
-        r = _read_rhythm(candidate) or 1.0
+        r = read_rhythm(candidate) or 1.0
         return (r >= 0.88, round(50 * r + 25) if r >= 0.88 else None)
     monkeypatch.setattr(T, "_probe_text", probe)
     p = put(tmp_path, BASE.replace("1.000", "0.900"))
     code, _ = T.tune(str(p), T.FillTarget(1, 69, 71))
-    r = _read_rhythm(p.read_text())
+    r = read_rhythm(p.read_text())
     assert code == 0 and r is not None and 0.88 <= r <= 0.93
 
 
 def test_last_rhythm_line_is_the_edited_one(tmp_path, monkeypatch):
     text = "#let rhythm = 2.000\n" + BASE
-    assert _write_rhythm(text, 0.9) == "#let rhythm = 2.000\n#let rhythm = 0.900\n" + BODY
-    assert _read_rhythm(text) == 1.0
+    assert write_rhythm(text, 0.9) == "#let rhythm = 2.000\n#let rhythm = 0.900\n" + BODY
+    assert read_rhythm(text) == 1.0
 
 
 @pytest.mark.parametrize("line", ["#let rhythm = 1", "#let rhythm = 1.000;", "#let rhythm = 1.000 // base",
                                   "#let rhythm = 1.000;\r"])
 def test_rhythm_line_forms_are_read(line):
-    assert _read_rhythm(line + "\n" + BODY) == 1.0 and not _rhythm_unparsed(line + "\n" + BODY)
+    assert read_rhythm(line + "\n" + BODY) == 1.0 and not rhythm_unparsed(line + "\n" + BODY)
 
 
 def test_unparsable_rhythm_gets_a_note_not_silence(tmp_path, monkeypatch, capsys):
     text = "#let rhythm = 1.0pt * 2\n" + BODY
-    assert _rhythm_unparsed(text) and _read_rhythm(text) is None
+    assert rhythm_unparsed(text) and read_rhythm(text) is None
     p = put(tmp_path, text)
     install(monkeypatch)
     T.tune(str(p), T.FillTarget(1, 74, 76))
@@ -174,9 +174,9 @@ def test_termination_signal_mid_probe_restores_original(tmp_path, monkeypatch, s
 def test_a_longer_identifier_is_not_the_rhythm_line():
     """`#let rhythm-big = 2` is another binding (Typst identifiers allow `-`), not the rhythm."""
     text = "#let rhythm = 1.000\n#let rhythm-big = 2\n" + BODY
-    assert not _rhythm_unparsed(text) and _read_rhythm(text) == 1.0
-    assert _read_rhythm("#let rhythm-big = 2\n" + BODY) is None
-    assert not _rhythm_unparsed("#let rhythm-big = 2\n" + BODY)
+    assert not rhythm_unparsed(text) and read_rhythm(text) == 1.0
+    assert read_rhythm("#let rhythm-big = 2\n" + BODY) is None
+    assert not rhythm_unparsed("#let rhythm-big = 2\n" + BODY)
 
 
 # ---- the CV must compile before it is tuned: a refusal is reported as such, not as "page count off"

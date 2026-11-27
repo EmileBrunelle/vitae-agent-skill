@@ -102,7 +102,7 @@ def measure(L, bullet: str, role: str):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("file", help=".typ template or .pdf")
     ap.add_argument("--bullet", default=r"\[Action verb\]", help="regex a bullet line starts with")
     ap.add_argument("--role", default=r"\[Role", help="regex a job role line starts with")

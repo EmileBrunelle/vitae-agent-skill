@@ -25,9 +25,9 @@ from vitae.core.base import (
     HeadMark,
     Mark,
     Pos,
+    TextLine,
     Word,
     WordBox,
-    _Line,
     is_placed,
 )
 from vitae.core.level import Finding, Level
@@ -59,7 +59,7 @@ class _Window:
     """The text lines of one column of one page, with their y-centres in order, so that the line nearest a y is a
     bisection (it was a scan of every line of the column, for every bullet and every next-bullet bound)."""
 
-    def __init__(self, lines: list[_Line]) -> None:
+    def __init__(self, lines: list[TextLine]) -> None:
         self.lines = lines
         order = sorted(range(len(lines)), key=lambda k: (lines[k]["c"], k))
         self._ids = order
@@ -75,7 +75,7 @@ class _Window:
         if not side:
             return None
         best = min(side)
-        found = []
+        found: list[int] = []
         k = pos
         while k < len(cs) and abs(cs[k] - y) == best:
             found.append(ids[k])
@@ -108,7 +108,7 @@ class _Track:
     pg: int
 
 
-def _follow(win: _Window, start: int, track: _Track, got: list[BulletLine], prev: _Line | None) -> bool:
+def _follow(win: _Window, start: int, track: _Track, got: list[BulletLine], prev: TextLine | None) -> bool:
     """Append the lines from `start` that continue the bullet, up to the next bullet's first line; True when
     it ran to the end of the column (so it may go on at the top of the next page)."""
     edge, ltr, nxt, pg = track.edge, track.ltr, track.nxt, track.pg

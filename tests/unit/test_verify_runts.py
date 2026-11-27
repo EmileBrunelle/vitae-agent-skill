@@ -1,6 +1,7 @@
 """vitae.verify.runts: a wrapped bullet whose last line is a few glyphs alone is a FAIL; everything else passes.
 
 The CVs are tiny Typst documents that draw their list through lib.typ's marker, compiled with the `typst` package."""
+import dataclasses
 import shutil
 
 import pypdfium2
@@ -101,7 +102,7 @@ def test_gate_is_registered_and_needs_the_query():
 def test_pypdf_fallback_downgrades_to_warn(tmp_path):
     font, first, _, runt, rtl = SCRIPTS["latin"]
     ctx = _compile(tmp_path, "pp", font, _bullets(first, f" \\ {runt}"), rtl)
-    ctx = type(ctx)(**{**ctx.__dict__, "backend": "pypdf"})
+    ctx = dataclasses.replace(ctx, backend="pypdf")
     assert [lvl for lvl, _ in _bullet_runts(ctx)] == [Level.WARN]
 
 
@@ -224,14 +225,14 @@ def test_runt_at_the_top_of_the_next_page_is_found(split_ctx):
 
 def test_inline_separator_is_not_a_bullet(tmp_path):
     """drawn-marker used as an inline separator dot must not be tagged <vitae-bullet>; list-marker is."""
-    from vitae.verify.groups.query import _typst_values
+    from vitae.verify.groups.query import typst_values
     for f in ("lib.typ", "icons.typ"):
         shutil.copy(ROOT / "templates" / f, tmp_path / f)
     typ = tmp_path / "sep.typ"
     typ.write_text('#import "lib.typ": drawn-marker, list-marker\n#set page(width: 300pt, height: 100pt)\n'
                    '#set list(marker: list-marker("dot", black))\n'
                    'Nî #drawn-marker("dot", auto) Nî #drawn-marker("mid", auto) Nî\n\n- one\n- two\n', encoding="utf-8")
-    vals = _typst_values(str(typ), "<vitae-bullet>", str(tmp_path))
+    vals = typst_values(str(typ), "<vitae-bullet>", str(tmp_path))
     assert vals is not None and len(vals) == 2
 
 

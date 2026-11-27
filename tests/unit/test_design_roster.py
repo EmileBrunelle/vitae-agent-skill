@@ -3,8 +3,8 @@ import re
 
 import pytest
 from _paths import ROOT
-from vitae.design.emit import _chain
-from vitae.design.fonts import _family_usable, _installed
+from vitae.design.emit import font_chain
+from vitae.design.fonts import family_usable, installed_face
 from vitae.design.init import _apply_labels
 from vitae.design.pick import PickRequest, pick
 from vitae.design.tables import CAREER, FAMILIES, FONTS, LABEL_VARIANTS, MIN_POOL, ORDER_ROLES
@@ -125,15 +125,15 @@ def test_names_spread_over_the_pool_with_labels_from_the_variants():
     ("Noto Sans", {"Noto Sans 12pt"}, "Noto Sans 12pt"),
 ])
 def test_installed_resolves_the_size_variant(name, have, want):
-    assert _installed(name, have) == want
+    assert installed_face(name, have) == want
 
 
 def test_chain_emits_only_installed_names_and_keeps_the_tail():
     pool = [("DM Sans", "GF"), ("Sora", "GF"), ("Red Hat Display", "GF · Linux: redhat-display-fonts")]
     have = {"DM Sans 9pt", "Red Hat Display", "Noto Sans"}
-    names = re.findall(r'"([^"]+)"', _chain(pool, ("DM Sans 9pt", "x"), "display", have))
+    names = re.findall(r'"([^"]+)"', font_chain(pool, ("DM Sans 9pt", "x"), "display", have))
     assert names[0] == "DM Sans 9pt" and "Sora" not in names and set(names) <= have
-    full = lambda pl, pk: re.findall(r'"([^"]+)"', _chain(pl, pk, "display", None))
+    full = lambda pl, pk: re.findall(r'"([^"]+)"', font_chain(pl, pk, "display", None))
     assert full(pool, ("DM Sans", "x")) == ["DM Sans", "Sora", "Red Hat Display"]
     assert full([("Sora", "GF")], ("Sora", "GF")) == ["Sora", "Noto Sans"]
 
@@ -141,9 +141,9 @@ def test_chain_emits_only_installed_names_and_keeps_the_tail():
 def test_offline_keeps_only_families_with_every_role_installed(capsys):
     have = {"Liberation Sans", "Noto Sans", "DejaVu Sans Mono", "P052", "Cantarell", "PT Sans", "Adwaita Sans",
             "Adwaita Mono", "URW Gothic", "Libertinus Serif"}
-    assert not _family_usable("keyline-corporate", have) and _family_usable("humanist-quiet", have)
+    assert not family_usable("keyline-corporate", have) and family_usable("humanist-quiet", have)
     p = pick(PickRequest("Candidate A", "operations", offline=True, have_fonts=have))
-    assert p.eligible and all(_family_usable(f, have) for f in p.eligible)
+    assert p.eligible and all(family_usable(f, have) for f in p.eligible)
     assert capsys.readouterr().err == ""
     fallback = pick(PickRequest("Candidate A", "operations", offline=True, have_fonts={"Nope"}))
     assert "no family in the pool has all font roles installed" in capsys.readouterr().err

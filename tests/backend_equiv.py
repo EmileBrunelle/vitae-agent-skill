@@ -21,6 +21,7 @@ Usage: tests/backend_equiv.py [--quick] [outdir]   (run with the interpreter tha
 import collections
 import concurrent.futures as cf
 import fnmatch
+import importlib
 import os
 import re
 import shutil
@@ -28,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import TypedDict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
@@ -55,9 +57,16 @@ STATUS = re.compile(r"^(OK|WARN|FAIL|INFO|PASS|SKIP)\b\s*(.*)$")
 FILL = re.compile(r"ink from (\d+)% to (\d+)%")
 
 
-def parse(out: str) -> dict:
+class Parsed(TypedDict):
+    v: collections.Counter[tuple[str, str]]
+    fill: tuple[int, ...] | None
+    pages: int | None
+    result: str
+
+
+def parse(out: str) -> Parsed:
     """Verdicts as a multiset of (gate key, status); gate key = line text up to ':' or ' ('."""
-    v: collections.Counter = collections.Counter()
+    v: collections.Counter[tuple[str, str]] = collections.Counter()
     for ln in out.splitlines():
         m = STATUS.match(ln)
         if not m:
@@ -95,7 +104,7 @@ def allowed(case: str, key: str) -> str | None:
     return None
 
 
-def diff(case: str, a: dict, b: dict, la: str, lb: str, log: list[str]) -> tuple[int, int]:
+def diff(case: str, a: Parsed, b: Parsed, la: str, lb: str, log: list[str]) -> tuple[int, int]:
     """Returns (new divergences, allowlisted divergences) between two parsed runs."""
     new = ok = 0
     for key in sorted(set(a["v"]) | set(b["v"])):
@@ -113,9 +122,8 @@ def main() -> int:
     quick = "--quick" in sys.argv
     args = [a for a in sys.argv[1:] if a != "--quick"]
     try:
-        import PIL  # noqa: F401  -- availability probe only
-        import pypdfium2  # noqa: F401
-        import typst  # noqa: F401
+        for probe in ("PIL", "pypdfium2", "typst"):    # availability probe only
+            importlib.import_module(probe)
     except ImportError as e:
         print(f"SKIP backend_equiv: {e.name} not installed"); return 0
     if not all(shutil.which(t) for t in ("typst", "pdftotext", "pdfinfo", "pdftoppm")):
@@ -155,11 +163,11 @@ def main() -> int:
     log: list[str] = []
     fills: list[tuple[str, str, int]] = []
 
-    def job(item: tuple[str, list[str], bool], env: str) -> tuple[str, str, dict]:
+    def job(item: tuple[str, list[str], bool], env: str) -> tuple[str, str, Parsed]:
         case, a, _ = item
         return case, env, parse(run(env, work[env], a, tools))
 
-    res: dict[tuple[str, str], dict] = {}
+    res: dict[tuple[str, str], Parsed] = {}
     with cf.ThreadPoolExecutor(max_workers=4) as ex:
         for case, env, p in ex.map(lambda x: job(*x), [(it, e) for it in full for e in work]):
             res[(case, env)] = p

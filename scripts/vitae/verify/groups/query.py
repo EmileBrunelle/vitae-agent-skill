@@ -7,8 +7,9 @@ from bisect import bisect_left
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, NamedTuple
 
-from vitae.core.base import Mark, Word, _Line
+from vitae.core.base import Mark, TextLine, Word
 from vitae.core.env import typst_font_kw, typst_py, typst_route
+from vitae.core.narrow import is_object_dict, is_object_list
 from vitae.verify.pdf import auto_root
 
 if TYPE_CHECKING:
@@ -32,10 +33,10 @@ class ContactValues(NamedTuple):
 def _json_list(text: str) -> list[object] | None:
     """The JSON array in `text`; None when it parses to anything else (ValueError: not JSON at all)."""
     data: object = json.loads(text)
-    return list(data) if isinstance(data, list) else None
+    return list(data) if is_object_list(data) else None
 
 
-def _is_num(v: object) -> bool:
+def is_num(v: object) -> bool:
     """A JSON number (a bool is not one)."""
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
@@ -44,7 +45,7 @@ def _is_num(v: object) -> bool:
 _MARK_FIELDS: tuple[tuple[str, Callable[[object], bool]], ...] = (
     ("kind", lambda v: isinstance(v, str)), ("org", lambda v: isinstance(v, str)),
     ("page", lambda v: isinstance(v, int) and not isinstance(v, bool)),
-    ("x", _is_num), ("y", _is_num), ("w", _is_num), ("h", _is_num),
+    ("x", is_num), ("y", is_num), ("w", is_num), ("h", is_num),
     ("dated", lambda v: isinstance(v, bool)), ("anchor", lambda v: isinstance(v, bool)),
     ("inline", lambda v: isinstance(v, bool)),
 )
@@ -52,13 +53,13 @@ _MARK_FIELDS: tuple[tuple[str, Callable[[object], bool]], ...] = (
 
 def _is_mark(v: object) -> TypeIs[Mark]:
     """A JSON object with a str `text` whose other Mark keys, when present, have their declared type."""
-    if not isinstance(v, dict) or not isinstance(v.get("text"), str):
+    if not is_object_dict(v) or not isinstance(v.get("text"), str):
         return False
     return all(key not in v or ok(v[key]) for key, ok in _MARK_FIELDS)
 
 
 def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None:
-    """The typst-py route of _typst_values: same query / eval fallback and root as the CLI calls. A wheel whose
+    """The typst-py route of typst_values: same query / eval fallback and root as the CLI calls. A wheel whose
     `query` or `eval` lacks the keyword (`typst_route().caps`) skips that call instead of failing it."""
     mod = typst_py()
     if mod is None:
@@ -85,7 +86,7 @@ def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None
     return None
 
 
-def _typst_values(typ: str, selector: str, root: str | None = None) -> list[object] | None:
+def typst_values(typ: str, selector: str, root: str | None = None) -> list[object] | None:
     """JSON list of the values of every element labelled `selector`, or None."""
     root = root or auto_root(typ)
     if typst_route().query != "cli":
@@ -109,7 +110,7 @@ def _typst_values(typ: str, selector: str, root: str | None = None) -> list[obje
 
 def _first_problem(v: object) -> str:
     """What makes `v` not a Mark, as `<field> = <value>` (the first offending field)."""
-    if not isinstance(v, dict):
+    if not is_object_dict(v):
         return f"<mark> = {v!r}"
     if not isinstance(v.get("text"), str):
         return f"text = {v.get('text')!r}"
@@ -120,18 +121,18 @@ def _first_problem(v: object) -> str:
 
 
 def _check_marks(vals: list[object]) -> tuple[list[Mark], str | None]:
-    """The well-typed Marks of `vals` and the note on the dropped ones (see _typst_query_checked)."""
+    """The well-typed Marks of `vals` and the note on the dropped ones (see typst_query_checked)."""
     marks = [v for v in vals if _is_mark(v)]
     bad = [v for v in vals if not _is_mark(v)]
     note = f"{len(bad)} lib marks ignored: malformed (first: {_first_problem(bad[0])})" if bad else None
     return marks, note
 
 
-def _typst_query_checked(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None]:
-    """The lib's Mark values (see _typst_values) and a note: an entry that is not a well-typed Mark (see _is_mark)
+def typst_query_checked(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None]:
+    """The lib's Mark values (see typst_values) and a note: an entry that is not a well-typed Mark (see _is_mark)
     is dropped, and the note says how many and the first offending field; None when nothing was dropped (valid lib
     output never has a note). The marks are None when the query is unavailable."""
-    vals = _typst_values(typ, selector, root)
+    vals = typst_values(typ, selector, root)
     if vals is None:
         return None, None
     return _check_marks(vals)
@@ -139,15 +140,15 @@ def _typst_query_checked(typ: str, selector: str, root: str | None = None) -> tu
 
 def _kind_of(v: object) -> object:
     """The `kind` of a lib metadata value, None when it is not a dict or has none."""
-    return v.get("kind") if isinstance(v, dict) else None
+    return v.get("kind") if is_object_dict(v) else None
 
 
-def _typst_marks_and_contact(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None, ContactValues | None]:
+def typst_marks_and_contact(typ: str, selector: str, root: str | None = None) -> tuple[list[Mark] | None, str | None, ContactValues | None]:
     """ONE query for the marks and the contact labels: `selector` selects all of them (Typst `.or`), and the
     values are split by their explicit `kind` since a query drops the label: "contact" is a <vitae-contact> item,
     "contact-rows" a <vitae-contact-rows> declaration; everything else goes through _check_marks as before
     (a value with neither kind is never counted as contact). All three are None when the query is unavailable."""
-    vals = _typst_values(typ, selector, root)
+    vals = typst_values(typ, selector, root)
     if vals is None:
         return None, None, None
     rows: list[object] = []
@@ -160,20 +161,20 @@ def _typst_marks_and_contact(typ: str, selector: str, root: str | None = None) -
     return marks, note, ContactValues(items=items, rows=rows)
 
 
-def _typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:
-    """`_typst_query_checked` without the note."""
-    return _typst_query_checked(typ, selector, root)[0]
+def typst_query(typ: str, selector: str, root: str | None = None) -> list[Mark] | None:
+    """`typst_query_checked` without the note."""
+    return typst_query_checked(typ, selector, root)[0]
 
 
-def _gnorm(t: str) -> str:
+def gnorm(t: str) -> str:
     """Comparison key for a word: letters and digits only, casefolded, so punctuation and
     spacing differences between the typst source and pdftotext do not break a match."""
     return "".join(ch for ch in t.casefold() if ch.isalnum())
 
 
-def cluster(ws: Sequence[Word]) -> list[_Line]:
+def cluster(ws: Sequence[Word]) -> list[TextLine]:
     """Words already sorted by y-centre, clustered into text lines -> list of dicts {y0, y1, c, x0, words}."""
-    out: list[_Line] = []
+    out: list[TextLine] = []
     for w in ws:
         c = (w[1] + w[3]) / 2
         # 3.0pt y-centre tolerance: words of slightly different sizes/weights on one baseline stay in one line
@@ -191,7 +192,7 @@ def cluster(ws: Sequence[Word]) -> list[_Line]:
 class LineSet:
     """The text lines of one set of words (see PageIndex.lines) and the line holding each of its words."""
 
-    def __init__(self, lines: list[_Line]) -> None:
+    def __init__(self, lines: list[TextLine]) -> None:
         self.lines = lines
         # keyed by the identity of the word tuple, not its value: two equal words are two words (the page's words
         # outlive this object, so an id is never reused)
@@ -220,7 +221,7 @@ class PageIndex:
 
     def __init__(self, words: Sequence[Word]) -> None:
         self.words = words
-        self._norm = [_gnorm(w[4]) for w in words]
+        self._norm = [gnorm(w[4]) for w in words]
         self._by_norm: dict[str, list[int]] = {}
         for j, n in enumerate(self._norm):
             self._by_norm.setdefault(n, []).append(j)
@@ -232,7 +233,7 @@ class PageIndex:
 
     def find_run(self, text: str, ytyp: float) -> list[Word] | None:
         """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of word tuples, or None."""
-        toks = [t for t in (_gnorm(w) for w in text.split()) if t][:_TOKENS]
+        toks = [t for t in (gnorm(w) for w in text.split()) if t][:_TOKENS]
         if not toks:
             return None
         words, norm, centre = self.words, self._norm, self._centre

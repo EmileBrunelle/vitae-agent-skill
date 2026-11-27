@@ -6,7 +6,7 @@ from vitae.core.base import LEADING_ABS_RATIO_WARN, LEADING_FAMILY_RATIO_WARN
 from vitae.core.env import PdfCheck
 from vitae.verify import tune as T
 from vitae.verify.cv import LEADING_WARN, _family_default, _leading_warn
-from vitae.verify.typst import _doc_par_list, _scale_list_spacing
+from vitae.verify.typst import doc_par_list, scale_list_spacing
 
 pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
 
@@ -115,7 +115,7 @@ class TestTuneScalesList:
     def test_ratio_preserved(self, typ, monkeypatch):
         _install(monkeypatch)
         assert T.tune(str(typ), T.FillTarget(1, 80, 99))[0] == 0
-        lead, lsp = _doc_par_list(typ.read_text(encoding="utf-8"))
+        lead, lsp = doc_par_list(typ.read_text(encoding="utf-8"))
         assert lead is not None and lsp is not None
         assert lead > 0.7 and lead / lsp == pytest.approx(0.60 / 0.45, rel=3e-3)
 
@@ -130,12 +130,12 @@ class TestTuneScalesList:
         src = ("#set par(leading: 0.60em, spacing: 0.70em)\n#set list(spacing: 0.45em)\n"
                "#set par(leading: 0.96em, spacing: 1.0em)\nbody\n")
         out = T._with_rhythm(src, 0.70, 0.80)
-        assert _doc_par_list(out) == (0.70, 0.45) and out.startswith("#set par(leading: 0.60em, spacing: 0.70em)")
+        assert doc_par_list(out) == (0.70, 0.45) and out.startswith("#set par(leading: 0.60em, spacing: 0.70em)")
 
     def test_nested_spacing_untouched(self):
         src = "#set par(leading: 0.6em)\n#set list(marker: box(spacing: 0.1em)[x])\nbody\n"
-        assert _scale_list_spacing(src, 2.0) == src
+        assert scale_list_spacing(src, 2.0) == src
 
     def test_scale_helper_multiplies_and_keeps_unit(self):
-        out = _scale_list_spacing("#set list(indent: 1pt, spacing: 0.4em)\nbody spacing: 0.4em\n", 1.5)
+        out = scale_list_spacing("#set list(indent: 1pt, spacing: 0.4em)\nbody spacing: 0.4em\n", 1.5)
         assert "spacing: 0.600em)" in out and "body spacing: 0.4em" in out

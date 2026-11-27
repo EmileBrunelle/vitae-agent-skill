@@ -24,6 +24,7 @@ from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
 from vitae.core.env import PDF_STANDARDS, PdfBackend, importable, pdf_backend, typst_font_kw, typst_route
+from vitae.core.narrow import is_object_list, is_object_tuple
 from vitae.core.pdfium import PdfiumDoc, PdfiumPage, PdfiumTextPage
 from vitae.core.typst_source import strip_typst_comments
 from vitae.verify.hexstrings import hexify_pdf
@@ -107,11 +108,12 @@ def _typst_compile(src: str, out: str, *, fmt: Literal["pdf", "png"], standards:
         options["ppi"] = ppi
     try:
         comp = mod.Compiler(src, **({"root": root} if root else {}), **typst_font_kw())
-        res = comp.compile_with_warnings(**options)
+        res: object = comp.compile_with_warnings(**options)
     except Exception as e:   # noqa: BLE001 - kept broad: any failure is a compile FAIL carrying its message, never a pass
         return False, str(e)
-    warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
-    return True, "\n".join(str(w) for w in warns or [])
+    extra: object = res[1] if is_object_tuple(res) and len(res) > 1 else []
+    warns = extra if is_object_list(extra) else []
+    return True, "\n".join(str(w) for w in warns)
 
 
 _NO_TYPST = ("no usable typst: no `typst` CLI of 0.14 or newer on PATH and no working `typst` Python package "
@@ -162,7 +164,7 @@ def _png_number(path: str) -> int:
     return int(m.group(1))
 
 
-def _pdfium_doc(pdf: str) -> PdfiumDoc:
+def pdfium_doc(pdf: str) -> PdfiumDoc:
     doc = importlib.import_module("pypdfium2").PdfDocument(pdf)
     if not isinstance(doc, PdfiumDoc):
         raise TypeError(f"pypdfium2.PdfDocument is not the document the gates drive: {type(doc).__name__}")
@@ -172,7 +174,7 @@ def _pdfium_doc(pdf: str) -> PdfiumDoc:
 def count_pages(pdf: str, backend: PdfBackend) -> str | None:
     """The page count as text, compared with EXPECTED_PAGES as text; None when pdfinfo prints no Pages line."""
     if backend == "pdfium":
-        return str(len(_pdfium_doc(pdf)))
+        return str(len(pdfium_doc(pdf)))
     if backend == "poppler":
         out = subprocess.run(["pdfinfo", pdf], capture_output=True, text=True, check=False).stdout
         for line in out.splitlines():
@@ -282,14 +284,14 @@ def extract_text(pdf: str, backend: PdfBackend) -> str:
     if backend == "pdfium":
         # pdftotext's shape: pages end with \f (a blank line before it), lines with \n
         return "".join(t.replace("\r\n", "\n").rstrip("\n") + "\n\n\f"
-                       for t in (_pdfium_page_text(pg) for pg in _pdfium_doc(pdf)))
+                       for t in (_pdfium_page_text(pg) for pg in pdfium_doc(pdf)))
     pypdf = importlib.import_module("pypdf")
     reader = pypdf.PdfReader(pdf)
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 
 def family_from_path(path: str) -> str | None:
-    """The family this CV is built from, for the DEVICELESS exemption and the drawn fill target (_drawn_fill).
+    """The family this CV is built from, for the DEVICELESS exemption and the drawn fill target (drawn_fill).
 
     Read from the `// FAMILY: <name>` banner every template carries on line 1,
     NOT from the directory. A delivered CV is a copy of the template living in
@@ -336,7 +338,7 @@ def word_boxes(pdf: str, with_text: bool = False) -> list[list[Box]] | list[list
     so callers can tell "no text found" from "couldn't check" and degrade to
     the ink-only detector rather than treating every row as furniture.
     """
-    pages = _bbox_pages(pdf)
+    pages = bbox_pages(pdf)
     if pages is None:
         return None
     if with_text:
@@ -344,7 +346,7 @@ def word_boxes(pdf: str, with_text: bool = False) -> list[list[Box]] | list[list
     return [[b for b, _ in items] for _, _, items in pages]
 
 
-def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
+def bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
     """[(page_w, page_h, [((x0, y0, x1, y1), word), ...]), ...] from
     `pdftotext -bbox` (PDF points), or None when pdftotext is missing/fails.
     With the pdfium backend the words are built from pypdfium2's character boxes."""
@@ -357,7 +359,7 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
         return None
     if r.returncode != 0:
         return None
-    pages = []
+    pages: list[tuple[float, float, list[tuple[tuple[float, float, float, float], str]]]] = []
     for pg in r.stdout.split("<page ")[1:]:
         dim = re.match(r'width="([\d.]+)" height="([\d.]+)"', pg)
         items = [((float(m[1]), float(m[2]), float(m[3]), float(m[4])), html.unescape(m[5]))
@@ -486,7 +488,7 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
     return [words[k] for bl in order for n in sorted(bl, key=lambda n: (piece_row[n], geo[n][0])) for k in pieces[n]]
 
 
-def _boxes_unavailable(pdf: str) -> str:
+def boxes_unavailable(pdf: str) -> str:
     """Why `word_boxes` returned None on `pdf`, for the WARN that says a gate was skipped.
     Only reached on that failure path, so the pdfium read is repeated to get its error."""
     if pdf_backend() == "pdfium":
@@ -514,14 +516,14 @@ def _font_span(pdfium_raw: ModuleType, tp: PdfiumTextPage, i: int, size: float) 
 
 
 def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]]] | None, str | None]:
-    """`_bbox_pages` on pypdfium2: words are runs of non-space characters, each box the union of its loose character
+    """`bbox_pages` on pypdfium2: words are runs of non-space characters, each box the union of its loose character
     boxes (top-down, like pdftotext). LOOSE boxes, because pdfium's tight ones are ink extents and vary with the
     letters (a word without descenders is shorter), while the loose ones follow the font's ascent and descent like
     poppler's word boxes. Measured on the shipped templates against `pdftotext -bbox`: x within 0.8 pt, y within ~1
     pt for most fonts; tight boxes padded by 2.5 pt per side were off by up to 10 pt and cut one hard-edge line out
     of its band, a FAIL poppler does not give. Returns (pages, None), or (None, why) when pypdfium2 fails."""
     try:
-        doc = _pdfium_doc(pdf)
+        doc = pdfium_doc(pdf)
         pdfium_raw = importlib.import_module("pypdfium2.raw")
         pages: list[tuple[float, float, list[WordBox]]] = []
         for pg in doc:
@@ -568,10 +570,10 @@ def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]
         return None, f"{type(e).__name__}: {e}"[:120]
 
 
-def _pdfium_render(pdf: str, ppi: int, gray: bool = False, pages: Sequence[int] | None = None) -> list[Image.Image]:
+def pdfium_render(pdf: str, ppi: int, gray: bool = False, pages: Sequence[int] | None = None) -> list[Image.Image]:
     """One PIL image per page (1-based `pages`, default all) rendered by pypdfium2, cropped to
     the size pdftoppm gives (pdfium rounds a page's pixel size up one row more often)."""
-    doc = _pdfium_doc(pdf)
+    doc = pdfium_doc(pdf)
     scale = ppi / 72.0
     out: list[Image.Image] = []
     for n in (pages if pages is not None else range(1, len(doc) + 1)):
@@ -585,11 +587,11 @@ def _pdfium_render(pdf: str, ppi: int, gray: bool = False, pages: Sequence[int] 
     return out
 
 
-def _render_pages_png(pdf: str, tmp: str, ppi: int = HIDDEN_PPI) -> list[str]:
+def render_pages_png(pdf: str, tmp: str, ppi: int = HIDDEN_PPI) -> list[str]:
     """PNG per page via pdftoppm (poppler) or pypdfium2, or [] when neither is there."""
     if pdf_backend() == "pdfium":
-        paths = []
-        for n, im in enumerate(_pdfium_render(pdf, ppi), 1):
+        paths: list[str] = []
+        for n, im in enumerate(pdfium_render(pdf, ppi), 1):
             paths.append(os.path.join(tmp, f"h-{n}.png"))
             im.save(paths[-1])
         return paths
@@ -625,8 +627,8 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
             if stale.fullmatch(f):
                 os.remove(os.path.join(out_dir, f))
     if importable("pypdfium2"):
-        paths = []
-        ims = _pdfium_render(pdf, ppi)
+        paths: list[str] = []
+        ims = pdfium_render(pdf, ppi)
         drop_stale()
         for n, im in enumerate(ims, 1):
             paths.append(os.path.join(out_dir, f"{stem}-p{n}.png"))
@@ -650,7 +652,7 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
 def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
     """One RGB PIL image per page, the way render_pages picks its backend; [] when neither is there."""
     if importable("pypdfium2"):
-        return _pdfium_render(pdf, ppi)
+        return pdfium_render(pdf, ppi)
     if not shutil.which("pdftoppm"):
         return []
     with tempfile.TemporaryDirectory() as tmp:
@@ -658,7 +660,7 @@ def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
                        capture_output=True, text=True, check=False)
         files = sorted(glob.glob(os.path.join(tmp, "c*.png")),
                        key=_png_number)
-        out = []
+        out: list[Image.Image] = []
         for f in files:
             with Image.open(f) as fh:
                 out.append(fh.convert("RGB"))
@@ -688,8 +690,8 @@ def render_crops(pdf: str, out_dir: str) -> tuple[list[str], list[str]]:
     for n, (sm, lg) in enumerate(zip(scan, big), 1):
         bands = crop_candidates(sm, boxes[n - 1] if boxes and n <= len(boxes) else None)
         count = {"fill": 0, "icon": 0}
-        named = []
-        score = {}
+        named: list[tuple[str, str, tuple[int, int, int, int]]] = []
+        score: dict[tuple[int, str], int] = {}
         for kind, box, sc in bands:
             count[kind] += 1
             named.append((f"{kind}{count[kind]}", kind, box))

@@ -1,6 +1,6 @@
 """The per-CV gates after the PDF is built, as `check(ctx) -> list[Finding]` adapters and their order.
 
-`GATES` is the order `_check_cv` prints them in: the extraction gates, then the layout gates (hidden
+`GATES` is the order `check_cv` prints them in: the extraction gates, then the layout gates (hidden
 text, font fallback, proximity, dates, source text, duplicate names). `--gates` runs `LAYOUT_GATES` alone.
 Each adapter wraps one `check_*` function of its own module and returns the exact lines it printed
 before the registry existed. The fill / page-count / compile stages need the PNGs and the compiler, so
@@ -17,14 +17,14 @@ from vitae.core.level import Finding, Level
 from vitae.verify.contact import check_contact_line
 from vitae.verify.groups import (
     ENTRY_MARKS,
-    _typst_marks_and_contact,
-    _typst_query_checked,
     check_date_adjacency,
     check_duplicate_names,
     check_group_proximity,
+    typst_marks_and_contact,
+    typst_query_checked,
 )
 from vitae.verify.layout import check_font_fallback
-from vitae.verify.pdf import _bbox_pages
+from vitae.verify.pdf import bbox_pages
 from vitae.verify.placeholders import check_placeholders
 from vitae.verify.registry import FnGate
 from vitae.verify.rhythm import check_rhythm
@@ -41,9 +41,9 @@ def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *,
                  detail: list[DetailRow] | None = None) -> VerifyContext:
     """Build the gates' inputs; the lib markers are queried here, once, when `typst query` is usable, and the
     bullets they mark are located once (the runts and rhythm gates read the same ones)."""
-    marks, note, contact = _typst_marks_and_contact(typ, CONTEXT_MARKS, root) if can_query else (None, None, None)
+    marks, note, contact = typst_marks_and_contact(typ, CONTEXT_MARKS, root) if can_query else (None, None, None)
     heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
-    sized = _bbox_pages(pdf) if marks and any(m.get("kind") == "bullet" for m in marks) else None
+    sized = bbox_pages(pdf) if marks and any(m.get("kind") == "bullet" for m in marks) else None
     return VerifyContext(typ=typ, pdf=pdf, txt=txt, src=src, backend=backend, root=root, facts=facts,
                          can_query=can_query, marks=marks, heads=heads, detail=detail,
                          bullets=None if marks is None or sized is None else bullet_layout(marks, sized),
@@ -60,7 +60,7 @@ def _bad(ctx: VerifyContext, msg: str) -> Finding:
     return Level.WARN, msg + " — pypdf extraction is indicative; confirm with pdftotext before believing it"
 
 
-def _placeholders(ctx: VerifyContext) -> list[Finding]:
+def placeholder_gate(ctx: VerifyContext) -> list[Finding]:
     """The placeholder gate under the extraction-gate convention: its FAIL is a WARN on the pypdf fallback."""
     return [_bad(ctx, msg) if lvl == Level.FAIL else (lvl, msg) for lvl, msg in check_placeholders(ctx)]
 
@@ -187,7 +187,7 @@ def _mark_notes(ctx: VerifyContext) -> list[Finding]:
 
 def _duplicate_names(ctx: VerifyContext) -> list[Finding]:
     findings: list[Finding] = []
-    queried, note = _typst_query_checked(ctx.typ, "<vitae-sec>", ctx.root)
+    queried, note = typst_query_checked(ctx.typ, "<vitae-sec>", ctx.root)
     secs: list[Mark] | None = queried
     if note:
         findings.append((Level.WARN, "duplicate names: " + note))
@@ -215,7 +215,7 @@ EXTRACTION_GATES: tuple[FnGate, ...] = (
     FnGate("no-split", _no_split),
     FnGate("facts-coverage", _facts_coverage, _has_facts),
     FnGate("bullet-chars", _bullet_chars),
-    FnGate("placeholders", _placeholders),
+    FnGate("placeholders", placeholder_gate),
 )
 
 # Without `typst query` the grouping / date / duplicate-name gates are skipped, with a notice first.

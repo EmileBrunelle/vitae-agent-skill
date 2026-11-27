@@ -12,7 +12,7 @@ import typst
 from _paths import ROOT, SCRIPTS
 from vitae.core.level import Level
 from vitae.verify import cv, pdf, placeholders
-from vitae.verify.gates import EXTRACTION_GATES, _placeholders, make_context
+from vitae.verify.gates import EXTRACTION_GATES, make_context, placeholder_gate
 
 TEMPLATES = ROOT / "templates"
 
@@ -218,8 +218,8 @@ def test_underscore_in_a_real_handle_is_not_folded_away(tmp_path, text):
 
 def test_pypdf_downgrades_the_fail_to_a_warn(tmp_path):
     ctx = _ctx(tmp_path, "Contact: me\\@example.com")
-    assert next(lvl for lvl, _ in _placeholders(ctx)) == Level.FAIL
-    out = _placeholders(dataclasses.replace(ctx, backend="pypdf"))
+    assert next(lvl for lvl, _ in placeholder_gate(ctx)) == Level.FAIL
+    out = placeholder_gate(dataclasses.replace(ctx, backend="pypdf"))
     assert out[0][0] == Level.WARN and "pypdf extraction is indicative" in out[0][1]
 
 

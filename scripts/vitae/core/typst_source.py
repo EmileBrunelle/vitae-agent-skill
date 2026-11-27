@@ -105,7 +105,8 @@ def strip_typst_comments(src: str) -> str:
     respected but never span a newline (a stray 6" in markup must not swallow the rest of the file); a backtick raw
     span is dropped whole (replaced by one space: raw text is not code). A `//` right after `:` is a URL scheme
     (`https://`), not a comment. An unclosed `/*` swallows the rest of the text."""
-    out, i, n, q = [], 0, len(src), False
+    out: list[str] = []
+    i, n, q = 0, len(src), False
     while i < n:
         c = src[i]
         if c == "\n":

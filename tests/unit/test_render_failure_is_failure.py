@@ -27,7 +27,7 @@ def test_successful_render_lists_the_pages_in_order(tmp_path, monkeypatch):
 def academic_gate(tmp_path, monkeypatch):
     toml = tmp_path / "d.toml"
     toml.write_text('[meta]\nname = "Ada Doe"\n', encoding="utf-8")
-    monkeypatch.setattr(gate, "preflight", lambda: PdfCheck(True, "pdftoppm"))
+    monkeypatch.setattr(gate, "preflight", lambda: PdfCheck(True, "poppler"))
     monkeypatch.setattr(gate.shutil, "which", lambda name: "/usr/bin/" + name)
     monkeypatch.setattr(gate, "build_sections_spec", lambda data: [])
     monkeypatch.setattr(gate, "declared_statuses", lambda data: {})

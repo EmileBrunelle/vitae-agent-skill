@@ -7,7 +7,7 @@ from typing import ClassVar
 
 import pytest
 from vitae.core.base import LEADING_FAMILY_RATIO_WARN, LOWERED_FILL_FLOOR
-from vitae.core.env import PdfCheck
+from vitae.core.env import PdfBackend, PdfCheck
 from vitae.core.level import Level
 from vitae.verify import cv
 from vitae.verify import gates as real_gates
@@ -396,17 +396,17 @@ def test_body_size_warn_silent_without_a_size_or_file(tmp_path):
     assert cv._body_size_warn(str(tmp_path / "missing.typ")) == ""
 
 
-# ---------- _check_cv (every collaborator faked: this tests the gate's own decisions and messages) ----------
+# ---------- check_cv (every collaborator faked: this tests the gate's own decisions and messages) ----------
 
 class Env:
-    """Knobs for the faked pipeline; `run` calls `_check_cv` and returns (rc, footer, printed lines)."""
+    """Knobs for the faked pipeline; `run` calls `check_cv` and returns (rc, footer, printed lines)."""
     pages = "1"
     pngs = ("p1.png",)
     fills: ClassVar[dict[str, str]] = {"p1.png": "ink from 3% to 95%"}
     err = ""
     compile_ok = True
     preflight_ok = True
-    backend = "pdftotext"
+    backend: PdfBackend = "poppler"
     record = ()
     clip = ()
     ws = ()
@@ -455,7 +455,7 @@ def env(monkeypatch, tmp_path):
     def run(src="body\n", expected="1", fmin=None, fmax=None, **kw):
         t = e.dir / "cv.typ"
         t.write_text(src, encoding="utf-8")
-        rc, footer = cv._check_cv(str(t), cv.PageTarget(expected, fmin, fmax), **kw)
+        rc, footer = cv.check_cv(str(t), cv.PageTarget(expected, fmin, fmax), **kw)
         return rc, footer, e.capsys.readouterr().out
     e.run = run
     return e
@@ -587,9 +587,9 @@ def test_preflight_failure_stops_with_no_footer(env):
 
 
 def test_footer_is_armed_after_preflight(env):
-    from vitae.core.base import _FOOTER_GATE
+    from vitae.core.base import FOOTER_GATE
     _rc, footer, _ = env.run(fmin="90", fmax="99")
-    assert footer == _FOOTER_GATE
+    assert footer == FOOTER_GATE
 
 
 def test_compile_failure_prints_the_error_and_stops(env):
@@ -664,7 +664,7 @@ def test_pypdf_backend_is_flagged(env):
     (w,) = [ln for ln in out.splitlines() if "pypdf extraction" in ln]
     assert w.startswith("WARN  pypdf extraction is indicative only (spurious spaces inside words")
     assert w.endswith("(references/ats.md)")
-    env.backend = "pdftotext"
+    env.backend = "poppler"
     _, _, out = env.run(fmin="90", fmax="99")
     assert "pypdf extraction" not in out
 
@@ -672,7 +672,7 @@ def test_pypdf_backend_is_flagged(env):
 def test_placeholders_flag_is_refused_outside_the_templates(env):
     rc, _, out = env.run(fmin="90", fmax="99", allow_placeholders=True)
     assert rc == 1
-    assert out.splitlines()[0] == cv._ALLOW_REFUSED
+    assert out.splitlines()[0] == cv.ALLOW_REFUSED
     assert "placeholder gate skipped" not in out
 
 
@@ -798,7 +798,7 @@ def test_target_exactly_at_the_floor_only_warns(env):
     assert "WARN  fill target lowered below drawn target 94-96 — allowed ONLY" in out
 
 
-# ---------- _check_cv: what is passed to the collaborators, and multi-page behaviour ----------
+# ---------- check_cv: what is passed to the collaborators, and multi-page behaviour ----------
 
 def _bound_all(env, name, real):
     """The arguments each recorded call of the faked collaborator passed, by the REAL function's parameter names."""
@@ -842,7 +842,7 @@ def test_without_word_boxes_the_dependent_gates_degrade_with_one_notice(env, mon
     env.pngs = ("p1.png", "p2.png")
     env.fills = {"p1.png": "ink from 3% to 95%", "p2.png": "ink from 3% to 95%"}
     env.pages = "2"
-    monkeypatch.setattr(cv, "_boxes_unavailable", lambda pdf: f"no word boxes for {pdf}")
+    monkeypatch.setattr(cv, "boxes_unavailable", lambda pdf: f"no word boxes for {pdf}")
     _, _, out = env.run(expected="2", fmin="90", fmax="99")
     lines = out.splitlines()
     notice = f"WARN  text-clip gate skipped: no word boxes for {env.dir}/cv.pdf"

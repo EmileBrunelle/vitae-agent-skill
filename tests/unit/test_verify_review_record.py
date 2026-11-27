@@ -1,6 +1,6 @@
 """vitae.verify.review_record: delivery needs a fresh, well-formed step-7 record (`review.md`) beside the CV.
 
-The record check is pure file parsing, tested directly; the verdict wiring is tested through `cv._check_cv` with the
+The record check is pure file parsing, tested directly; the verdict wiring is tested through `cv.check_cv` with the
 mechanical gates stubbed out (what they decide is covered elsewhere), so a lorem CV can reach the record step."""
 import os
 import shutil
@@ -516,12 +516,12 @@ def test_missing_findings_section_fails(tmp_path):
 
 @pytest.fixture
 def gate(monkeypatch):
-    """_check_cv with the mechanical gates stubbed out and the fill measurement fixed at 80%: only the record (and
+    """check_cv with the mechanical gates stubbed out and the fill measurement fixed at 80%: only the record (and
     the fill target) decide the verdict."""
     monkeypatch.setattr(cv, "run_gates", lambda gates, ctx: 0)
     monkeypatch.setattr(cv, "check_whitespace", lambda *a, **k: [])
     monkeypatch.setattr(cv.measure_fill, "measure", lambda path: "ink from 10% to 80%")
-    return lambda typ, *args, **kw: cv._check_cv(str(typ), cv.PageTarget("1", *args), **kw)
+    return lambda typ, *args, **kw: cv.check_cv(str(typ), cv.PageTarget("1", *args), **kw)
 
 
 def _lines(capsys):

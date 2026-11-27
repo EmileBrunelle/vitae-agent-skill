@@ -32,8 +32,8 @@ from typing import NoReturn
 
 from vitae.core.env import preflight
 from vitae.core.level import Level
-from vitae.verify.cv import _ALLOW_REFUSED, placeholders_allowed
-from vitae.verify.gates import _placeholders, make_context
+from vitae.verify.cv import ALLOW_REFUSED, placeholders_allowed
+from vitae.verify.gates import make_context, placeholder_gate
 from vitae.verify.pdf import compile_or_messages, count_pages, ensure_icons, extract_text
 from vitae.verify.text import check_hidden_text
 
@@ -48,7 +48,7 @@ def check_letter(typ: str, employer: str, job_title: str,
     for the shipped templates/letter.typ only.
     """
     if allow_placeholders and not placeholders_allowed(typ):
-        return False, [(True, _ALLOW_REFUSED.removeprefix("FAIL  "))]
+        return False, [(True, ALLOW_REFUSED.removeprefix("FAIL  "))]
     pf = preflight()
     backend = pf.backend
     if not pf.ok:
@@ -83,7 +83,7 @@ def check_letter(typ: str, employer: str, job_title: str,
         else:
             with open(typ, encoding="utf-8") as f:
                 ctx = make_context(typ, pdf, txt, f.read(), backend, can_query=False)
-            for lvl, msg in _placeholders(ctx):
+            for lvl, msg in placeholder_gate(ctx):
                 msgs.append((True if lvl == Level.FAIL else None, msg))
                 fail = fail or lvl == Level.FAIL
 

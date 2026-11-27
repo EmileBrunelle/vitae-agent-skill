@@ -7,7 +7,7 @@ import sys
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
-from vitae.design.emit import _chain, _vitae_header, lang_arg
+from vitae.design.emit import font_chain, lang_arg, vitae_header
 from vitae.design.libapi import OLD_LIB_NOTE, api_line, is_old_lib
 from vitae.design.pick import Pick
 from vitae.design.tables import FONTS
@@ -78,8 +78,8 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
                          "with --force to replace it)" % out)
     import shlex
     q = shlex.quote
-    body_c = _chain(fp["body"], p.body, "body", p.have)
-    disp_c = _chain(fp["display"], p.display, "display", p.have)
+    body_c = font_chain(fp["body"], p.body, "body", p.have)
+    disp_c = font_chain(fp["display"], p.display, "display", p.have)
 
     def head_names(src: str) -> tuple[re.Match[str] | None, re.Match[str] | None]:
         g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.MULTILINE)
@@ -129,7 +129,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
         mono_pool = fp.get("mono")
         if p.mono and mono_pool is not None:
             src = _sub1(src, lead("monof"), sub(
-                _chain(mono_pool, p.mono, "mono", p.have)),
+                font_chain(mono_pool, p.mono, "mono", p.have)),
                 "#let monof", fam)
     if lang != "en" or region:            # worked files ship lang: "en"
         src, n_lang = re.subn(r'(#set text\([^\n]*?)lang: "en"',
@@ -162,7 +162,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
                              "recipe's (%s) — kept the family file's\n"
                              % (fam, v))
     os.makedirs(folder, exist_ok=True)
-    kept = []
+    kept: list[str] = []
     for f in ("lib.typ", "icons.typ"):
         srcf, dst = os.path.join(root, "templates", f), os.path.join(folder, f)
         if os.path.exists(dst):
@@ -180,7 +180,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     # one comment line: the full call form of the family's entry wrapper
     src = re.sub(r'^(#job\()', r'// job(role, org, dates, note) - 4 positional args, "note" required; '
                  r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.MULTILINE)
-    _write_nofollow(out, (_vitae_header(pg) + "\n" + src).encode("utf-8"))
+    _write_nofollow(out, (vitae_header(pg) + "\n" + src).encode("utf-8"))
     lo, hi = pg["fill"].split("-")
     if any((note or "").startswith("NO pool member")
            for note in (p.display_note, p.body_note, p.mono_note)):

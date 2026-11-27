@@ -2,26 +2,26 @@
 
 No `import verify`. Each gate lives in its own module; this package re-exports the names its importers use.
 """
-from vitae.verify.groups.dates import ENTRY_MARKS, _entry_records, _first_word, _yc, check_date_adjacency
-from vitae.verify.groups.ink import _page_ink_gap
+from vitae.verify.groups.dates import ENTRY_MARKS, check_date_adjacency, entry_records, first_word, y_center
+from vitae.verify.groups.ink import page_ink_gap
 from vitae.verify.groups.names import check_duplicate_names
 from vitae.verify.groups.proximity import (
     PROX_FAIL,
     PROX_HIER,
     PROX_WARN,
-    _hier_advice,
-    _KMark,
-    _org_on_one_line,
+    KMark,
     check_group_proximity,
+    hier_advice,
     measure_groups,
+    org_on_one_line,
 )
 from vitae.verify.groups.query import (
     ContactValues,
-    _gnorm,
-    _typst_marks_and_contact,
-    _typst_query,
-    _typst_query_checked,
-    _typst_values,
+    gnorm,
+    typst_marks_and_contact,
+    typst_query,
+    typst_query_checked,
+    typst_values,
 )
 
 __all__ = [
@@ -30,20 +30,20 @@ __all__ = [
     "PROX_HIER",
     "PROX_WARN",
     "ContactValues",
-    "_KMark",
-    "_entry_records",
-    "_first_word",
-    "_gnorm",
-    "_hier_advice",
-    "_org_on_one_line",
-    "_page_ink_gap",
-    "_typst_marks_and_contact",
-    "_typst_query",
-    "_typst_query_checked",
-    "_typst_values",
-    "_yc",
+    "KMark",
     "check_date_adjacency",
     "check_duplicate_names",
     "check_group_proximity",
+    "entry_records",
+    "first_word",
+    "gnorm",
+    "hier_advice",
     "measure_groups",
+    "org_on_one_line",
+    "page_ink_gap",
+    "typst_marks_and_contact",
+    "typst_query",
+    "typst_query_checked",
+    "typst_values",
+    "y_center",
 ]

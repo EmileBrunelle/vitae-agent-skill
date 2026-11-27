@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from harness import ROOT
 from vitae.core.base import Mark
-from vitae.verify.groups import ENTRY_MARKS, _typst_query, check_date_adjacency
+from vitae.verify.groups import ENTRY_MARKS, check_date_adjacency, typst_query
 from vitae.verify.pdf import typst_compile, word_boxes
 
 HEAD = ('#import "lib.typ": *\n#set page(width: 14cm, height: 12cm, margin: 2cm)\n#set text(size: 10pt)\n'
@@ -127,7 +127,7 @@ def _measure(tmp: Path, head: str, cases: list[Case]) -> Verdict:
     src.write_text(head + "\n#pagebreak()\n".join(f"#{{ {c.body} }}" for c in cases), encoding="utf-8")
     ok, err = typst_compile(str(src), str(tmp / "t.pdf"))
     assert ok and "converge" not in err, err
-    marks, words = _typst_query(str(src), ENTRY_MARKS), word_boxes(str(tmp / "t.pdf"), with_text=True)
+    marks, words = typst_query(str(src), ENTRY_MARKS), word_boxes(str(tmp / "t.pdf"), with_text=True)
     assert marks is not None and words is not None and len(words) == len(cases)
     page = {c.name: i for i, c in enumerate(cases, 1)}
 

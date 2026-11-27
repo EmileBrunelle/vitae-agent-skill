@@ -134,14 +134,14 @@ class TestPdfiumBoundary:
 
         mod = type("M", (), {"PdfDocument": Doc})
         monkeypatch.setattr(pdf.importlib, "import_module", lambda name: mod)
-        assert isinstance(pdf._pdfium_doc("x.pdf"), Doc)
+        assert isinstance(pdf.pdfium_doc("x.pdf"), Doc)
 
     def test_object_without_them_is_a_type_error(self, monkeypatch):
         mod = type("M", (), {"PdfDocument": lambda path: object()})
         monkeypatch.setattr(pdf.importlib, "import_module", lambda name: mod)
         assert not isinstance(object(), PdfiumDoc)
         with pytest.raises(TypeError, match="not the document"):
-            pdf._pdfium_doc("x.pdf")
+            pdf.pdfium_doc("x.pdf")
 
 
 class TestCountDegraded:
@@ -160,8 +160,8 @@ class TestMalformedMarksAreReported:
 
     def _q(self, monkeypatch, vals):
         from vitae.verify.groups import query
-        monkeypatch.setattr(query, "_typst_values", lambda *a, **k: vals)
-        return query._typst_query_checked("cv.typ", "sel")
+        monkeypatch.setattr(query, "typst_values", lambda *a, **k: vals)
+        return query.typst_query_checked("cv.typ", "sel")
 
     def test_valid_marks_give_no_note(self, monkeypatch):
         assert self._q(monkeypatch, [self.GOOD, {"text": "EDU"}]) == ([self.GOOD, {"text": "EDU"}], None)
@@ -182,15 +182,15 @@ class TestMalformedMarksAreReported:
     def test_the_gate_run_turns_the_note_into_a_warn(self, monkeypatch):
         from vitae.core.level import Level
         from vitae.verify import gates
-        monkeypatch.setattr(gates, "_typst_marks_and_contact", lambda *a, **k: ([self.GOOD], self.NOTE, None))
+        monkeypatch.setattr(gates, "typst_marks_and_contact", lambda *a, **k: ([self.GOOD], self.NOTE, None))
         ctx = gates.make_context("cv.typ", "cv.pdf", "", "", "poppler")
         assert gates._mark_notes(ctx) == [(Level.WARN, "lib marks: " + self.NOTE)]
-        monkeypatch.setattr(gates, "_typst_marks_and_contact", lambda *a, **k: ([self.GOOD], None, None))
+        monkeypatch.setattr(gates, "typst_marks_and_contact", lambda *a, **k: ([self.GOOD], None, None))
         assert gates._mark_notes(gates.make_context("cv.typ", "cv.pdf", "", "", "poppler")) == []
 
     def test_duplicate_names_gate_warns_on_dropped_sections(self, monkeypatch):
         from vitae.core.level import Level
         from vitae.verify import gates
-        monkeypatch.setattr(gates, "_typst_query_checked", lambda *a, **k: ([{"text": "A"}], self.NOTE))
+        monkeypatch.setattr(gates, "typst_query_checked", lambda *a, **k: ([{"text": "A"}], self.NOTE))
         ctx = gates.make_context("cv.typ", "cv.pdf", "", "", "poppler", can_query=False)
         assert (Level.WARN, "duplicate names: " + self.NOTE) in gates._duplicate_names(ctx)

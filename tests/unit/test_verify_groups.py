@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from typing import ClassVar
 
 import pytest
-from vitae.core.base import DetailRow, GroupMeasure, Mark, Measure, SecMeasure, _EntryRecord, _Line
+from vitae.core.base import DetailRow, EntryRecord, GroupMeasure, Mark, Measure, SecMeasure, TextLine, WordBox
 from vitae.core.level import Level
 from vitae.verify import groups
 from vitae.verify.groups import dates, proximity, query
@@ -26,12 +26,12 @@ def line(text, y, x=10.0, h=10.0, w=40.0):
     return W(x, y, x + w, y + h, text)
 
 
-def text_line(*words) -> _Line:
+def text_line(*words) -> TextLine:
     """A text line holding `words` (only its words matter to the tests that use it)."""
-    return _Line(y0=0.0, y1=10.0, c=5.0, x0=0.0, words=list(words))
+    return TextLine(y0=0.0, y1=10.0, c=5.0, x0=0.0, words=list(words))
 
 
-# ---------------------------------------------------------------- _gnorm
+# ---------------------------------------------------------------- gnorm
 
 class TestGnorm:
     @pytest.mark.parametrize("raw, key", [
@@ -39,7 +39,7 @@ class TestGnorm:
         ("ÉCOLE", "école"),
     ])
     def test_letters_and_digits_casefolded(self, raw, key):
-        assert groups._gnorm(raw) == key
+        assert groups.gnorm(raw) == key
 
 
 # ---------------------------------------------------------------- PageIndex.lines
@@ -391,14 +391,14 @@ class TestCheckGroupProximity:
         assert out[0][0] is Level.WARN and "no lib entry()/srow() heads" in out[0][1]
 
     def test_unavailable_typst_query_is_not_checked(self, monkeypatch):
-        monkeypatch.setattr(proximity, "_typst_query", lambda *a, **k: None)
+        monkeypatch.setattr(proximity, "typst_query", lambda *a, **k: None)
         monkeypatch.setattr(proximity, "pdf_backend", lambda: "poppler")
         out = groups.check_group_proximity("cv.typ", "cv.pdf", pages=[[]])
         assert out == [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
 
     def test_unavailable_pdfium_words_name_the_reason(self, monkeypatch):
         monkeypatch.setattr(proximity, "pdf_backend", lambda: "pdfium")
-        monkeypatch.setattr(proximity, "_boxes_unavailable", lambda pdf: "WHY")
+        monkeypatch.setattr(proximity, "boxes_unavailable", lambda pdf: "WHY")
         monkeypatch.setattr(proximity, "word_boxes", lambda pdf, with_text=False: None)
         out = groups.check_group_proximity("", "x.pdf", heads=[head("A", 0)], secs=[])
         assert len(out) == 1 and "WHY" in out[0][1] and out[0][0] is Level.WARN
@@ -442,7 +442,7 @@ class TestSectionProximity:
         assert 'DETAIL section "EDU" p1 before-bar=30.00pt bar-to-first=20.00pt ratio=1.50' in capsys.readouterr().out
 
 
-# ---------------------------------------------------------------- _entry_records
+# ---------------------------------------------------------------- entry_records
 
 def mk(kind: str, text: str = "") -> Mark:
     return Mark(kind=kind, text=text, page=1, x=0.0, y=0.0)
@@ -450,76 +450,76 @@ def mk(kind: str, text: str = "") -> Mark:
 
 class TestEntryRecords:
     def test_none_and_empty(self):
-        assert groups._entry_records(None) == []
-        assert groups._entry_records([]) == []
+        assert groups.entry_records(None) == []
+        assert groups.entry_records([]) == []
 
     def test_parts_attach_to_the_preceding_head_with_emission_order(self):
         e, d, o = mk("entry", text="a"), mk("date"), mk("org")
-        (r,) = groups._entry_records([e, d, o])
-        assert r == _EntryRecord(head=e, date=d, org=o, date_first=True)
-        (r,) = groups._entry_records([e, o, d])
+        (r,) = groups.entry_records([e, d, o])
+        assert r == EntryRecord(head=e, date=d, org=o, date_first=True)
+        (r,) = groups.entry_records([e, o, d])
         assert r.date_first is False
 
     def test_first_part_of_a_kind_wins_and_date_first_is_set_once(self):
         e, o1, o2, d = mk("entry"), mk("org", "1"), mk("org", "2"), mk("date")
-        (r,) = groups._entry_records([e, o1, o2, d])
+        (r,) = groups.entry_records([e, o1, o2, d])
         assert r.org is o1 and r.date is d and r.date_first is False
 
     def test_entry_without_parts(self):
-        (r,) = groups._entry_records([mk("entry")])
+        (r,) = groups.entry_records([mk("entry")])
         assert (r.date, r.org, r.date_first) == (None, None, None)
 
     def test_parts_before_any_entry_are_ignored(self):
-        assert groups._entry_records([mk("date"), mk("org")]) == []
+        assert groups.entry_records([mk("date"), mk("org")]) == []
 
     def test_a_skill_row_ends_the_entry_so_later_parts_are_orphans(self):
         e, d = mk("entry"), mk("date")
-        (r,) = groups._entry_records([e, mk("skill"), d])
+        (r,) = groups.entry_records([e, mk("skill"), d])
         assert r.date is None
 
     def test_other_part_kinds_are_ignored_and_do_not_reset(self):
         e, d = mk("entry"), mk("date")
-        (r,) = groups._entry_records([e, mk("date-col"), d])
+        (r,) = groups.entry_records([e, mk("date-col"), d])
         assert r.date is d
 
     def test_one_record_per_entry(self):
-        recs = groups._entry_records([mk("entry"), mk("date"), mk("entry"), mk("org")])
+        recs = groups.entry_records([mk("entry"), mk("date"), mk("entry"), mk("org")])
         assert [(r.date is not None, r.org is not None) for r in recs] == [(True, False), (False, True)]
 
 
-# ---------------------------------------------------------------- _first_word
+# ---------------------------------------------------------------- first_word
 
-def WB(x0, y0, x1, y1, t):
+def WB(x0, y0, x1, y1, t) -> WordBox:
     return ((float(x0), float(y0), float(x1), float(y1)), t)
 
 
 class TestFirstWord:
-    words: ClassVar[list[WB]] = [WB(50, 0, 60, 10, "right"), WB(10, 1, 20, 11, "left"), WB(10, 30, 20, 40, "below")]
+    words: ClassVar[list[WordBox]] = [WB(50, 0, 60, 10, "right"), WB(10, 1, 20, 11, "left"), WB(10, 30, 20, 40, "below")]
 
     def test_top_line_then_leftmost(self):
-        assert groups._first_word(self.words, 10, 0, 20) == 1
+        assert groups.first_word(self.words, 10, 0, 20) == 1
 
     def test_x_is_inclusive_within_one_and_a_half_points(self):
-        assert groups._first_word(self.words, 11.5, 0, 20) == 1      # 10 >= 11.5 - 1.5
-        assert groups._first_word(self.words, 11.6, 0, 20) == 0      # left is now too far left
+        assert groups.first_word(self.words, 11.5, 0, 20) == 1      # 10 >= 11.5 - 1.5
+        assert groups.first_word(self.words, 11.6, 0, 20) == 0      # left is now too far left
 
     def test_x_end_is_exclusive(self):
-        assert groups._first_word(self.words, 0, 0, 20, x_end=10) is None
-        assert groups._first_word(self.words, 0, 0, 20, x_end=10.5) == 1
+        assert groups.first_word(self.words, 0, 0, 20, x_end=10) is None
+        assert groups.first_word(self.words, 0, 0, 20, x_end=10.5) == 1
 
     def test_y_window_starts_two_points_above_and_ends_before_y_end(self):
-        assert groups._first_word(self.words, 10, 8, 20) == 1         # centre 6 >= 8 - 2
-        assert groups._first_word(self.words, 10, 8.5, 20) is None    # centre 6 < 6.5
-        assert groups._first_word(self.words, 10, 0, 5) is None       # centre 6 is not < 5
+        assert groups.first_word(self.words, 10, 8, 20) == 1         # centre 6 >= 8 - 2
+        assert groups.first_word(self.words, 10, 8.5, 20) is None    # centre 6 < 6.5
+        assert groups.first_word(self.words, 10, 0, 5) is None       # centre 6 is not < 5
 
     def test_words_within_three_points_of_the_top_line_count_as_it(self):
         ws = [WB(40, 0, 50, 10, "a"), WB(5, 3, 15, 13, "b")]          # centres 5 and 8: same line
-        assert groups._first_word(ws, 0, 0, 30) == 1
+        assert groups.first_word(ws, 0, 0, 30) == 1
         ws = [WB(40, 0, 50, 10, "a"), WB(5, 3.5, 15, 13.5, "b")]      # 8.5: a lower line
-        assert groups._first_word(ws, 0, 0, 30) == 0
+        assert groups.first_word(ws, 0, 0, 30) == 0
 
     def test_nothing_in_the_window(self):
-        assert groups._first_word([], 0, 0, 10) is None
+        assert groups.first_word([], 0, 0, 10) is None
 
 
 # ---------------------------------------------------------------- check_date_adjacency
@@ -681,7 +681,7 @@ class TestCheckDateAdjacency:
 
     def test_marks_come_from_typst_query_when_not_given(self, monkeypatch):
         seen = []
-        monkeypatch.setattr(dates, "_typst_query", lambda typ, sel, root=None: seen.append(sel) or [H, D, O])
+        monkeypatch.setattr(dates, "typst_query", lambda typ, sel, root=None: seen.append(sel) or [H, D, O])
         groups.check_date_adjacency("cv.typ", "", words=[[DEV, DATE, ACME]])
         assert seen == [groups.ENTRY_MARKS]
 
@@ -730,8 +730,8 @@ class TestMarkValidation:
                  "dated": True, "anchor": True},
                 {"text": "EDU"},
                 {"kind": "date", "text": "", "page": 2, "x": 1.0, "y": 2.0, "w": 3, "h": 4.5, "inline": False}]
-        monkeypatch.setattr(query, "_typst_values", lambda *a, **k: vals)
-        assert query._typst_query("cv.typ", "sel") == vals
+        monkeypatch.setattr(query, "typst_values", lambda *a, **k: vals)
+        assert query.typst_query("cv.typ", "sel") == vals
 
     def test_malformed_entries_are_dropped_and_valid_ones_kept(self, monkeypatch):
         good = {"text": "ok", "page": 1, "x": 1.0, "y": 2.0}
@@ -742,12 +742,12 @@ class TestMarkValidation:
                {"text": "a", "page": True},           # a bool is not a number
                {"text": "a", "dated": 1},             # dated not a bool
                "entry", 7, None, ["text"]]            # not objects
-        monkeypatch.setattr(query, "_typst_values", lambda *a, **k: [*bad, good])
-        assert query._typst_query("cv.typ", "sel") == [good]
+        monkeypatch.setattr(query, "typst_values", lambda *a, **k: [*bad, good])
+        assert query.typst_query("cv.typ", "sel") == [good]
 
     def test_none_stays_none(self, monkeypatch):
-        monkeypatch.setattr(query, "_typst_values", lambda *a, **k: None)
-        assert query._typst_query("cv.typ", "sel") is None
+        monkeypatch.setattr(query, "typst_values", lambda *a, **k: None)
+        assert query.typst_query("cv.typ", "sel") is None
 
     def test_json_list_accepts_only_arrays(self):
         assert query._json_list('[1, {"a": 2}]') == [1, {"a": 2}]
@@ -758,5 +758,5 @@ class TestMarkValidation:
     def test_unplaced_marks_are_ignored_by_entry_records(self):
         unplaced = Mark(kind="entry", text="a")
         placed = Mark(kind="entry", text="b", page=1, x=0.0, y=0.0)
-        recs = groups._entry_records([unplaced, placed])
+        recs = groups.entry_records([unplaced, placed])
         assert [r.head["text"] for r in recs] == ["b"]

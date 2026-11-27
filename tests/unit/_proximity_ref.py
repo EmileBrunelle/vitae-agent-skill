@@ -14,20 +14,20 @@ from vitae.core.base import (
     Measure,
     SecMark,
     SecMeasure,
+    TextLine,
     Word,
-    _Line,
     is_placed,
     is_sec_placed,
 )
-from vitae.verify.groups.proximity import _box, _dx, _group_row, _KMark, _NextBlock
-from vitae.verify.groups.query import _gnorm
+from vitae.verify.groups.proximity import KMark, _box, _dx, _group_row, _NextBlock
+from vitae.verify.groups.query import gnorm
 
 
-def lines_rebuilt(words: Sequence[Word], x_min: float) -> list[_Line]:
+def lines_rebuilt(words: Sequence[Word], x_min: float) -> list[TextLine]:
     """Words (x0, y0, x1, y1, text) at or right of x_min, clustered into text
     lines by y-centre -> sorted list of dicts {y0, y1, c, x0, words}."""
     ws = sorted((w for w in words if w[0] >= x_min), key=lambda w: (w[1] + w[3]) / 2)
-    out: list[_Line] = []
+    out: list[TextLine] = []
     for w in ws:
         c = (w[1] + w[3]) / 2
         # 3.0pt y-centre tolerance: words of slightly different sizes/weights on one baseline stay in one line
@@ -46,10 +46,10 @@ def find_run_scanning(words: Sequence[Word], text: str, ytyp: float) -> list[Wor
     """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of
     word tuples, or None."""
     # Up to 4 tokens is enough to identify an entry head uniquely without crossing a line wrap.
-    toks = [t for t in (_gnorm(w) for w in text.split()) if t][:4]
+    toks = [t for t in (gnorm(w) for w in text.split()) if t][:4]
     if not toks:
         return None
-    norm = [_gnorm(w[4]) for w in words]
+    norm = [gnorm(w[4]) for w in words]
     best = None
     for j in range(len(words)):
         if norm[j] != toks[0]:
@@ -73,7 +73,7 @@ def find_run_scanning(words: Sequence[Word], text: str, ytyp: float) -> list[Wor
     return [words[k] for k in best[1]]
 
 
-def line_index_scanning(lines: list[_Line], run: list[Word]) -> int | None:
+def line_index_scanning(lines: list[TextLine], run: list[Word]) -> int | None:
     """Index in `lines` of the line holding the first word of `run` (matched by identity)."""
     w = run[0]
     for i, ln in enumerate(lines):
@@ -82,8 +82,8 @@ def line_index_scanning(lines: list[_Line], run: list[Word]) -> int | None:
     return None
 
 
-def next_block_filtering(h: HeadMark, hx: float, words: list[Word], marks: list[_KMark],
-                later: list[_KMark]) -> _NextBlock | None:
+def next_block_filtering(h: HeadMark, hx: float, words: list[Word], marks: list[KMark],
+                later: list[KMark]) -> _NextBlock | None:
     """The block after head `h`: (its mark, its words, whether it is a rail title), or None when its
     text is not located in the PDF."""
     m = min(later, key=lambda m: m.y)
@@ -109,8 +109,8 @@ def next_block_filtering(h: HeadMark, hx: float, words: list[Word], marks: list[
     return _NextBlock(m, mrun, rail)
 
 
-def next_line_index_rebuilding(words: list[Word], hx: float, lines: list[_Line], run: list[Word], i0: int,
-                     mrun: list[Word], rail: bool) -> tuple[list[_Line], int | None, int | None]:
+def next_line_index_rebuilding(words: list[Word], hx: float, lines: list[TextLine], run: list[Word], i0: int,
+                     mrun: list[Word], rail: bool) -> tuple[list[TextLine], int | None, int | None]:
     """(lines, index of the head's line, index of the next block's line) once the next block is
     known; either index is None when it cannot be placed."""
     if not rail:
@@ -127,7 +127,7 @@ def next_line_index_rebuilding(words: list[Word], hx: float, lines: list[_Line],
     return lines, i0, min(cand)[1] if cand else None
 
 
-def measure_head_rebuilding(h: HeadMark, marks: list[_KMark], pages_words: list[list[Word]],
+def measure_head_rebuilding(h: HeadMark, marks: list[KMark], pages_words: list[list[Word]],
                   gap_fn: GapFn) -> tuple[GroupMeasure | None, bool]:
     """(row, skipped) for one head: a row when its group is measurable; skipped when its text or its next
     block could not be located; neither for a last block on its page or a single-line group."""
@@ -203,8 +203,8 @@ def measure_groups_rebuilding(heads: list[Mark], secs: list[Mark], pages_words: 
     rows: list[Measure] = []
     skipped = 0
     # the marks tagged with their kind ("h" head / "s" section)
-    marks: list[_KMark] = [_KMark("h", h["text"], h["page"], h["y"], h["x"]) for h in placed]
-    marks.extend(_KMark("s", s["text"], s["page"], s["y"], s.get("x")) for s in placed_secs)
+    marks: list[KMark] = [KMark("h", h["text"], h["page"], h["y"], h["x"]) for h in placed]
+    marks.extend(KMark("s", s["text"], s["page"], s["y"], s.get("x")) for s in placed_secs)
     for h in sorted(placed, key=lambda h: (h["page"], h["y"])):
         row, skip = measure_head_rebuilding(h, marks, pages_words, gap_fn)
         skipped += skip

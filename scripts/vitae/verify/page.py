@@ -219,7 +219,7 @@ def _components(grid: Image.Image, merge: int = 0) -> list[tuple[int, int, int, 
     gw, gh = grid.size
     on = grid.point(_NONZERO_LUT).tobytes()
     seen = bytearray(gw * gh)
-    boxes = []
+    boxes: list[tuple[int, int, int, int]] = []
     for start in range(gw * gh):
         if not on[start] or seen[start]:
             continue
@@ -303,7 +303,7 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
         # Decorations repeat: the same shape (size, ink) CROP_REPEAT times on a page is a heading square,
         # a divider or a bullet, and goes before the marks are merged (a square above a phone glyph must
         # not fuse with it). A contact mark never repeats: each of pin, phone, mail, web has its own shape.
-        parts = []
+        parts: list[tuple[tuple[int, int, int, int], int, int, int]] = []
         for x0, y0, x1, y1 in _components(rest.reduce(3)):
             box = (x0 * 3, y0 * 3, min(w, x1 * 3 + 3), min(h, y1 * 3 + 3))
             tight = rest.crop(box).getbbox()
@@ -344,20 +344,20 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
     return sorted(fills + icons, key=lambda b: (b[1][1], b[1][0]))
 
 
-# Constants of the ink-gap measurement (the x-height band of each text line, in verify.py's _page_ink_gap).
+# Constants of the ink-gap measurement (the x-height band of each text line, in verify.py's page_ink_gap).
 INK_DPI = 300           # ~42 px per 10pt line: enough vertical rows to separate x-height from ascenders/descenders
 INK_DELTA = 60          # luma delta vs background: ignores faint antialiasing fringe, keeps body/muted/accent ink
 RULE_PT = 10.0          # >=10pt (~1em) contiguous horizontal run in one row is a rule/underline/em-dash, not a glyph stem
 
 
-def _row_stats(data: bytes, w: int, r: int, tbl: bytes) -> tuple[int, int]:
+def row_stats(data: bytes, w: int, r: int, tbl: bytes) -> tuple[int, int]:
     """(ink pixels, longest contiguous ink run) of pixel row r of a w-wide crop."""
     s = data[r * w:(r + 1) * w].translate(tbl)
     n = s.count(b"\x01")
     return n, (max(map(len, s.split(b"\x00"))) if n else 0)
 
 
-def _xheight_band(prof: list[int]) -> tuple[int, int] | None:
+def xheight_band(prof: list[int]) -> tuple[int, int] | None:
     """(top, bottom) row indexes of the dense x-height band of a text line from
     its ink row profile (None when there is no ink; a negative row is a rule row, skipped:
     an em dash is a 10 pt run too, and counting it as an empty row cut a bullet's band in

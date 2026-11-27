@@ -1,7 +1,7 @@
 """The typst.py code replaced by the LOG320 worst-case sweep, kept verbatim as the oracle of the equivalence tests
 (tests/unit/test_typst_complexity.py): the regexes with the quadratic number pattern, `PAR_RE` with its retried lazy
 scans, `_par_rule_spans` rescanning to the end of the text from every unclosed `#set par(`, and the backtick branch of
-`_mask_non_markup` copying the rest of the text per backtick. Not imported by the product."""
+`mask_non_markup` copying the rest of the text per backtick. Not imported by the product."""
 import re
 
 _LEAD_ARG = re.compile(r"(?:^|[,(\s])leading\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
@@ -13,7 +13,7 @@ PAR_RE = re.compile(r"(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(em[^)]*?spacing:\
 
 
 def par_rule_spans_quadratic(masked: str) -> list[tuple[int, int]]:
-    """(start, end) of every column-0 `#set par(... leading: ...)` rule in a _mask_non_markup'd text."""
+    """(start, end) of every column-0 `#set par(... leading: ...)` rule in a mask_non_markup'd text."""
     spans = []
     for m in re.finditer(r"^#set\s+par\(", masked, re.MULTILINE):
         k, d = m.end(), 1

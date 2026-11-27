@@ -2,6 +2,7 @@
 pitch by 0.5pt). Inverted and flat lists FAIL; a healthy list passes; no wrapped bullet is INFO, never a FAIL.
 
 Tiny Typst documents drawing their list through lib.typ's marker, compiled with the `typst` package."""
+import dataclasses
 import shutil
 
 import pytest
@@ -142,7 +143,7 @@ def test_without_query_warns():
 
 def test_pypdf_fallback_downgrades_to_warn(tmp_path):
     ctx = _ctx(tmp_path, _list(1.0, 0.4), name="pp")
-    ctx = type(ctx)(**{**ctx.__dict__, "backend": "pypdf"})
+    ctx = dataclasses.replace(ctx, backend="pypdf")
     assert [lvl for lvl, _ in _spacing_rhythm(ctx)] == [Level.WARN]
 
 

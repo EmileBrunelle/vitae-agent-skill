@@ -102,7 +102,7 @@ def test_par_re_equivalence_is_not_vacuous() -> None:
 @settings(max_examples=600, deadline=None)
 @given(_texts)
 def test_mask_non_markup_matches_the_old_one(s: str) -> None:
-    assert typst._mask_non_markup(s) == mask_non_markup_quadratic(s)
+    assert typst.mask_non_markup(s) == mask_non_markup_quadratic(s)
 
 
 @pytest.mark.slow
@@ -134,6 +134,6 @@ def test_number_patterns_bound_time_on_long_digit_runs() -> None:
 def test_mask_non_markup_bounds_time_on_many_backticks() -> None:
     start = time.perf_counter()
 
-    typst._mask_non_markup("`a" * 200000)
+    typst.mask_non_markup("`a" * 200000)
 
     assert time.perf_counter() - start < 1.0     # measured ~0.07 s; copying the rest of the text per backtick took ~1 s

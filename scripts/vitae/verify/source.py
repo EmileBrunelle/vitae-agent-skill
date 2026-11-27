@@ -7,9 +7,9 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from vitae.verify.lang import _is_latin, _strip_latin_marks
+from vitae.verify.lang import is_latin, strip_latin_marks
 from vitae.verify.pdf import family_from_path
-from vitae.verify.typst import _mask_non_markup
+from vitae.verify.typst import mask_non_markup
 
 # The headings come from the SOURCE, not from a guess at what a heading looks
 # like in the extraction: every family defines its own `#section(t, body)` and
@@ -31,7 +31,7 @@ def _norm_heading(s: str) -> str:
     them, and a family's device may add or drop punctuation around one. Any
     script: case-folded, accents dropped from Latin letters only, everything
     that is not a letter, digit or mark is a separator."""
-    s = _strip_latin_marks(s.casefold())
+    s = strip_latin_marks(s.casefold())
     return " ".join("".join(c if c.isalnum() or unicodedata.category(c)[0] == "M" else " " for c in s).split())
 
 
@@ -42,7 +42,7 @@ def _heading_words(s: str) -> frozenset[str]:
     accents (ΕΜΠΕΙΡΙΑ for εμπειρία); none of that is a section split, so a heading that matches on this
     key is accepted. Latin headings: empty (exact only)."""
     h = _norm_heading(s)
-    if all(_is_latin(c) for c in h if c.isalpha()):
+    if all(is_latin(c) for c in h if c.isalpha()):
         return frozenset()
     bare = "".join(c for c in unicodedata.normalize("NFKD", h)
                    if not unicodedata.combining(c) and unicodedata.category(c) not in ("Cf", "Mn"))
@@ -79,7 +79,7 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
         pages = pages[:-1]
     if len(pages) < 2:
         return [(False, "no-split: single page, nothing to split")]
-    out = []
+    out: list[tuple[bool, str]] = []
     for pageno, page in enumerate(pages[1:], 2):
         lines = [l.strip() for l in page.split("\n") if l.strip()]
         for j in range(min(2, len(lines))):       # the running-head band only
@@ -108,7 +108,7 @@ _BANNER_RE = re.compile(r"^\s*//\s*FAMILY:\s*([\w-]+)", re.MULTILINE)
 _HEADER1_RE = re.compile(r"//\s*vitae:\s*pages=(\d+)(?:\s+fill=(\d+)-(\d+))?")
 
 
-def _drawn_fill(typ: str) -> tuple[tuple[int, int] | None, list[str]]:
+def drawn_fill(typ: str) -> tuple[tuple[int, int] | None, list[str]]:
     """The fill target pick_design.py drew, and WARN lines about the header.
 
     The `// vitae:` header is editable, so it is NOT the authority when the family
@@ -133,7 +133,7 @@ def _drawn_fill(typ: str) -> tuple[tuple[int, int] | None, list[str]]:
             table = (int(lo), int(hi))
     if table is None:
         return header, []
-    warns = []
+    warns: list[str] = []
     if _BANNER_RE.search(head) and header != table:
         got = (f"{header[0]}-{header[1]}" if header
                else "no `// vitae: pages=N fill=A-B` header on line 1")
@@ -143,7 +143,7 @@ def _drawn_fill(typ: str) -> tuple[tuple[int, int] | None, list[str]]:
     return table, warns
 
 
-def _fill_args_ok(*vals: str | None) -> bool:
+def fill_args_ok(*vals: str | None) -> bool:
     """FAIL line + False when a fill/page argument is not a plain integer."""
     for v in vals:
         if v is not None and not re.fullmatch(r"\d+", v):
@@ -165,7 +165,8 @@ def check_forced_linebreak(src: str) -> list[str]:
     break mid-bullet leaves a ragged half-line and, in the extraction, splits
     the bullet in two. Source-text check: it needs no PDF, so it runs in every mode.
     A FAIL because the construct is unambiguous in the source, whatever the language."""
-    out, indent = [], None
+    out: list[str] = []
+    indent: int | None = None
     for n, raw in enumerate(src.split("\n"), 1):
         line = re.sub(r"(?:^|(?<=\s))//.*$", "", raw)   # drop `//` comments, but not a `//` inside a URL
         m = LIST_ITEM_RE.match(line)
@@ -192,9 +193,9 @@ def check_literal_tilde(src: str) -> list[str]:
     block), "strings", `raw` spans (multi-line too), $math$ and `\\~` are masked
     over the whole file first; the intentional uses (`#cat~:`, `[~#sc]`) sit
     after an identifier or before `#`, so they never match."""
-    out = []
+    out: list[str] = []
     raws = src.split("\n")
-    for n, line in enumerate(_mask_non_markup(src).split("\n"), 1):
+    for n, line in enumerate(mask_non_markup(src).split("\n"), 1):
         if TILDE_RE.search(line):
             out.append(f"line {n}: unescaped `~` in text "
                        f'("{raws[n - 1].strip()[:50]}") — Typst turns it into a non-breaking space; '

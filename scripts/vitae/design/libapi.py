@@ -25,7 +25,8 @@ def _params(src: str, start: int) -> list[str] | None:
 
     Strings (with `\\"` escapes) and `//`, `/* */` comments are skipped; quotes inside a
     `[...]` content block are plain text."""
-    stack, cur, out = ["("], "", []
+    stack, cur = ["("], ""
+    out: list[str] = []
     i, n = start, len(src)
     while i < n:
         ch = src[i]

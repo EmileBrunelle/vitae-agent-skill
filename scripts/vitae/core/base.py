@@ -1,7 +1,7 @@
 """Shared shapes and constants of the verify modules (a leaf: it imports no sibling).
 
 Shared by the modules under vitae/verify/ and vitae/core/. It holds no mutable state: the message footer a failed
-run prints last is returned by the mode that computes it (see `_run` in vitae/verify/cli.py).
+run prints last is returned by the mode that computes it (see `run_cli` in vitae/verify/cli.py).
 """
 from __future__ import annotations
 
@@ -77,15 +77,15 @@ def is_sec_placed(m: Mark) -> TypeIs[SecMark]:
 
 
 @dataclass(frozen=True, slots=True)
-class _EntryRecord:
-    """_entry_records(): an entry head with the part marks that follow it (built in process, never serialized)."""
+class EntryRecord:
+    """entry_records(): an entry head with the part marks that follow it (built in process, never serialized)."""
     head: HeadMark
     date: HeadMark | None
     org: HeadMark | None
     date_first: bool | None
 
 
-class _Line(TypedDict):
+class TextLine(TypedDict):
     """_lines(): the words of one text line, clustered by y-centre."""
     y0: ReadOnly[float]
     y1: ReadOnly[float]
@@ -159,7 +159,7 @@ class SecRow(TypedDict):
 DetailRow: TypeAlias = GroupRow | SecRow
 
 
-# The last lines printed when a run ends on a non-zero exit (see `_run`). A reader (human or
+# The last lines printed when a run ends on a non-zero exit (see `run_cli`). A reader (human or
 # model) acts on what it sees LAST, so the instruction is here, not only in the header.
 # Armed (set non-None) only after preflight succeeded, per mode, so a missing
 # dependency or a usage error never gets a footer that blames cv.typ.
@@ -170,12 +170,12 @@ _NO_READ = ("      Do not open verify.py or lib.typ: their code is not the fix, 
 # 60 = below the 65% observed in the 0.9.0 real run (thin 2-job persona, facts exhausted)
 # with margin, still above a half-empty page; still a WARN.
 LOWERED_FILL_FLOOR = 60
-_FOOTER_GATE = ("NEXT  Apply the fix each FAIL above names, then re-run the same command. "
+FOOTER_GATE = ("NEXT  Apply the fix each FAIL above names, then re-run the same command. "
                 "Edit cv.typ only; a lib.typ FAIL is fixed by the printed `cp` command "
                 "(recopy it, never edit it).\n" + _NO_READ)
-_FOOTER_TUNE = ("NEXT  Run the command printed above (wider range), or add real content / "
+FOOTER_TUNE = ("NEXT  Run the command printed above (wider range), or add real content / "
                 "change the page count in cv.typ; do not edit leading by hand.\n" + _NO_READ)
-_FOOTER_TUNE_UNDER = ("NEXT  The page is under-filled: do not re-run --tune or widen the range "
+FOOTER_TUNE_UNDER = ("NEXT  The page is under-filled: do not re-run --tune or widen the range "
                       "(leading is capped). Add a real fact from the candidate's facts (a bullet "
                       "with a measurable result, a project, a certification); raising the body type size "
                       "is the same padding, not an alternative; never pad or invent "
@@ -184,9 +184,9 @@ _FOOTER_TUNE_UNDER = ("NEXT  The page is under-filled: do not re-run --tune or w
                       "(FILL_MIN = the lowest fill the gate prints, not below "
                       f"{LOWERED_FILL_FLOOR}; under {LOWERED_FILL_FLOOR}% there is no lowered-target "
                       "exit: a fact is missing, or fewer pages), and tell the user.\n" + _NO_READ)
-_FOOTER_TUNE_NOPAR = ("NEXT  Add the `#set par(leading: Xem, spacing: Yem)` line to cv.typ "
+FOOTER_TUNE_NOPAR = ("NEXT  Add the `#set par(leading: Xem, spacing: Yem)` line to cv.typ "
                       "(copy it from the template), then re-run the same command.\n" + _NO_READ)
-_FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Add real content "
+FOOTER_TUNE_WIDE = ("NEXT  The range was already wide: do not re-run --tune. Add real content "
                      "or change the page count in cv.typ.\n" + _NO_READ)
 
 

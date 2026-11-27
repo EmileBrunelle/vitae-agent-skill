@@ -6,7 +6,7 @@ product."""
 from __future__ import annotations
 
 from _proximity_ref import lines_rebuilt
-from vitae.core.base import HeadMark, Mark, Word, WordBox, _Line, is_placed
+from vitae.core.base import HeadMark, Mark, TextLine, Word, WordBox, is_placed
 from vitae.verify.runts import (
     _BOTTOM_LINES,
     _CHANNEL,
@@ -53,7 +53,7 @@ def column_sorting(words: list[Word], m: Pos, ltr: bool) -> tuple[float, float]:
     return (m.x - 0.5, float("inf")) if ltr else (float("-inf"), m.x + 0.5)
 
 
-def window_rebuilding(words: list[WordBox], col: tuple[float, float]) -> list[_Line]:
+def window_rebuilding(words: list[WordBox], col: tuple[float, float]) -> list[TextLine]:
     """The text lines made of the words inside the column's x range only."""
     ws = [(b[0], b[1], b[2], b[3], t) for b, t in words if b[0] >= col[0] - 0.5 and b[2] <= col[1] + 0.5]
     return lines_rebuilt(ws, float("-inf"))
@@ -114,7 +114,7 @@ def located_bullets_rebuilding(marks: list[Mark], pages: list[list[WordBox]],
         out.append((m, got))
     return out
 
-def first_line_scanning(lines: list[_Line], y: float) -> int | None:
+def first_line_scanning(lines: list[TextLine], y: float) -> int | None:
     """The line whose centre is nearest the marker's y, if within the band (at most half the line pitch,
     so at small type the previous bullet's line is not taken for it)."""
     if not lines:
@@ -125,8 +125,8 @@ def first_line_scanning(lines: list[_Line], y: float) -> int | None:
     return j if abs(lines[j]["c"] - y) <= band else None
 
 
-def follow_scanning(lines: list[_Line], start: int, edge: float, ltr: bool, nxt: float, pg: int,
-            got: list[BulletLine], prev: _Line | None) -> bool:
+def follow_scanning(lines: list[TextLine], start: int, edge: float, ltr: bool, nxt: float, pg: int,
+            got: list[BulletLine], prev: TextLine | None) -> bool:
     """Append the lines from `start` that continue the bullet, up to the next bullet's first line; True when
     it ran to the end of the column (so it may go on at the top of the next page)."""
     stop = first_line_scanning(lines, nxt) if nxt != float("inf") else None

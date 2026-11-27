@@ -12,7 +12,7 @@ def failures(results):
     return [m for _, ok, m in results if not ok]
 
 
-def _full_data(data):
+def _full_data(data) -> dict[str, object]:
     # Mirrors the parsed TOML [counts] table: ints, plus nested tables for publications and talks.
     flat: dict[str, int] = dict.fromkeys(("education", "appointments", "honours", "funding", "supervision", "teaching", "service", "knowledge_mobilization", "references"), 0)
     publications: dict[str, int] = {"journal": 0, "conference": 0, "preprint": 0}
@@ -20,7 +20,8 @@ def _full_data(data):
     publications.update(data["counts"].get("publications", {}))
     counts: dict[str, int | dict[str, int]] = {**flat, "publications": publications, "talks": talks}
     counts.update({k: v for k, v in data["counts"].items() if k != "publications"})
-    return {**data, "counts": counts}
+    full: dict[str, object] = {**data, "counts": counts}
+    return full
 
 
 def test_missing_declared_heading_is_reported_plainly():
@@ -92,11 +93,11 @@ def test_english_body_line_equal_to_a_heading_up_to_case_is_not_a_heading():
 
 def test_canonical_headings_leaves_text_alone_without_declared_headings():
     text = "Dupont\nTeaching\n2012 MSc"
-    assert va_parse._canonical_headings(text, set()) == text
+    assert va_parse.canonical_headings(text, set()) == text
 
 
 def test_canonical_headings_rewrites_a_declared_heading_to_its_declared_case():
-    assert va_parse._canonical_headings("formation", {"Formation"}) == "Formation"
+    assert va_parse.canonical_headings("formation", {"Formation"}) == "Formation"
 
 
 def test_affiliations_heading_can_be_declared():

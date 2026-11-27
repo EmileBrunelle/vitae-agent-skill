@@ -1,7 +1,7 @@
 """Font handling, separated from the checks that use it: which families a CV asks for and
 which face a PDF character was drawn in.
 
-Text in, values out: `requested_families` reads Typst source (`_font_sources` reads cv.typ and the local
+Text in, values out: `requested_families` reads Typst source (`font_sources` reads cv.typ and the local
 `.typ` files it imports from disk, the only file access here) and returns family keys;
 `classify_font_fallback` compares (character, PDF font) pairs against those keys and returns
 the findings. Nothing here opens a PDF, compiles or prints; verify.py owns the gate that
@@ -70,7 +70,7 @@ def _family_requested(psname: str, requested: set[str]) -> bool:
     return False
 
 
-def _font_sources(typ: str, root: str | None = None, seen: set[str] | None = None) -> str:
+def font_sources(typ: str, root: str | None = None, seen: set[str] | None = None) -> str:
     """The text of the CV source and of every local .typ it imports or includes ("" for a file that cannot be read).
     `@preview/...` packages are not followed. A path starting with "/" is resolved from `root`, Typst's project root,
     when one is given; `seen` breaks import cycles."""
@@ -87,7 +87,7 @@ def _font_sources(typ: str, root: str | None = None, seen: set[str] | None = Non
     for m in re.finditer(r'#(?:import|include)\s+"([^"@]+\.typ)"', text):
         rel = m.group(1)
         base = os.path.realpath(root) if rel.startswith("/") and root else os.path.dirname(path)
-        out.append(_font_sources(os.path.join(base, rel.lstrip("/")), root, seen))
+        out.append(font_sources(os.path.join(base, rel.lstrip("/")), root, seen))
     return "\n".join(out)
 
 

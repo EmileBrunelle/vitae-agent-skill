@@ -17,21 +17,21 @@ from vitae.core.base import (
     SecMark,
     SecMeasure,
     SecRow,
+    TextLine,
     Word,
-    _Line,
     is_placed,
     is_sec_placed,
 )
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.verify.bounds import density_guard, page_at
-from vitae.verify.groups.ink import _page_ink_gap
-from vitae.verify.groups.query import LineSet, PageIndex, _gnorm, _typst_query
-from vitae.verify.pdf import _boxes_unavailable, word_boxes
+from vitae.verify.groups.ink import page_ink_gap
+from vitae.verify.groups.query import LineSet, PageIndex, gnorm, typst_query
+from vitae.verify.pdf import boxes_unavailable, word_boxes
 
 
 @dataclass(frozen=True, slots=True)
-class _KMark:
+class KMark:
     """A head or section mark tagged with its kind: "h" head / "s" section (a section has no x)."""
     k: Literal["h", "s"]
     text: str
@@ -43,7 +43,7 @@ class _KMark:
 @dataclass(frozen=True, slots=True)
 class _NextBlock:
     """The block after a head: its mark, its words in the PDF, and whether it is a rail title."""
-    mark: _KMark
+    mark: KMark
     words: list[Word]
     rail: bool
 
@@ -58,28 +58,28 @@ class _HeadSpot:
     i0: int
 
 
-def _dx(m: _KMark, h: HeadMark) -> float:
+def _dx(m: KMark, h: HeadMark) -> float:
     """Horizontal distance from head `h` to mark `m`; a section mark has no x, so it is infinitely far."""
     return abs(m.x - h["x"]) if m.x is not None else float("inf")
 
 
-def _org_on_one_line(org: str, line: _Line) -> bool:
+def org_on_one_line(org: str, line: TextLine) -> bool:
     """True when the org text's first and last tokens both sit on `line`: the line under the role is the
     whole org line (a wrapped role pushes the org down, a wrapped org spills onto the next line)."""
-    toks = [t for t in (_gnorm(w) for w in org.split()) if t]
+    toks = [t for t in (gnorm(w) for w in org.split()) if t]
     if not toks:
         return False
-    have = {_gnorm(w[4]) for w in line["words"]}
+    have = {gnorm(w[4]) for w in line["words"]}
     return toks[0] in have and toks[-1] in have
 
 
-def _box(ln: _Line) -> LineBox:
+def _box(ln: TextLine) -> LineBox:
     """The [x0, x1, y0, y1] box of a text line."""
     return [ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]]
 
 
-def _next_block(h: HeadMark, hx: float, idx: PageIndex, page_marks: list[_KMark],
-                later: list[_KMark]) -> _NextBlock | None:
+def _next_block(h: HeadMark, hx: float, idx: PageIndex, page_marks: list[KMark],
+                later: list[KMark]) -> _NextBlock | None:
     """The block after head `h`, or None when its text is not located in the PDF.
     `page_marks`: the marks on `h`'s page."""
     m = min(later, key=lambda m: m.y)
@@ -124,7 +124,7 @@ def _next_line_index(idx: PageIndex, spot: _HeadSpot, nb: _NextBlock) -> tuple[L
     return lines, i0, min(cand)[1] if cand else None
 
 
-def _group_row(h: HeadMark, m: _KMark, lines: list[_Line], i0: int, i_next: int,
+def _group_row(h: HeadMark, m: KMark, lines: list[TextLine], i0: int, i_next: int,
                gap_fn: GapFn) -> GroupMeasure:
     """The measured row of the group running from line i0 through line i_next (the next block's)."""
     ls = [_box(ln) for ln in lines[i0:i_next + 1]]
@@ -141,7 +141,7 @@ def _group_row(h: HeadMark, m: _KMark, lines: list[_Line], i0: int, i_next: int,
     hb: float | None = None
     pitch: float | None = None
     org = h.get("org")
-    if h.get("kind") == "entry" and org and n >= 4 and _org_on_one_line(org, lines[i0 + 1]):
+    if h.get("kind") == "entry" and org and n >= 4 and org_on_one_line(org, lines[i0 + 1]):
         hb, pitch = gaps[1], statistics.median(gaps[2:])
     return GroupMeasure(text=h["text"], page=h["page"], n=n, hkind=h.get("kind"),
                         next_sec=m.k == "s", head_gap=hb, pitch=pitch,
@@ -150,7 +150,7 @@ def _group_row(h: HeadMark, m: _KMark, lines: list[_Line], i0: int, i_next: int,
                         pair_in=(tx[wi], tx[wi + 1]), pair_btw=(tx[-2], tx[-1]))
 
 
-def _measure_head(h: HeadMark, page_marks: list[_KMark], idx: PageIndex | None,
+def _measure_head(h: HeadMark, page_marks: list[KMark], idx: PageIndex | None,
                   gap_fn: GapFn) -> tuple[GroupMeasure | None, bool]:
     """(row, skipped) for one head: a row when its group is measurable; skipped when its text or its next
     block could not be located; neither for a last block on its page or a single-line group. `idx`: the index of
@@ -226,9 +226,9 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     rows: list[Measure] = []
     skipped = 0
     # the marks tagged with their kind ("h" head / "s" section)
-    marks: list[_KMark] = [_KMark("h", h["text"], h["page"], h["y"], h["x"]) for h in placed]
-    marks.extend(_KMark("s", s["text"], s["page"], s["y"], s.get("x")) for s in placed_secs)
-    by_page: dict[int, list[_KMark]] = {}
+    marks: list[KMark] = [KMark("h", h["text"], h["page"], h["y"], h["x"]) for h in placed]
+    marks.extend(KMark("s", s["text"], s["page"], s["y"], s.get("x")) for s in placed_secs)
+    by_page: dict[int, list[KMark]] = {}
     for m in marks:
         by_page.setdefault(m.page, []).append(m)
     # one index per page, built once for every head and title on it
@@ -242,7 +242,7 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     return rows, skipped
 
 
-def _hier_advice(kind: str | None) -> str:
+def hier_advice(kind: str | None) -> str:
     """Where to widen the gap between entries: the family's own wrapper, once, for every entry."""
     if kind == "skill":
         return ("      widen the gap between skill rows in the family's `skill` wrapper (its `srow(above:)`, or "
@@ -305,7 +305,7 @@ def _flat_finding(flat: list[GroupMeasure], grp: list[GroupMeasure]) -> Finding:
           f'inside it, ratio {f.ratio:.2f})')
     return (Level.WARN, f"group proximity: {many} barely separated: gap between {many} ≈ gap inside "
             f"{a_one} in {len(flat)}/{len(grp)} groups {fw}; aim for >= {PROX_HIER}\n"
-            + _hier_advice(f.hkind))
+            + hier_advice(f.hkind))
 
 
 def _group_finding(grp: list[GroupMeasure]) -> Finding:
@@ -388,22 +388,22 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     and >= 2 bullet lines. Measured head_gap/pitch (per-file minimum): previous
     templates 0.43-0.77, fixed templates 0.62-1.15 (most 0.82-1.1): the two
     ranges overlap, so it is a DETAIL figure only, never a finding."""
-    heads = _typst_query(typ, "<vitae-head>", root) if heads is None else heads
-    secs = (_typst_query(typ, "<vitae-sec>", root) or []) if secs is None else secs
+    heads = typst_query(typ, "<vitae-head>", root) if heads is None else heads
+    secs = (typst_query(typ, "<vitae-sec>", root) or []) if secs is None else secs
     if pages is None:
         wb = word_boxes(pdf, with_text=True)
         pages = [[(b[0], b[1], b[2], b[3], t) for b, t in pg] for pg in wb] if wb else None
     if heads is None or pages is None:
         if pdf_backend() == "pdfium":
             return [(Level.WARN, "group proximity NOT checked (typst query unavailable or word positions "
-                             "unreadable: " + _boxes_unavailable(pdf) + ")")]
+                             "unreadable: " + boxes_unavailable(pdf) + ")")]
         return [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
     if not heads:
         return [(Level.WARN, "group proximity not measured: no lib entry()/srow() heads")]
     if (dense := density_guard("group proximity", pages, [*heads, *secs], lambda msg: (Level.FAIL, msg))) is not None:
         return dense
     # DETAIL lines are machine-readable and printed here, not returned: the tests and --gates read them
-    rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
+    rows, skipped = measure_groups(heads, secs, pages, page_ink_gap(pdf) if pdf else None)
     if detail is not None:
         detail.extend(detail_row(r) for r in rows)
     grp = [r for r in rows if isinstance(r, GroupMeasure)]

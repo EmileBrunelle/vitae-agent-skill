@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from vitae.verify.academic.parse import NUM_RE, _canonical_headings, classify, entry_start_re, parse_span
+from vitae.verify.academic.parse import NUM_RE, canonical_headings, classify, entry_start_re, parse_span
 from vitae.verify.academic.spec import NONDATED_HEADINGS, Footer, Result, Section, StreamLine
 
 
@@ -15,7 +15,7 @@ def check_counts_and_chrono(stream: list[StreamLine], sections: list[Section],
     results: list[Result] = []
     start_re = entry_start_re(statuses)
     positions: dict[str, int] = {}
-    for idx, (pi, raw, stripped, is_start) in enumerate(stream):
+    for idx, (_, _, stripped, _) in enumerate(stream):
         if stripped in headings_set and stripped not in positions:
             positions[stripped] = idx
 
@@ -102,7 +102,7 @@ def check_no_orphan_heading(stream: list[StreamLine], headings_set: set[str],
     always fails."""
     results: list[Result] = []
     n = len(stream)
-    for idx, (pi, raw, stripped, is_start) in enumerate(stream):
+    for idx, (pi, _, stripped, _) in enumerate(stream):
         if stripped not in headings_set:
             continue
         following = 0
@@ -167,7 +167,7 @@ def analyze(text: str, sections: list[Section], surname: str,
     headings_set = {s["heading"] for s in sections} | set(headings_extra)
     nondated = frozenset(s["heading"] for s in sections if s.get("nondated", s["heading"] in NONDATED_HEADINGS)) \
         | set(headings_extra)
-    text = _canonical_headings(text, set(declared_headings))
+    text = canonical_headings(text, set(declared_headings))
     pages_lines, stream, per_page_footer, per_page_surname = classify(text, headings_set, surname, statuses, nondated)
     total_pages = len(pages_lines)
     declared_counts = {s["heading"]: s["count"] for s in sections}

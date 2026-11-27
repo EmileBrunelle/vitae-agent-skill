@@ -4,10 +4,10 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 
-from vitae.core.base import HeadMark, Mark, WordBox, _EntryRecord, is_placed
+from vitae.core.base import EntryRecord, HeadMark, Mark, WordBox, is_placed
 from vitae.core.env import pdf_backend
-from vitae.verify.groups.query import _typst_query
-from vitae.verify.pdf import _boxes_unavailable, word_boxes
+from vitae.verify.groups.query import typst_query
+from vitae.verify.pdf import boxes_unavailable, word_boxes
 
 # Date adjacency is measured from POSITIONS, never from what a date looks like:
 # lib.typ `entry` tags its head (<vitae-head>, with `dated`), its date cell and
@@ -20,19 +20,19 @@ from vitae.verify.pdf import _boxes_unavailable, word_boxes
 ENTRY_MARKS = "selector(<vitae-head>).or(<vitae-part>).or(<vitae-bullet>)"
 
 
-def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
+def entry_records(marks: list[Mark] | None) -> list[EntryRecord]:
     """Marks in document order -> one record per entry head:
-    _EntryRecord(head, date, org, date_first).
+    EntryRecord(head, date, org, date_first).
     A part mark belongs to the entry head emitted before it; `date_first` records which of the
     two was emitted first, since the emission order is what an ATS extraction follows."""
-    recs: list[_EntryRecord] = []
-    cur: _EntryRecord | None = None
+    recs: list[EntryRecord] = []
+    cur: EntryRecord | None = None
     for m in marks or []:
         if not is_placed(m):              # a mark without a position cannot be measured: ignored
             continue
         k = m.get("kind")
         if k == "entry":
-            cur = _EntryRecord(head=m, date=None, org=None, date_first=None)
+            cur = EntryRecord(head=m, date=None, org=None, date_first=None)
             recs.append(cur)
         elif k in ("date", "org") and cur is not None:
             # a record is never edited in place: the filled copy replaces it (cur is always the last record)
@@ -48,23 +48,23 @@ def _entry_records(marks: list[Mark] | None) -> list[_EntryRecord]:
     return recs
 
 
-def _yc(w: WordBox) -> float:
+def y_center(w: WordBox) -> float:
     """Vertical centre of a word box."""
     return (w[0][1] + w[0][3]) / 2
 
 
-def _first_word(words: Sequence[WordBox], x: float, y: float, y_end: float,
+def first_word(words: Sequence[WordBox], x: float, y: float, y_end: float,
                 x_end: float | None = None) -> int | None:
     """Reading-order index of the first word of the line starting at (x, y):
     words whose centre lies in [y - 2, y_end) and that start at or right of x
     (before x_end), top line first, then leftmost. None when nothing is there."""
     c = [i for i, w in enumerate(words)
-         if y - 2 <= _yc(w) < y_end and w[0][0] >= x - 1.5
+         if y - 2 <= y_center(w) < y_end and w[0][0] >= x - 1.5
          and (x_end is None or w[0][0] < x_end)]
     if not c:
         return None
-    top = min(_yc(words[i]) for i in c)
-    return min((i for i in c if _yc(words[i]) <= top + 3), key=lambda i: words[i][0][0])
+    top = min(y_center(words[i]) for i in c)
+    return min((i for i in c if y_center(words[i]) <= top + 3), key=lambda i: words[i][0][0])
 
 
 _WHY = (" (pdftotext, like the ATS extractors that cluster lines the same way, reads a "
@@ -118,8 +118,8 @@ def _org_first_word(pw: list[WordBox], o: HeadMark | None, d: HeadMark, pg: int)
     if o is not None and o.get("page") == pg and o["y"] > d["y"]:
         tol = max(o.get("h", 0), 6) + 10
         c = [i for i, w in enumerate(pw) if abs(w[0][0] - o["x"]) <= 1.5
-             and abs(_yc(w) - o["y"]) <= tol and _yc(w) > d["y"]]
-        return min(c, key=lambda i: abs(_yc(pw[i]) - o["y"])) if c else None
+             and abs(y_center(w) - o["y"]) <= tol and y_center(w) > d["y"]]
+        return min(c, key=lambda i: abs(y_center(pw[i]) - o["y"])) if c else None
     return None
 
 
@@ -127,16 +127,16 @@ def _date_word_indices(pw: list[WordBox], h: HeadMark, d: HeadMark, d_end: float
     """Reading-order indices of the date's words: the PDF words inside the date cell's box."""
     di = [i for i, w in enumerate(pw)
           if w[0][0] >= d["x"] - 1.5 and w[0][2] <= d["x"] + d.get("w", 0) + 1.5
-          and min(d["y"], h["y"]) - 2 <= _yc(w) < d_end]
+          and min(d["y"], h["y"]) - 2 <= y_center(w) < d_end]
     if d.get("inline") and di:
         # inline date (lib entry, after the role): one unbreakable box on ONE
         # line, maybe the role's second; keep the line nearest the marker
-        yl = min({round(_yc(pw[i])) for i in di}, key=lambda y: abs(y - d["y"]))
-        di = [i for i in di if abs(_yc(pw[i]) - yl) <= 3]
+        yl = min({round(y_center(pw[i])) for i in di}, key=lambda y: abs(y - d["y"]))
+        di = [i for i in di if abs(y_center(pw[i]) - yl) <= 3]
     return di
 
 
-def _next_head_word(pw: list[WordBox], recs: list[_EntryRecord], ix: int, h: HeadMark, pg: int,
+def _next_head_word(pw: list[WordBox], recs: list[EntryRecord], ix: int, h: HeadMark, pg: int,
                     cr: float) -> int | None:
     """Reading-order index of the first word of the next entry head in the same column, or None."""
     nr = next((n for n in recs[ix + 1:]
@@ -146,7 +146,7 @@ def _next_head_word(pw: list[WordBox], recs: list[_EntryRecord], ix: int, h: Hea
     nxt = nr.head
     nd = nr.date
     n_end = nd["x"] - 1 if nd is not None and nd.get("page") == pg else cr
-    return _first_word(pw, nxt["x"], nxt["y"], nxt["y"] + 40, x_end=n_end)
+    return first_word(pw, nxt["x"], nxt["y"], nxt["y"] + 40, x_end=n_end)
 
 
 def _read_order_failure(e: _DatedEntry, pw: list[WordBox], ix: _ReadIndices,
@@ -158,11 +158,11 @@ def _read_order_failure(e: _DatedEntry, pw: list[WordBox], ix: _ReadIndices,
     name, h, d, o = e.name, e.h, e.d, e.o
     di, oi, ni, bi = ix.date, ix.org, ix.next_head, ix.below
     last = max(di)
-    dl = sum(_yc(pw[i]) for i in di) / len(di)
+    dl = sum(y_center(pw[i]) for i in di) / len(di)
     rw = [i for i, w in enumerate(pw) if i not in di and w[0][0] >= h["x"] - 1.5
-          and h["y"] - 2 <= _yc(w) <= dl + 3
+          and h["y"] - 2 <= y_center(w) <= dl + 3
           and (w[0][2] <= d["x"] - 1 if not d.get("inline") else
-               (_yc(w) < dl - 3 or w[0][2] <= d["x"] - 1))]
+               (y_center(w) < dl - 3 or w[0][2] <= d["x"] - 1))]
     if rw and max(rw) > min(di):
         return (_date_action(e) + f" \u2014 measured: {name}'s date is read in the "
                 f'middle of its role (before "{pw[max(rw)][1][:30]}")' + _WHY)
@@ -181,7 +181,7 @@ def _read_order_failure(e: _DatedEntry, pw: list[WordBox], ix: _ReadIndices,
     return None
 
 
-def _check_entry(ix: int, recs: list[_EntryRecord], words: list[list[WordBox]], st: dict[str, int],
+def _check_entry(ix: int, recs: list[EntryRecord], words: list[list[WordBox]], st: dict[str, int],
                  warn: Callable[[str], object]) -> str | None:
     """The FAIL message for entry `recs[ix]` (None when fine, skipped or only noted); updates the
     measured / undated / unmeasured counts in `st`."""
@@ -214,7 +214,7 @@ def _check_entry(ix: int, recs: list[_EntryRecord], words: list[list[WordBox]], 
     oi = _org_first_word(pw, o, d, pg)
     d_end = pw[oi][0][1] if oi is not None else d["y"] + 4 * max(d.get("h", 0), 6)
     di = _date_word_indices(pw, h, d, d_end)
-    hi = _first_word(pw, h["x"], h["y"], d_end, x_end=None if d.get("inline") else d["x"] - 1)
+    hi = first_word(pw, h["x"], h["y"], d_end, x_end=None if d.get("inline") else d["x"] - 1)
     if not di or hi is None:
         warn(f"{name}: {'date' if not di else 'head'} words not found at the marker position")
         return None
@@ -225,7 +225,7 @@ def _check_entry(ix: int, recs: list[_EntryRecord], words: list[list[WordBox]], 
     # first word READ of anything set below the head block in this column
     # (org line, bullet, next head, next section title)
     bi = min((i for i, w in enumerate(pw)
-              if _yc(w) > d_bot and w[0][0] < cr and w[0][2] > cl), default=None)
+              if y_center(w) > d_bot and w[0][0] < cr and w[0][2] > cl), default=None)
     st["unmeasured"] -= 1
     st["measured"] += 1
     return _read_order_failure(_DatedEntry(name, h, d, o), pw, _ReadIndices(di, oi, ni, bi), warn)
@@ -246,10 +246,10 @@ def check_date_adjacency(typ: str, pdf: str, marks: list[Mark] | None = None, ro
     A FAIL only when the order was measured and is wrong. A missing marker, missing word
     positions or an entry the words could not be matched to is a "not measured" note,
     never a FAIL."""
-    marks = _typst_query(typ, ENTRY_MARKS, root) if marks is None else marks
+    marks = typst_query(typ, ENTRY_MARKS, root) if marks is None else marks
     out: list[str] = []
     warn: Callable[[str], object] = (warns.append) if warns is not None else (lambda m: None)
-    recs = _entry_records(marks)
+    recs = entry_records(marks)
     st = stats if stats is not None else {}
     st.update(measured=0, undated=0, unmeasured=0)
     if not recs:
@@ -261,7 +261,7 @@ def check_date_adjacency(typ: str, pdf: str, marks: list[Mark] | None = None, ro
     words = word_boxes(pdf, with_text=True) if words is None else words
     if words is None:
         warn("pdftotext unavailable (word positions needed)" if pdf_backend() != "pdfium"
-             else f"word positions needed, {_boxes_unavailable(pdf)}")
+             else f"word positions needed, {boxes_unavailable(pdf)}")
         return out
     for ix in range(len(recs)):
         fail = _check_entry(ix, recs, words, st, warn)
