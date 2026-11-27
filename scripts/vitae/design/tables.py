@@ -126,8 +126,8 @@ FAMILIES: dict[str, Family] = {
         accents=["#33475b", "#1f3a5f", "#0f4c5c"],
         markers=["–", "▪"],
         labels=Labels(profile="Summary", skills="Skills & Tools"),
-        header="two zones: identity + DIN-676 reference row + specialities "
-               "line left, contact column right",
+        header="name row, then role line + DIN-676 reference row + specialities "
+               "line left, compact 2-line contact block right",
         photo_ok=True, conservative_ok=True,
         page=STD_PAGE,
         order=SKILLS_FIRST,    # skills-forward hybrid

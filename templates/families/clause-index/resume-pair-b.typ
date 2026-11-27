@@ -5,7 +5,7 @@
 // mark+value box, platform marks, generic icon sets, specialities line).
 #import "../../lib.typ": *
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
-#let rhythm = 1.000
+#let rhythm = 0.928
 #let accent = rgb("#33475b")    // slate — the clause numbers, and nothing else
 #let pal = derive(accent)
 #let soft = pal.soft
@@ -32,7 +32,7 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.550em, spacing: 0.630em)
+#set par(justify: false, leading: 0.550em, spacing: 0.584em)
 
 // DEVICE: an OUTDENTED CLAUSE NUMBER. The numbering-of-divisions convention of
 // technical standards (ISO 2145, DIN 1421): the division number hangs in a
@@ -53,9 +53,9 @@
   #clause.step()
   #sub.update(1)   // display() reads the value BEFORE this row’s step, so 1-based
   #grid(columns: (20pt, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom),
-    text(size: 12pt, weight: "bold", fill: accent, number-type: "lining",
+    text(size: 12.5pt, weight: "bold", fill: accent, number-type: "lining",
       number-width: "tabular")[#context clause.display()],
-    text(font: dispf, size: 12pt, weight: "bold", fill: dark)[#t])
+    text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t])
   #v(12pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
@@ -78,53 +78,46 @@
    #text(weight: "bold")[#cat]], items)
 
 #set list(marker: list-marker("dash", accent, bold: true), indent: 10pt,
-  spacing: 0.733em, body-indent: 6pt)
+  spacing: 0.679em, body-indent: 6pt)
 
-// HEADER: TWO ZONES over a REFERENCE ROW. The identity block left, the contact
-// block right (that right cell is also the photo slot), and under both a
-// reference row of small label/value pairs — the Bezugszeichenzeile of the
-// German business-letter standard (DIN 676), which is where this family's
-// header composition comes from. Then the SPECIALITIES LINE: this is the one
-// neutral family that carries one (core.md § Specialities line), set in the
-// label register so it reads as a data row and not as a slogan.
+// HEADER: NAME ROW, then title | contact. The name sits on its own row (header-two-row: the contact block never
+// shares a y-band with it; OCR, y-sorting and grid extractors merge lines that do). The right cell is the contact
+// block (2 lines, natural width, max 55% of the measure; also the photo slot). The left cell holds the role line, a
+// REFERENCE ROW of small label/value pairs — the Bezugszeichenzeile of the German business-letter standard
+// (DIN 676), where this family's header composition comes from — and the SPECIALITIES LINE: the one neutral family
+// that carries one (core.md § Specialities line), set in the label register so it reads as a data row and not as
+// a slogan. The reference row is sized to fit the left cell on one line beside the contact block.
 #block(above: 0pt, below: 10pt * rhythm)[
-  // The reference row and the specialities line live INSIDE the left zone, not
-  // across the full width. MEASURED (new trap): a full-width row that crosses
-  // the contact column's x-range gets its rightmost item pulled into the
-  // contact cluster — the extraction came out
-  // "LOCATION … / AVAILABILITY … / <the whole contact column> / AUTHORIZATION …".
-  // poppler clusters by column before it reads by line, so a device that spans
-  // under a two-zone header must stay inside one of the zones.
-  #let rcell(l, val) = [#text(size: 7.5pt, weight: "bold", fill: ink)[#upper(l)] #val]
-  #hrow(
-    [#text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname] \
-     #v(-3pt)
-     #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-     #v(2pt * rhythm)
-     // REFERENCE ROW — one flowing paragraph, never a grid of stacked cells.
-     // MEASURED TRAP (new): as a single-ROW grid whose three cells each stacked
-     // a label over its value, poppler emitted all three LABELS first and all
-     // three VALUES after them, destroying the label↔value pairing the device
-     // exists for. A single-ROW grid is safe when each cell is ONE line; the
-     // moment a cell stacks two, the reader sweeps the row before it descends.
-     #text(size: 9pt)[#rcell("Location", [\[City, Region\]]) #h(9pt)
-       #rcell("Availability", [\[Two weeks’ notice\]]) #h(9pt)
-       #rcell("Authorization", [\[Authorized to work\]])]
-     #v(2pt * rhythm)
-     // SPECIALITIES LINE: the skills the facts support, linear, NO letterspacing
-     // (it extracts as "N E X T" and stops matching), each item boxed so it can
-     // never break across a line end. Every item is CONTENT: SKILL.md rule 2
-     // applies to it, in the most prominent position on the page.
-     #text(size: 8.5pt, weight: "bold", fill: accent)[#specline(
-       ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
-       sep: [ · ])]],
-    text(size: 9pt, fill: muted)[
-      #contact-rows(4)#contact(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-      #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
-      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
-      #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
-    align-cells: (left + top, right + top), gutter: 16pt,
-    above: 0pt, below: 0pt)
+  #let rcell(l, val) = [#text(size: 7pt, weight: "bold", fill: ink)[#upper(l)] #val]
+  #header-two-row(
+    [#text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname]],
+    [#text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
+  #v(2pt * rhythm)
+  // REFERENCE ROW — one flowing paragraph, never a grid of stacked cells.
+  // MEASURED TRAPS: the left cell is the only place for these rows. Full width below the contact block, poppler
+  // emitted LOCATION, AVAILABILITY, the whole contact block, then AUTHORIZATION (its right end shares an x-range
+  // with the contact column), and beside a 4-line contact column MuPDF glued the last contact line to the
+  // specialities line. As a single-ROW grid whose three cells each stacked
+  // a label over its value, poppler emitted all three LABELS first and all
+  // three VALUES after them, destroying the label↔value pairing the device
+  // exists for. A single-ROW grid is safe when each cell is ONE line; the
+  // moment a cell stacks two, the reader sweeps the row before it descends.
+  #text(size: 8.5pt)[#rcell("Location", [\[City, Region\]]) #h(5pt)
+    #rcell("Availability", [\[Two weeks’ notice\]]) #h(5pt)
+    #rcell("Authorization", [\[Authorized to work\]])]
+  #v(2pt * rhythm)
+  // SPECIALITIES LINE: the skills the facts support, linear, NO letterspacing
+  // (it extracts as "N E X T" and stops matching), each item boxed so it can
+  // never break across a line end. Every item is CONTENT: SKILL.md rule 2
+  // applies to it, in the most prominent position on the page.
+  #text(size: 8.5pt, weight: "bold", fill: accent)[#specline(
+    ("[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]", "[SKILL]"),
+    sep: [ · ])]],
+    text(size: 9.5pt, fill: muted)[
+      #contact-rows(2)#contact(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(8pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
+      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(8pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+    row-gutter: 3pt * rhythm, gutter: 10pt,
+  )
 ]
 
 // SECTION ORDER (this family's default): the hybrid/combination skeleton —

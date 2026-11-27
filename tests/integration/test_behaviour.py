@@ -337,7 +337,7 @@ def test_font_fallback(check: Check, py: str, scratch: Path) -> None:
         assert not grep(gates(f), r"^(FAIL|WARN)  font fallback"), f"{f}.typ: must print no FAIL and no WARN font-fallback line"
 
 
-# ---- header contact block: bounded column, honest row count (swiss-grid, editorial-serif, keyline-corporate)
+# ---- header contact block: bounded column, honest row count (swiss-grid, editorial-serif, keyline-corporate, clause-index)
 
 _TITLE_WORDS = {"Target", "title,", "as", "in", "the", "facts", "or", "posting]", "—", "[Degree,", "if", "state", "it]"}
 
@@ -351,7 +351,7 @@ def _title_lines(pdf: Path) -> int:
     return len({round(y) for y, w in words if y < heading_y and w in _TITLE_WORDS})
 
 
-@pytest.mark.parametrize("family", ["swiss-grid", "editorial-serif", "keyline-corporate"])
+@pytest.mark.parametrize("family", ["swiss-grid", "editorial-serif", "keyline-corporate", "clause-index"])
 def test_header_contact_block_is_bounded(check: Check, py: str, scratch: Path, family: str) -> None:
     """Five extra links after GitHub: the contact block wraps INSIDE its column (it is capped at 55% of the measure), so the
     title keeps its width (placeholder title on at most 2 lines, as with the standard contacts), and the contact-line gate FAILs
