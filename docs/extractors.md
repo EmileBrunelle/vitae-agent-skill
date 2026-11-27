@@ -85,11 +85,15 @@ Run offline, psm 3, 54 pages at 150 and 300 dpi; languages eng+fra, deu, rus, ar
 6. With pdf-reader, use `page.runs` (merged), never `page.text`: its row grid overwrites lines closer than one mean-font-size pitch. Or use a layout-aware engine.
 7. Avoid pdf-parse 1.1.1; migrate to 2.x or pdf.js directly.
 8. Treat OCR as a fallback and diff its contact fields against any text layer; do not upsample to 300 dpi for gain.
-9. With smalot/pdfparser, scan output for U+0000 as a truncation signal. Normalizing incoming PDFs first (qpdf or pikepdf re-serialization writes strings as hex) avoided it: 24 NULs to 0, text and pixels unchanged (measured). Caveats: smalot missing tokens fell from 209 to 65 overall (the rest have non-NUL causes), file size grew 3.6-3.8%, and pikepdf needs `fix_metadata_version=False` to keep the XMP metadata identical.
+9. With smalot/pdfparser, scan output for U+0000 as a truncation signal. Normalizing incoming PDFs first (qpdf or pikepdf re-serialization rewrites the strings so no bare parenthesis remains) avoided it: 24 NULs to 0, text and pixels unchanged (measured). Caveats: smalot missing tokens fell from 209 to 65 overall (the rest have non-NUL causes), file size grew 3.6-3.8%, and pikepdf needs `fix_metadata_version=False` to keep the XMP metadata identical.
 
 ## 6. What vitae changed
 
-vitae changed its two-zone headers (swiss-grid, editorial-serif, keyline-corporate) so the contact block no longer shares a y band with the name. Measured afterwards: OCR recovers email and URL in 12/12 (was 0/12), MuPDF `sort=True` and pdf-reader put the name first, and `pdftotext` shows no token loss. vitae did not change templates for pdf-reader's grid collisions (academic CV) or smalot's parenthesis truncation: the writer-side workaround is an optional pikepdf re-serialization when pikepdf is installed (being added).
+vitae changed its two-zone headers (swiss-grid, editorial-serif, keyline-corporate): the name now has its own row and a title | contact row sits below it, the contact column taking its natural width up to 55% of the line, so the contact block no longer shares a y band with the name. Measured afterwards on 12 PDFs (the three templates' résumé, pair-b and fixture, the swiss-grid 2-page résumé, the RTL and CJK swiss-grid fixtures): Tesseract at 300 and 150 dpi recovers email, URL and phone on all 12 (email and URL were 0/12 before); MuPDF `sort=True` glues no contact and puts the name first; Ruby pdf-reader `page.text` puts the name first with contacts intact; `pdftotext` loses and adds no token.
+
+vitae did not change templates for pdf-reader's grid collisions (academic CV) or smalot's parenthesis truncation. For the latter, `verify/hexstrings.py` is an optional post-step of PDF compilation, active when pikepdf >= 10.8.0 is installed (`pip install --group pdf`). It re-serializes page content streams, Form XObjects and tiling patterns so that every parenthesis inside a string is escaped, or the string is written in hex when it holds non-printable bytes. smalot NULs went from 24 to 0 on the corpus. Without pikepdf the PDF is left as compiled.
+
+The Russian fixture in the probe corpus (section 7) is the one from 25f5e22 and stays `ru`; the repository's fixture has since moved to Ukrainian.
 
 ## 7. Test environment
 
