@@ -11,7 +11,7 @@ from PIL import Image
 
 import vitae.fill as measure_fill
 from vitae.core.base import Band, Box, WordBox
-from vitae.core.env import _importable
+from vitae.core.env import importable
 from vitae.core.level import Finding, Level
 from vitae.core.pixels import colour_counts, far_in_any_channel, gray_pixels
 from vitae.verify.fonts import _font_sources, classify_font_fallback, requested_families
@@ -271,7 +271,7 @@ def pdf_char_fonts(pdf: str) -> list[tuple[str, str]] | None:
 
     Only pdfium exposes the font of each character; poppler's pdffonts lists fonts per file,
     which cannot say which characters fell back."""
-    if not _importable("pypdfium2"):
+    if not importable("pypdfium2"):
         return None
     try:
         import ctypes

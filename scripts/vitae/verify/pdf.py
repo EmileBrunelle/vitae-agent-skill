@@ -25,9 +25,9 @@ from PIL import Image
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
 from vitae.core.env import PDF_STANDARDS, PdfBackend, importable, pdf_backend, typst_font_kw, typst_route
 from vitae.core.pdfium import PdfiumDoc, PdfiumPage, PdfiumTextPage
+from vitae.core.typst_source import strip_typst_comments
 from vitae.verify.hexstrings import hexify_pdf
 from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
-from vitae.verify.typst import _strip_typst_comments
 
 # ---------- compile / page-count / extraction, native or fallback ----------
 
@@ -40,7 +40,7 @@ def auto_root(typ: str) -> str | None:
     non-comment import; a CV folder (`#import "lib.typ"`) needs nothing."""
     try:
         with open(typ, encoding="utf-8-sig", errors="replace") as fh:
-            src = _strip_typst_comments(fh.read())
+            src = strip_typst_comments(fh.read())
     except OSError:
         return None
     ups = max((len(m.group(1)) // 3 for m in re.finditer(r'\bimport\s*\(?\s*"((?:\.\./)+)[^"]*\.typ"', src)), default=0)
@@ -146,8 +146,11 @@ def compile_or_messages(typ: str, pdf: str) -> tuple[str, list[str]]:
 
 def render_pngs(typ: str, tmp_dir: str) -> list[str]:
     """One 90 ppi PNG per page, the raster the fill scan reads (the hidden-text gate renders its own, at HIDDEN_PPI).
-    A failed render leaves no page: the caller reports the missing raster."""
-    _typst_compile(typ, os.path.join(tmp_dir, "p{p}.png"), fmt="png", standards=False, ppi=90)
+    A failed render, on either route, returns [] (never a stale or partial set): the caller must report the missing
+    raster, an empty list is not "no page to check"."""
+    ok, _ = _typst_compile(typ, os.path.join(tmp_dir, "p{p}.png"), fmt="png", standards=False, ppi=90)
+    if not ok:
+        return []
     return sorted(glob.glob(os.path.join(tmp_dir, "p*.png")))
 
 

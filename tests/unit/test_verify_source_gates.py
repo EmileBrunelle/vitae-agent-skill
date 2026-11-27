@@ -1,8 +1,8 @@
 """Source-level gates: forced line break, literal tilde, comment stripping, bullet characters."""
 import pytest
+from vitae.core.typst_source import strip_typst_comments
 from vitae.verify.source import check_forced_linebreak, check_literal_tilde
 from vitae.verify.text import check_bullet_chars
-from vitae.verify.typst import _strip_typst_comments
 
 
 @pytest.mark.parametrize("src, fires", [
@@ -45,7 +45,7 @@ def test_literal_tilde_reports_the_line_after_comments_and_raw_blocks():
     ('#let u = "a//b"\n#import "lib.typ"\n', True),      # // inside a string is no comment
 ])
 def test_strip_typst_comments(src, kept):
-    assert ("lib.typ" in _strip_typst_comments(src)) == kept
+    assert ("lib.typ" in strip_typst_comments(src)) == kept
 
 
 @pytest.mark.parametrize("text, fires", [

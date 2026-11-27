@@ -192,7 +192,6 @@ def importable(name: str) -> bool:
         return False
 
 
-_importable = importable   # the old private name, until layout.py (its only other user) switches to `importable`
 
 
 def pdf_backend() -> PdfBackend:

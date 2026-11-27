@@ -12,12 +12,6 @@ from __future__ import annotations
 import re
 from bisect import bisect_left
 
-from vitae.core.typst_source import strip_typst_comments
-
-# Transitional name for cv.py and pdf.py, which still import it; they should import
-# vitae.core.typst_source.strip_typst_comments directly, then this line goes.
-_strip_typst_comments = strip_typst_comments
-
 
 def _mask_non_markup(src: str) -> str:
     """src with every region where `~` is not markup blanked to spaces, newlines

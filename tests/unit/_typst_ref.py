@@ -54,7 +54,7 @@ def mask_non_markup_quadratic(src: str) -> str:
                 else:
                     j += 1
             blank(j)
-        # Same URL-scheme exception as _strip_typst_comments.
+        # Same URL-scheme exception as strip_typst_comments.
         elif src.startswith("//", i) and (i == 0 or src[i - 1] != ":"):
             j = src.find("\n", i)
             blank(n if j < 0 else j)

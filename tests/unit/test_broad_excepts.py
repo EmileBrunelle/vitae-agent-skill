@@ -58,7 +58,7 @@ class TestIcons:
 class TestPdfCharFonts:
     @pytest.fixture(autouse=True)
     def _pdfium_present(self, monkeypatch):
-        monkeypatch.setattr(layout, "_importable", lambda name: True)
+        monkeypatch.setattr(layout, "importable", lambda name: True)
         monkeypatch.setattr(layout.importlib, "import_module", lambda name, *a: object())
 
     @pytest.mark.parametrize("exc", [OSError("gone"), RuntimeError("PdfiumError: bad file"), ImportError("libpdfium")])

@@ -24,6 +24,7 @@ from vitae.core.base import (
 )
 from vitae.core.env import preflight, typst_can_query
 from vitae.core.level import Finding, Level
+from vitae.core.typst_source import strip_typst_comments
 from vitae.design.libapi import OLD_LIB_NOTE, is_old_lib
 from vitae.verify import placeholders
 from vitae.verify.gates import GATES, make_context
@@ -41,7 +42,7 @@ from vitae.verify.pdf import (
 from vitae.verify.registry import note_extraction, run_gates
 from vitae.verify.review_record import check_review_record, layout_report_line
 from vitae.verify.source import _drawn_fill, _fill_args_ok
-from vitae.verify.typst import _doc_body_size, _doc_par_list, _strip_typst_comments
+from vitae.verify.typst import _doc_body_size, _doc_par_list
 
 # ---------- main gate ----------
 
@@ -222,7 +223,7 @@ def check_lib_integrity(typ_path: str, skill_dir: str | None = None) -> list[Fin
                 src = fh.read()
         except OSError:
             continue
-        src = _strip_typst_comments(src)
+        src = strip_typst_comments(src)
         for imp in re.findall(r'\bimport\s*\(?\s*"([^"]+\.typ)"', src):
             base = os.path.dirname(os.path.abspath(typ_path)) if imp.startswith("/") else os.path.dirname(f)
             path = os.path.normpath(os.path.join(base, imp.lstrip("/") if imp.startswith("/") else imp))

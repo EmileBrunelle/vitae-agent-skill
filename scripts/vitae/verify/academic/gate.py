@@ -58,9 +58,12 @@ def run_gate(typ: str, toml_path: str) -> tuple[bool, list[tuple[bool | None, st
         if pages_from_cli and str(pages_from_cli) != str(total_pages):
             reported.append(f'note: pdfinfo reports {pages_from_cli} page(s)')
         pngs = render_pngs(typ, tmp)
+        unrendered: list[tuple[bool | None, str]] = []
         if pngs:
             reported.append(f'last-page fill: {measure_fill.measure(pngs[-1])}')
-        hidden = hidden_text_msgs(pdf)
+        else:
+            unrendered.append((True, "vitae: no PNG rendered, so the last-page fill is unmeasured"))
+        hidden = hidden_text_msgs(pdf) + unrendered
 
     msgs = [(not ok, msg) for _, ok, msg in results] + hidden
     fail = any(not ok for _, ok, _ in results) or any(f for f, _ in hidden if f)

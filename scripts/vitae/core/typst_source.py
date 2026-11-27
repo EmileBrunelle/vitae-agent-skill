@@ -89,6 +89,17 @@ def _end_of_raw_span(src: str, i: int) -> int:
     return n if close < 0 else close + e
 
 
+def _string_step(src: str, i: int, out: list[str]) -> tuple[bool, int]:
+    """Copy the character at `i` (inside a double-quoted string, not a newline) to `out`, with its escaped partner
+    when it is a backslash not followed by a newline; (the string is still open, the next index)."""
+    c = src[i]
+    out.append(c)
+    if c == "\\" and i + 1 < len(src) and src[i + 1] != "\n":
+        out.append(src[i + 1])
+        return True, i + 2
+    return c != '"', i + 1
+
+
 def strip_typst_comments(src: str) -> str:
     """`src` without `//` line comments and (nested) `/* */` blocks, read as Typst. Double-quoted strings are
     respected but never span a newline (a stray 6" in markup must not swallow the rest of the file); a backtick raw
@@ -101,11 +112,8 @@ def strip_typst_comments(src: str) -> str:
             q = False
             out.append(c)
         elif q:
-            out.append(c)
-            if c == "\\" and i + 1 < n and src[i + 1] != "\n":
-                out.append(src[i + 1]); i += 1
-            elif c == '"':
-                q = False
+            q, i = _string_step(src, i, out)
+            continue
         elif c == "\\" and i + 1 < n and src[i + 1] != "\n":
             out.append(c + src[i + 1]); i += 1          # escaped char (\//, \", \`)
         elif c == "`":
