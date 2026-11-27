@@ -363,8 +363,8 @@ def test_header_contact_block_is_bounded(check: Check, py: str, scratch: Path, f
     typ = d / "_five_links.typ"
     typ.write_text(src[:gh.end()] + extra + src[gh.end():], encoding="utf-8")
     pdf, base = typ.with_suffix(".pdf"), d / "_std.pdf"
-    for src, out in ((typ, pdf), (d / "resume.typ", base)):
-        r = check(f"header-five-links/typst-{out.stem}", ["typst", "compile", "--root", scratch, src, out])
+    for inp, out in ((typ, pdf), (d / "resume.typ", base)):
+        r = check(f"header-five-links/typst-{out.stem}", ["typst", "compile", "--root", scratch, inp, out])
         assert r.rc == 0, r.output
     assert _title_lines(pdf) <= max(2, _title_lines(base)), "the title column was crushed by the contact block"
     tpl = next(t for t in discover_templates() if t.family == family and t.name == "resume")
