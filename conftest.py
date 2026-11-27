@@ -8,4 +8,4 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption("--vitae-out", default=None, metavar="DIR",
                     help="keep the template PDFs/PNGs in DIR/pdf and every check's log in DIR/log (default: a temp dir)")
     group.addoption("--quick", action="store_true", default=False,
-                    help="integration suite: first 3 templates only, no spacing fixtures (the old run_all.sh --quick)")
+                    help="integration suite: first 3 templates only, no spacing fixtures (`--quick`)")

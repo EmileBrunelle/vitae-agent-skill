@@ -1,4 +1,4 @@
-"""SKILL.md gates (the v0.7 context diet), ported from run_all.sh: size, orphaned steps files, dangling path citations."""
+"""SKILL.md gates (the v0.7 context diet), size, orphaned steps files, dangling path citations."""
 from __future__ import annotations
 
 import re

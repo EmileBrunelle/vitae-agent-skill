@@ -1,7 +1,7 @@
-"""`verify.py --doctor` degraded paths, simulated with a PATH of symlinks and shims, ported from run_all.sh.
+"""`verify.py --doctor` degraded paths, simulated with a PATH of symlinks and shims.
 
 Each case asserts the DEGRADED/BROKEN label AND at least one named skipped check. verify.py imports Pillow at load, so without
-it the doctor cannot run: every test here is skipped. The grep patterns are run_all's, line for line.
+it the doctor cannot run: every test here is skipped. The grep patterns are those of the original shell checks.
 """
 from __future__ import annotations
 

@@ -1,7 +1,7 @@
 """Session fixtures of the integration suite: the scratch copy and the output dir.
 
 verify.py writes PDFs next to the .typ and some checks write files into templates/, so every check runs on a scratch
-copy (as run_all.sh does) and the repo stays clean. Parallelism is pytest-xdist's (`-n auto`): each worker has its own
+copy and the repo stays clean. Parallelism is pytest-xdist's (`-n auto`): each worker has its own
 session, hence its own scratch copy `<out>/work-<worker>` (`work-main` without xdist); `<out>/pdf` and `<out>/log` are
 shared, every file in them named after its check.
 """
@@ -53,7 +53,7 @@ def log_dir(out_dir: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def scratch(out_dir: Path) -> Path:
-    """Scratch copy of what the checks need (same set as run_all.sh), in <out>/work-<xdist worker>."""
+    """Scratch copy of what the checks need (what `pytest tests/integration` needs), in <out>/work-<xdist worker>."""
     s = out_dir / f"work-{os.environ.get('PYTEST_XDIST_WORKER', 'main')}"
     shutil.rmtree(s, ignore_errors=True)
     s.mkdir(parents=True)
