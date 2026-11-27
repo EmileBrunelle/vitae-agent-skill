@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import unicodedata
+from collections import Counter
 from collections.abc import Callable, Sequence
 
 from PIL import Image
@@ -262,7 +263,8 @@ def _stuffed(text: str, max_terms: int | None = None) -> str | None:
     if len(terms) <= 1:
         terms = text.lower().split()
     words = re.findall(r"\w+", text.lower())
-    repeated = sorted({t for t in terms if terms.count(t) > 1} | {w for w in words if len(w) > 2 and words.count(w) > 2})
+    term_counts, word_counts = Counter(terms), Counter(words)
+    repeated = sorted({t for t, n in term_counts.items() if n > 1} | {w for w, n in word_counts.items() if len(w) > 2 and n > 2})
     if (max_terms and len(terms) > max_terms) or repeated:
         return f"{len(terms)} terms" + (f", repeats {', '.join(r[:20] for r in repeated[:3])}" if repeated else "")
     return None

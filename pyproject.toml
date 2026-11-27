@@ -61,6 +61,7 @@ addopts = "--strict-markers"
 markers = [
     "integration: spawns subprocesses, uses external binaries or real sockets",
     "lint: repo ratchet over the checked-in files (SKILL.md, Markdown, references), not over code behaviour",
+    "slow: bounds the wall time of a worst-case input (complexity regression), still seconds at most",
 ]
 
 # Local mutation testing (not run in CI): `tests/mutmut.sh run`, see CONTRIBUTING.md.

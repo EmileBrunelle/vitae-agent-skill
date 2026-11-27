@@ -88,11 +88,11 @@ jobs:
         run: ruff check scripts tests evals
 
       - name: Unit tests (tests/unit)
-        run: python -m pytest -q -n auto tests/unit
+        run: python -m pytest -q -rs -n auto tests/unit
 
       - name: Integration checks (tests/integration)
         if: matrix.python-version == '3.x'
-        run: python -m pytest -q -n auto tests/integration --vitae-out "$RUNNER_TEMP/out"
+        run: python -m pytest -q -rs -n auto tests/integration --vitae-out "$RUNNER_TEMP/out"
 
       # Same inputs through poppler vs pypdfium2 and typst CLI vs typst-py: gate VERDICTS must match
       # (the bench needs the CLI and poppler, so it lives in this job, not in pure-python). Runs on the
@@ -134,7 +134,7 @@ jobs:
         run: |
           pip install ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 pyyaml==6.0.4
           ruff check scripts tests evals
-          python -m pytest -q -n auto tests/unit
+          python -m pytest -q -rs -n auto tests/unit
 
       - uses: ./.github/actions/fonts
 
@@ -154,4 +154,4 @@ jobs:
           for t in typst pdftotext pdfinfo pdftoppm; do ! command -v "$t" || { echo "$t is installed"; exit 1; }; done
 
       - name: Integration checks (tests/integration)
-        run: python -m pytest -q -n auto tests/integration --vitae-out "$RUNNER_TEMP/out"
+        run: python -m pytest -q -rs -n auto tests/integration --vitae-out "$RUNNER_TEMP/out"

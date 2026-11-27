@@ -37,8 +37,10 @@ TYPST_DEFAULT_FAMILIES = ("Libertinus Serif", "New Computer Modern", "DejaVu San
 # Words that may follow a family name in a PDF base-font name without making it another family: weights, slants,
 # widths, "Pro"/"Std", and optical sizes ("96pt"). "mono" is absent on purpose: NotoSansMono is not Noto Sans.
 # A face whose style word is missing from this list reads as another family, so add the word rather than the family.
-_FONT_STYLE_RE = re.compile(r"^(?:\d+|pt|variable|regular|roman|book|medium|semibold|bold|extrabold|black|heavy|"
-                            r"thin|light|extralight|italic|oblique|condensed|semicondensed|cond|narrow|display|text|"
+# Linear on purpose: a digit is one `\d` under the star (not `\d+`), and no word is a concatenation of others
+# (`semibold` is `semi` + `bold`), so a name has one way to split and a failing match does not backtrack exponentially.
+_FONT_STYLE_RE = re.compile(r"^(?:\d|pt|variable|regular|roman|book|medium|bold|black|heavy|"
+                            r"thin|light|italic|oblique|condensed|cond|narrow|display|text|"
                             r"psmt|mt|vf|upright|pro|std|semi|demi|ultra|extra)*$")
 # Typst's bundled faces, as the _fam_key form of the start of their PDF base-font names
 BUNDLED_KEYS = ("libertinus", "newcm", "dejavusansmono")
