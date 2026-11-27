@@ -11,6 +11,8 @@ from vitae.verify.typst import (
     _write_par,
 )
 
+pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
+
 RHYTHM_FILE = ("#let rhythm = 1.000\n"
                "#set par(leading: 0.800em, spacing: 0.900em)\n"
                "#set list(spacing: 0.500em)\nbody\n")

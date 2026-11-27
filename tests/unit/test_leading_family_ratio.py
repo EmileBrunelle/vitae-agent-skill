@@ -5,6 +5,8 @@ from vitae.verify import tune as T
 from vitae.verify.cv import LEADING_WARN, _family_default, _leading_warn
 from vitae.verify.typst import _doc_par_list, _scale_list_spacing
 
+pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
+
 
 def _default(family: str, pages: int) -> tuple[float, float]:
     d = _family_default(family, pages)
@@ -28,6 +30,7 @@ class TestFamilyRelative:
     @pytest.mark.parametrize("factor,warns", [
         (1.0, False), (LEADING_FAMILY_RATIO_WARN - 0.005, False),
         (LEADING_FAMILY_RATIO_WARN + 0.005, True), (1.5, True)])   # explicit margin: no float-exact boundary
+
     def test_threshold_boundary(self, tmp_path, factor, warns):
         out = _leading_warn(cv(tmp_path, _S * BAND * factor, _S))
         assert bool(out) == warns, out

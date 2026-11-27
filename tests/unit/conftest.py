@@ -27,9 +27,10 @@ def template_fonts():
         pytest.skip(f"templates/resume.typ needs {', '.join(missing)} to fit one page; Typst does not see them")
 
 
-@pytest.fixture(autouse=True)
-def _tuner_original_compiles(monkeypatch):
+@pytest.fixture
+def tuner_original_compiles(monkeypatch):
     """The tuner compiles the CV once before fitting it. The tune tests inject their probes and use placeholder sources
-    that Typst would refuse (no title), so that one compile is a success unless a test sets its own."""
+    that Typst would refuse (no title), so that one compile is a success unless a test sets its own. Opt in with
+    `pytestmark = pytest.mark.usefixtures("tuner_original_compiles")`."""
     from vitae.verify import tune
     monkeypatch.setattr(tune, "compile_pdf", lambda typ, pdf, use_cli: (True, ""))

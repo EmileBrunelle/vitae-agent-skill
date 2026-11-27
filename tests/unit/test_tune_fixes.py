@@ -10,6 +10,8 @@ from vitae.verify import pdf as pdf_module
 from vitae.verify import tune as T
 from vitae.verify.typst import _read_par, _read_rhythm, _rhythm_unparsed, _write_par, _write_rhythm
 
+pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
+
 BODY = "#set par(leading: 0.500em, spacing: 0.600em)\n#set list(spacing: 0.400em)\nbody\n"
 BASE = "#let rhythm = 1.000\n" + BODY
 

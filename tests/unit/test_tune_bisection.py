@@ -3,6 +3,8 @@ import pytest
 from vitae.core.base import LEADING_WARN
 from vitae.verify import tune as T
 
+pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
+
 PAR = "#set par(leading: 0.80em, spacing: 0.90em)\nbody\n"   # delta = 0.10em
 
 

@@ -4,6 +4,8 @@ from vitae.core.base import LEADING_WARN
 from vitae.verify import tune as T
 from vitae.verify.typst import _doc_leading, _read_par, _write_par
 
+pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
+
 PAR = '#set page(paper: "us-letter")\n#set par(justify: false, leading: 0.555em, spacing: 0.615em)\nbody 0.999em\n'
 
 
@@ -32,6 +34,7 @@ def test_a_declaration_the_tuner_cannot_rewrite_is_not_read(src):
     ("#let h(b) = [\n#set par(leading: 1.5em)\n b]\n", None),
     ("#show heading: it => [\n#set par(leading: 1.5em)\n#it]\n#set par(leading: 0.6em)\n", 0.6),
     ("#set par(leading: 0.6em)\nBody\n#set par(leading: 1.5em)\n", 0.6),               # after the body: ignored
+
     ("// #set par(leading: 1.5em)\n#set text(size: 10pt)\n", None),                   # commented out
 ])
 def test_doc_leading_is_the_last_top_level_rule_before_the_body(src, want):
