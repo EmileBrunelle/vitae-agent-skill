@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import warnings
 from collections.abc import Callable
 from typing import NoReturn
 
@@ -176,8 +177,14 @@ def main() -> None:
     for path in args.paths:
         limits.check_size(path, limits.MAX_PNG_BYTES)
     for path in args.paths:
-        print(f"{path}: {measure(path)}")
-        h, runs = gaps(path)
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)   # a raster past the warn size is refused too
+                line = f"{path}: {measure(path)}"
+                h, runs = gaps(path)
+        except (Image.DecompressionBombError, Image.DecompressionBombWarning) as e:
+            sys.exit(f"FAIL  {path}: the image decodes to a raster too large to measure ({e})")
+        print(line)
         if runs:
             import statistics
             runs_sorted = sorted(runs)

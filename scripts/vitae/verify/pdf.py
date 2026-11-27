@@ -150,10 +150,7 @@ def _typst_compile(src: str, out: str, *, fmt: Literal["pdf", "png"], standards:
         argv += ["--pdf-standard", ",".join(PDF_STANDARDS)] if standards else []
         argv += ["--ppi", str(ppi)] if ppi is not None else []
         argv += ["--root", root] if root else []
-        try:
-            r = proc.run(argv, proc.TYPST_S, name="typst compile")
-        except proc.ToolTimeout as e:
-            return False, str(e)
+        r = proc.run(argv, proc.TYPST_S, name="typst compile")   # a timeout propagates to `proc.guarded`: FAIL, never a "compile failed" to retry
         return r.returncode == 0, r.stdout + r.stderr
     mod = route.api
     if route.compile != "api" or mod is None:
@@ -421,7 +418,7 @@ def _read_bbox_pages(pdf: str) -> BboxPages | None:
         return _pdfium_bbox_pages(pdf)[0]
     try:
         r = proc.run(["pdftotext", "-bbox", pdf, "-"], proc.POPPLER_S)
-    except (OSError, proc.ToolTimeout):
+    except OSError:   # pdftotext missing; a timeout propagates to `proc.guarded` (a hung tool is a FAIL, not a skipped gate)
         return None
     if r.returncode != 0:
         return None

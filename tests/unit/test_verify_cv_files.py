@@ -104,11 +104,11 @@ def sweep(monkeypatch):
     calls = []
     codes = {}
 
-    def fake_run(cmd, **kw):
+    def fake_run(cmd, *_a, **kw):
         calls.append(cmd)
         return SimpleNamespace(returncode=codes.get(cmd[2], 0))
 
-    monkeypatch.setattr(proc.subprocess, "run", fake_run)
+    monkeypatch.setattr(proc, "run", fake_run)
     return calls, codes
 
 

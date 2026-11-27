@@ -52,17 +52,16 @@ def test_run_keeps_a_fast_failing_tool_as_a_result(tmp_path, monkeypatch):
         proc.run(["no-such-tool-xyz"], LIMIT)       # a missing tool stays an OSError, not a timeout
 
 
-def test_typst_compile_timeout_is_a_compile_fail_with_tool_and_limit(tmp_path, monkeypatch, fresh_typst_probes):
+def test_typst_compile_timeout_propagates_with_tool_and_limit(tmp_path, monkeypatch, fresh_typst_probes):
     _fake_tool(tmp_path, monkeypatch, "typst", 'if [ "$1" = "--version" ]; then echo "typst 0.15.2"; exit 0; fi')
     monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(None, "", "", False))   # the CLI route only
     monkeypatch.setattr(proc, "TYPST_S", LIMIT)
     src = tmp_path / "cv.typ"
     src.write_text("#set page()\nhello\n", encoding="utf-8")
     t0 = time.monotonic()
-    ok, msg = pdf.compile_pdf(str(src), str(tmp_path / "cv.pdf"))
+    with pytest.raises(proc.ToolTimeout, match="typst compile timed out after 1 s"):
+        pdf.compile_pdf(str(src), str(tmp_path / "cv.pdf"))      # not a "compile failed" result: `guarded` prints the FAIL
     assert _is_bounded(time.monotonic() - t0)
-    assert not ok and "typst compile timed out after 1 s" in msg
-    assert pdf.compile_failure_messages(msg) == [f"compile failed: {msg}"]      # the gate prints it as a FAIL line
 
 
 def test_poppler_timeout_reaches_the_entry_point_as_one_fail_line(tmp_path, monkeypatch, capsys):
@@ -78,46 +77,63 @@ def test_poppler_timeout_reaches_the_entry_point_as_one_fail_line(tmp_path, monk
     assert out.out.startswith("FAIL  pdfinfo timed out after 1 s") and "Traceback" not in out.err
 
 
-def test_poppler_bbox_timeout_means_no_boxes_not_a_crash(tmp_path, monkeypatch):
-    _fake_tool(tmp_path, monkeypatch, "pdftotext")
-    monkeypatch.setattr(proc, "POPPLER_S", LIMIT)
-    monkeypatch.setattr(pdf, "pdf_backend", lambda: "poppler")
-    t0 = time.monotonic()
-    assert pdf.bbox_pages(str(tmp_path / "x.pdf")) is None
-    assert _is_bounded(time.monotonic() - t0)
+# a hung `pdftotext -bbox` is covered by test_timeout_is_fail.py::test_hung_pdftotext_fails_the_hidden_text_gate
 
 
-def test_env_version_probe_timeout_reads_as_unknown(tmp_path, monkeypatch, fresh_typst_probes):
+def test_env_version_probe_timeout_is_marked_not_unknown(tmp_path, monkeypatch, fresh_typst_probes):
     _fake_tool(tmp_path, monkeypatch, "typst")
     monkeypatch.setattr(proc, "PROBE_S", LIMIT)
     t0 = time.monotonic()
-    assert env._cli_version() == "?"
+    assert env._cli_version() == env.CLI_TIMED_OUT       # not "?": the doctor FAILs and the route skips this CLI
     assert _is_bounded(time.monotonic() - t0)
 
 
-def test_limits_are_ordered_by_what_they_wrap():
-    assert 0 < proc.PROBE_S < proc.POPPLER_S < proc.TYPST_S
-    assert proc.RERUN_S > proc.TYPST_S      # the verify.py re-run contains a typst compile
+def test_rerun_limit_covers_what_it_wraps():
+    """`verify.py --all` re-runs verify.py per file, and that child runs a typst compile then poppler tools in sequence:
+    a RERUN_S not above their sum would cut a healthy run that merely used both limits' worth of time."""
+    assert proc.RERUN_S > proc.TYPST_S + proc.POPPLER_S
 
 
 # ---- no spawn outside proc.py
 _SPAWNERS = {"run", "Popen", "check_output", "check_call", "call", "getoutput", "getstatusoutput"}
+_OS_SPAWNERS = {"system", "popen"}
+
+
+def _is_os_spawner(name: str) -> bool:
+    return name in _OS_SPAWNERS or name.startswith(("spawn", "exec"))
+
+
+def _bindings(tree: ast.AST) -> tuple[set[str], set[str], set[str]]:
+    """(names bound to the subprocess module, to the os module, to a spawner function) by the imports of `tree`."""
+    sub_mods, os_mods, funcs = {"subprocess"}, {"os"}, set[str]()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Import):
+            for a in n.names:
+                {"subprocess": sub_mods, "os": os_mods}.get(a.name, set()).add(a.asname or a.name)
+        elif isinstance(n, ast.ImportFrom) and n.module in ("subprocess", "os"):
+            for a in n.names:
+                if n.module == "subprocess" and a.name == "*":
+                    funcs.update(_SPAWNERS)
+                elif (a.name in _SPAWNERS) if n.module == "subprocess" else _is_os_spawner(a.name):
+                    funcs.add(a.asname or a.name)
+    return sub_mods, os_mods, funcs
 
 
 def _unbounded_spawns(source: str) -> list[int]:
-    """Line numbers of subprocess spawns (`subprocess.X(...)`, `X(...)` imported from it) and `os.system`/`os.popen`."""
+    """Line numbers of spawns: `subprocess.X(...)` (also through `import subprocess as sp`), `X(...)` imported from it
+    (also renamed, or via `from subprocess import *`), and `os.system` / `os.popen` / `os.spawn*` / `os.exec*` (same
+    aliasing shapes)."""
     tree = ast.parse(source)
-    imported = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module == "subprocess"
-                for a in n.names if a.name in _SPAWNERS}
+    sub_mods, os_mods, funcs = _bindings(tree)
     lines = []
     for n in ast.walk(tree):
         if not isinstance(n, ast.Call):
             continue
         f = n.func
         if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name):
-            if (f.value.id == "subprocess" and f.attr in _SPAWNERS) or (f.value.id == "os" and f.attr in {"system", "popen"}):
+            if (f.value.id in sub_mods and f.attr in _SPAWNERS) or (f.value.id in os_mods and _is_os_spawner(f.attr)):
                 lines.append(n.lineno)
-        elif isinstance(f, ast.Name) and f.id in imported:
+        elif isinstance(f, ast.Name) and f.id in funcs:
             lines.append(n.lineno)
     return lines
 
@@ -133,3 +149,17 @@ def test_the_spawn_detector_sees_every_shape():
            "subprocess.run(['a'])\nsubprocess.check_output(['a'])\nP(['a'])\nrun(['a'])\nos.system('a')\nos.popen('a')\n"
            "subprocess.SubprocessError\nsubprocess.TimeoutExpired\n")
     assert _unbounded_spawns(src) == [3, 4, 5, 6, 7, 8]
+
+
+@pytest.mark.parametrize("src, lines", [
+    ("import subprocess as sp\nsp.run(['a'])\nsp.Popen(['a'])\nsp.TimeoutExpired\n", [2, 3]),
+    ("from subprocess import run\nrun(['a'])\n", [2]),
+    ("from subprocess import Popen\nPopen(['a'])\n", [2]),
+    ("from subprocess import *\ncheck_output(['a'])\nPopen(['a'])\n", [2, 3]),
+    ("import os\nos.spawnv(0, 'a', [])\nos.execv('a', [])\nos.execvp('a', [])\nos.getcwd()\n", [2, 3, 4]),
+    ("import os as o\no.system('a')\no.spawnlp(0, 'a')\no.path.join('a')\n", [2, 3]),
+    ("from os import system, execv as ex, getcwd\nsystem('a')\nex('a', [])\ngetcwd()\n", [2, 3]),
+    ("import shlex\nshlex.split('a')\nrun = 3\nrun\n", []),      # no spawn: nothing flagged
+], ids=["alias", "from-run", "from-Popen", "star", "os-spawn-exec", "os-alias", "from-os", "clean"])
+def test_the_spawn_detector_sees_aliases_star_imports_and_os_spawns(src, lines):
+    assert _unbounded_spawns(src) == lines

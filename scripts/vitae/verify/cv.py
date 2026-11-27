@@ -210,10 +210,15 @@ def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = 
             unchecked.append(typ)
         print(f"\n=== {typ}  (expects {' '.join(args)}"
               f"{'' if m else ' — inferred from the file name, no header'})")
-        r = proc.run([sys.executable,
-                            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py"), typ]
-                           + args + (["--allow-placeholders"] if allow_placeholders else [])
-                           + (["--rebuild"] if rebuild else []), proc.RERUN_S, name="verify.py", capture=False)
+        try:
+            r = proc.run([sys.executable,
+                                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py"), typ]
+                               + args + (["--allow-placeholders"] if allow_placeholders else [])
+                               + (["--rebuild"] if rebuild else []), proc.RERUN_S, name="verify.py", capture=False)
+        except proc.ToolTimeout as e:   # one hung deliverable is its own FAIL; the sweep goes on with the next file
+            print(f"FAIL  {typ}: verify timed out after {e.limit:g} s")
+            fail = 1
+            continue
         fail |= bool(r.returncode)
     if unchecked:
         print("\nNOTE — page count inferred from the file name, fill not "

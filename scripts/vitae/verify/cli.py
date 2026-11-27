@@ -180,6 +180,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         backend = pdf_backend()
         limits.check_size(ga.typ, limits.MAX_TYP_BYTES)
         limits.check_size(ga.pdf, limits.MAX_PDF_BYTES)
+        refuse_academic(ga.typ)
         src = Path(ga.typ).read_text(encoding="utf-8")
         rc = run_gates(LAYOUT_GATES, make_context(ga.typ, ga.pdf, extract_text(ga.pdf, backend), src, backend,
                                                   root=ga.root, detail=rows))

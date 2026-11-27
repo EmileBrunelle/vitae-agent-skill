@@ -5,11 +5,14 @@ hang and never as a traceback. `run` wraps `subprocess.run` with the bound and r
 `subprocess.SubprocessError`, so a site that already catches that, or `OSError`-style failures next to it, folds the
 timeout into its own failure path). A site with no failure path of its own lets it reach `guarded`, which the entry
 points wrap: it prints `FAIL  <message>` and exits 1. A test (tests/unit/test_subprocess_timeouts.py) forbids any
-other `subprocess.run` / `Popen` / `check_output` call under scripts/, so a new site cannot skip the bound.
+other `subprocess.run` / `Popen` / `check_output` call under scripts/, so a new site cannot skip the bound. On a timeout
+the whole process tree is killed (POSIX: the child leads its own process group). The typst-py route runs in-process and
+is not bounded by these limits.
 """
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
@@ -38,10 +41,33 @@ def run(argv: Sequence[str], limit: float, *, name: str | None = None,
     """`subprocess.run(argv)` with text output, never raising on a non-zero exit, killed after `limit` seconds.
     `name` is what a timeout message calls the tool (default: the program's base name). `capture=False` lets the
     child write to our stdout/stderr. Raises ToolTimeout on the limit; OSError (tool missing) goes through unchanged."""
+    pipe = subprocess.PIPE if capture else None
+    posix = os.name != "nt"
+    stdout: str | None
+    stderr: str | None
+    with subprocess.Popen(list(argv), stdout=pipe, stderr=pipe, text=True, start_new_session=posix) as child:
+        try:
+            stdout, stderr = child.communicate(timeout=limit)
+        except subprocess.TimeoutExpired:
+            _kill_tree(child)
+            child.communicate()
+            raise ToolTimeout(name or os.path.basename(argv[0]), limit) from None
+        except BaseException:
+            _kill_tree(child)
+            raise
+    return subprocess.CompletedProcess(list(argv), child.returncode, stdout, stderr)
+
+
+def _kill_tree(child: subprocess.Popen[str]) -> None:
+    """SIGKILL the child's whole process group (it leads its own session, so a grandchild such as the typst a verify.py
+    re-run spawned goes with it). Windows has no process groups here: a plain kill of the child, grandchildren may stay."""
+    if os.name == "nt":
+        child.kill()
+        return
     try:
-        return subprocess.run(list(argv), capture_output=capture, text=True, timeout=limit, check=False)
-    except subprocess.TimeoutExpired:
-        raise ToolTimeout(name or os.path.basename(argv[0]), limit) from None
+        os.killpg(child.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def guarded(fn: Callable[[], T]) -> T:

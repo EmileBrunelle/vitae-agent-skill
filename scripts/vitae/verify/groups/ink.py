@@ -29,7 +29,7 @@ def _render_page(pdf: str, page: int) -> Image.Image | None:
                 gray = Image.open(pre + ".pgm").convert("L")
                 gray.load()
                 return gray
-    except (OSError, ValueError, RuntimeError, proc.ToolTimeout):
+    except (OSError, ValueError, RuntimeError):   # a pdftoppm timeout propagates to `proc.guarded`
         pass
     return None
 

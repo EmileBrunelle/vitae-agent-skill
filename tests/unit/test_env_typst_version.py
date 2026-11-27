@@ -33,7 +33,7 @@ def cli(monkeypatch):
     """Install a fake typst CLI printing `stdout` for --version; no process is spawned."""
     def install(stdout):
         monkeypatch.setattr(env.shutil, "which", lambda name: "/usr/bin/typst")
-        monkeypatch.setattr(env.subprocess, "run", lambda *a, **k: types.SimpleNamespace(stdout=stdout))
+        monkeypatch.setattr(env.proc, "run", lambda *a, **k: types.SimpleNamespace(stdout=stdout))
     return install
 
 
@@ -85,7 +85,7 @@ class TestCheckTypstCli:
         def boom(*a, **k):
             raise OSError("exec format error")
         monkeypatch.setattr(env.shutil, "which", lambda n: "/usr/bin/typst")
-        monkeypatch.setattr(env.subprocess, "run", boom)
+        monkeypatch.setattr(env.proc, "run", boom)
         assert env.check_typst() is True
         assert "OK    typst ? (CLI)" in capsys.readouterr().out
 

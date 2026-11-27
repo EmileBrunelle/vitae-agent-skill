@@ -148,9 +148,12 @@ def _before_pdf_standards(ver: str, via: str) -> bool:
     return True
 
 
+CLI_TIMED_OUT = "timed-out"   # `_cli_probe` value for a `typst --version` that hung: not a version, not "?"
+
+
 @functools.cache
 def _cli_probe() -> str | None:
-    """Version token of the `typst` CLI on PATH, "?" when it cannot run or prints none, None when there is no CLI.
+    """Version token of the `typst` CLI on PATH, "?" when it cannot run or prints none, CLI_TIMED_OUT when it hung, None when there is no CLI.
     `which` and `typst --version` run once per process, the doctor included."""
     if not shutil.which("typst"):
         return None
@@ -161,6 +164,8 @@ def _cli_version() -> str:
     """Version token of `typst --version`; "?" when the CLI cannot run or prints none."""
     try:
         return proc.run(["typst", "--version"], proc.PROBE_S, name="typst --version").stdout.split()[1]
+    except proc.ToolTimeout:
+        return CLI_TIMED_OUT
     except (OSError, subprocess.SubprocessError, IndexError):   # cannot run, or no version token in the output
         return "?"
 
@@ -192,8 +197,19 @@ def check_typst() -> bool:
     """Doctor lines for typst; returns whether it is available. The CLI is preferred, the Python API is the fallback and
     is judged by running it, not by its attributes. Older than TYPST_MIN, or a Python API without query/fonts, is
     DEGRADED (still available); a broken or missing install is not."""
+    if _cli_probe() == CLI_TIMED_OUT:
+        # a hung CLI is a failed doctor whatever else is installed; the route falls back to typst-py without it
+        print(f"FAIL  typst --version timed out after {proc.PROBE_S:g} s: the `typst` CLI on PATH hangs (it is not used)")
+        _check_typst_without_cli()
+        return False
+    return _check_typst_without_cli()
+
+
+def _check_typst_without_cli() -> bool:
+    """`check_typst` past the CLI probe: judged on a usable CLI when one answers, else on the Python API."""
     cli_old = ""
-    cli_ver = _cli_probe()
+    probed = _cli_probe()
+    cli_ver = None if probed == CLI_TIMED_OUT else probed
     if cli_ver is not None:
         if cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN:
             return _check_typst_cli(cli_ver)
@@ -547,11 +563,11 @@ def typst_route() -> TypstRoute:
     """The one decision for every typst call (compile, PNG render, query, eval, fonts), as `check_typst` reports it.
     Probed once per process: `which`, `typst --version` and the typst-py probe each run once."""
     cli_ver = _cli_probe()
-    cli_usable = cli_ver is not None and (cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN)
+    cli_usable = cli_ver is not None and cli_ver != CLI_TIMED_OUT and (cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN)
     probe = _typst_py_probe()
     mod, full = probe.module, probe.full
     compile_route: Route = "cli" if cli_usable else "api" if mod is not None else None
-    query_route: Route = "cli" if cli_usable else "api" if full else "cli" if cli_ver is not None else None
+    query_route: Route = "cli" if cli_usable else "api" if full else "cli" if cli_ver not in (None, CLI_TIMED_OUT) else None
     return TypstRoute(compile_route, query_route, mod, _typst_py_caps(mod))
 
 

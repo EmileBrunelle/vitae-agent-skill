@@ -46,7 +46,7 @@ def _check_all_output(cv, directory):
         calls.append(a)
         return SimpleNamespace(returncode=0)
 
-    with mock.patch.object(proc.subprocess, "run", fake_run), contextlib.redirect_stdout(out):
+    with mock.patch.object(proc, "run", fake_run), contextlib.redirect_stdout(out):
         rc = cv.check_all(directory)
     assert calls, "the per-file verify.py child was never spawned through the fake"
     return rc, out.getvalue()

@@ -107,7 +107,7 @@ def _typst_values(typ: str, selector: str, root: str | None) -> list[object] | N
                 ["typst", "eval", f"query({selector}).map(it => it.value)", "--in", typ, "--target", "paged", *rootargs]):
         try:
             r = proc.run(cmd, proc.TYPST_S, name=f"typst {cmd[1]}")
-        except (OSError, proc.ToolTimeout):
+        except OSError:   # typst missing; a timeout propagates to `proc.guarded`, and is never cached
             return None
         if r.returncode == 0 and r.stdout.strip().startswith("["):
             try:

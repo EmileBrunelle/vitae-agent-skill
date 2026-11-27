@@ -126,13 +126,13 @@ class TestEnv:
                                       lambda *a, **k: types.SimpleNamespace(stdout="typst")])
     def test_unreadable_cli_version_is_not_fatal(self, monkeypatch, capsys, fake):
         monkeypatch.setattr(env.shutil, "which", lambda n, *a, **k: "/bin/typst" if n == "typst" else None)
-        monkeypatch.setattr(env.subprocess, "run", fake)
+        monkeypatch.setattr(env.proc, "run", fake)
         env.check_typst()   # prints a verdict line, does not raise
         assert capsys.readouterr().out
 
     def test_cli_version_bug_raises(self, monkeypatch):
         monkeypatch.setattr(env.shutil, "which", lambda n, *a, **k: "/bin/typst")
-        monkeypatch.setattr(env.subprocess, "run", _raiser(KeyError("boom")))
+        monkeypatch.setattr(env.proc, "run", _raiser(KeyError("boom")))
         with pytest.raises(KeyError):
             env.check_typst()
 

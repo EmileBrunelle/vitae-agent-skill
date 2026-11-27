@@ -185,7 +185,7 @@ class TestProbedOncePerProcess:
             return subprocess.CompletedProcess(argv, 0, stdout="typst 0.15.0 (x)\n" if argv[1:] == ["--version"] else "Font\n", stderr="")
 
         monkeypatch.setattr(env.shutil, "which", which)
-        monkeypatch.setattr(env.subprocess, "run", run)
+        monkeypatch.setattr(env.proc, "run", run)
         monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(None, "", "", False))
         return seen
 
