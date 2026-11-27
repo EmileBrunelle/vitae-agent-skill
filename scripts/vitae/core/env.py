@@ -70,14 +70,16 @@ def _before_pdf_standards(ver: str, via: str) -> bool:
     return True
 
 
-def _check_typst_cli() -> tuple[bool, bool]:
-    """Doctor lines for the typst CLI on PATH."""
+def _cli_version() -> str:
+    """Version token of `typst --version`; "?" when the CLI cannot run or prints none."""
     try:
-        ver = subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
+        return subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
     except (OSError, subprocess.SubprocessError, IndexError):   # cannot run, or no version token in the output
-        ver = "?"
-    if _before_pdf_standards(ver, "CLI"):
-        return False, False
+        return "?"
+
+
+def _check_typst_cli(ver: str) -> tuple[bool, bool]:
+    """Doctor lines for the typst CLI on PATH, whose version `ver` is new enough to write PDF/UA-1."""
     if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
         print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
         print("  Upgrade with ONE of:")
@@ -95,9 +97,19 @@ def check_typst() -> tuple[bool, bool]:
     """Doctor lines for typst; returns (available, use_cli). The CLI is preferred, the Python API is the fallback and
     is judged by running it, not by its attributes. Older than TYPST_MIN, or a Python API without query/fonts, is
     DEGRADED (still available); a broken or missing install is not."""
+    cli_old = ""
     if shutil.which("typst"):
-        return _check_typst_cli()
+        cli_ver = _cli_version()
+        if cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN:
+            return _check_typst_cli(cli_ver)
+        cli_old = cli_ver
     mod, ver, why, full = _typst_py_probe()
+    if cli_old:
+        if mod is None or _ver_tuple(ver) < TYPST_STANDARDS_MIN:
+            _before_pdf_standards(cli_old, "CLI")
+            return False, False
+        print(f"DEGRADED  typst {cli_old} (CLI): too old for PDF/UA-1 + PDF/A-2a, so the Python API (typst {ver}) is used instead.")
+        print("  To use the CLI again: brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
     if mod is None and why.startswith("TOOLOLD"):
         print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
         print("  Upgrade it: pip install typst==0.15.2   # or install the CLI (brew install typst | cargo install typst-cli)")
