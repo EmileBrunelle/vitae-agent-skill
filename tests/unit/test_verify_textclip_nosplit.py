@@ -76,3 +76,15 @@ def test_no_split_page_texts(pages, fails):
 @pytest.mark.parametrize("pages", [[P1, "kept the API under 200 ms"], [P1, "x", "y"]], ids=["two-pages", "three-pages"])
 def test_no_section_call_means_nothing_to_split_even_over_several_pages(pages):
     assert not _fails(pages, src="#let x = 1\nplain body\n")
+
+
+def test_hidden_word_starting_above_the_page_top_is_still_detected(tmp_path):
+    im = Image.new("RGB", (400, 200), WHITE)                 # white glyphs on white paper, box starts 6 px above the page
+    for x in range(60, 180, 6):
+        im.paste(WHITE, (x, 0, x + 3, 8))
+    path = tmp_path / "top.png"
+    im.save(path)
+
+    out = check_text_clip(str(path), _word(-6))
+
+    assert any("indistinguishable" in m for m in out)

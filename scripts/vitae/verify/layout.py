@@ -124,7 +124,7 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
         return edges
 
     for (x0, y0, x1, y1), word in boxes:
-        ya, yb = int(y0 * s), min(int(y1 * s), h - 1)
+        ya, yb = max(int(y0 * s), 0), min(int(y1 * s), h - 1)
         xa, xb = max(int(x0 * s), 0), min(int(x1 * s), w - 1)
         if yb - ya < 6 or xb - xa < 3 or len(word) < 2:
             continue   # lone punctuation sits between neighbours' glyph edges: noise
