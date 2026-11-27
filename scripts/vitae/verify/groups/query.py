@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from bisect import bisect_left
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -167,10 +168,8 @@ def _gnorm(t: str) -> str:
     return "".join(ch for ch in t.casefold() if ch.isalnum())
 
 
-def _lines(words: Sequence[Word], x_min: float) -> list[_Line]:
-    """Words (x0, y0, x1, y1, text) at or right of x_min, clustered into text
-    lines by y-centre -> sorted list of dicts {y0, y1, c, x0, words}."""
-    ws = sorted((w for w in words if w[0] >= x_min), key=lambda w: (w[1] + w[3]) / 2)
+def _cluster(ws: Sequence[Word]) -> list[_Line]:
+    """Words already sorted by y-centre, clustered into text lines -> list of dicts {y0, y1, c, x0, words}."""
     out: list[_Line] = []
     for w in ws:
         c = (w[1] + w[3]) / 2
@@ -186,35 +185,89 @@ def _lines(words: Sequence[Word], x_min: float) -> list[_Line]:
     return out
 
 
+def _lines(words: Sequence[Word], x_min: float) -> list[_Line]:
+    """Words (x0, y0, x1, y1, text) at or right of x_min, clustered into text
+    lines by y-centre -> sorted list of dicts {y0, y1, c, x0, words}."""
+    return _cluster(sorted((w for w in words if w[0] >= x_min), key=lambda w: (w[1] + w[3]) / 2))
+
+
+_TOKENS = 4          # up to 4 tokens is enough to identify an entry head uniquely without crossing a line wrap
+_NEAR = 30.0         # a match farther than this (~2 lines) from the <vitae-head> marker's y is a repeated word elsewhere
+
+
+class PageIndex:
+    """One page's words, indexed once for every head or title measured on it: the normalised text of each word and the
+    positions of each normal form, the words in y-centre order and the text lines of each distinct left edge.
+    `_find_run`, `_lines` and `_line_index` rebuilt all of that for every call (O(words) each, so a page of heads was
+    O(heads x words) with a heavy constant); here a call costs O(the page's words of its first token) for `find_run`,
+    and the lines of a left edge are clustered once, whatever the number of heads at it. The coordinates are finite
+    numbers, as pdftotext and pdfium give them."""
+
+    def __init__(self, words: Sequence[Word]) -> None:
+        self.words = words
+        self._norm = [_gnorm(w[4]) for w in words]
+        self._by_norm: dict[str, list[int]] = {}
+        for j, n in enumerate(self._norm):
+            self._by_norm.setdefault(n, []).append(j)
+        centre = [(w[1] + w[3]) / 2 for w in words]
+        self._centre = centre
+        self._by_centre = sorted(range(len(words)), key=centre.__getitem__)          # stable: ties keep word order
+        self._x0 = sorted(w[0] for w in words)
+        self._lines_at: dict[int, list[_Line]] = {}
+        self._first_line_of: dict[int, dict[int, int]] = {}
+
+    def find_run(self, text: str, ytyp: float) -> list[Word] | None:
+        """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of word tuples, or None."""
+        toks = [t for t in (_gnorm(w) for w in text.split()) if t][:_TOKENS]
+        if not toks:
+            return None
+        words, norm, centre = self.words, self._norm, self._centre
+        starts = self._by_norm.get(toks[0], [])
+        # a start farther than _NEAR from the marker cannot be the answer (the farthest-accepted match is refused), and one
+        # that is not nearer than the best so far cannot replace it: neither needs its run checked
+        best: tuple[float, list[int]] | None = None
+        for j in starts:
+            d = abs(centre[j] - ytyp)
+            if d > _NEAR or (best is not None and not d < best[0]):
+                continue
+            run, k = [j], j + 1
+            for t in toks[1:]:
+                while k < len(words) and norm[k] == "":
+                    k += 1
+                if k < len(words) and norm[k] == t:
+                    run.append(k)
+                    k += 1
+                else:
+                    break
+            else:
+                best = (d, run)
+        return None if best is None else [words[k] for k in best[1]]
+
+    def lines(self, x_min: float) -> list[_Line]:
+        """`_lines(words, x_min)`, computed once per distinct set of words at or right of x_min."""
+        k = bisect_left(self._x0, x_min)
+        got = self._lines_at.get(k)
+        if got is None:
+            words = self.words
+            got = self._lines_at[k] = _cluster([words[i] for i in self._by_centre if words[i][0] >= x_min])
+            first: dict[int, int] = {}
+            for i, ln in enumerate(got):
+                for w in ln["words"]:
+                    first.setdefault(id(w), i)
+            self._first_line_of[id(got)] = first
+        return got
+
+    def line_index(self, lines: list[_Line], run: list[Word]) -> int | None:
+        """`_line_index(lines, run)`: the line holding the first word of `run` (by identity), by one dict lookup
+        when `lines` is a list this index returned (a list of another origin is searched as `_line_index` does)."""
+        first = self._first_line_of.get(id(lines))
+        return _line_index(lines, run) if first is None else first.get(id(run[0]))
+
+
 def _find_run(words: Sequence[Word], text: str, ytyp: float) -> list[Word] | None:
     """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of
     word tuples, or None."""
-    # Up to 4 tokens is enough to identify an entry head uniquely without crossing a line wrap.
-    toks = [t for t in (_gnorm(w) for w in text.split()) if t][:4]
-    if not toks:
-        return None
-    norm = [_gnorm(w[4]) for w in words]
-    best = None
-    for j in range(len(words)):
-        if norm[j] != toks[0]:
-            continue
-        run, k = [j], j + 1
-        for t in toks[1:]:
-            while k < len(words) and norm[k] == "":
-                k += 1
-            if k < len(words) and norm[k] == t:
-                run.append(k)
-                k += 1
-            else:
-                break
-        else:
-            yc = (words[j][1] + words[j][3]) / 2
-            if best is None or abs(yc - ytyp) < best[0]:
-                best = (abs(yc - ytyp), run)
-    # >30pt (~2 lines) from the <vitae-head> marker's y: a match that far away is a repeated word elsewhere on the page.
-    if best is None or best[0] > 30:     # nearest match is over 30pt from the marker's y: not located
-        return None
-    return [words[k] for k in best[1]]
+    return PageIndex(words).find_run(text, ytyp)
 
 
 def _line_index(lines: list[_Line], run: list[Word]) -> int | None:

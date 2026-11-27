@@ -20,8 +20,9 @@ from vitae.core.base import (
 )
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
+from vitae.verify.bounds import too_dense
 from vitae.verify.groups.ink import _page_ink_gap
-from vitae.verify.groups.query import _find_run, _gnorm, _line_index, _lines, _typst_query
+from vitae.verify.groups.query import PageIndex, _gnorm, _typst_query
 from vitae.verify.pdf import _boxes_unavailable, word_boxes
 
 if TYPE_CHECKING:
@@ -54,12 +55,12 @@ def _box(ln: _Line) -> LineBox:
     return [ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]]
 
 
-def _next_block(h: HeadMark, hx: float, words: list[Word], marks: list[_KMark],
+def _next_block(h: HeadMark, hx: float, idx: PageIndex, page_marks: list[_KMark],
                 later: list[_KMark]) -> tuple[_KMark, list[Word], bool] | None:
     """The block after head `h`: (its mark, its words, whether it is a rail title), or None when its
-    text is not located in the PDF."""
+    text is not located in the PDF. `page_marks`: the marks on `h`'s page."""
     m = min(later, key=lambda m: m["y"])
-    mrun = _find_run(words, m["text"], m["y"])
+    mrun = idx.find_run(m["text"], m["y"])
     if mrun is None:
         return None
     # a rail title sits wholly LEFT of the body column (margin-index); a title
@@ -71,17 +72,17 @@ def _next_block(h: HeadMark, hx: float, words: list[Word], marks: list[_KMark],
         # + gap), a few pt ABOVE the body's first line, so matching it by
         # y-centre lands one line too low. If an in-column head opens within
         # that window, THAT is the next block of this column's flow.
-        h2 = [x for x in marks if x["_k"] == "h" and x["page"] == h["page"]
+        h2 = [x for x in page_marks if x["_k"] == "h"
               and _dx(x, h) <= 60 and m["y"] - 3 <= x["y"] <= m["y"] + 15]
         if h2:
             m = min(h2, key=lambda x: x["y"])
-            mrun = _find_run(words, m["text"], m["y"])
+            mrun = idx.find_run(m["text"], m["y"])
             if mrun is None:
                 return None
     return m, mrun, rail
 
 
-def _next_line_index(words: list[Word], hx: float, lines: list[_Line], run: list[Word], i0: int,
+def _next_line_index(idx: PageIndex, hx: float, lines: list[_Line], run: list[Word], i0: int,
                      mrun: list[Word], rail: bool) -> tuple[list[_Line], int | None, int | None]:
     """(lines, index of the head's line, index of the next block's line) once the next block is
     known; either index is None when it cannot be placed."""
@@ -89,9 +90,9 @@ def _next_line_index(words: list[Word], hx: float, lines: list[_Line], run: list
         mx0 = min(w[0] for w in mrun)
         i0n: int | None = i0
         if mx0 < hx - 2:               # in-flow title starting left of an indented head
-            lines = _lines(words, mx0 - 2)
-            i0n = _line_index(lines, run)
-        return lines, i0n, _line_index(lines, mrun) if i0n is not None else None
+            lines = idx.lines(mx0 - 2)
+            i0n = idx.line_index(lines, run)
+        return lines, i0n, idx.line_index(lines, mrun) if i0n is not None else None
     # title set in a rail beside the body
     mc = (mrun[0][1] + mrun[0][3]) / 2
     cand = [(abs(ln["c"] - mc), i) for i, ln in enumerate(lines)
@@ -125,37 +126,37 @@ def _group_row(h: HeadMark, m: _KMark, lines: list[_Line], i0: int, i_next: int,
             "pair_in": (tx[wi], tx[wi + 1]), "pair_btw": (tx[-2], tx[-1])}
 
 
-def _measure_head(h: HeadMark, marks: list[_KMark], pages_words: list[list[Word]],
+def _measure_head(h: HeadMark, page_marks: list[_KMark], idx: PageIndex | None,
                   gap_fn: GapFn) -> tuple[GroupRow | None, bool]:
     """(row, skipped) for one head: a row when its group is measurable; skipped when its text or its next
-    block could not be located; neither for a last block on its page or a single-line group."""
-    if h["page"] - 1 >= len(pages_words):
+    block could not be located; neither for a last block on its page or a single-line group. `idx`: the index of
+    the head's page (None when the PDF has no such page), `page_marks`: the marks on that page."""
+    if idx is None:
         return None, True
-    words = pages_words[h["page"] - 1]
-    run = _find_run(words, h["text"], h["y"])
+    run = idx.find_run(h["text"], h["y"])
     if run is None:
         return None, True
     hx = min(w[0] for w in run)
-    lines = _lines(words, hx - 2)
-    i0 = _line_index(lines, run)
+    lines = idx.lines(hx - 2)
+    i0 = idx.line_index(lines, run)
     if i0 is None:
         return None, True
     # next block head on this page (entry head, skill label or section title)
-    later = [m for m in marks if m["page"] == h["page"] and m["y"] > h["y"] + 2
+    later = [m for m in page_marks if m["y"] > h["y"] + 2
              and not (m["_k"] == "h" and _dx(m, h) > 60)]
     if not later:
         return None, False                 # last block on its page: no next head
-    nb = _next_block(h, hx, words, marks, later)
+    nb = _next_block(h, hx, idx, page_marks, later)
     if nb is None:
         return None, True
     m, mrun, rail = nb
-    lines, i0n, i_next = _next_line_index(words, hx, lines, run, i0, mrun, rail)
+    lines, i0n, i_next = _next_line_index(idx, hx, lines, run, i0, mrun, rail)
     if i_next is None or i0n is None or i_next <= i0n + 1:
         return None, False                 # single-line group (or no next head): nothing inside
     return _group_row(h, m, lines, i0n, i_next, gap_fn), False
 
 
-def _section_rows(heads: list[HeadMark], secs: list[SecMark], pages_words: list[list[Word]],
+def _section_rows(heads: list[HeadMark], secs: list[SecMark], pages: list[PageIndex],
                   gap_fn: GapFn) -> list[SecRow]:
     """Section rows: previous block's last line -> title (bar) vs title -> first line."""
     rows: list[SecRow] = []
@@ -164,15 +165,15 @@ def _section_rows(heads: list[HeadMark], secs: list[SecMark], pages_words: list[
         xs.setdefault(h["page"], []).append(h["x"])
     for sc in secs:
         pg = sc["page"]
-        if not pg or pg - 1 >= len(pages_words) or pg not in xs:
+        if not pg or pg - 1 >= len(pages) or pg not in xs:
             continue
-        words = pages_words[pg - 1]
-        srun = _find_run(words, sc["text"], sc["y"])
+        idx = pages[pg - 1]
+        srun = idx.find_run(sc["text"], sc["y"])
         bx = min(xs[pg])
         if srun is None or min(w[0] for w in srun) < bx - 5:
             continue                       # unlocated, or a rail title beside the body
-        lines = _lines(words, bx - 2)
-        i = _line_index(lines, srun)
+        lines = idx.lines(bx - 2)
+        i = idx.line_index(lines, srun)
         if i is None or i < 1 or i + 1 >= len(lines):
             continue
         up, t, lo = _box(lines[i - 1]), _box(lines[i]), _box(lines[i + 1])
@@ -204,12 +205,18 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     # the marks tagged with their kind ("h" head / "s" section)
     marks: list[_KMark] = [{**h, "_k": "h"} for h in placed]
     marks.extend({**s, "_k": "s"} for s in placed_secs)
+    by_page: dict[int, list[_KMark]] = {}
+    for m in marks:
+        by_page.setdefault(m["page"], []).append(m)
+    # one index per page, built once for every head and title on it
+    pages = [PageIndex(words) for words in pages_words]
     for h in sorted(placed, key=lambda h: (h["page"], h["y"])):
-        row, skip = _measure_head(h, marks, pages_words, gap_fn)
+        row, skip = _measure_head(h, by_page[h["page"]], pages[h["page"] - 1] if h["page"] - 1 < len(pages) else None,
+                                  gap_fn)
         skipped += skip
         if row is not None:
             rows.append(row)
-    rows.extend(_section_rows(placed, placed_secs, pages_words, gap_fn))
+    rows.extend(_section_rows(placed, placed_secs, pages, gap_fn))
     return rows, skipped
 
 
@@ -354,6 +361,8 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
         return [(Level.WARN, "group proximity NOT checked (typst query or pdftotext unavailable)")]
     if not heads:
         return [(Level.WARN, "group proximity not measured: no lib entry()/srow() heads")]
+    if (dense := too_dense("group proximity", pages, [*heads, *secs])) is not None:
+        return [(Level.FAIL, dense)]
     # DETAIL lines are machine-readable and printed here, not returned: the tests and --gates read them
     rows, skipped = measure_groups(heads, secs, pages, _page_ink_gap(pdf) if pdf else None)
     if detail is not None:
