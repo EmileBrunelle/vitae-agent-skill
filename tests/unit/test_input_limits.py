@@ -33,7 +33,7 @@ def _exit2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], 
 def no_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
     def boom(*a: object, **k: object) -> subprocess.CompletedProcess[str]:
         raise AssertionError("a subprocess was spawned before the input was validated")
-    monkeypatch.setattr("vitae.core.proc.subprocess.run", boom)
+    monkeypatch.setattr("vitae.core.proc.run", boom)
 
 
 def _sparse(tmp_path: Path, name: str, size: int) -> str:
@@ -103,7 +103,9 @@ def test_ppi_bounds_are_accepted(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 @pytest.mark.parametrize("ppi", [limits.PPI_MIN - 1, limits.PPI_MAX + 1, "abc"])
 def test_ppi_out_of_range_is_exit_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
                                     tmp_path: Path, ppi: int | str) -> None:
-    _exit2(monkeypatch, capsys, ["--render", str(tmp_path / "none.pdf"), "--ppi", str(ppi)], "--ppi")
+    why = (f"{ppi} is out of range, must be {limits.PPI_MIN}..{limits.PPI_MAX}" if isinstance(ppi, int)
+           else f"{ppi!r} is not an integer")
+    _exit2(monkeypatch, capsys, ["--render", str(tmp_path / "none.pdf"), "--ppi", str(ppi)], f"argument --ppi: {why}")
 
 
 # ---- page and fill positionals --------------------------------------------------------------------------------
@@ -123,8 +125,9 @@ def test_pages_bounds_accepted(monkeypatch: pytest.MonkeyPatch, stub_gates: None
 @pytest.mark.parametrize("pages", [limits.PAGES_MIN - 1, limits.PAGES_MAX + 1])
 def test_pages_out_of_range_is_exit_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
                                       stub_gates: None, pages: int) -> None:
-    _exit2(monkeypatch, capsys, ["cv.typ", str(pages)], "expected")
-    _exit2(monkeypatch, capsys, ["--tune", "cv.typ", str(pages), "90", "96"], "pages")
+    why = f"{pages} is out of range, must be {limits.PAGES_MIN}..{limits.PAGES_MAX}"
+    _exit2(monkeypatch, capsys, ["cv.typ", str(pages)], f"argument expected: {why}")
+    _exit2(monkeypatch, capsys, ["--tune", "cv.typ", str(pages), "90", "96"], f"argument pages: {why}")
 
 
 @pytest.mark.parametrize("fill", [limits.FILL_MIN_PCT, limits.FILL_MAX_PCT])
@@ -135,14 +138,18 @@ def test_fill_bounds_accepted(monkeypatch: pytest.MonkeyPatch, stub_gates: None,
 
 def test_fill_above_100_is_exit_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
                                   stub_gates: None) -> None:
-    _exit2(monkeypatch, capsys, ["cv.typ", "1", "90", "101"], "fill_max")
-    _exit2(monkeypatch, capsys, ["--tune", "cv.typ", "1", "101", "102"], "fill_min")
+    rng = f"must be {limits.FILL_MIN_PCT}..{limits.FILL_MAX_PCT}"
+    _exit2(monkeypatch, capsys, ["cv.typ", "1", "90", "101"], f"argument fill_max: 101 is out of range, {rng}")
+    _exit2(monkeypatch, capsys, ["--tune", "cv.typ", "1", "101", "102"], f"argument fill_min: 101 is out of range, {rng}")
 
 
-def test_non_numeric_fill_keeps_the_gates_own_failure(monkeypatch: pytest.MonkeyPatch, stub_gates: None) -> None:
+def test_non_numeric_fill_keeps_the_gates_own_failure(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+                                                      stub_gates: None) -> None:
     with pytest.raises(SystemExit) as e:
         _run(monkeypatch, ["--tune", "cv.typ", "1", "x", "96"])
     assert e.value.code == 1
+    out = capsys.readouterr()
+    assert "x" in out.out + out.err and "out of range" not in out.err      # the gate's own message, not the range validator
 
 
 @pytest.mark.parametrize("lead", [limits.LEADING_MIN, limits.LEADING_MAX])
@@ -153,7 +160,9 @@ def test_leading_bounds_accepted(monkeypatch: pytest.MonkeyPatch, stub_gates: No
 @pytest.mark.parametrize("lead", ["0.09", "5.01", "nan", "wide"])
 def test_leading_out_of_range_is_exit_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
                                         stub_gates: None, lead: str) -> None:
-    _exit2(monkeypatch, capsys, ["--tune", "cv.typ", "1", "90", "96", lead, "1"], "lo")
+    why = (f"{lead} is out of range, must be {limits.LEADING_MIN:g}..{limits.LEADING_MAX:g}" if lead != "wide"
+           else "'wide' is not a number")
+    _exit2(monkeypatch, capsys, ["--tune", "cv.typ", "1", "90", "96", lead, "1"], f"argument lo: {why}")
 
 
 # ---- oversize inputs, rejected before any subprocess (the autouse fixture makes proc.run fail) ----------------
@@ -225,6 +234,11 @@ def test_measure_fill_rejects_oversize_png(monkeypatch: pytest.MonkeyPatch, caps
 def test_shipped_files_fit_well_inside_the_caps() -> None:
     """The caps keep the margin their comments claim (>= 50x the largest shipped file)."""
     root = Path(__file__).resolve().parents[2]
+    # *.pdf is a build artefact (gitignored, absent on a fresh clone): a kind with no file is skipped, never an error
+    checked = 0
     for pattern, cap in (("*.typ", limits.MAX_TYP_BYTES), ("*.pdf", limits.MAX_PDF_BYTES), ("*.toml", limits.MAX_TOML_BYTES)):
-        biggest = max(p.stat().st_size for p in (root / "templates").rglob(pattern))
-        assert biggest * 50 <= cap
+        sizes = [p.stat().st_size for p in (root / "templates").rglob(pattern)]
+        if sizes:
+            checked += 1
+            assert max(sizes) * 50 <= cap, pattern
+    assert checked >= 2      # the tracked kinds (.typ, .toml) are always there

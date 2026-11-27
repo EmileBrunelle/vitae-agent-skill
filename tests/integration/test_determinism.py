@@ -23,7 +23,15 @@ from vitae.verify.jsonout import run_json
 from vitae.verify.letter import check_letter
 from vitae.verify.pdf import current_memo
 
-pytestmark = pytest.mark.skipif(not preflight().ok, reason="needs typst and a PDF text backend")
+
+@pytest.fixture(scope="module", autouse=True)
+def warm_probes() -> None:
+    """Run the doctor once, before the first test: it fills the once-per-process typst route and PDF-backend probes, so the
+    in-process A, B, A runs compare two warm runs instead of a cold first against warm ones. Nothing is spawned at import
+    or collection; a missing toolchain skips the module here. The in-process tests name it, the others need the tools too."""
+    with redirect_stdout(io.StringIO()):       # the doctor prints its OK lines
+        if not preflight().ok:
+            pytest.skip("needs typst and a PDF text backend")
 
 SEEDS = ("0", "12345")
 FAM = "templates/families/swiss-grid"
@@ -90,7 +98,7 @@ def _gate(argv: list[str]) -> tuple[int, str, str]:
     return rc, out.getvalue(), err.getvalue()
 
 
-def test_gate_twice_in_one_process_same_report(scratch: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_gate_twice_in_one_process_same_report(warm_probes: None, scratch: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A, B, A: the second A must equal the first, with a different file gated in between (caches keyed on a Path)."""
     monkeypatch.chdir(scratch)
     a, b = _argv(CVS[0]), _argv(CVS[1])
@@ -106,7 +114,7 @@ def test_gate_twice_in_one_process_same_report(scratch: Path, monkeypatch: pytes
     assert current_memo() is None     # the run memo is scoped to one gate run
 
 
-def test_letter_gate_twice_in_one_process(scratch: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_letter_gate_twice_in_one_process(warm_probes: None, scratch: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(scratch)
     first = check_letter(LETTER, "Employer", "Job Title", True)
     _gate(_argv(CVS[0]))

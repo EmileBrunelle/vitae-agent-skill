@@ -137,9 +137,9 @@ BUDGET = {
     # verify_academic.run_gate: no lib/section queries (the TOML declares the structure); pdfinfo is read twice
     "academic": {**_COMMON, "typst query": (0, 0), "pdfinfo": (1, 2), "pdftoppm": (1, 1)},     # current: 2 pdfinfo, target: 1
 }
-# Peak of Python-side allocations in KiB, measured on the gate after a warm-up: bound = 2 x measured
-# (1557 KiB 1 page, 2048 KiB 2 pages, 953 KiB academic (verify_academic.run_gate); the 2-page résumé is the largest).
-PEAK_KIB = {"resume-1page": 3200, "resume-2page": 4100, "academic": 1900}
+# Peak of Python-side allocations in KiB, measured on the gate after a warm-up (stable on Python 3.11 and 3.15, with or
+# without pikepdf): 1559 KiB 1 page, 1729 KiB 2 pages, 953 KiB academic (verify_academic.run_gate). Bound = 1.5 x measured.
+PEAK_KIB = {"resume-1page": 2340, "resume-2page": 2595, "academic": 1430}
 
 
 @pytest.mark.parametrize("case", CASES)
