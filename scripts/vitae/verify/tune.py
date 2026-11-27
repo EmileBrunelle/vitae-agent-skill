@@ -23,6 +23,7 @@ from vitae.core.base import (
 from vitae.core.env import PdfBackend, preflight
 from vitae.verify.pdf import compile_or_messages, compile_pdf, count_pages, render_pngs
 from vitae.verify.typst import (
+    _doc_par_list_size,
     _par_scope,
     _read_par,
     _read_rhythm,
@@ -74,7 +75,28 @@ def _with_gap_scale(text: str, rhythm: float) -> str:
         return text
     factor = rhythm / cur
     out = _write_par(_write_rhythm(text, rhythm), par[0], par[1] * factor)
-    return _scale_list_spacing(out, factor, _par_scope(text))
+    out = _scale_list_spacing(out, factor, _par_scope(text))
+    return _hold_list_gap(text, out)
+
+
+# core.md: the list-item gap (list spacing less leading) stays at least this wide, so bullets do not
+# read as one paragraph. A shrinking rhythm scales the list spacing but not the leading, which eats it.
+LIST_GAP_FLOOR = 0.16   # em
+
+
+def _hold_list_gap(before: str, after: str) -> str:
+    """`after` with its explicit list spacing raised to leading + the gap floor when scaling pushed (list
+    spacing - leading) under it. A file that already sat under the floor keeps its own gap (never worse
+    than `before`); no explicit numeric list spacing leaves `after` alone. Deterministic, 3 decimals."""
+    lead0, lsp0, _ = _doc_par_list_size(before)
+    lead, lsp, _ = _doc_par_list_size(after)
+    if lead0 is None or lsp0 is None or lead is None or lsp is None or lsp <= 0:
+        return after
+    floor = min(LIST_GAP_FLOOR, lsp0 - lead0)
+    if lsp - lead >= floor:
+        return after
+    # +0.0005 so the 3-decimal rounding cannot land under the floor
+    return _scale_list_spacing(after, (lead + floor + 0.0005) / lsp, _par_scope(before))
 
 
 def _read(typ: str) -> str:

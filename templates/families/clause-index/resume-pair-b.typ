@@ -44,7 +44,7 @@
 #let doc-name = "Firstname Lastname"
 #set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.550em, spacing: 0.584em)
+#set par(justify: false, leading: 0.519em, spacing: 0.584em)
 
 // DEVICE: an OUTDENTED CLAUSE NUMBER. The numbering-of-divisions convention of
 // technical standards (ISO 2145, DIN 1421): the division number hangs in a
