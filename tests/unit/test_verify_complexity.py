@@ -4,8 +4,11 @@ measured time and far below the old one, so a noisy runner does not flip it but 
 import itertools
 import random
 import re
+import sys
 import time
 from collections.abc import Callable
+from types import FrameType
+from typing import Protocol, SupportsIndex
 
 import pytest
 from _comments_ref import strip_block_comments_regex, strip_comments_regex
@@ -204,15 +207,109 @@ def test_stuffed_signals(t: str, want: bool) -> None:
     assert (text._stuffed(t) is not None) is want
 
 
-@pytest.mark.slow
-def test_stuffed_bounds_time_on_a_long_distinct_list() -> None:
-    t = ", ".join(f"t{i}" for i in range(200_000))
-    start = time.perf_counter()
+class TraceFunction(Protocol):
+    def __call__(self, frame: FrameType, event: str, arg: object, /) -> "TraceFunction | None": ...
+
+
+def _stuffed_line_events(n: int) -> int:
+    """Python line events executed inside `text._stuffed` (all its frames, comprehensions included) on `n` distinct terms:
+    a deterministic count of the Python-level work, immune to runner load."""
+    t = ", ".join(f"t{i}" for i in range(n))
+    target = text._stuffed.__code__.co_filename
+    events = 0
+
+    def local(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
+        nonlocal events
+        if event == "line":
+            events += 1
+        return local
+
+    def tracer(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
+        return local if event == "call" and frame.f_code.co_filename == target else None
+
+    previous = sys.gettrace()
+    sys.settrace(tracer)
+    try:
+        out = text._stuffed(t, max_terms=0)
+    finally:
+        sys.settrace(previous)
+    assert out is None
+    return events
+
+
+def test_stuffed_work_grows_linearly_on_a_long_distinct_list() -> None:
+    base = 1000
+    e1, e2, e4 = (_stuffed_line_events(base * k) for k in (1, 2, 4))
+
+    # linear: doubling the input roughly doubles the events (a per-term count over the list would quadruple them)
+    assert e2 / e1 <= 2.2
+    assert e4 / e2 <= 2.2
+
+
+class _CountingStr(str):
+    """A `str` that counts its comparisons and hashes and survives `strip` and `lower`: C-level work (`list.count`,
+    `in` on a list, `==`) that the line-event count cannot see."""
+    operations = 0
+
+    def __eq__(self, other: object) -> bool:
+        _CountingStr.operations += 1
+        return str.__eq__(self, other)
+
+    def __hash__(self) -> int:
+        _CountingStr.operations += 1
+        return str.__hash__(self)
+
+    def __ne__(self, other: object) -> bool:
+        _CountingStr.operations += 1
+        return str.__ne__(self, other)
+
+    def __lt__(self, other: str) -> bool:
+        _CountingStr.operations += 1
+        return str.__lt__(self, other)
+
+    def split(self, sep: str | None = None, maxsplit: SupportsIndex = -1) -> list[str]:
+        return [_CountingStr(p) for p in str.split(self, sep, maxsplit)]
+
+    def strip(self, chars: str | None = None, /) -> "_CountingStr":
+        return _CountingStr(str.strip(self, chars))
+
+    def lower(self) -> "_CountingStr":
+        return _CountingStr(str.lower(self))
+
+
+class _CountingRe:
+    """Stands in for the `re` module inside `text`: `split` and `findall` return counting strings."""
+
+    def split(self, pattern: str, string: str) -> list[str]:
+        return [_CountingStr(p) for p in re.split(pattern, string)]
+
+    def findall(self, pattern: str, string: str) -> list[str]:
+        return [_CountingStr(w) for w in re.findall(pattern, string)]
+
+
+def _stuffed_operations(monkeypatch: pytest.MonkeyPatch, n: int, sep: str) -> int:
+    """Comparisons and hashes of the terms and words `text._stuffed` makes on `n` distinct terms joined by `sep`
+    (`", "`: the comma branch; `" "`: the whitespace fallback)."""
+    monkeypatch.setattr(text, "re", _CountingRe())
+    t = _CountingStr(sep.join(f"t{i}" for i in range(n)))
+    _CountingStr.operations = 0
 
     out = text._stuffed(t, max_terms=0)
 
-    assert time.perf_counter() - start < 1.0      # measured ~0.02 s; the counting version takes ~12 s
     assert out is None
+    assert _CountingStr.operations > 0       # the branch ran on counting strings: the count is not vacuous
+    return _CountingStr.operations
+
+
+@pytest.mark.parametrize("sep", [", ", " "], ids=["comma", "whitespace-fallback"])
+def test_stuffed_comparisons_grow_linearly_on_a_long_distinct_list(monkeypatch: pytest.MonkeyPatch, sep: str) -> None:
+    # The line-event count above cannot see C-level work (`terms.count(t)` per term is n line events but n*n
+    # comparisons); counting `__eq__`, `__hash__` and the like on the terms and words does, and is as deterministic as it.
+    base = 1000
+    o1, o2, o4 = (_stuffed_operations(monkeypatch, base * k, sep) for k in (1, 2, 4))
+
+    assert o2 / o1 <= 2.2
+    assert o4 / o2 <= 2.2
 
 
 # ------------------------------------------------------------------ _FONT_STYLE_RE
