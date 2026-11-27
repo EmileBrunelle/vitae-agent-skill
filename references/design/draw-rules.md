@@ -74,7 +74,7 @@ The point is not the number, it is the *axes*: a family changes the three clone 
 
 There are exactly **two** named failure modes, and no third gets invented: a growing list of things to avoid stops being a test and becomes a mood. Both are pass/fail against the rendered page.
 
-**1. Anti-Word-97** — the full tell list is in § The “too much like Word 97” test above: a thin full-width rule under every heading, a default Times-ish serif with no typographic intent, underlines on non-link text, default round bullets, uniformly flat leading, default border grays as furniture, clipart or ornaments. Question to answer with a *no*: *could this page have come out of a 1990s word processor's default template?*
+**1. Anti-Word-97** — tells and the question to answer *no*: § The “too much like Word 97” test above, and [`core.md`](core.md) § Design families.
 
 **2. Anti-AI-slop** — the recognizable generative aesthetic, and the newer of the two risks, because it is what an agent asked to "make it look creative" produces. Its tells, as they actually appear:
 

@@ -125,7 +125,14 @@ def _usage(prog: str) -> str:
             f"            checks:[{{level, check, message}}], footer}}; a usage error is {{verdict:ERROR, exit_code:2, error}}\n"
             f"       {prog} --tune cv.typ PAGES FILL_MIN FILL_MAX [LO HI] [--allow-placeholders]\n"
             f"       {prog} --all DIR [--allow-placeholders] [--rebuild]\n"
-            f"       {prog} --doctor")
+            f"       {prog} --doctor                                  diagnose dependencies, read-only\n"
+            f"       {prog} --text cv.pdf                             print the text the gates read\n"
+            f"       {prog} --render cv.pdf [--out DIR] [--ppi N] [--crops]   one PNG per page\n"
+            f"         --out: output folder (default: a new temp folder); --ppi: resolution, default {HIDDEN_PPI}\n"
+            f"         --crops: also 300 ppi crops of the fills and icons\n"
+            f"       {prog} --gates cv.typ cv.pdf [--root DIR]        the typst-query layout gates only, on a compiled PDF\n"
+            f"         --root: typst root when the CV imports the repo's templates\n"
+            f"       --profile: maintainers; cProfile around the run, top functions on stderr")
 
 
 def main() -> tuple[int, str | None]:

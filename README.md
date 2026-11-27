@@ -86,7 +86,7 @@ The CV can be in any language Typst can set. The checks that do not depend on th
 
 ## Requirements
 
-`typst` 0.15+ (older versions lay the templates out differently and miss their fill targets) and Python 3.11+ with Pillow for the fill measurement. `pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdfium2` (then `pypdf`) automatically when only those are installed; `pypdf` also runs the tiny-text check. Run `python3 scripts/verify.py --doctor` (any platform) to diagnose — read-only, prints the right install command per platform, official repos first. LibreOffice/soffice is optional, only needed to generate editable copies (.docx/.odt) derived from the compiled PDF.
+`typst` (minimum and calibrated versions: `compatibility` in `SKILL.md`; older versions lay the templates out differently and miss their fill targets) and Python 3.11+ with Pillow for the fill measurement. `pdfinfo`/`pdftotext` (poppler-utils) recommended; falls back to `pypdfium2` (then `pypdf`) automatically when only those are installed; `pypdf` also runs the tiny-text check. Run `python3 scripts/verify.py --doctor` (any platform) to diagnose — read-only, prints the right install command per platform, official repos first. LibreOffice/soffice is optional, only needed to generate editable copies (.docx/.odt) derived from the compiled PDF.
 
 Platform notes:
 - **Linux / macOS**: works as-is (Apple Silicon handled).
@@ -117,10 +117,11 @@ templates/                    # Typst starting points
                               #   import ../../lib.typ (no copies); compile from the repo root:
                               #   typst compile --root . templates/families/<family>/resume.typ
     swiss-grid/resume-2page.typ #   the worked 2-page sample
-scripts/                      # Python, stdlib-first
+scripts/                      # Python; the code is the package vitae/, the files below are thin entry points
   pick_design.py              #   deterministic design draw (family, fonts, labels, markers); --emit-typ prints the preamble
   verify.py                   #   gate + doctor + --tune
-  verify_*.py                 #   gate modules split out of verify.py
+  verify_academic.py, verify_letter.py  #   entry points of the academic and letter gates
+  vitae/                      #   the package: core/, design/, verify/ (gates), fill, icons, palette; dependencies declared inline (PEP 723)
   measure_fill.py              #   ink-coverage measurement
   gen_palette.py              #   contrast-validated palettes
   harvest_icons.py            #   fetches icon paths into the CV folder's icons.typ at build time

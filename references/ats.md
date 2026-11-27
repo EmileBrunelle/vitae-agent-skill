@@ -68,7 +68,7 @@ Measured on 4 profile extractions (extractions 3-6, 2026-10-28, FR and EN CVs). 
 
 ## Tagged PDF: PDF/UA-1 and PDF/A-2a
 
-Every compile asks Typst for `a-2a,ua-1` (`PDF_STANDARDS` in `scripts/vitae/verify/pdf.py`; the CLI flag is `--pdf-standard a-2a,ua-1`, typst-py takes `pdf_standards=["a-2a", "ua-1"]`). The PDF then carries a structure tree, `/MarkInfo`, `/Lang` and XMP declarations that screen readers, accessibility checkers and archives read, and a screen reader hears the same order the extraction shows. Typst refuses to write the file when the document breaks the standard:
+Every compile asks Typst for `a-2a,ua-1` (the CLI flag is `--pdf-standard a-2a,ua-1`, typst-py takes `pdf_standards=["a-2a", "ua-1"]`). The PDF then carries a structure tree, `/MarkInfo`, `/Lang` and XMP declarations that screen readers, accessibility checkers and archives read, and a screen reader hears the same order the extraction shows. Typst refuses to write the file when the document breaks the standard:
 
 - **Document title:** the person's name, from `#set document(title: .., author: ..)` (templates: the `doc-name` token, reused by the header; letter: `name`; academic: `m.name`). Missing, the compile FAILs with "missing document title".
 - **Language:** the `lang:` of `#set text(..)` is the PDF's `/Lang`.

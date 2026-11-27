@@ -86,7 +86,7 @@ Le CV peut être dans n'importe quelle langue que Typst sait composer. Les contr
 
 ## Prérequis
 
-`typst` 0.15+ (les versions antérieures mettent les gabarits en page autrement et ratent leurs cibles de remplissage) et Python 3.11+ avec Pillow pour la mesure du remplissage. `pdfinfo`/`pdftotext` (poppler-utils) recommandés; se replie automatiquement sur `pypdfium2` (puis `pypdf`) si seuls ceux-ci sont installés; `pypdf` exécute aussi le contrôle du texte minuscule. Lancez `python3 scripts/verify.py --doctor` (toute plateforme) pour diagnostiquer — en lecture seule, affiche la bonne commande d'installation par plateforme, dépôts officiels en premier. LibreOffice/soffice est optionnel, requis seulement pour générer des copies éditables (.docx/.odt) dérivées du PDF compilé.
+`typst` (versions minimale et calibrée : `compatibility` dans `SKILL.md`; les versions antérieures mettent les gabarits en page autrement et ratent leurs cibles de remplissage) et Python 3.11+ avec Pillow pour la mesure du remplissage. `pdfinfo`/`pdftotext` (poppler-utils) recommandés; se replie automatiquement sur `pypdfium2` (puis `pypdf`) si seuls ceux-ci sont installés; `pypdf` exécute aussi le contrôle du texte minuscule. Lancez `python3 scripts/verify.py --doctor` (toute plateforme) pour diagnostiquer — en lecture seule, affiche la bonne commande d'installation par plateforme, dépôts officiels en premier. LibreOffice/soffice est optionnel, requis seulement pour générer des copies éditables (.docx/.odt) dérivées du PDF compilé.
 
 Notes par plateforme :
 - **Linux / macOS** : fonctionne tel quel (Apple Silicon pris en charge).
@@ -116,10 +116,11 @@ templates/                    # points de départ Typst
                               #   importent ../../lib.typ (aucune copie) ; compiler depuis la racine du dépôt :
                               #   typst compile --root . templates/families/<famille>/resume.typ
     swiss-grid/resume-2page.typ #   l'exemple travaillé sur 2 pages
-scripts/                      # Python, stdlib d'abord
+scripts/                      # Python ; le code est le paquet vitae/, les fichiers ci-dessous sont de minces points d'entrée
   pick_design.py              #   tirage déterministe du design (famille, polices, libellés, puces) ; --emit-typ imprime le préambule
   verify.py                   #   gate + doctor + --tune
-  verify_*.py                 #   modules de gate sortis de verify.py
+  verify_academic.py, verify_letter.py  #   points d'entrée des gates académique et lettre
+  vitae/                      #   le paquet : core/, design/, verify/ (gates), fill, icons, palette ; dépendances déclarées en ligne (PEP 723)
   measure_fill.py              #   mesure de couverture d'encre
   gen_palette.py              #   palettes validées en contraste
   harvest_icons.py            #   récupère les tracés d'icônes dans l'icons.typ du dossier du CV, à la construction

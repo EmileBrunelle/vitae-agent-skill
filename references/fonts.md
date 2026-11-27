@@ -61,8 +61,8 @@ Caveat: `--font-path` is *additive* to the system fonts, and it is per-command. 
 
 Two equivalent ways, both giving the same OFL files:
 
-- Web: `https://fonts.google.com/specimen/<Family+Name>` → *Get font* → *Download all*. The zip contains the static instances and/or a variable build.
-- Git, for all of them at once: `git clone --depth 1 https://github.com/google/fonts` then take `ofl/<familyname>/` (lowercased, no spaces).
+- Web: Google Fonts, the family's specimen page → *Get font* → *Download all*. The zip contains the static instances and/or a variable build.
+- Git, for all of them at once: clone the Google Fonts repository (`google/fonts`, shallow) then take `ofl/<familyname>/` (lowercased, no spaces).
 
 Variable fonts are fine and are what Google now ships for most families — a single `Family[wght].ttf` covers every weight the recipes ask for. Note that a variable build sometimes reports a different family name than the specimen page suggests: `Bricolage Grotesque` installs as **`Bricolage Grotesque 96pt`**, and that longer string is what has to appear in the `#let dispf = (...)` tuple. Always trust `typst fonts` over the download page.
 
