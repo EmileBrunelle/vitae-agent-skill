@@ -25,6 +25,8 @@ def _random_page(rng: random.Random) -> list[WordBox]:
         x = rng.choice((10.0, 10.0, 40.0, 120.0))
         for k in range(rng.randint(1, 6)):
             w = rng.uniform(15, 70)
+            if rng.random() < 0.15:                    # a long word: its piece reaches past the next piece's left edge
+                w = rng.uniform(150, 400)
             words.append(((x, y + rng.uniform(-1, 1), x + w, y + h + rng.uniform(-1, 1)), f"r{r}w{k}"))
             x += w + rng.choice((3.0, 3.0, 4.0, 30.0, 90.0))
         if rng.random() < 0.4:
@@ -52,6 +54,39 @@ def test_reading_order_row_grouping_matches_on_mixed_heights_and_near_baselines(
         y = rng.uniform(0, 8)
         x = rng.uniform(0, 400)
         words.append(((x, y, x + rng.uniform(5, 40), y + h), f"w{k}"))
+
+    assert pdf._reading_order(words) == reading_order_quadratic(words)
+
+
+def test_reading_order_side_pieces_that_overlap_on_their_row_match_the_oracle() -> None:
+    """A long word makes a piece overlap the next one on its row, so the right edges of the side pieces are not sorted:
+    `y` (390-395, row 2) is under LONGSIDE (200-400), which comes before S2 (260-280) but ends after it."""
+    def wb(x0: float, x1: float, row: int, t: str) -> WordBox:
+        return ((x0, row * 12.0, x1, row * 12.0 + 10), t)
+
+    words = [wb(0, 30, 0, "Role"), wb(200, 400, 0, "LONGSIDE"), wb(210, 220, 0, "b"), wb(260, 280, 0, "S2"),
+             wb(0, 30, 1, "org"), wb(390, 395, 2, "y")]
+
+    got = [t for _, t in pdf._reading_order(words)]
+
+    assert got == [t for _, t in reading_order_quadratic(words)]
+    assert got == ["Role", "org", "LONGSIDE", "b", "y", "S2"]
+
+
+@pytest.mark.parametrize("seed", range(400))
+def test_reading_order_overlapping_side_pieces_match_the_oracle_on_random_pages(seed: int) -> None:
+    """A head row of pieces with long words among short ones (overlapping pieces), narrow words in the rows below."""
+    rng = random.Random(seed)
+    words: list[WordBox] = [((0.0, 0.0, 30.0, 10.0), "head")]
+    for k in range(rng.randint(2, 7)):
+        x = rng.uniform(100, 400)
+        w = rng.choice((5.0, 10.0, 20.0, 150.0, 250.0))
+        words.append(((x, 0.0, x + w, 10.0), f"s{k}"))
+    for r in range(1, rng.randint(2, 5)):
+        for k in range(rng.randint(1, 3)):
+            x = rng.choice((0.0, rng.uniform(0, 600)))
+            words.append(((x, r * 12.0, x + rng.uniform(5, 40), r * 12.0 + 10), f"r{r}w{k}"))
+    rng.shuffle(words)
 
     assert pdf._reading_order(words) == reading_order_quadratic(words)
 

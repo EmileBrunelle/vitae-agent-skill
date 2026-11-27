@@ -9,6 +9,7 @@ import ctypes
 import glob
 import html
 import importlib
+import itertools
 import math
 import os
 import re
@@ -378,11 +379,14 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
 def _attach_side_pieces(sides: list[int], rows_below: range, by_row: list[list[int]], is_side: set[int],
                         geo: list[tuple[float, float, float, float]], parent: list[int],
                         find: Callable[[int], int]) -> None:
-    """Join each piece of `sides` (one row, left to right, none overlapping another) to the leftmost piece that is not a
+    """Join each piece of `sides` (one row, left to right) to the leftmost piece that is not a
     side piece and overlaps its x-range, in the first of `rows_below` that has one. One sweep down the rows: a row is
     read once for all the side pieces still waiting, each of which is settled by the first row that holds a match."""
     lefts = [geo[n][0] for n in sides]
     rights = [geo[n][1] for n in sides]
+    # Pieces split on the gap to the last word added, so a long word can make a piece overlap the next one: `rights` is
+    # not sorted. Its running maximum is, and no piece before the first index where it exceeds m's left edge can overlap m.
+    reach = list(itertools.accumulate(rights, max))
     waiting = len(sides)
     skip = list(range(len(sides) + 1))                 # skip[i]: the first still-waiting index >= i (path-compressed)
 
@@ -398,13 +402,14 @@ def _attach_side_pieces(sides: list[int], rows_below: range, by_row: list[list[i
         for m in by_row[r]:                            # left to right: the first match of a row is its leftmost
             if m in is_side:
                 continue
-            first = bisect.bisect_right(rights, geo[m][0])        # first side piece ending right of m's left edge
+            first = bisect.bisect_right(reach, geo[m][0])         # first side piece that can end right of m's left edge
             last = bisect.bisect_left(lefts, geo[m][1])           # side pieces from here on start at or after m's right edge
             i = next_waiting(first)
             while i < last:
-                parent[find(sides[i])] = find(m)
-                skip[i] = i + 1
-                waiting -= 1
+                if rights[i] > geo[m][0]:                  # starts before m's right edge (i < last), ends after m's left
+                    parent[find(sides[i])] = find(m)
+                    skip[i] = i + 1
+                    waiting -= 1
                 i = next_waiting(i + 1)
 
 
@@ -475,7 +480,7 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
     side = [n for n in range(len(pieces)) if geo[n][0] > row_left[piece_row[n]]]
     is_side = set(side)
     side_rows = sorted({piece_row[n] for n in side})
-    by_start: dict[int, list[int]] = {}                # the side pieces of each row, left to right (pieces never overlap on a row)
+    by_start: dict[int, list[int]] = {}                # the side pieces of each row, left to right
     for n in side:
         by_start.setdefault(piece_row[n], []).append(n)
     for start, sides in by_start.items():
