@@ -305,7 +305,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#b3261e", "#33475b", "#0f4c5c"],
         markers=["▪", "–"],
         labels=Labels(profile="Profile", skills="Technical Skills"),
-        header="one grid row: name 24pt + role left, 5-line contact column right",
+        header="name row, then role left + 2-line contact block right",
         photo_ok=True, conservative_ok=True,
         page=STD_PAGE, order=CHRONO, spec=False,
         leading="0.555em", spacing="0.615em", above="13pt / 18pt airy, 6pt after"),
