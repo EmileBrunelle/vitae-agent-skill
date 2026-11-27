@@ -16,7 +16,7 @@ from vitae import fill
 from vitae.core.base import WordBox
 from vitae.verify.layout import check_text_clip
 from vitae.verify.page import FURNITURE_SCALE
-from vitae.verify.pdf import _pdfium_render, word_boxes
+from vitae.verify.pdf import _pdfium_render, typst_compile, word_boxes
 
 S = FURNITURE_SCALE
 WHITE = (255, 255, 255)
@@ -72,27 +72,37 @@ def test_text_clip_equivalence_is_not_vacuous(tmp_path: Path) -> None:
     assert min(kinds.values()) >= 15, kinds
 
 
-def _rendered_page(tmp_path: Path) -> tuple[str, list[WordBox]]:
-    """The shipped templates/resume.pdf at 90 ppi (pdfium) and its words: a real page, real glyph anti-aliasing."""
-    pdf = str(ROOT / "templates" / "resume.pdf")
+@pytest.fixture(scope="session")
+def resume_pdf(tmp_path_factory: pytest.TempPathFactory) -> str:
+    """templates/resume.typ compiled once into a temp dir (the PDF is untracked, a fresh clone does not have it)."""
+    pdf = str(tmp_path_factory.mktemp("resume") / "resume.pdf")
+    ok, err = typst_compile(str(ROOT / "templates" / "resume.typ"), pdf)
+    if not ok:
+        pytest.skip(f"templates/resume.typ does not compile here: {err.strip()[:200]}")
+    return pdf
+
+
+def _rendered_page(pdf: str, tmp_path: Path) -> tuple[str, list[WordBox]]:
+    """The shipped templates/resume.typ compiled and rendered at 90 ppi (pdfium) with its words: a real page, real glyph
+    anti-aliasing."""
     pages = word_boxes(pdf, with_text=True)
     if not pages:
-        pytest.skip("no word boxes available for templates/resume.pdf")
+        pytest.skip("no word boxes available for the compiled templates/resume.typ")
     png = tmp_path / "resume.png"
     _pdfium_render(pdf, 90)[0].save(png)
     return str(png), pages[0]
 
 
-def test_text_clip_matches_on_a_real_page(tmp_path: Path) -> None:
-    png, words = _rendered_page(tmp_path)
+def test_text_clip_matches_on_a_real_page(resume_pdf: str, tmp_path: Path) -> None:
+    png, words = _rendered_page(resume_pdf, tmp_path)
 
     assert len(words) > 100
     assert check_text_clip(png, words) == check_text_clip_per_pixel(png, words)
 
 
-def test_text_clip_real_page_equivalence_catches_a_hidden_word(tmp_path: Path) -> None:
+def test_text_clip_real_page_equivalence_catches_a_hidden_word(resume_pdf: str, tmp_path: Path) -> None:
     # control: whiting out one real word makes both versions report it, so the real-page equality is not "[] == []"
-    png, words = _rendered_page(tmp_path)
+    png, words = _rendered_page(resume_pdf, tmp_path)
     (x0, y0, x1, y1), _ = words[len(words) // 2]
     im = Image.open(png).convert("RGB")
     im.paste(WHITE, (int(x0 * S) - 1, int(y0 * S) - 1, int(x1 * S) + 2, int(y1 * S) + 2))
@@ -147,8 +157,8 @@ def test_bands_equivalence_is_not_vacuous(tmp_path: Path) -> None:
     assert seen == {(False, False), (True, False), (True, True)} or {(True, True), (True, False)} <= seen
 
 
-def test_bands_match_on_a_real_page(tmp_path: Path) -> None:
-    png, _ = _rendered_page(tmp_path)
+def test_bands_match_on_a_real_page(resume_pdf: str, tmp_path: Path) -> None:
+    png, _ = _rendered_page(resume_pdf, tmp_path)
 
     got = fill.bands(png)
 
