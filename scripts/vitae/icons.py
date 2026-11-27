@@ -238,10 +238,16 @@ def main() -> None:
     print(f"{out}: {got}/{len(ICONS)} marks"
           + ("" if got == len(ICONS) else " — the rest render as no mark"))
     missing_default = [v for v in DEFAULT_KIT if v not in ok_vars]
-    if missing_default:
-        print("WARN  ICONS: incomplete harvest — lib.typ `marks()` is all-or-nothing, "
-              "so the contact line will be TEXT-ONLY (no icons on any item). "
+    missing_generic = [v for v in missing_default if v not in ("li", "gh")]
+    if missing_generic:
+        print("WARN  ICONS: incomplete harvest — lib.typ `marks()` is all-or-nothing "
+              "for the generic marks, so the contact line will be TEXT-ONLY (no generic icons). "
               f"Missing: {', '.join(missing_default)}. Re-run with network to get icons.",
+              file=sys.stderr)
+    elif missing_default:
+        print("WARN  ICONS: incomplete harvest — "
+              f"missing: {', '.join(missing_default)}; only those brand marks are absent, "
+              "the other contact marks are kept. Re-run with network to get them.",
               file=sys.stderr)
     elif got != len(ICONS):
         print("ICONS: the default kit is complete; only the optional phosphor/bootstrap "

@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Switzerland. Read together with [`dach-common.md`](dach-common.md) (shared DACH points).
 
 ## At a glance
+- Typst flags: `--region ch` with `--lang de`, `fr` or `it` per the CV language (the region changes Typst's quotation marks) for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: not covered here (not checked); see [`dach-common.md`](dach-common.md)
 - Photo: arbeit.swiss lists « personal details, including photograph » among CV contents (SECO / arbeit.swiss, « Tips on applying for jobs », consulted 2026-11-07, S509); the 2018 SECO dossier says add one only if the ad asks (SECO, « Wie bewerbe ich mich richtig? Bewerbungsdossier (Art. Nr. 716.209.d, 08.2018) », consulted 2026-11-07, S55). Ask the candidate.
 - CV language: not covered here (not checked); see [`dach-common.md`](dach-common.md)

@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Canada. The files that go with it are listed in [`steps/2-region.md`](../../../steps/2-region.md).
 
 ## At a glance
+- **Typst flags:** `--lang en --region ca` (English CV; `--lang fr --region ca` for a French one) for `pick_design.py` (written into `#set text(lang:, region:)`).
 - **Paper:** not covered here (not checked); see [`north-america/common.md`](../common.md)
 - **Photo:** not covered here (not checked); see [`north-america/common.md`](../common.md)
 - **CV language:** not covered here (not checked); see [`north-america/common.md`](../common.md)

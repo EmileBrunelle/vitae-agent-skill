@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Austria. Read together with [`dach-common.md`](dach-common.md) (shared DACH points).
 
 ## At a glance
+- Typst flags: `--lang de --region at` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: not covered here (not checked); see [`dach-common.md`](dach-common.md)
 - Photo: Austria: « Ein Foto ist nicht verpflichtend » (AMS Österreich, « Bewerbungsmappe: Tipps zu Aufbau, Inhalt und Gestaltung », 2025, consulted 2026-11-07, S52); still usual in customer-facing fields, less in technical/IT (karriere.at, « Foto im Lebenslauf: Pflicht oder nicht? », 2025, consulted 2026-11-07, S54).
 - CV language: not covered here (not checked); see [`dach-common.md`](dach-common.md)

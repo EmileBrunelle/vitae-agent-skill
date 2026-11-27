@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Québec. Québec-specific rules only; the files that go with it are listed in [`steps/2-region.md`](../../../steps/2-region.md).
 
 ## At a glance
+- **Typst flags:** `--lang fr --region ca` (French CV; `--lang en --region ca` for an English one) for `pick_design.py` (written into `#set text(lang:, region:)`).
 - **Paper:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md)
 - **Photo:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](../canada/market.md)
 - **CV language:** not checked as a general rule; `DEC, Informatique de Gestion` survives better from a French CV (ATS keyword matching); for an English CV only, the English names and gloss of DEC/DEP/AEC/DES are in [`outbound/common.md`](outbound/common.md) § Education and § Gloss for readers outside Québec

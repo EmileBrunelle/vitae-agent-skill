@@ -3,6 +3,7 @@
 Loaded on demand when the target market is the USA. The files that go with it are listed in [`steps/2-region.md`](../../../steps/2-region.md).
 
 ## At a glance
+- **Typst flags:** `--lang en --region us` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - **Paper:** not covered here (not checked); see [`common.md`](../common.md)
 - **Photo:** only what the Personal data bullet says about the EEOC; otherwise not covered here (not checked); see [`common.md`](../common.md)
 - **CV language:** not covered here (not checked); see [`common.md`](../common.md)

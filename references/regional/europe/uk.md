@@ -3,6 +3,7 @@
 Loaded on demand when the target market is the United Kingdom. Read together with [`uk-ireland-common.md`](uk-ireland-common.md) (shared UK / Ireland points).
 
 ## At a glance
+- Typst flags: `--lang en --region gb` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: not covered here (not checked); see [`uk-ireland-common.md`](uk-ireland-common.md)
 - Photo: not covered here (not checked); see [`uk-ireland-common.md`](uk-ireland-common.md)
 - CV language: not covered here (not checked); see [`uk-ireland-common.md`](uk-ireland-common.md)

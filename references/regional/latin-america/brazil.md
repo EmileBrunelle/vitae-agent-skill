@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Brazil. Currículo, pt-BR; non-interchangeable markets: read the country file, never an average.
 
 ## At a glance
+- Typst flags: `--lang pt --region br` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: a4.
 - Photo: omit (Gupy says no photo).
 - CV language: pt-BR (EN if the posting is in EN).

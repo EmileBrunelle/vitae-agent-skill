@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Germany. Read together with [`dach-common.md`](dach-common.md) (shared DACH points).
 
 ## At a glance
+- Typst flags: `--lang de --region de` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: not covered here (not checked); see [`dach-common.md`](dach-common.md)
 - Photo: the Bundesagentur describes a photo-free variant for employers who ask for anonymised CVs (Bundesagentur für Arbeit, « Bewerbung schreiben », consulted 2026-11-07, S48).
 - CV language: not covered here (not checked); see [`dach-common.md`](dach-common.md)

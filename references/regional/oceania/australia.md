@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Australia. Points not confirmed by an official or authoritative source are labelled LOW, unsourced.
 
 ## At a glance
+- Typst flags: `--lang en --region au` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: a4.
 - Photo: omit (LOW, unsourced: absence from official guidance).
 - CV language: English (en-AU spelling, LOW, unsourced); « resume » in Australia.

@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Spain. Spain only; never reuse for Latin America (Spanish-language CV conventions differ by country).
 
 ## At a glance
+- Typst flags: `--lang es --region es` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: a4.
 - Photo: optional; SEPE says « Se puede incluir una foto » and, in its advice for Spain, « Es recomendable incluir una foto, de formato “carnet” o de medio cuerpo, que sea de calidad (evitar selfies …), sobre un fondo neutro » (SEPE, « Herramientas de búsqueda de empleo en España. Recomendaciones generales para Currículum y Carta de presentación », 2025, consulted 2026-11-07, S540). The candidate decides; if included, formal and neutral background.
 - CV language: Spanish; the posting's language wins. Catalan, Galician, Basque or Valencian only when the posting or the region's employer asks.

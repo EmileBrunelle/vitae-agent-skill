@@ -3,6 +3,7 @@
 Loaded on demand when the target market is New Zealand. Points not confirmed by an official or authoritative source are labelled LOW, unsourced.
 
 ## At a glance
+- Typst flags: `--lang en --region nz` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: a4.
 - Photo: no images in the CV: Tahatu Career Navigator (formerly Careers New Zealand) lists « don’t use images » among its CV format tips (Tahatu Career Navigator (formerly Careers New Zealand), « How to write a CV », consulted 2026-11-07, S543; a format tip on images, not a statement on photos as such). Omit unless the employer asks (University of Otago Career Development, « CV », n.d.; LOW, unsourced on that part).
 - CV language: English (en-NZ spelling, LOW, unsourced); « CV » in New Zealand.

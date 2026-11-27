@@ -95,7 +95,7 @@ def _fill_samples(src: str) -> str:
             src = re.sub(r"\\?\[" + re.escape(ph[1:-1]) + r"\\?\]", "Sample text", src)
     src = src.replace("Firstname Lastname", "Jane Roe").replace("(555) 555-0100", "(613) 555-0142")
     src = re.sub(r"me\\?@example\.com", r"jane\\@roe.test", src)
-    return (src.replace("linkedin.com/in/handle", "linkedin.com/in/janeroe").replace("github.com/handle", "github.com/janeroe"))
+    return src
 
 
 def test_review_record_required(check: Check, py: str, scratch: Path) -> None:

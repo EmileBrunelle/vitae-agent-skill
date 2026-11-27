@@ -158,6 +158,6 @@ Derive the target-field section name with the same pattern for any field ("Expé
 | | FR | EN |
 |---|---|---|
 | Profile | Profil · Sommaire | Profile · Summary · Professional Summary |
-| Skills | Compétences techniques · Compétences et outils · Expertise | Technical Skills · Skills & Tools · Skills · Expertise · Technical Stack |
+| Skills | Compétences techniques · Compétences et outils · Expertise | Technical Skills · Skills & Tools · Skills · Expertise |
 
 **Education**, **Languages** and the experience sections do NOT vary: their stems are what ATS section classifiers key on. Where a market file names one convention explicitly, that wins over the draw.

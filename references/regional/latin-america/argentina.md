@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Argentina. Spanish-speaking (es); non-interchangeable markets: read the country file, never an average; the note rests on one statute, and points without an S id are LOW, unsourced.
 
 ## At a glance
+- Typst flags: `--lang es --region ar` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: a4 (LOW, unsourced).
 - Photo: optional: Argentina.gob.ar: « También podés sumar una foto, pero no es obligatorio que lo hagas »; among errors to avoid, « Usar una foto grande e informal: debe ser tamaño carnet y formal » (Argentina.gob.ar, « El camino hacia tu próximo empleo », consulted 2026-11-07, S549). The candidate decides.
 - CV language: es-AR.

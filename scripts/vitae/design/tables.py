@@ -490,8 +490,7 @@ FONTS: dict[str, FontPool] = {
 # are NOT variable: their stems are what ATS section classifiers key on.
 LABEL_VARIANTS: dict[str, list[str]] = dict(
     profile=["Profile", "Summary", "Professional Summary"],
-    skills=["Technical Skills", "Skills & Tools", "Skills", "Expertise",
-            "Technical Stack"],
+    skills=["Technical Skills", "Skills & Tools", "Skills", "Expertise"],
 )
 
 # Career stage → preferred registers, then the widening tier if the preferred

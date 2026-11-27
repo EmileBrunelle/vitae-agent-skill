@@ -101,13 +101,24 @@ def run_template(scratch: Path, out_dir: Path) -> Callable[[Template], CheckResu
     return _run
 
 
+@pytest.fixture
+def _not_quick(quick: bool) -> None:
+    if quick:
+        pytest.skip("--quick: no fixtures")
+
+
 @pytest.fixture(scope="session")
 def fixtures_rendered(scratch: Path, out_dir: Path, log_dir: Path) -> tuple[CheckResult, Path]:
     """All spacing fixtures rendered once per worker (render.sh) into <out>/fixtures-<worker>: (the render's result, the dir)."""
+    if not shutil.which("typst") and importlib.util.find_spec("typst") is None:
+        pytest.skip("neither the typst CLI nor typst-py available")
     fx = out_dir / f"fixtures-{os.environ.get('PYTEST_XDIST_WORKER', 'main')}"
     shutil.rmtree(fx, ignore_errors=True)
     fx.mkdir(parents=True)
-    return run_check("fixtures-render", ["bash", "tests/fixtures/render.sh", fx], scratch, None, log_dir), fx
+    # render.sh falls back on `python3 -c "import typst"` when there is no typst CLI: put the interpreter running
+    # the suite (the venv holding typst-py) first on PATH so that python3 is the one with the module.
+    env = {**os.environ, "PATH": f"{Path(sys.executable).parent}{os.pathsep}{os.environ.get('PATH', '')}"}
+    return run_check("fixtures-render", ["bash", "tests/fixtures/render.sh", fx], scratch, env, log_dir), fx
 
 
 @pytest.fixture(scope="module", params=["cli+poppler", "typst-py+pdfium"])

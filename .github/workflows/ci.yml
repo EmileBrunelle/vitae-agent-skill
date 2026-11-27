@@ -20,11 +20,13 @@ jobs:
         # installed on both legs (the bench needs them); the integration suite is identical across Python
         # versions, so it runs on 3.x only. The two long steps sit on different legs to shorten the critical path.
         python-version: ["3.11", "3.x"]
-        # pikepdf only on 3.x: it enables the hexstrings tests (smalot #860) that otherwise skip,
-        # while 3.11 keeps testing the path without pikepdf.
+        # pikepdf only on 3.x: it enables the hexstrings tests (smalot #860) that otherwise skip.
+        # Without pikepdf run: tests/unit and the equivalence bench on 3.11, and the pure-python job (unit +
+        # integration through typst-py, no CLI). The CLI integration suite runs on 3.x only, so always with
+        # pikepdf. The value carries its own single quotes so bash does not read ">=" as a redirection.
         include:
           - python-version: "3.x"
-            pip-extra: "pikepdf>=10.8.0"
+            pip-extra: "'pikepdf>=10.8.0'"
     timeout-minutes: 20
     env:
       TYPST_VERSION: "0.15.1"

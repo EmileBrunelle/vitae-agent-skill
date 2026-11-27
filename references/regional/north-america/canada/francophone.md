@@ -3,6 +3,7 @@
 Loaded on demand when the CV is French or the employer is francophone in New Brunswick, Nova Scotia, PEI, Ontario or Manitoba (never for a Québec target). Read together with [`north-america/common.md`](../common.md) and [`canada/market.md`](market.md), which still apply. Sources loaded: NB, Ontario, PEI, Manitoba, federal; NS only the posting practice below. Québec is not the French-Canadian case.
 
 ## At a glance
+- **Typst flags:** `--lang fr --region ca` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - **Paper:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](market.md)
 - **Photo:** not covered here (not checked); see [`north-america/common.md`](../common.md) and [`canada/market.md`](market.md)
 - **CV language:** French CV or francophone employer outside Québec (this file's scope); month trap for every French CV in [`references/ats.md`](../../../ats.md); a French CV keeps `DEC, Informatique de Gestion` as is

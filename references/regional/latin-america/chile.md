@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Chile. Spanish-speaking (es); non-interchangeable markets: read the country file, never an average; the note rests on one statute, and points without an S id are LOW, unsourced.
 
 ## At a glance
+- Typst flags: `--lang es --region cl` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: letter (LOW, unsourced).
 - Photo: ChileAtiende: « No es necesario que adjuntes una foto, y tampoco ningún trabajo al que postulas puede exigirlo » (ChileAtiende (Gobierno de Chile), « Buscar un nuevo trabajo », consulted 2026-11-07, S510); do not add by default.
 - CV language: es-CL.

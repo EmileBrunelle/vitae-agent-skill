@@ -594,12 +594,14 @@
 // candidate. LinkedIn/GitHub stay the same in every kit — a brand logo is a
 // functional identifier, not a style.
 //
-// ALL-OR-NOTHING: the contact line shows either every mark of the kit or none.
-// A partial harvest (one Iconify set unreachable, a sandbox with no network
-// that still has some data) would otherwise leave icons on some items and not
-// others, which reads as broken. If ANY of the kit's six marks (mail, web,
-// phone, pin, li, gh) has empty data, `marks` returns `none` for all of them
-// and the line is plain text. harvest_icons.py prints the matching WARN.
+// ALL-OR-NOTHING: the contact line shows either every generic mark of the kit
+// or none. A partial harvest (one Iconify set unreachable, a sandbox with no
+// network that still has some data) would otherwise leave icons on some items
+// and not others, which reads as broken. If ANY of the four generic marks
+// (mail, web, phone, pin) has empty data, `marks` returns `none` for those four
+// and the line is plain text. The brand marks li/gh are judged on their own
+// data: an empty LinkedIn/GitHub harvest gives `none` for that mark only and
+// never erases the generic ones. harvest_icons.py prints the matching WARN.
 #let marks(c, h: 7pt, kit: "tabler") = {
   let sets = if kit == "phosphor" {
     (mail: (ph-envelope_simple_fill-body, ph-envelope_simple_fill-vb),
@@ -615,12 +617,13 @@
     (mail: (mail-body, mail-vb), web: (web-body, web-vb),
      phone: (phone-body, phone-vb), pin: (pin-body, pin-vb))
   }
+  let complete = sets.values().all(d => d.at(0) != "")
   sets.insert("li", (li-body, li-vb))
   sets.insert("gh", (gh-body, gh-vb))
-  let complete = sets.values().all(d => d.at(0) != "")
   let out = (:)
   for (k, d) in sets {
-    out.insert(k, if complete { pmark(d.at(0), d.at(1), c, h: h) } else { none })
+    let ok = if k in ("li", "gh") { d.at(0) != "" } else { complete }
+    out.insert(k, if ok { pmark(d.at(0), d.at(1), c, h: h) } else { none })
   }
   out
 }

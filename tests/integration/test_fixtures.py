@@ -12,12 +12,6 @@ from harness import ROOT, CheckResult, assert_passed, importable_isolated, run_c
 FIXTURES = sorted(p.stem for p in (ROOT / "tests" / "fixtures").glob("*.typ"))
 
 
-@pytest.fixture
-def _not_quick(quick: bool) -> None:
-    if quick:
-        pytest.skip("--quick: no fixtures")
-
-
 @pytest.mark.usefixtures("_not_quick")
 def test_fixtures_render(fixtures_rendered: tuple[CheckResult, Path]) -> None:
     assert_passed(fixtures_rendered[0])

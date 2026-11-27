@@ -3,6 +3,7 @@
 Loaded on demand when the target market is France (personal-data law, protected titles and degree naming).
 
 ## At a glance
+- Typst flags: `--lang fr --region fr` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: a4.
 - Photo: neither required nor forbidden. Default: omit; add only if the candidate asks, and tell them the Défenseur des droits treats a photo requirement as exceptional.
 - CV language: French, unless the posting is in English.

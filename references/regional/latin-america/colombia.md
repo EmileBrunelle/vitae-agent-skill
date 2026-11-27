@@ -3,6 +3,7 @@
 Loaded on demand when the target market is Colombia. Spanish-speaking (es); non-interchangeable markets: read the country file, never an average; the note rests on one statute, and points without an S id are LOW, unsourced.
 
 ## At a glance
+- Typst flags: `--lang es --region co` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: letter (LOW, unsourced).
 - Photo: the Servicio Público de Empleo blog quotes a selection specialist: « posturas religiosas, número de hijos, estado civil o fotografías, no son necesarias a menos que sean exigidas en primera instancia » (Servicio Público de Empleo (Colombia), blog « ¿Qué información debe tener su hoja de vida? », 2021, consulted 2026-11-07, S551). Not the Service's own rule.
 - CV language: es-CO.

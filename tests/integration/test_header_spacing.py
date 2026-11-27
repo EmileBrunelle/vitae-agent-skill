@@ -94,10 +94,9 @@ def test_a_word_off_to_the_side_is_not_the_line_under_the_name() -> None:
 
 # ---------- every family ----------
 
+@pytest.mark.usefixtures("_not_quick")
 @pytest.mark.parametrize("name", FIXTURES)
-def test_line_under_the_name_clears_it(name: str, quick: bool, fixtures_rendered: tuple[CheckResult, Path]) -> None:
-    if quick:
-        pytest.skip("--quick: no fixtures")
+def test_line_under_the_name_clears_it(name: str, fixtures_rendered: tuple[CheckResult, Path]) -> None:
     if not importable_isolated("pypdfium2"):
         pytest.skip("needs pypdfium2")
     pdf = fixtures_rendered[1] / f"{name}.pdf"
