@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import math
-import re
 import sys
 from collections.abc import Callable
 from typing import NoReturn
@@ -107,8 +106,9 @@ def bands(path: str, thr: int = 150, rule: float = RULE_FLOOR,
     dev = im.point([255 if v < paper - contrast else 0 for v in range(256)]).tobytes()
     # a row's longest dark run reaches `rule` of the page width when it holds `need` consecutive dark pixels
     need = math.ceil(rule * w)
-    run = re.compile(b"\xff{%d}" % need).search if need > 0 else None
-    wide = [run is None or run(dev, y * cw, (y + 1) * cw) is not None for y in range(ch)]
+    # bytes.find is a C-level substring scan, linear in the row: a regex `\xff{need}` is cw x need on adversarial rows
+    target = b"\xff" * need
+    wide = [need <= 0 or dev.find(target, y * cw, (y + 1) * cw) >= 0 for y in range(ch)]
     rows = [i for i, d in enumerate(has_dark) if d]
     if not rows:
         return h, [], []

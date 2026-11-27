@@ -3,6 +3,7 @@ and `fill.bands` (dark rows and rule-wide rows of a page). Each keeps its behavi
 kept in `_raster_ref`, on seeded random rasters and on a real rendered page) and stays fast on a full page (`slow`: wall
 time bounded far above the measured time and far below the old one, so a noisy runner does not flip it but a return to
 a per-pixel loop does)."""
+import math
 import random
 import time
 from pathlib import Path
@@ -212,3 +213,28 @@ def test_bands_bound_time_on_a_tall_page(tmp_path: Path) -> None:
 
     assert time.perf_counter() - start < 0.6     # measured ~0.25 s; the per-row version takes ~0.95 s
     assert got[2] == []
+
+
+def _dark_runs_page(tmp_path: Path, width: int, run: int, rows: int) -> str:
+    """Every row is dark runs of `run` pixels, each followed by one light pixel."""
+    row = Image.new("L", (width, 1), 255)
+    for x in range(0, width, run + 1):
+        row.paste(0, (x, 0, min(x + run, width), 1))
+    png = tmp_path / f"runs{run}.png"
+    row.resize((width, rows), Image.Resampling.NEAREST).save(png)
+    return str(png)
+
+
+@pytest.mark.slow
+def test_bands_bound_time_on_rows_of_runs_just_short_of_a_rule(tmp_path: Path) -> None:
+    # worst case for the run search: runs of need-1 dark pixels split by one light pixel, so no start fails early
+    width = 16000
+    need = math.ceil(fill.RULE_FLOOR * width)
+    png = _dark_runs_page(tmp_path, width, need - 1, 500)
+    start = time.perf_counter()
+
+    got = fill.bands(png)
+
+    assert time.perf_counter() - start < 0.5     # measured ~0.05 s; a per-pixel Python scan takes tens of seconds
+    assert got[2] == []                          # need-1 is not a rule
+
