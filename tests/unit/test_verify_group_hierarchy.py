@@ -104,7 +104,7 @@ class TestOrgToFirstBullet:
         assert r.head_gap > r.pitch
 
     def test_needs_an_org_and_two_bullets(self):
-        assert _entry(2.0, 5.0, org="")["head_gap"] is None            # no org line: line 1 would be a bullet
+        assert _entry(2.0, 5.0, org="").head_gap is None            # no org line: line 1 would be a bullet
         words = [line("Role", 0), line("Acme", 12), line("B1", 24), line("Next", 80)]
         h: Mark = {**head("Role", 0), "org": "Acme"}
         r = only_group(groups.measure_groups([h, head("Next", 80)], [], [words])[0])
