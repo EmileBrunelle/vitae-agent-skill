@@ -53,7 +53,7 @@ def test_doctor_pip_too_old(scratch: Path, out_dir: Path, log_dir: Path) -> None
     r = run_doctor("doctor-pip-too-old", d, scratch, log_dir, stub=True)
     assert r.rc == 1, f"doctor exit {r.rc}, expected 1\n{r.output}"
     assert grep(r.output, r"^BROKEN  typst.*too old"), f"no too-old line\n{r.output}"
-    assert "pip install --upgrade typst==" in r.output, "no upgrade advice"
+    assert 'pip install --upgrade "typst==' in r.output, "no upgrade advice"
     assert "force-reinstall" not in r.output, "advises reinstall for an old wheel"
 
 
@@ -121,7 +121,7 @@ class TestPipOnly:
         assert r.rc == 0, f"doctor exit {r.rc}, expected 0\n{r.output}"
         # the line names what the gate really skips on this backend (pdfium: tiny-text; poppler: off-page)
         want = "tiny-text" if grep(r.output, r"^OK    pdf: pypdfium2") else "off-page"
-        assert grep(r.output, rf"^DEGRADED  pypdf: not installed.*{want}.*pip install 'pypdf>="), \
+        assert grep(r.output, rf"^DEGRADED  pypdf: not installed.*{want}.*pip install \"pypdf>="), \
             f"no DEGRADED pypdf line naming {want}\n{r.output}"
         assert not grep(r.output, r"^OK \(Python\)"), "OK (Python) hides the missing pypdf"
 

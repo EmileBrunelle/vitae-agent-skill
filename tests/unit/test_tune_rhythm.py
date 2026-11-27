@@ -83,7 +83,8 @@ class TestRhythmPhase:
         assert lead > 0.8 and 106 <= round(50 * r + 50 * lead) <= 108
         # phase 2 keeps the family's delta at the tuned rhythm, and the list follows leading and rhythm
         assert spacing - lead == pytest.approx(0.9 * r - 0.8, abs=2e-3)
-        assert lsp == pytest.approx(0.5 * r * lead / 0.8, abs=2e-3)
+        # this list sits tighter than the leading (gap < floor): the gap it had is kept, never made worse
+        assert lsp is not None and lsp - lead == pytest.approx(0.5 * r - 0.8, abs=2e-3)
 
     def test_rhythm_hits_the_bottom_then_leading_comes_down(self, tmp_path, monkeypatch):
         p = write(tmp_path, RHYTHM_FILE)
@@ -161,7 +162,7 @@ class TestNoRhythmLine:
         assert all("rhythm" not in c for c in log)
         lead, spacing = read_par(out) or (0, 0)
         assert lead > 0.8 and spacing - lead == pytest.approx(0.1, abs=2e-3)
-        assert doc_par_list(out)[1] == pytest.approx(0.5 * lead / 0.8, abs=2e-3)
+        assert doc_par_list(out)[1] == pytest.approx(lead - 0.3, abs=2e-3)   # under-floor gap kept, not widened or narrowed
 
     def test_a_rhythm_line_inside_a_block_comment_does_not_count(self, tmp_path, monkeypatch):
         text = "/*\n#let rhythm = 1.000\n*/\n" + OLD_FILE
@@ -208,4 +209,4 @@ class TestTwoParRules:
         out = p.read_text(encoding="utf-8")
         lead = _doc_leading(out) or 0
         assert "#set list(spacing: 0.400em)" in out
-        assert doc_par_list(out)[1] == pytest.approx(0.6 * lead / 0.7, abs=2e-3)
+        assert doc_par_list(out)[1] == pytest.approx(lead - 0.1, abs=2e-3)   # under-floor gap kept

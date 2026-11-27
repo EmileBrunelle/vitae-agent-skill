@@ -106,7 +106,7 @@ def _emit(obj: dict[str, object]) -> None:
 
 
 def run_json(argv: list[str], dispatch: Dispatch) -> tuple[int, None]:
-    """Run `dispatch(argv)` (argv without --json), print the JSON object; returns (exit code, None) so `_run`
+    """Run `dispatch(argv)` (argv without --json), print the JSON object; returns (exit code, None) so `run_cli`
     prints no text footer."""
     mode = argv[0] if argv else ""
     if mode in _UNSUPPORTED:

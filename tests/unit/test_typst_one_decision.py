@@ -197,3 +197,11 @@ class TestProbedOncePerProcess:
             env.check_typst()
         assert counts == {"which": 1, "version": 1}
         assert "OK    typst 0.15.0 (CLI)" in capsys.readouterr().out
+
+
+def test_warnings_returned_as_a_tuple_are_kept(fake_cli, tmp_path, monkeypatch):
+    fake_cli("0.13.1")
+    _api(monkeypatch)
+    monkeypatch.setattr(FakeCompiler, "compile_with_warnings", lambda self, **_kw: (b"%PDF", ("careful",)))
+    ok, text = pdf.typst_compile(_typ(tmp_path), str(tmp_path / "a.pdf"), standards=True)
+    assert ok and text == "careful"

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 from bisect import bisect_left
+from dataclasses import dataclass
 
 
 def mask_non_markup(src: str) -> str:
@@ -306,3 +307,59 @@ def doc_par_list_size(text: str) -> tuple[float | None, float | None, float | No
                 depth -= 1
         i = j + 1
     return lead, lsp, explicit
+
+
+@dataclass(frozen=True)
+class ListRule:
+    """One top-level `#set list(... spacing: <number>)`: the span of its number in the text, the unit, the body size
+    (pt) in effect, and the leading (em) in effect for it (None when no par rule with a leading precedes it)."""
+    start: int
+    end: int
+    unit: str
+    size: float
+    leading: float | None
+    spacing_em: float
+
+
+def list_rules(text: str) -> list[ListRule]:
+    """Every top-level `#set list(... spacing: X)` with a numeric spacing, in document order, each with the leading
+    in effect at that point (same top-level scope and unit conversion as doc_par_list_size)."""
+    masked = mask_non_markup(text)
+    rules: list[ListRule] = []
+    depth, size, lead, i, n = 0, 11.0, None, 0, len(masked)
+    while i < n:
+        j = masked.find("\n", i)
+        j = n if j < 0 else j
+        line = masked[i:j]
+        m = _SET_RE.match(line) if depth == 0 else None
+        if depth == 0 and not m and line.strip() and not re.match(r"#(set|show|import|let)\b", line):
+            break
+        if m:
+            k, d = i + m.end(), 1
+            while k < n and d:
+                d += (masked[k] == "(") - (masked[k] == ")")
+                k += 1
+            args = masked[i + m.end():k - 1]
+            if m.group(1) == "text":
+                sm = _SIZE_ARG.search(args)
+                if sm:
+                    size = float(sm.group(1))
+            elif m.group(1) == "par":
+                lm = _LEAD_ARG.search(args)
+                if lm:
+                    v = float(lm.group(1))
+                    lead = v if lm.group(2) == "em" else v / size
+            elif m.group(1) == "list":
+                _, sp = _spacing_arg(args)
+                if sp:
+                    v = float(sp.group(1))
+                    a = i + m.end() + sp.start(1)
+                    rules.append(ListRule(a, i + m.end() + sp.end(1), sp.group(2), size, lead,
+                                          v if sp.group(2) == "em" else v / size))
+        for ch in line:
+            if ch in "([{":
+                depth += 1
+            elif ch in ")]}" and depth:
+                depth -= 1
+        i = j + 1
+    return rules

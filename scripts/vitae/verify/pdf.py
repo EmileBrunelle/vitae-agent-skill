@@ -112,7 +112,7 @@ def _typst_compile(src: str, out: str, *, fmt: Literal["pdf", "png"], standards:
     except Exception as e:   # noqa: BLE001 - kept broad: any failure is a compile FAIL carrying its message, never a pass
         return False, str(e)
     extra: object = res[1] if is_object_tuple(res) and len(res) > 1 else []
-    warns = extra if is_object_list(extra) else []
+    warns = extra if is_object_list(extra) or is_object_tuple(extra) else []
     return True, "\n".join(str(w) for w in warns)
 
 

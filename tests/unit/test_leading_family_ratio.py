@@ -117,7 +117,7 @@ class TestTuneScalesList:
         assert T.tune(str(typ), T.FillTarget(1, 80, 99))[0] == 0
         lead, lsp = doc_par_list(typ.read_text(encoding="utf-8"))
         assert lead is not None and lsp is not None
-        assert lead > 0.7 and lead / lsp == pytest.approx(0.60 / 0.45, rel=3e-3)
+        assert lead > 0.7 and lead - lsp == pytest.approx(0.60 - 0.45, abs=2e-3)   # an under-floor gap is kept as it was
 
     def test_no_list_spacing_untouched(self, tmp_path, monkeypatch):
         p = tmp_path / "cv.typ"

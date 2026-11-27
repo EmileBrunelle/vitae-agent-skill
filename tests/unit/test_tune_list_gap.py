@@ -29,3 +29,28 @@ def test_growing_rhythm_scales_the_list_spacing() -> None:
 def test_gap_already_under_the_floor_is_not_made_worse() -> None:
     src = SRC.replace("0.688em", "0.600em")           # gap 0.072 < floor
     assert gap(T._with_gap_scale(src, 0.95)) >= gap(src) - 1e-9
+
+
+def test_leading_bisection_below_one_keeps_the_floor() -> None:
+    """Leading lowered by k<1 scales the list spacing by k too: 0.16 x 0.9 = 0.144 em would break the floor."""
+    out = T._with_rhythm(SRC, 0.528 * 0.9, 0.601 * 0.9)
+    assert gap(out) >= T.LIST_GAP_FLOOR - 1e-9
+
+
+def test_leading_bisection_leaves_a_file_under_the_floor_alone() -> None:
+    src = SRC.replace("0.688em", "0.600em")
+    out = T._with_rhythm(src, 0.528, 0.601)
+    assert gap(out) == pytest.approx(gap(src), abs=1e-3)
+
+
+TWO = ("#let rhythm = 1\n#set par(leading: 0.5em, spacing: 0.6em)\n#set list(spacing: 0.66em)\n"
+       "#set list(spacing: 0.9em)\nbody\n")
+
+
+def test_each_list_rule_is_floored_not_only_the_last() -> None:
+    from vitae.verify.typst import list_rules
+    out = T._with_gap_scale(TWO, 0.9)
+    rules = list_rules(out)
+    assert len(rules) == 2
+    for r in rules:
+        assert r.leading is not None and r.spacing_em - r.leading >= T.LIST_GAP_FLOOR - 1e-9

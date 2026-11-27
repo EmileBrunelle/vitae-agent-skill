@@ -41,7 +41,10 @@ def pep723_requirements(text: str) -> tuple[str, ...]:
     for m in _PEP723.finditer(text):
         if m.group("type") == "script":
             lines = m.group("content").splitlines(keepends=True)
-            meta = tomllib.loads("".join(ln[2:] if ln.startswith("# ") else ln[1:] for ln in lines))
+            try:
+                meta = tomllib.loads("".join(ln[2:] if ln.startswith("# ") else ln[1:] for ln in lines))
+            except tomllib.TOMLDecodeError:
+                return ()
             deps = meta.get("dependencies", [])
             return tuple(str(d) for d in deps) if is_object_list(deps) else ()
     return ()
@@ -52,7 +55,7 @@ def script_requirements(script: str) -> tuple[str, ...]:
     """The dependencies declared in the PEP 723 header of `scripts/<script>`, () when it is unreadable or has none."""
     try:
         return pep723_requirements((_SCRIPTS_DIR / script).read_text(encoding="utf-8"))
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return ()
 
 
@@ -73,12 +76,20 @@ def requirement(name: str) -> str:
 
 def _pip(name: str, flags: str = "") -> str:
     """`pip install [flags] '<requirement>'` for dependency `name`, the requirement read from the script header."""
-    return f"pip install {flags}{shlex.quote(requirement(name))}"
+    return f"pip install {flags}{_quote_requirement(requirement(name))}"
+
+
+def _quote_requirement(req: str) -> str:
+    """`req` as one shell word: double-quoted around single-quoted markers when that is safe, else shlex-quoted."""
+    if any(c in req for c in '"$`\\'):
+        return shlex.quote(req)
+    return f'"{req}"'
 
 
 def _uv_line() -> str:
     """The first install advice: run the script through uv, which installs the header's dependencies itself."""
-    return (f"  uv run scripts/{_running_script()} ...   # the dependencies in its PEP 723 header install themselves "
+    script = shlex.quote(str(_SCRIPTS_DIR / _running_script()))
+    return (f"  uv run {script} --help   # the dependencies in its PEP 723 header install themselves "
             "(`pipx run` works too); else:")
 
 def check_pillow() -> bool:

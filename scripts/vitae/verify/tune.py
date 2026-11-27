@@ -24,7 +24,7 @@ from vitae.core.base import (
 from vitae.core.env import PdfBackend, preflight
 from vitae.verify.pdf import compile_or_messages, compile_pdf, count_pages, render_pngs
 from vitae.verify.typst import (
-    doc_par_list_size,
+    list_rules,
     par_scope,
     read_par,
     read_rhythm,
@@ -64,7 +64,7 @@ def _with_rhythm(text: str, leading: float, spacing: float) -> str:
     out = write_par(text, leading, spacing)
     if not par or par[0] <= 0:
         return out
-    return scale_list_spacing(out, leading / par[0], par_scope(text))
+    return _hold_list_gap(text, scale_list_spacing(out, leading / par[0], par_scope(text)))
 
 
 def _with_gap_scale(text: str, rhythm: float) -> str:
@@ -86,18 +86,25 @@ LIST_GAP_FLOOR = 0.16   # em
 
 
 def _hold_list_gap(before: str, after: str) -> str:
-    """`after` with its explicit list spacing raised to leading + the gap floor when scaling pushed (list
-    spacing - leading) under it. A file that already sat under the floor keeps its own gap (never worse
-    than `before`); no explicit numeric list spacing leaves `after` alone. Deterministic, 3 decimals."""
-    lead0, lsp0, _ = doc_par_list_size(before)
-    lead, lsp, _ = doc_par_list_size(after)
-    if lead0 is None or lsp0 is None or lead is None or lsp is None or lsp <= 0:
+    """`after` with each explicit list spacing raised to the leading in effect for that rule + the gap floor when
+    scaling pushed (list spacing - leading) under it. A rule that already sat under the floor in `before` keeps its
+    own gap (never worse than `before`); no explicit numeric list spacing leaves `after` alone. Per rule, so several
+    list rules each answer to their own leading. Deterministic, 3 decimals."""
+    old, new = list_rules(before), list_rules(after)
+    if len(old) != len(new):
         return after
-    floor = min(LIST_GAP_FLOOR, lsp0 - lead0)
-    if lsp - lead >= floor:
-        return after
-    # +0.0005 so the 3-decimal rounding cannot land under the floor
-    return scale_list_spacing(after, (lead + floor + 0.0005) / lsp, par_scope(before))
+    out = after
+    for b, a in reversed(list(zip(old, new, strict=True))):
+        if b.leading is None or a.leading is None or a.spacing_em <= 0:
+            continue
+        floor = min(LIST_GAP_FLOOR, b.spacing_em - b.leading)
+        if a.spacing_em - a.leading >= floor:
+            continue
+        # +0.0005 so the 3-decimal rounding cannot land under the floor
+        target_em = a.leading + floor + 0.0005
+        value = target_em * (a.size if a.unit == "pt" else 1.0)
+        out = "%s%.3f%s" % (out[:a.start], value, out[a.end:])
+    return out
 
 
 def _read(typ: str) -> str:
