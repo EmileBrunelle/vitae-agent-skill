@@ -1,5 +1,6 @@
 // Ukrainian CV + Ukrainian facts (Cyrillic, with і ї є ґ and the apostrophe ʼ): no WARN for names or dates, no FAIL, section breaks still read (check_no_split
 // no longer switches itself off on a non-Latin heading); the script says nothing about the language.
+#set document(title: "Test CV")
 #set page(paper: "a4", margin: 2cm)
 #set text(font: "Noto Sans", size: 10pt, lang: "uk")
 #let section(title, body) = [#upper(title) #v(2pt) #body #v(8pt)]

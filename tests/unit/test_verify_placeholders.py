@@ -19,7 +19,7 @@ TEMPLATES = ROOT / "templates"
 
 def _ctx(tmp_path, body, name="cv"):
     typ = tmp_path / f"{name}.typ"
-    src = "#set page(width: 400pt, height: 200pt)\n" + body
+    src = "#set document(title: \"Test CV\")\n#set page(width: 400pt, height: 200pt)\n" + body
     typ.write_text(src, encoding="utf-8")
     out = tmp_path / f"{name}.pdf"
     typst.compile(str(typ), output=str(out))
@@ -240,7 +240,7 @@ def _verify(*args, script=None):
 
 def _lorem_cv(path, words):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"#set page(width: 400pt, height: 300pt, margin: 20pt)\n#set text(size: 11pt)\n"
+    path.write_text(f"#set document(title: \"Test CV\")\n#set page(width: 400pt, height: 300pt, margin: 20pt)\n#set text(size: 11pt)\n"
                     f"#set par(leading: 0.65em, spacing: 0.65em)\n#lorem({words})\n", encoding="utf-8")
     return str(path)
 
@@ -392,7 +392,7 @@ def test_hits_are_listed_most_specific_first(tmp_path):
 
 
 def _letter_src(body):
-    return '#set page(paper: "us-letter")\n#set text(size: 11pt)\n' + body
+    return '#set document(title: "Test CV")\n#set page(paper: "us-letter")\n#set text(size: 11pt)\n' + body
 
 
 def test_letter_gate_fails_on_a_leftover_sample_and_passes_a_clean_letter(tmp_path):

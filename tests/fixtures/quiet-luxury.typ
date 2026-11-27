@@ -30,6 +30,9 @@
 // left margin, drawn in the page background (lib.typ accent-band)
 #let band = false
 #set page(background: accent-band(accent)) if band
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.508em, spacing: 0.570em)
 
@@ -67,7 +70,7 @@
     #h(7pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
     #contact(mk.web)[\[profile or portfolio — only if in the facts\]]]
   #v(3pt * rhythm)
-  #text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname]
+  #text(font: dispf, size: 22pt, weight: "bold")[#doc-name]
   #v(-4pt)
   #text(size: 10.5pt, fill: ink)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
 ]

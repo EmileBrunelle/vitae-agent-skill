@@ -22,7 +22,7 @@ layout: subagent haiku
 
 def _cv(tmp_path):
     typ = tmp_path / "cv.typ"
-    typ.write_text("#set page(width: 400pt, height: 300pt, margin: 20pt)\n#set text(size: 11pt)\n"
+    typ.write_text("#set document(title: \"Test CV\")\n#set page(width: 400pt, height: 300pt, margin: 20pt)\n#set text(size: 11pt)\n"
                    "#set par(leading: 0.65em, spacing: 0.65em)\n#lorem(130)\n", encoding="utf-8")
     os.utime(typ, (1_000, 1_000))
     return typ

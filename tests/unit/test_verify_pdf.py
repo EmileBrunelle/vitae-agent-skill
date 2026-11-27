@@ -11,7 +11,8 @@ from _paths import ROOT
 from PIL import Image
 from vitae.verify import pdf
 
-DOC = """#set page(width: 200pt, height: 100pt)
+DOC = """#set document(title: "Test CV")
+#set page(width: 200pt, height: 100pt)
 Hello world
 
 Second line

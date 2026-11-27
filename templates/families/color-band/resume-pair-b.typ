@@ -48,6 +48,9 @@
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.569em, spacing: 0.611em)
 
@@ -77,7 +80,7 @@
 
 // header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
 #masthead(accent, rhythm: rhythm)[
-  #text(font: dispf, size: 24pt, weight: "bold", fill: white)[Firstname Lastname]
+  #text(font: dispf, size: 24pt, weight: "bold", fill: white)[#doc-name]
   #v(-4pt)
   #text(size: 10.5pt, fill: white, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(0pt)

@@ -35,6 +35,9 @@
 // left margin, drawn in the page background (lib.typ accent-band)
 #let band = false
 #set page(background: accent-band(accent)) if band
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.546em, spacing: 0.646em)
 
@@ -88,7 +91,7 @@
 // rule under the name read as off-centre (measured, not guessed).
 #block(width: 100%, above: 0pt, below: 13pt * rhythm)[
   #align(center)[
-    #text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname]
+    #text(font: dispf, size: 23pt, weight: "bold")[#doc-name]
     // A HAIRLINE, long, with air around it — the engraver's rule. 1.2pt over
     // 34pt read as a stubby dash sitting on the name; the whole point of
     // engraving is that a clean thin line was the expensive part.

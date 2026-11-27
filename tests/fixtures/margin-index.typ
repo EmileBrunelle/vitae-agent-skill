@@ -23,6 +23,9 @@
 
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 11pt, lang: "en", fill: dark, hyphenate: false,
   number-type: "old-style", number-width: "proportional")
 #set par(justify: false, leading: 0.695em, spacing: 0.895em)
@@ -65,7 +68,7 @@
 #block(above: 0pt, below: 13pt * rhythm)[
   #grid(columns: (2.5cm, 1fr), column-gutter: 12pt,
     [],
-    [#text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname] \
+    [#text(font: dispf, size: 23pt, weight: "bold")[#doc-name] \
      #v(-4pt)
      #text(size: 10.5pt, style: "italic")[[Target title, as in the facts or posting] — [Degree, if the facts state it]] \
      #v(-3pt)

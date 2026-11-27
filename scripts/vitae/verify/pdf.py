@@ -4,6 +4,7 @@ Compile, page count, text and word-box extraction, and raster/crop rendering.
 """
 from __future__ import annotations
 
+import bisect
 import ctypes
 import glob
 import html
@@ -59,16 +60,60 @@ def _root_cli(typ: str) -> list[str]:
     return ["--root", r] if r else []
 
 
+# The PDF standards every compile asks Typst to enforce: PDF/UA-1 (accessible tagged PDF) and PDF/A-2a, the archival
+# level that is itself tagged and accepts the UA-1 PDF version range (A-1 caps the PDF version at 1.4, A-4 needs 2.0).
+# Typst refuses to write the file when the document breaks one (no title, an image with no description, ...).
+PDF_STANDARDS = ("a-2a", "ua-1")
+
+
+def _standard_cli() -> list[str]:
+    return ["--pdf-standard", ",".join(PDF_STANDARDS)]
+
+
+# Typst words a refusal caused by a standard `PDF/UA-1 error: <what>` (one or several standards before `error:`), the same
+# text from the CLI and from typst-py. The prefix is what says "a standard refused this"; the cause is read from Typst's
+# own (English, whatever the CV's language) wording, never from the CV's text.
+_STANDARD_ERROR = re.compile(r"\bPDF/[A-Z0-9-]+(?:, PDF/[A-Z0-9-]+)* error: (?P<what>[^\n]*)")
+_FIX_TITLE = ('add `#set document(title: "<name>")` to the CV (the templates carry it as `#let doc-name = "<name>"` '
+              'then `#set document(title: doc-name, author: doc-name)`)')
+_FIX_ALT = ('give the image `alt: "<what it shows>"` when it carries information, or wrap it in `pdf.artifact(image(..))` '
+            'when it is decoration (`alt: none` is refused by PDF/A-2a)')
+
+
+def standard_failure_advice(err: str) -> str:
+    """The FAIL line telling what to add when Typst refused to write the PDF because of PDF/UA-1 / PDF/A-2a; "" when the
+    failure is not a standard's refusal. A title or alt-text refusal gets its exact fix; any other refusal by the standard
+    gets both fixes (no guess at the cause)."""
+    m = _STANDARD_ERROR.search(err)
+    if m is None:
+        return ""
+    what = m.group("what").lower()
+    if "title" in what:
+        fix = _FIX_TITLE
+    elif "alt" in what:
+        fix = _FIX_ALT
+    else:
+        fix = f"if the document has no title, {_FIX_TITLE}; if an image has no description, {_FIX_ALT}"
+    return (f"FAIL  vitae: the PDF must conform to PDF/UA-1 + PDF/A-2a, and Typst refused to write it ({m.group('what').strip()}). "
+            f"To fix: {fix}. Typst's own error follows.")
+
+
 def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
-    """Returns (ok, stderr_text)."""
+    """Returns (ok, stderr_text); on a refusal by the PDF standard the text starts with the FAIL line saying what to add."""
+    ok, err = _compile_pdf(typ, pdf, use_cli)
+    advice = "" if ok else standard_failure_advice(err)
+    return ok, f"{advice}\n{err}" if advice else err
+
+
+def _compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
     if use_cli:
-        r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)] + _root_cli(typ), capture_output=True, text=True)
+        r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)] + _standard_cli() + _root_cli(typ), capture_output=True, text=True)
         if r.returncode == 0:
             hexify_pdf(pdf)      # optional (pikepdf): the PDF the gates measure is the one the user gets
         return r.returncode == 0, (r.stdout + r.stderr)
     try:
         typst = importlib.import_module("typst")
-        typst.compile(typ, output=pdf, **_root_kw(typ), **typst_font_kw())
+        typst.compile(typ, output=pdf, pdf_standards=list(PDF_STANDARDS), **_root_kw(typ), **typst_font_kw())
     except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
         return False, str(e)
     hexify_pdf(pdf)
@@ -155,16 +200,19 @@ def ensure_icons(typ: str) -> None:
               f"scripts/harvest_icons.py there for the real marks")
 
 
-def typst_compile(src: str, pdf: str | None = None) -> tuple[bool, str]:
+def typst_compile(src: str, pdf: str | None = None, standards: bool = False) -> tuple[bool, str]:
     """(ok, stderr) for `typst compile src [pdf]` via the CLI, else typst-py
     (the tests' compile step; warnings are included in the text). Intentionally bypasses the
-    pikepdf post-step of `compile_pdf`: it is the raw Typst output."""
+    pikepdf post-step of `compile_pdf`: it is the raw Typst output. `standards` asks for PDF_STANDARDS as
+    `compile_pdf` does (off by default: a test snippet needs no document title)."""
     if shutil.which("typst"):
-        r = subprocess.run(["typst", "compile", src] + ([pdf] if pdf else []) + _root_cli(src), capture_output=True, text=True)
+        r = subprocess.run(["typst", "compile", src] + ([pdf] if pdf else []) + (_standard_cli() if standards else []) + _root_cli(src),
+                           capture_output=True, text=True)
         return r.returncode == 0, r.stderr
     mod = typst_py() or importlib.import_module("typst")
     try:
-        res = mod.Compiler(src, **_root_kw(src), **typst_font_kw()).compile_with_warnings(output=pdf or os.path.splitext(src)[0] + ".pdf")
+        res = mod.Compiler(src, **_root_kw(src), **typst_font_kw()).compile_with_warnings(
+            output=pdf or os.path.splitext(src)[0] + ".pdf", **({"pdf_standards": list(PDF_STANDARDS)} if standards else {}))
         warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
         return True, "\n".join(str(w) for w in warns or [])
     except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
@@ -359,23 +407,33 @@ def _reading_order(words: list[WordBox]) -> list[WordBox]:
             parent[a] = parent[parent[a]]
             a = parent[a]
         return a
+    # Pieces indexed by row: a piece is compared with the row above and the rows of its entry only, so the cost
+    # follows the pieces per row, not the pieces of the page
+    by_row: list[list[int]] = [[] for _ in rows]
+    for n, r in enumerate(piece_row):
+        by_row[r].append(n)
     for lo in range(len(pieces)):
-        for up in range(len(pieces)):
-            if piece_row[up] == piece_row[lo] - 1 and geo[up][0] < geo[lo][1] and geo[lo][0] < geo[up][1]:
+        if piece_row[lo] == 0:
+            continue
+        for up in by_row[piece_row[lo] - 1]:
+            if geo[up][0] < geo[lo][1] and geo[lo][0] < geo[up][1]:
                 parent[find(up)] = find(lo)
     # A piece with another piece to its left on its row (a right-flushed date beside its role) is
     # read after the lines of its entry, at any distance, unless one of them under it overlaps its
     # x-range: then it is read in place. Measured on poppler: role, org, date at every head-to-org
     # gap from 4 to 200 pt and heads of 9 to 18 pt, so there is no distance cutoff. The lines of
     # its entry stop at the next row that holds a right-flushed piece (the next dated head).
-    side = [n for n in range(len(pieces)) if any(piece_row[m] == piece_row[n] and geo[m][0] < geo[n][0]
-                                                 for m in range(len(pieces)))]
+    row_left = [min(geo[n][0] for n in ns) for ns in by_row]
+    side = [n for n in range(len(pieces)) if geo[n][0] > row_left[piece_row[n]]]
+    is_side = set(side)
+    side_rows = sorted({piece_row[n] for n in side})
     for n in side:
-        stop = min((piece_row[m] for m in side if piece_row[m] > piece_row[n]), default=len(rows))
-        under = [m for m in range(len(pieces)) if piece_row[n] < piece_row[m] < stop and m not in side
-                 and geo[m][0] < geo[n][1] and geo[n][0] < geo[m][1]]
-        if under:
-            parent[find(n)] = find(min(under, key=lambda m: (piece_row[m], geo[m][0])))
+        stop = side_rows[bisect.bisect_right(side_rows, piece_row[n])] if piece_row[n] < side_rows[-1] else len(rows)
+        for r in range(piece_row[n] + 1, stop):
+            under = [m for m in by_row[r] if m not in is_side and geo[m][0] < geo[n][1] and geo[n][0] < geo[m][1]]
+            if under:
+                parent[find(n)] = find(min(under, key=lambda m: geo[m][0]))
+                break
     blocks: dict[int, list[int]] = {}
     for n in range(len(pieces)):
         blocks.setdefault(find(n), []).append(n)

@@ -24,6 +24,8 @@
 #let accent = rgb("#7d2231")
 #let font = ("Carlito", "Noto Sans", "Liberation Sans")
 #let name = "Firstname Lastname"
+// PDF/UA-1 needs a document title: the person's name.
+#set document(title: name, author: name)
 #let contact = "me@example.com · (555) 555-0100 · [City, Region] · [profile or portfolio — only if in the facts]"
 
 // ---------- Letterhead (~2.5cm) ----------

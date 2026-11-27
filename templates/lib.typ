@@ -45,8 +45,10 @@
 // photo — a header photo, cropped to a box. Vector/raster image, emits no
 // text. Only families whose header has a right-hand cell take one, and only
 // where the target market expects one (references/regional.md).
-#let photo(path, w: 2.6cm, radius: 0pt) = box(clip: true, radius: radius,
-  image(path, width: w))
+// PDF/UA-1 wants every image either described or marked decorative: `alt: none` (default) marks the photo a
+// layout artifact; pass `alt: [the description]` to have it read out.
+#let photo(path, w: 2.6cm, radius: 0pt, alt: none) = box(clip: true, radius: radius,
+  if alt == none { pdf.artifact(kind: "layout", image(path, width: w)) } else { image(path, width: w, alt: alt) })
 
 // nb — an unbreakable mark+value pair. The `~` is the non-breaking space: the
 // mark can never be orphaned at a line end, and the box keeps the pair from
@@ -582,10 +584,10 @@
 // pmark — wraps a harvested INNER SVG body (may hold several elements) in an
 // SVG of its viewBox and colours it by substituting currentColor.
 #let pmark(body, vb, c, h: 7pt) = if body == "" { none } else {
-  box(baseline: 0.5pt, image(
+  box(baseline: 0.5pt, pdf.artifact(kind: "layout", image(   // decorative: PDF/UA-1 wants it an artifact or described
     bytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"" + vb
       + "\">" + body.replace("currentColor", c.to-hex()) + "</svg>"),
-    format: "svg", height: h))
+    format: "svg", height: h)))
 }
 
 // One call per family: `#let mk = marks(ic-col)` then `nb(mk.web, [..])`.

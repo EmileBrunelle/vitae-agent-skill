@@ -36,6 +36,9 @@
 #let mx = 1.8cm
 #set page(paper: "us-letter", margin: (x: mx, top: 1.3cm, bottom: 1.6cm))
 #set page(..wd-page-x(mx)) if workday
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.552em, spacing: 0.642em)
 
@@ -104,7 +107,7 @@
   // Header lines keep a tight pitch whatever the body leading: poppler splits a looser
   // contact row into one line per item or reads its second line before the first.
   #set par(leading: 0.548em, spacing: 0.638em)
-  #text(font: dispf, size: 30pt, weight: "bold")[Firstname Lastname]
+  #text(font: dispf, size: 30pt, weight: "bold")[#doc-name]
   #v(-6pt)
   #text(size: 10.5pt, weight: "medium", fill: accent2)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(-1pt)

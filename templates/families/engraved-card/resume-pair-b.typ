@@ -34,6 +34,9 @@
 // left margin, drawn in the page background (lib.typ accent-band)
 #let band = false
 #set page(background: accent-band(accent)) if band
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.621em, spacing: 0.721em)
 
@@ -77,7 +80,7 @@
 // No photo slot: a centred card has no side cell, and that is the point.
 #block(width: 100%, above: 0pt, below: 13pt * rhythm)[
   #align(center)[
-    #text(font: dispf, size: 23pt, weight: "bold")[Firstname Lastname]
+    #text(font: dispf, size: 23pt, weight: "bold")[#doc-name]
     #v(1pt * rhythm)
     #line(length: 56pt, stroke: 0.6pt + accent)
     #v(3pt * rhythm)

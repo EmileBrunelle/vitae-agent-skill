@@ -195,7 +195,7 @@ def main() -> int:
     names.append("rtl-swiss-grid")
     for n in names:
         typ = f"tests/fixtures/{n}.typ"
-        c = subprocess.run(["typst", "compile", "--root", ".", typ, f"tests/fixtures/{n}.pdf"], cwd=wr,
+        c = subprocess.run(["typst", "compile", "--root", ".", "--pdf-standard", "a-2a,ua-1", typ, f"tests/fixtures/{n}.pdf"], cwd=wr,
                            capture_output=True, text=True)
         if c.returncode:
             bad += 1; log.append(f"  COMPILE FAIL {n}: {c.stderr.strip()[:200]}"); continue

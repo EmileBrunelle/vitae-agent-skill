@@ -33,6 +33,9 @@
 // left margin, drawn in the page background (lib.typ accent-band)
 #let band = false
 #set page(background: accent-band(accent)) if band
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.528em, spacing: 0.601em)
 
@@ -60,7 +63,7 @@
 // header: oversized serif name, then role line left / 2-line contact block right (column = natural width, max 55%); contact never shares a y-range with the name. No photo is wired: a photo would take the right end of the name row
 #block(above: 0pt, below: 12pt * rhythm)[
   #header-two-row(
-    [#text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname]],
+    [#text(font: dispf, size: 25pt, weight: "bold")[#doc-name]],
     [#text(size: 10.5pt, fill: accent, weight: "semibold")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #contact-rows(2)#contact(ic.pin)[\[City, Region\]] #h(10pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(10pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
       #contact(mk.web)[\[profile or portfolio — only if in the facts\]]],

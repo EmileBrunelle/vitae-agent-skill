@@ -36,6 +36,9 @@
 // derives from the 1.3cm bottom margin: (100 - 4.7) - 0..2%.
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.3cm))
 #set page(..wd-page-x(1.6cm)) if workday
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.548em, spacing: 0.634em)
 
@@ -125,7 +128,7 @@
          fill: white)[FL])]
      #h(9pt)
      #box(baseline: 12pt)[
-       #text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
+       #text(font: dispf, size: 25pt, weight: "bold")[#doc-name] \
        #text(font: monof, size: 9pt, fill: muted)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]]],
     [], cols: (auto, 1fr), gutter: 0pt,
     align-cells: (left + top, left + top), above: 0pt, below: 5pt * rhythm)

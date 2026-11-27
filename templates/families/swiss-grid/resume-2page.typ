@@ -41,6 +41,9 @@
 // left margin, drawn in the page background (lib.typ accent-band)
 #let band = false
 #set page(background: accent-band(accent)) if band
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.508em, spacing: 0.568em)
 
@@ -67,7 +70,7 @@
 // header: name row, then a grid row — role left, 2-line contact block right (column = natural width, max 55%); contact never shares a y-range with the name. No photo is wired: a photo would take the right end of the name row
 #block(above: 0pt, below: 11pt * rhythm)[
   #header-two-row(
-    [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]],
+    [#text(font: dispf, size: 24pt, weight: "bold")[#doc-name]],
     [#text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#contact-rows(2)#contact(mk.pin)[\[City, Region\]] #h(10pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] #h(10pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
       #contact(mk.web)[\[profile or portfolio — only if in the facts\]]],
@@ -152,7 +155,7 @@
 
 // The running head goes in the FLOW, right after the break — never in a page
 // `header:` field, which many parsers skip entirely (lib.typ § runhead).
-#if not workday { runhead(rhythm: rhythm)[Firstname Lastname — [Target title]][2][2] }  // no page 2 in the parse copy
+#if not workday { runhead(rhythm: rhythm)[#doc-name — [Target title]][2][2] }  // no page 2 in the parse copy
 
 // recipe step 4: #set text / #set par are document-GLOBAL, so page 2 is
 // re-balanced locally here rather than by loosening the whole document. Page 2

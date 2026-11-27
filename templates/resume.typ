@@ -38,6 +38,9 @@
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 // lang drives hyphenation/smart quotes: "en", "fr", "de"…
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: ("Carlito", "Noto Sans", "Liberation Sans"), size: 10.5pt,
   lang: "en", fill: dark, hyphenate: false)
 // Primary fill-tuning knobs ↓ (±0.01-0.03em steps)
@@ -84,7 +87,7 @@
 // what an ATS reads. Colour them per the chosen family (core.md § Contact icons).
 #align(center)[
   #text(font: ("Montserrat", "Noto Sans", "Liberation Sans"),
-    size: 23pt, weight: "bold")[Firstname Lastname]
+    size: 23pt, weight: "bold")[#doc-name]
   #v(-2pt)
   // Title and degree only as the facts state them; check protected titles (rule 4).
   #text(size: 11pt, fill: accent, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]

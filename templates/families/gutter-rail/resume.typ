@@ -94,6 +94,9 @@
 // bottom margin: (100 − 5.4) − 0..2%.
 #set page(paper: "us-letter", fill: paper, margin: (x: 1.5cm, top: 1.5cm, bottom: 1.5cm))
 #set page(..wd-page) if workday
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.534em, spacing: 0.624em)
 
@@ -220,7 +223,7 @@
      contact(mk.web, seg[\[profile or portfolio — only if in the facts\]])).join([#sym.space.quad])
   }]
   #v(5pt * rhythm)
-  #text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]
+  #text(font: dispf, size: 24pt, weight: "bold")[#doc-name]
   #v(-4pt)
   #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
 ]

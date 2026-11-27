@@ -40,6 +40,9 @@
 #let section-rules = ("inline", "under", "under-short", "none")
 #assert(section-rule in section-rules, message: "section-rule must be one of: " + section-rules.join(", ") + " (got " + repr(section-rule) + ")")
 #set page(background: accent-band(accent)) if band
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.517em, spacing: 0.597em)
 
@@ -113,7 +116,7 @@
 #block(above: 0pt, below: 10pt * rhythm)[
   #let rcell(l, val) = [#text(size: 7pt, weight: "bold", fill: ink)[#upper(l)] #val]
   #header-two-row(
-    [#text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname]],
+    [#text(font: dispf, size: 22pt, weight: "bold")[#doc-name]],
     [#text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(2pt * rhythm)
   // REFERENCE ROW — one flowing paragraph, never a grid of stacked cells.

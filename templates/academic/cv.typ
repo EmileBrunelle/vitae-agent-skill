@@ -28,6 +28,8 @@
 
 #let data = toml("faits-academique.example.toml")
 #let m = data.meta
+// PDF/UA-1 needs a document title: the person's name.
+#set document(title: m.name, author: m.name)
 
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.4cm, bottom: 1.4cm),
   header: arunning-header(m.name.split(" ").last()),

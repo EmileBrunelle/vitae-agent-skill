@@ -15,7 +15,8 @@ from vitae.verify.pdf import compile_pdf
 pytestmark = pytest.mark.skipif(
     not (check_typst()[0] and shutil.which("pdftotext")), reason="needs typst and pdftotext")
 
-HEAD = '''#set page(paper: "a5", margin: 1.2cm, header: align(right, text(size: 8pt)[Doe]){footer})
+HEAD = '''#set document(title: "Test CV")
+#set page(paper: "a5", margin: 1.2cm, header: align(right, text(size: 8pt)[Doe]){footer})
 #set text(size: 9pt)
 #let e(y, body) = grid(columns: (1.4cm, 1fr), column-gutter: 6pt, [#y], [#body])
 #let h(t) = [#text(weight: "bold")[#t] #v(2pt)]

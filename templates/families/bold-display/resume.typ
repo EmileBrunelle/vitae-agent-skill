@@ -34,6 +34,9 @@
 // left margin, drawn in the page background (lib.typ accent-band)
 #let band = false
 #set page(background: accent-band(accent)) if band
+// PDF/UA-1 needs a document title: the person's name. Fill it once here; the header below reuses it.
+#let doc-name = "Firstname Lastname"
+#set document(title: doc-name, author: doc-name)
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.502em, spacing: 0.582em)
 
@@ -59,7 +62,7 @@
 
 // header: oversized accent name left, contacts on one line below
 #block(above: 0pt, below: 12pt * rhythm)[
-  #text(font: dispf, size: 29pt, weight: "bold", fill: accent)[Firstname Lastname]
+  #text(font: dispf, size: 29pt, weight: "bold", fill: accent)[#doc-name]
   #v(0pt)
   #text(size: 11pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(2pt * rhythm)
