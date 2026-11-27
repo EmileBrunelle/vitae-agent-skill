@@ -8,3 +8,11 @@ COMMENTS = re.compile(r"/\*.*?\*/|(?<![:\w])//[^\n]*", re.S)
 
 def strip_comments_regex(src: str) -> str:
     return COMMENTS.sub("", src)
+
+
+BLOCK_COMMENTS = re.compile(r"/\*.*?\*/", re.S)
+
+
+def strip_block_comments_regex(src: str) -> str:
+    """`vitae.verify.fonts.requested_families` first step before the linear scan (same quadratic shape)."""
+    return BLOCK_COMMENTS.sub("", src)

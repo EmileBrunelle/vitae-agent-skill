@@ -7,10 +7,10 @@ import re
 import time
 
 import pytest
-from _comments_ref import strip_comments_regex
+from _comments_ref import strip_block_comments_regex, strip_comments_regex
 from _reading_order_ref import reading_order_quadratic
 from vitae.core.base import WordBox
-from vitae.verify import fonts, pdf, placeholders, text
+from vitae.verify import fonts, pdf, placeholders, text, typst
 
 # ------------------------------------------------------------------ _reading_order
 
@@ -272,3 +272,41 @@ def test_strip_comments_bounds_time_on_unclosed_block_comments(unit: str) -> Non
 
     assert time.perf_counter() - start < 0.5      # measured ~0.01 s; the regex takes ~12 s on the first case
     assert isinstance(out, str)
+
+
+# ------------------------------------------------------------------ typst.strip_block_comments
+
+@pytest.mark.parametrize("seed", range(600))
+def test_strip_block_comments_matches_the_regex_on_random_text(seed: int) -> None:
+    rng = random.Random(seed)
+    alphabet = ["/", "*", "/", "*", "a", "\n", "/*", "*/", "/**/", " "]
+    src = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
+
+    assert typst.strip_block_comments(src) == strip_block_comments_regex(src)
+
+
+@pytest.mark.parametrize("src, want", [
+    ("a /* b */ c", "a  c"),
+    ("a /* b */ c /* d */ e", "a  c  e"),
+    ("a /* unclosed", "a /* unclosed"),
+    ("/* closed */ x /* unclosed", " x /* unclosed"),
+    ("/*/ x", "/*/ x"),                             # `/*/` does not close itself
+    ("/**/x", "x"),
+    ("/* a\nb */c", "c"),                           # across lines
+    ("/* a /* b */ c */", " c */"),                 # not nested: the first `*/` closes
+    ("", ""),
+])
+def test_strip_block_comments_cases(src: str, want: str) -> None:
+    assert typst.strip_block_comments(src) == want == strip_block_comments_regex(src)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("unit", ["/* ", "/*", "/*\n"])
+def test_requested_families_bounds_time_on_unclosed_block_comments(unit: str) -> None:
+    src = unit * (100_000 // len(unit))
+    start = time.perf_counter()
+
+    out = fonts.requested_families(src)
+
+    assert time.perf_counter() - start < 0.5      # measured ~0.01 s; the regex took ~11 s
+    assert out                                    # no font asked: Typst's own defaults

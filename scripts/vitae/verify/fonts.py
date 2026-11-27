@@ -18,6 +18,7 @@ from collections.abc import Sequence
 from enum import StrEnum
 
 from vitae.core.level import Finding, Level
+from vitae.verify.typst import strip_block_comments
 
 # A family that EXISTS but lacks the glyphs (fontsource's `*-latin-ext-*` files carry the
 # family name and no basic Latin and shadow the `*-latin-*` ones) draws the text in whatever
@@ -112,7 +113,7 @@ def requested_families(src: str, firsts: set[str] | None = None) -> set[str]:
     Comments are skipped. `firsts` (optional, filled in) gets the keys that are the FIRST member
     of a tuple, or asked alone. With math in the source (`$`) the math faces count as asked;
     "New Computer Modern" also covers the PDF name `NewCM10`."""
-    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    src = strip_block_comments(src)
     src = "\n".join(re.sub(r"(?:^|\s)//.*$", "", ln) for ln in src.splitlines())
     lets = {m.group(1): _font_value(src, m.end()) for m in re.finditer(r"#let\s+([A-Za-z_][\w-]*)\s*=", src)}
     names: set[str] = set()

@@ -12,6 +12,22 @@ from __future__ import annotations
 import re
 
 
+def strip_block_comments(src: str) -> str:
+    """`src` without its non-nested `/* ... */` blocks; an unclosed `/*` stays as text. Same result as
+    `re.sub(r"/\\*.*?\\*/", "", src, flags=re.S)`, which rescans to the end of the text from every unclosed `/*`
+    (11 s on 100 000 characters of them); here one failed search for `*/` ends the scan, no later block can close."""
+    out: list[str] = []
+    i = 0
+    while (start := src.find("/*", i)) >= 0:
+        end = src.find("*/", start + 2)
+        if end < 0:
+            break
+        out.append(src[i:start])
+        i = end + 2
+    out.append(src[i:])
+    return "".join(out)
+
+
 def _strip_typst_comments(src: str) -> str:
     """src without // line comments and (nested) /* */ blocks. Double-quoted
     strings are respected but never span a newline (a stray 6" in markup must
