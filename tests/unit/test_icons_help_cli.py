@@ -6,7 +6,7 @@ import pytest
 from _paths import ROOT
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from vitae import icons  # noqa: E402
+from vitae import icons
 
 
 def run(*args):

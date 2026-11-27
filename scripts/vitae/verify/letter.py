@@ -31,7 +31,7 @@ import tempfile
 from typing import NoReturn
 
 from vitae.core.env import preflight
-from vitae.core.level import Level  # noqa: E402
+from vitae.core.level import Level
 from vitae.verify.cv import _ALLOW_REFUSED, placeholders_allowed
 from vitae.verify.gates import _placeholders, make_context
 from vitae.verify.pdf import compile_failure_messages, compile_pdf, count_pages, ensure_icons, extract_text

@@ -27,7 +27,7 @@ def check_pillow() -> bool:
     """Doctor line for Pillow, which the fill, text-clip, hidden-text and crop measurements read rasters through:
     without it the doctor fails."""
     try:
-        import PIL  # noqa: F401
+        import PIL
         print(f"OK    Pillow {PIL.__version__}")
         return True
     except ImportError:

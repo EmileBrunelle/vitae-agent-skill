@@ -142,7 +142,7 @@ def main() -> tuple[int, str | None]:
         print(_usage(os.path.basename(sys.argv[0])))
         sys.exit(0)
     if "--json" in argv:
-        from vitae.verify.jsonout import run_json  # noqa: PLC0415 -- lazy: only --json needs it
+        from vitae.verify.jsonout import run_json
         return run_json([a for a in argv if a != "--json"], _dispatch)
     return _dispatch(argv)
 

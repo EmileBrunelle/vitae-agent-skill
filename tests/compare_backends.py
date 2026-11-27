@@ -19,8 +19,8 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
-from vitae.core.env import PdfBackend  # noqa: E402
-from vitae.verify.pdf import extract_text  # noqa: E402
+from vitae.core.env import PdfBackend
+from vitae.verify.pdf import extract_text
 
 MAX_DELTA = 6      # lines apart
 # Ratchet: fixtures whose line sequence is identical today. Losing that is a FAIL.

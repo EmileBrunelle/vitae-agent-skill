@@ -63,7 +63,7 @@ def run_one(adapter: ModuleType, workdir: Path, query: str) -> str | None:
         return f"client binary {argv[0]!r} not found on PATH"
     argv[0] = exe
     try:
-        done = subprocess.run(  # noqa: S603
+        done = subprocess.run(
             argv, cwd=workdir, env=env, stdin=subprocess.DEVNULL,
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT,
         )  # fmt: skip
@@ -132,7 +132,7 @@ def _run_all(adapter: ModuleType, queries: list[dict[str, Any]], runs: int, jobs
         for key, future in futures.items():
             try:
                 error = future.result()
-            except Exception as exc:  # noqa: BLE001 - any failure of a run is an ERROR, never a silent miss
+            except Exception as exc:
                 error = f"{type(exc).__name__}: {exc}"
             if error:
                 errors[key] = error
