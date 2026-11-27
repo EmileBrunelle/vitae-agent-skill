@@ -334,3 +334,40 @@ def test_font_fallback(check: Check, py: str, scratch: Path) -> None:
         assert not grep(gates(f), r"^FAIL  font fallback"), f"{f}.typ: must never FAIL (script, math and symbols are not Latin fallback)"
     for f in ("math-libertinus", "ncm", "raw-only"):
         assert not grep(gates(f), r"^(FAIL|WARN)  font fallback"), f"{f}.typ: must print no FAIL and no WARN font-fallback line"
+
+
+# ---- header contact block: bounded column, honest row count (swiss-grid, editorial-serif, keyline-corporate)
+
+_TITLE_WORDS = {"Target", "title,", "as", "in", "the", "facts", "or", "posting]", "—", "[Degree,", "if", "state", "it]"}
+
+
+def _title_lines(pdf: Path) -> int:
+    """Distinct baselines the placeholder title occupies, read from pdftotext -bbox (words above the first section heading)."""
+    import subprocess
+    xml = subprocess.run(["pdftotext", "-f", "1", "-l", "1", "-bbox", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
+    words = [(float(m.group(2)), m.group(4)) for m in re.finditer(r'<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="[\d.]+">([^<]*)</word>', xml)]
+    heading_y = min(y for y, w in words if w in ("Profile", "Summary", "Professional"))
+    return len({round(y) for y, w in words if y < heading_y and w in _TITLE_WORDS})
+
+
+@pytest.mark.parametrize("family", ["swiss-grid", "editorial-serif", "keyline-corporate"])
+def test_header_contact_block_is_bounded(check: Check, py: str, scratch: Path, family: str) -> None:
+    """Five extra links after GitHub: the contact block wraps INSIDE its column (it is capped at 55% of the measure), so the
+    title keeps its width (placeholder title on at most 2 lines, as with the standard contacts), and the contact-line gate FAILs
+    loudly (declared 2 rows) instead of letting the layout drift silently."""
+    d = scratch / "templates" / "families" / family
+    src = (d / "resume.typ").read_text(encoding="utf-8")
+    gh = re.search(r'#contact\((?:mk|ic)\.gh\)\[#link\("https://github\.com/handle"\)\[github\.com/handle\]\]', src)
+    assert gh, "no GitHub contact item in the header"
+    extra = "".join(f' #h(10pt) #contact(none)[#link("https://example.com/p{i}")[example.com/p{i}]]' for i in range(1, 6))
+    typ = d / "_five_links.typ"
+    typ.write_text(src[:gh.end()] + extra + src[gh.end():], encoding="utf-8")
+    pdf, base = typ.with_suffix(".pdf"), d / "_std.pdf"
+    for src, out in ((typ, pdf), (d / "resume.typ", base)):
+        r = check(f"header-five-links/typst-{out.stem}", ["typst", "compile", "--root", scratch, src, out])
+        assert r.rc == 0, r.output
+    assert _title_lines(pdf) <= max(2, _title_lines(base)), "the title column was crushed by the contact block"
+    tpl = next(t for t in discover_templates() if t.family == family and t.name == "resume")
+    r = check(f"header-five-links/{family}", [py, "-I", "scripts/verify.py", typ.relative_to(scratch), 1, tpl.fill_min, tpl.fill_max,
+                                              "--allow-placeholders"])
+    assert r.rc != 0 and grep(r.output, r"^FAIL  contact line wraps"), f"the gate did not FAIL on the wrapped contact block\n{r.output}"

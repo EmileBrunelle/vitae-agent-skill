@@ -23,8 +23,9 @@
 
 // ---------------------------------------------------------------- geometry
 // hrow — the single-ROW alignment grid. Safe for extraction (references/ats.md:
-// the ban is on multi-ROW data grids); the right cell is also the photo slot in
-// every family whose header has one. Used by `entry` and by header blocks.
+// the ban is on multi-ROW data grids). Used by `entry` and by single-row header blocks. The
+// swiss-grid / editorial-serif / keyline-corporate headers are NOT hrow: a name row (one spanning cell),
+// then one title | contact row, so that no contact line shares a y-band with the name.
 #let hrow(a, b, cols: (1fr, auto), gutter: 14pt,
           align-cells: (left + bottom, right + bottom),
           above: auto, below: auto) = block(above: above, below: below,

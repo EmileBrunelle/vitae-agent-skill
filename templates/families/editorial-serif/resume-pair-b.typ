@@ -56,13 +56,13 @@
 
 #set list(marker: list-marker("dash", dark), indent: 10pt, spacing: 0.652em, body-indent: 6pt)
 
-// header: oversized serif name, then role line left / 2-line contact block right (photo slot); contact never shares a y-range with the name
+// header: oversized serif name, then role line left / 2-line contact block right (max 55% wide); contact never shares a y-range with the name. No photo is wired: a photo would take the right end of the name row
 #block(above: 0pt, below: 12pt * rhythm)[
-  #grid(columns: (1fr, auto), column-gutter: 14pt, row-gutter: 10pt * rhythm, align: (left + top, right + top),
+  #grid(columns: (1fr, 55%), column-gutter: 14pt, row-gutter: 10pt * rhythm, align: (left + top, right + top),
     grid.cell(colspan: 2)[#text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname]],
     [#text(size: 10.5pt, fill: accent, weight: "semibold")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #contact-rows(2)#contact(ic.pin)[\[City, Region\]] #h(10pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(10pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(10pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(18pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
   )
 ]
 
