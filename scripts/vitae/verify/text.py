@@ -20,7 +20,7 @@ from vitae.core.colour import rel_luminance as _lum
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
-from vitae.core.pixels import colour_counts
+from vitae.core.pixels import colour_counts, gray_profile
 from vitae.verify.lang import _is_latin, _strip_latin_marks
 from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png, pdf_unreadable
 
@@ -211,6 +211,45 @@ KEYWORD_MAX_TERMS = 15
 META_MAX_CHARS = 200
 
 
+# A page with more distinct colours than this skips the luminance table (a noise or photo page): each word then
+# computes its colours' luminances itself, same results, bounded memory (the table is at most ~6 MB).
+HIDDEN_LUM_TABLE_MAX = 1 << 16
+
+
+def _lum_table(im: Image.Image) -> dict[tuple[int, ...], float] | None:
+    """WCAG luminance of every distinct colour of a page raster, computed once per page (a text page has a few hundred
+    colours: black, white, their antialiasing blends); None past HIDDEN_LUM_TABLE_MAX colours (or an empty page)."""
+    cols = colour_counts(im, HIDDEN_LUM_TABLE_MAX)
+    return {c: _lum(c) for _, c in cols} if cols else None
+
+
+_GRAY_LUM = [_lum((v, v, v)) for v in range(256)]   # luminance of each gray level (an "L" pixel v is the colour (v, v, v))
+
+
+def _gray_contrast_in_box(crop: Image.Image) -> float:
+    """`_contrast_in_box` on an "L" crop: the extremes are the lowest and highest levels, luminance rising with level."""
+    low, high, background = gray_profile(crop)
+    lb = _GRAY_LUM[background]
+    ratio = 1.0
+    for lc in (_GRAY_LUM[low], _GRAY_LUM[high]):
+        ratio = max(ratio, (max(lc, lb) + 0.05) / (min(lc, lb) + 0.05))
+    return ratio
+
+
+def _contrast_in_box(crop: Image.Image, area: int, table: dict[tuple[int, ...], float] | None) -> float:
+    """Contrast ratio of a crop: its background (most common colour; a tie goes to the larger colour) against the
+    strongest colour in it. Contrast against a fixed background rises with the distance of a luminance from it, so
+    the strongest colour is the darkest or the lightest one: two luminances, not one per colour."""
+    cols = colour_counts(crop, area)
+    lum = _lum if table is None else table.__getitem__
+    lums = [lum(c) for _, c in cols]
+    lb = lum(max(cols)[1])
+    ratio = 1.0
+    for lc in (min(lums), max(lums)):
+        ratio = max(ratio, (max(lc, lb) + 0.05) / (min(lc, lb) + 0.05))
+    return ratio
+
+
 def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] | None = None,
                       pngs: list[str] | None = None) -> list[HiddenStat]:
     """[(page_no, word, (x0, y0, x1, y1), height_pt, contrast | None, off_page)] for
@@ -226,8 +265,12 @@ def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] 
     sc = HIDDEN_PPI / 72.0
     for pno, (pw, ph, items) in enumerate(pages or [], 1):
         im: Image.Image | None = None
+        table: dict[tuple[int, ...], float] | None = None
         if pngs and pno - 1 < len(pngs):
             im = Image.open(pngs[pno - 1]).convert("RGB")
+            table = _lum_table(im)
+            if table is not None and all(r == g == b for r, g, b in table):
+                im, table = im.convert("L"), None   # black text on white: every pixel is a gray level, one band is enough
         for (x0, y0, x1, y1), word in items:
             if not re.search(r"[^\W_]", word):
                 continue   # separators, bullets, rule glyphs: visible or meaningless either way
@@ -240,12 +283,8 @@ def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] 
                 xb, yb = int(x1 * sc) + 1 + HIDDEN_PAD_PX, int(y1 * sc) + 1 + HIDDEN_PAD_PX
                 xa, ya, xb, yb = max(xa, 0), max(ya, 0), min(xb, im.width), min(yb, im.height)
                 if xb > xa and yb > ya:
-                    cols = colour_counts(im.crop((xa, ya, xb, yb)), (xb - xa) * (yb - ya))
-                    lb = _lum(max(cols)[1])
-                    ratio = 1.0
-                    for _, col in cols:
-                        lc = _lum(col)
-                        ratio = max(ratio, (max(lc, lb) + 0.05) / (min(lc, lb) + 0.05))
+                    crop, area = im.crop((xa, ya, xb, yb)), (xb - xa) * (yb - ya)
+                    ratio = _gray_contrast_in_box(crop) if im.mode == "L" else _contrast_in_box(crop, area, table)
                 elif not off:
                     ratio = 1.0   # the whole box rounds to nothing: no ink can be there
             out.append((pno, word, (x0, y0, x1, y1), y1 - y0, ratio, off))

@@ -1,0 +1,176 @@
+"""verify.text `hidden_word_stats`: a luminance table per page, two luminances per word box instead of one per colour, one
+gray band for a black-on-white page. It keeps its behaviour (equivalence with the replaced code, kept in `_hidden_ref`, on
+realistic and worst-case rasters) and stays bounded on a full page (`slow`)."""
+from __future__ import annotations
+
+import random
+import tempfile
+import time
+from pathlib import Path
+from unittest import mock
+
+import pytest
+from _hidden_ref import hidden_word_stats_per_colour
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from PIL import Image
+from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
+from vitae.core.pixels import gray_profile
+from vitae.verify import text
+
+SC = HIDDEN_PPI / 72.0
+Page = tuple[float, float, list[WordBox]]
+
+# ------------------------------------------------------------------ hidden_word_stats
+
+
+def _raster(kind: str, seed: int, w: int, h: int) -> Image.Image:
+    """A page raster: `gray` (black text on white, antialiasing levels), `colour` (a few inks and grounds, some one
+    level apart so luminance ties and near ties occur), `noise` (more colours than the table holds), `ramp` (every
+    gray level)."""
+    rng = random.Random(seed)
+    if kind == "ramp":
+        return Image.frombytes("RGB", (w, h), bytes(v for i in range(w * h) for v in [(i * 7) % 256] * 3))
+    if kind == "noise":
+        return Image.frombytes("RGB", (w, h), rng.randbytes(3 * w * h))
+    if kind == "gray":
+        palette = [(v, v, v) for v in (0, 40, 128, 200, 255, 255, 255)]
+    else:
+        palette = [(255, 255, 255), (255, 255, 254), (10, 20, 30), (200, 30, 30), (30, 30, 200), (250, 250, 250), (0, 0, 0)]
+    im = Image.new("RGB", (w, h), palette[0])
+    for _ in range(rng.randint(2, 30)):
+        x, y = rng.randint(0, w - 1), rng.randint(0, h - 1)
+        im.paste(rng.choice(palette), (x, y, x + rng.randint(1, w // 2), y + rng.randint(1, h // 3)))
+    return im
+
+
+@st.composite
+def _pages(draw: st.DrawFn) -> tuple[Image.Image, Page]:
+    kind = draw(st.sampled_from(["gray", "gray", "colour", "colour", "noise", "ramp"]))
+    w, h = draw(st.integers(8, 60)), draw(st.integers(8, 50))
+    im = _raster(kind, draw(st.integers(0, 10**6)), w, h)
+    coord = st.floats(-4.0, w / SC + 4.0, allow_nan=False)
+    items: list[WordBox] = []
+    for _ in range(draw(st.integers(0, 12))):
+        x0, y0 = draw(coord), draw(st.floats(-4.0, h / SC + 4.0, allow_nan=False))
+        items.append(((x0, y0, x0 + draw(st.floats(0.0, 12.0)), y0 + draw(st.floats(0.0, 6.0))),
+                      draw(st.sampled_from(["word", "a", "x1", "--"]))))
+    return im, (w / SC, h / SC, items)
+
+
+def _both(im: Image.Image, page: Page, table_max: int | None = None) -> tuple[list[HiddenStat], list[HiddenStat]]:
+    with tempfile.TemporaryDirectory() as tmp:
+        png = str(Path(tmp) / "p.png")
+        im.save(png)
+        expected = hidden_word_stats_per_colour("x.pdf", pages=[page], pngs=[png])
+        if table_max is None:
+            return text.hidden_word_stats("x.pdf", pages=[page], pngs=[png]), expected
+        with mock.patch.object(text, "HIDDEN_LUM_TABLE_MAX", table_max):
+            return text.hidden_word_stats("x.pdf", pages=[page], pngs=[png]), expected
+
+
+@settings(deadline=None, max_examples=300)
+@given(_pages())
+def test_word_stats_match_the_per_colour_version(case: tuple[Image.Image, Page]) -> None:
+    got, expected = _both(*case)
+
+    assert got == expected
+
+
+@settings(deadline=None, max_examples=150)
+@given(_pages())
+def test_word_stats_match_when_the_table_is_skipped(case: tuple[Image.Image, Page]) -> None:
+    got, expected = _both(*case, table_max=4)   # every page with more than 4 colours takes the no-table path
+
+    assert got == expected
+
+
+def test_word_stats_equivalence_is_not_vacuous() -> None:
+    # control: ratios span all three bands (FAIL under 1.5, WARN under 3, clean) and the gray, table and no-table paths all run
+    ratios: set[str] = set()
+    for kind in ("gray", "colour", "noise", "ramp"):
+        for seed in range(6):
+            im = _raster(kind, seed, 60, 50)
+            page: Page = (60 / SC, 50 / SC, [((x / SC, y / SC, (x + 14) / SC, (y + 8) / SC), "ab") for x in (0, 20, 40) for y in (0, 20, 40)])
+            got, expected = _both(im, page)
+            assert got == expected
+            ratios |= {"fail" if r < 1.5 else "warn" if r < 3 else "ok" for _, _, _, _, r, _ in got if r is not None}
+    pale = Image.new("RGB", (60, 50), (255, 255, 255))   # pale ink (level 200) on white: barely visible, 1.5 <= ratio < 3
+    pale.paste((200, 200, 200), (2, 2, 12, 8))
+    got, expected = _both(pale, (60 / SC, 50 / SC, [((0.0, 0.0, 14 / SC, 8 / SC), "ab")]))
+    assert got == expected
+    ratios |= {"fail" if r < 1.5 else "warn" if r < 3 else "ok" for _, _, _, _, r, _ in got if r is not None}
+    assert ratios == {"fail", "warn", "ok"}
+
+
+def test_background_tie_goes_to_the_larger_colour() -> None:
+    # half black, half white: both are the most common colour; the larger one (white) is the background, so the
+    # strongest pixel is black against white, ratio 21 (the other way round gives the same, but a tie broken on the
+    # smaller level would not differ here: add a mid-gray box to make the choice visible)
+    im = Image.new("RGB", (20, 10), (255, 255, 255))
+    im.paste((0, 0, 0), (0, 0, 10, 10))
+    box: WordBox = ((0.0, 0.0, 20 / SC - 1.5 / SC, 10 / SC - 1.5 / SC), "ab")
+    got, expected = _both(im, (20 / SC, 10 / SC, [box]))
+
+    assert got == expected
+    assert got[0][4] == pytest.approx(21.0)
+
+
+def test_gray_profile_every_level_and_tie() -> None:
+    for v in range(256):
+        assert gray_profile(Image.new("L", (3, 2), v)) == (v, v, v)
+    two = Image.new("L", (4, 1), 10)
+    two.paste(200, (2, 0, 4, 1))
+    assert gray_profile(two) == (10, 200, 200)   # equal counts: the higher level
+    with pytest.raises(ValueError, match="needs an"):
+        gray_profile(Image.new("RGB", (2, 2)))
+
+
+def _text_like_page(w: int, h: int, words: int, kind: str) -> tuple[Image.Image, Page]:
+    rng = random.Random(7)
+    im = _raster(kind, 3, w, h) if kind == "noise" else Image.new("RGB", (w, h), (255, 255, 255))
+    items: list[WordBox] = []
+    for i in range(words):
+        x, y = rng.randint(0, w - 80), rng.randint(0, h - 30)
+        if kind != "noise":
+            ink = (rng.randint(0, 255),) * 3 if kind == "gray" else (rng.randint(0, 255), rng.randint(0, 255), rng.randint(0, 255))
+            for k in range(0, 60, 3):
+                im.paste(ink, (x + k, y + 4, x + k + 2, y + 16))
+        items.append(((x / SC, y / SC, (x + 60) / SC, (y + 18) / SC), f"w{i}"))
+    return im, (w / SC, h / SC, items)
+
+
+@pytest.mark.parametrize("kind", ["gray", "colour"])
+def test_word_stats_compute_one_luminance_per_page_colour(kind: str) -> None:
+    # the old code called `_lum` once per distinct colour of EVERY word box (~150 per word on a real page)
+    im, page = _text_like_page(400, 300, 200, kind)
+    colours = len(im.getcolors(400 * 300) or [])
+    calls = 0
+    real = text._lum
+
+    def counting(rgb: tuple[int, ...]) -> float:
+        nonlocal calls
+        calls += 1
+        return real(rgb)
+    with tempfile.TemporaryDirectory() as tmp, mock.patch.object(text, "_lum", counting):
+        png = str(Path(tmp) / "p.png")
+        im.save(png)
+        out = text.hidden_word_stats("x.pdf", pages=[page], pngs=[png])
+
+    assert len(out) == 200 and 0 < colours <= 65536
+    assert calls <= colours
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(("kind", "bound"), [("gray", 1.5), ("colour", 1.5), ("noise", 6.0)])
+def test_word_stats_bound_time_on_a_full_page(kind: str, bound: float) -> None:
+    im, page = _text_like_page(1275, 1650, 3000, kind)
+    with tempfile.TemporaryDirectory() as tmp:
+        png = str(Path(tmp) / "p.png")
+        im.save(png)
+        start = time.perf_counter()
+
+        out = text.hidden_word_stats("x.pdf", pages=[page], pngs=[png])
+
+        assert time.perf_counter() - start < bound   # measured ~0.05 s (gray, colour) and ~1 s (noise: 1000+ colours per box); a coarse bound, the constant factor is tested by call count
+    assert len(out) == 3000
