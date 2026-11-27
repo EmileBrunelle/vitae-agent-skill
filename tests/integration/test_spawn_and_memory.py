@@ -134,8 +134,8 @@ _COMMON = {
 BUDGET = {
     "resume-1page": {**_COMMON, "pdftoppm": (2, 2)},           # one 150-ppi render, one 300-ppi ink page
     "resume-2page": {**_COMMON, "pdftoppm": (3, 3)},           # the ink page once per page
-    # verify_academic.run_gate: no lib/section queries (the TOML declares the structure); pdfinfo is read twice
-    "academic": {**_COMMON, "typst query": (0, 0), "pdfinfo": (1, 2), "pdftoppm": (1, 1)},     # current: 2 pdfinfo, target: 1
+    # verify_academic.run_gate: no lib/section queries (the TOML declares the structure); pdfinfo is read once (run_memo)
+    "academic": {**_COMMON, "typst query": (0, 0), "pdfinfo": (1, 1), "pdftoppm": (1, 1)},
 }
 # Peak of Python-side allocations in KiB, measured on the gate after a warm-up (stable on Python 3.11 and 3.15, with or
 # without pikepdf): 1559 KiB 1 page, 1729 KiB 2 pages, 953 KiB academic (verify_academic.run_gate). Bound = 1.5 x measured.
