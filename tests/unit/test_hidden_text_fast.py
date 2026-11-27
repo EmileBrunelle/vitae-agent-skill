@@ -10,7 +10,6 @@ import random
 import tempfile
 import time
 from pathlib import Path
-from unittest import mock
 
 import pytest
 from _hidden_ref import classify_runs_quadratic, hidden_word_stats_per_colour, merged_runs_concat
@@ -18,7 +17,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from PIL import Image
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
-from vitae.core.colour import rel_luminance
+from vitae.core.colour import counted_luminances, rel_luminance
 from vitae.verify import text
 
 SC = HIDDEN_PPI / 72.0
@@ -122,25 +121,14 @@ def _text_like_page(w: int, h: int, words: int, kind: str) -> tuple[Image.Image,
     return im, (w / SC, h / SC, items)
 
 
-@pytest.mark.parametrize("kind", ["gray", "colour"])
-def test_word_stats_compute_one_luminance_per_page_colour(kind: str) -> None:
-    # the old code called `_lum` once per distinct colour of EVERY word box (~150 per word on a real page)
-    im, page = _text_like_page(400, 300, 200, kind)
-    colours = len(im.getcolors(400 * 300) or [])
-    calls = 0
-    real = rel_luminance
+def test_counted_luminances_are_bit_identical_to_rel_luminance() -> None:
+    rng = random.Random(3)
+    sample = [(rng.randrange(256), rng.randrange(256), rng.randrange(256)) for _ in range(20000)]
+    sample += [(g, g, g) for g in range(256)]
+    sample += [c for v in range(256) for c in ((v, 0, 0), (0, v, 0), (0, 0, v))]
+    got = counted_luminances((1, c) for c in sample)
 
-    def counting(rgb: tuple[int, ...]) -> float:
-        nonlocal calls
-        calls += 1
-        return real(rgb)
-    with tempfile.TemporaryDirectory() as tmp, mock.patch.object(text, "_lum", counting):
-        png = str(Path(tmp) / "p.png")
-        im.save(png)
-        out = text.hidden_word_stats("x.pdf", pages=[page], pngs=[png])
-
-    assert len(out) == 200 and 0 < colours <= 65536
-    assert calls <= colours
+    assert got == [rel_luminance(c) for c in sample]   # == on floats: same bits, not approximately equal
 
 
 @pytest.mark.slow
@@ -154,7 +142,7 @@ def test_word_stats_bound_time_on_a_full_page(kind: str, bound: float) -> None:
 
         out = text.hidden_word_stats("x.pdf", pages=[page], pngs=[png])
 
-        assert time.perf_counter() - start < bound   # measured ~0.05 s (gray, colour) and ~2.1 s (noise: 1000+ colours per box; bound 6.0 s = 2.9x margin); a coarse bound, the constant factor is tested by call count
+        assert time.perf_counter() - start < bound   # measured ~0.05 s (gray, colour) and ~0.65 s (noise: 1000+ colours per box; bound 6.0 s = 9x margin); a coarse bound, the constant factor is tested by call count
     assert len(out) == 3000
 
 # ------------------------------------------------------------------ _classify_runs

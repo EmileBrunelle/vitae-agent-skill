@@ -19,12 +19,10 @@ from functools import partial
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
-from vitae.core.colour import contrast_from_lum
-from vitae.core.colour import rel_luminance as _lum
+from vitae.core.colour import contrast_from_lum, counted_luminances, rel_luminance
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
-from vitae.core.pixels import colour_counts
 from vitae.verify.lang import _is_latin, _strip_latin_marks
 from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png, pdf_unreadable
 
@@ -215,19 +213,16 @@ KEYWORD_MAX_TERMS = 15
 META_MAX_CHARS = 200
 
 
-def _contrast_in_box(crop: Image.Image, lums: dict[tuple[int, ...], float]) -> float:
+def _contrast_in_box(crop: Image.Image) -> float:
     """Contrast ratio of a crop: its background (most common colour; a tie goes to the larger colour) against the
     strongest colour in it. Contrast against a fixed background rises with the distance of a luminance from it, so
-    the strongest colour is the darkest or the lightest one: two luminances, not one per colour. `lums` memoises the
-    luminance of each colour met so far (a text page has a few hundred: black, white, their antialiasing blends)."""
-    cols = colour_counts(crop, crop.width * crop.height)
-    values = []
-    for _, c in cols:
-        lum = lums.get(c)
-        if lum is None:
-            lum = lums[c] = _lum(c)
-        values.append(lum)
-    lb = lums[max(cols)[1]]
+    the strongest colour is the darkest or the lightest one: two luminances, not one per colour. Luminances come
+    from the per-channel tables of `counted_luminances` (a noisy box holds over a thousand colours)."""
+    cols = crop.getcolors(crop.width * crop.height) or []
+    if cols and not isinstance(cols[0][1], tuple):   # one band: Pillow gives a bare number per colour
+        raise ValueError(f"_contrast_in_box needs a multi-band image, got {crop.mode!r}")
+    values = counted_luminances(cols)
+    lb = rel_luminance(max(cols)[1])
     return max(1.0, contrast_from_lum(min(values), lb), contrast_from_lum(max(values), lb))
 
 
@@ -259,7 +254,6 @@ def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] 
     raster is available."""
     pages = _bbox_pages(pdf) if pages is None else pages
     out: list[HiddenStat] = []
-    lums: dict[tuple[int, ...], float] = {}
     for pno, (pw, ph, items) in enumerate(pages or [], 1):
         im = _page_raster(pngs, pno)
         for box, word in items:
@@ -273,7 +267,7 @@ def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] 
             if im is not None:
                 xa, ya, xb, yb = _word_pixels(box, im)
                 if xb > xa and yb > ya:
-                    ratio = _contrast_in_box(im.crop((xa, ya, xb, yb)), lums)
+                    ratio = _contrast_in_box(im.crop((xa, ya, xb, yb)))
                 elif not off:
                     ratio = 1.0   # the whole box rounds to nothing: no ink can be there
             out.append((pno, word, box, y1 - y0, ratio, off))
