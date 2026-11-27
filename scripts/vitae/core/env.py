@@ -199,7 +199,7 @@ def check_pikepdf() -> None:
     need = ".".join(map(str, MIN_VERSION))
     if not _importable("pikepdf"):
         print(f"INFO  pikepdf not installed (optional, >= {need}): compiled PDFs keep Typst's literal strings, which PHP's "
-              "smalot/pdfparser can truncate. `pip install pikepdf` or `sudo dnf install python3-pikepdf`")
+              "smalot/pdfparser can truncate. `uv run` installs it; or `pip install 'pikepdf>=10.8.0'` or `sudo dnf install python3-pikepdf`")
         return
     try:
         ver = importlib.metadata.version("pikepdf")

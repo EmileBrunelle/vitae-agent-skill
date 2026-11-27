@@ -1,5 +1,5 @@
 # Optional runtime dependency, not required (PEP 735 group: this repo is a skill, not a package, so it has no [project] table).
-# `pip install --group pdf` (pip 25.1+) or `uv pip install --group pdf`. 10.8.0 is what Fedora ships (python3-pikepdf); the
+# `uv run scripts/verify.py` installs it from the scripts' PEP 723 blocks; elsewhere `pip install "pikepdf>=10.8.0"`, or `pip install --group pdf` (pip 25.1+) for dev venvs. 10.8.0 is what Fedora ships (python3-pikepdf); the
 # post-step in scripts/vitae/verify/hexstrings.py was run on that version.
 [dependency-groups]
 pdf = ["pikepdf>=10.8.0"]

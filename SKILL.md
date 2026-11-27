@@ -2,7 +2,7 @@
 name: vitae
 description: Build ATS- and human-optimized résumés/CVs in Typst — exact page control (1-page and 2-page versions), no section ever split across pages, measured page fill, machine-parseable layout, regional and multilingual conventions, adversarial review loop, optional job-search guide. Also builds academic CVs (the exhaustive multi-page genre — publications, funding, teaching, supervision, service) with its own template and gate. Use when the user asks to create, redesign, improve, translate, or tailor a CV/résumé or an academic CV, or to evaluate one against a job posting.
 license: MIT
-compatibility: Python 3.11+, dependencies declared inline (PEP 723); `uv run scripts/verify.py` installs them, else pip install typst pypdfium2 Pillow pypdf. typst CLI 0.15+ optional (typst-py is the fallback). poppler-utils (pdftotext, pdfinfo) optional, text extraction and the text-clip gate run on pypdfium2; only academic mode needs it. LibreOffice/soffice optional, only for .docx/.odt copies. `scripts/verify.py --doctor` diagnoses.
+compatibility: Python 3.11+, dependencies declared inline (PEP 723); `uv run scripts/verify.py` installs them, else pip install typst pypdfium2 Pillow pypdf. pikepdf optional (auto with uv, fixes PDF parentheses for PHP parsers). typst CLI 0.15+ optional (typst-py is the fallback). poppler-utils (pdftotext, pdfinfo) optional, text extraction and the text-clip gate run on pypdfium2; only academic mode needs it. LibreOffice/soffice optional, only for .docx/.odt copies. `scripts/verify.py --doctor` diagnoses.
 metadata:
   author: EmileBrunelle
   version: "0.11.0"

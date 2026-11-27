@@ -5,7 +5,7 @@ Typst writes each TJ string as a PDF literal string whose 2-byte glyph codes can
 loses whole headings. pikepdf's content-stream serializer re-serialises every string so that each parenthesis is
 escaped (`(a\\(b\\)c)`) or the string is hex (`<...>`, for non-printable bytes), which every parser reads the same way. Text, rendering, links, outline, /Lang and XMP are unchanged (measured on 51 PDFs).
 
-pikepdf is optional: without it, or when the file cannot be rewritten, the PDF is left untouched. Running the
+pikepdf is optional (`uv run` installs it from the scripts' PEP 723 blocks; else `pip install "pikepdf>=10.8.0"`): without it, or when the file cannot be rewritten, the PDF is left untouched. Running the
 step twice changes nothing the second time (the rewritten bytes are a fixed point of the serializer).
 Streams rewritten: page /Contents, Form XObjects and tiling patterns (/PatternType 1). Type3 CharProcs are not
 (Typst does not emit text there). Floor: pikepdf 10.8.0 (python3-pikepdf on Fedora; older versions are skipped); only `open`, `parse_content_stream`, `unparse_content_stream`,
