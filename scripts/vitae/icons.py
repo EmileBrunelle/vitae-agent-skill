@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # AGENT: do not read this file — run it. Its printed output is the instruction.
 # Usage: python3 scripts/harvest_icons.py <cv folder>   (writes <cv folder>/icons.typ)
 # (Reading it wastes context: a small model read a sibling script 3 times and never wrote the CV.)
@@ -252,7 +251,3 @@ def main() -> None:
     elif got != len(ICONS):
         print("ICONS: the default kit is complete; only the optional phosphor/bootstrap "
               "kits are missing (used only if a template asks for them).", file=sys.stderr)
-
-
-if __name__ == "__main__":
-    main()

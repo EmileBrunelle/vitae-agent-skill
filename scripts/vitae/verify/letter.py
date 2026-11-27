@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Two binary gates for a cover letter — nothing else. A letter is prose, not
 a CV: verify.py's fill/separation/ink thresholds are calibrated for a
 data-dense résumé page and mean nothing on a paragraph of text, so this
@@ -133,7 +132,3 @@ def main() -> None:
     if ok:
         print("PASS  all gates hold")
     sys.exit(0 if ok else 1)
-
-
-if __name__ == "__main__":
-    main()

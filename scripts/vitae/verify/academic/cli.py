@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Five binary gates for an academic CV — a round-trip between the declared
 TOML data file (source of truth for counts/order) and the rendered PDF
 (`pdftotext -layout`). See academic-mode.md for the design rationale; the
@@ -116,7 +115,3 @@ def main() -> None:
 def run() -> None:
     """Entry point: main(), under cProfile when `--profile` is given (maintainers; see CONTRIBUTING.md)."""
     profiling.run(main, profiling.take_flag())
-
-
-if __name__ == "__main__":
-    run()

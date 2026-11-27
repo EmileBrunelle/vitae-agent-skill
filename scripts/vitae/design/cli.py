@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # AGENT: do not read this file — run it. Its printed output is the instruction.
 # Usage: python3 scripts/pick_design.py --name "<candidate>" --field <field> --market <market> --init <cv folder>
 # (Reading it wastes context: a small model read a sibling script 3 times and never wrote the CV.)

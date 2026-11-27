@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Measure vertical ink coverage of rendered CV pages.
 
 Usage:
@@ -180,7 +179,3 @@ def main() -> None:
             med = statistics.median(runs_sorted)
             print(f"  gaps: median {med}px, biggest {runs_sorted[-3:]}px "
                   f"({runs_sorted[-1] / h * 100:.1f}% of page height)")
-
-
-if __name__ == "__main__":
-    main()

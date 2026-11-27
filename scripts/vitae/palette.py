@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate a harmonised mini-palette for one CV, and validate every contrast.
 
 A CV accent is never a lone hue: it comes with a muted variant for decorative
@@ -374,7 +373,3 @@ def main() -> None:
         print(typst(p) if a.typst else report(p))
     else:
         sys.exit(__doc__)
-
-
-if __name__ == "__main__":
-    main()

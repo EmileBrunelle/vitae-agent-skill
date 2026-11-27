@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # AGENT: do not read this file — run it. Its printed output is the instruction.
 # Usage: python3 scripts/verify.py <cv.typ> PAGES [FILL_MIN FILL_MAX]
 #        python3 scripts/verify.py --tune <cv.typ> PAGES FILL_MIN FILL_MAX
@@ -263,7 +262,3 @@ def _run() -> None:
     if footer and rc != 0:
         print(footer, flush=True)
     sys.exit(rc)
-
-
-if __name__ == "__main__":
-    _run()
