@@ -93,6 +93,17 @@ def _check_typst_cli(ver: str) -> tuple[bool, bool]:
     return True, True
 
 
+def _use_api_for_old_cli(cli_ver: str, mod: ModuleType | None, api_ver: str) -> bool:
+    """The typst CLI on PATH is older than PDF/UA-1 support: print why, and return True when a working Python API
+    new enough to write it takes over (the BROKEN lines otherwise)."""
+    if mod is None or _ver_tuple(api_ver) < TYPST_STANDARDS_MIN:
+        _before_pdf_standards(cli_ver, "CLI")
+        return False
+    print(f"DEGRADED  typst {cli_ver} (CLI): too old for PDF/UA-1 + PDF/A-2a, so the Python API (typst {api_ver}) is used instead.")
+    print("  To use the CLI again: brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
+    return True
+
+
 def check_typst() -> tuple[bool, bool]:
     """Doctor lines for typst; returns (available, use_cli). The CLI is preferred, the Python API is the fallback and
     is judged by running it, not by its attributes. Older than TYPST_MIN, or a Python API without query/fonts, is
@@ -104,12 +115,8 @@ def check_typst() -> tuple[bool, bool]:
             return _check_typst_cli(cli_ver)
         cli_old = cli_ver
     mod, ver, why, full = _typst_py_probe()
-    if cli_old:
-        if mod is None or _ver_tuple(ver) < TYPST_STANDARDS_MIN:
-            _before_pdf_standards(cli_old, "CLI")
-            return False, False
-        print(f"DEGRADED  typst {cli_old} (CLI): too old for PDF/UA-1 + PDF/A-2a, so the Python API (typst {ver}) is used instead.")
-        print("  To use the CLI again: brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
+    if cli_old and not _use_api_for_old_cli(cli_old, mod, ver):
+        return False, False
     if mod is None and why.startswith("TOOLOLD"):
         print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
         print("  Upgrade it: pip install typst==0.15.2   # or install the CLI (brew install typst | cargo install typst-cli)")
