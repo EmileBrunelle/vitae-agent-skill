@@ -30,6 +30,10 @@ Run from the repository root (needs `typst`, `pdftotext`, Python 3 with Pillow, 
    npx skills-ref validate .
    ```
 
+### Profiling a gate (local)
+
+`python scripts/verify.py --profile cv.typ 1 94 96` (and `scripts/verify_academic.py --profile cv.typ data.toml`) runs the gate under cProfile and prints the 15 functions with the largest cumulative time on stderr after the usual lines; stdout and the exit code are unchanged. Maintainer tool: it is not in the usage text and no step of the skill mentions it.
+
 ### Mutation testing (local, not in CI)
 
 `pip install mutmut` (3.8.1 used; into any env, it is not a dependency of the skill), then from the repository root (the wrapper is bash: WSL on Windows):

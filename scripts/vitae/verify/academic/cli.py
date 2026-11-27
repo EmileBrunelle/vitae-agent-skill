@@ -44,6 +44,7 @@ import shutil
 import sys
 from typing import NoReturn
 
+from vitae.core import profiling
 from vitae.core.env import preflight
 from vitae.core.level import Level
 from vitae.verify.academic.gate import run_gate
@@ -112,5 +113,10 @@ def main() -> None:
     sys.exit(0)
 
 
+def run() -> None:
+    """Entry point: main(), under cProfile when `--profile` is given (maintainers; see CONTRIBUTING.md)."""
+    profiling.run(main, profiling.take_flag())
+
+
 if __name__ == "__main__":
-    main()
+    run()
