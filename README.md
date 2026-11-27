@@ -93,6 +93,7 @@ Platform notes:
 - **Windows** (baseline: Windows 11+, up to date): `python scripts\verify.py --doctor` runs directly; typst via `winget install --id Typst.Typst`; poppler via `choco install poppler` or `scoop install poppler`. Elsewhere, `python3 scripts/verify.py`.
 - **pip-only environments** (no package manager, no admin rights): `pip install typst pypdfium2 Pillow pypdf` covers everything except academic mode (which needs poppler): it compiles the PDF (`typst` via its Python API), measures page fill, renders page PNGs, and runs the date-adjacency, group-proximity, hidden-text and text-clip gates (`pypdfium2` for page counts, word boxes and rendering, `pypdf` for the tiny-text check), and `python3 scripts/verify.py --doctor` prints `OK (Python)`; ATS text extraction is indicative only. With `pypdf` alone (no `pypdfium2`) those four gates are skipped (WARN) and `--doctor` prints `DEGRADED` and names them. For poppler-grade extraction (and academic mode), install `poppler-utils` (or `poppler`) with the system package manager; `pip install typst==0.15.2` gives typst (Python API) without root (`--user` or a venv). Run `python3 scripts/verify.py --doctor` for install hints (see [`references/steps/0-env.md`](references/steps/0-env.md)); see [`references/ats.md`](references/ats.md) for the known pypdf caveat.
 - **Tested agents and models**: see [`docs/models.md`](docs/models.md) for the verdict per platform (n=1 runs), the offline-sandbox and zip-import notes.
+- **PDF text extractors**: see [`docs/extractors.md`](docs/extractors.md) for measured behaviour per engine and mode on résumés (ATS parsing, OCR fallback, RTL).
 
 ## Layout
 
@@ -124,7 +125,7 @@ scripts/                      # Python, stdlib-first
   gen_palette.py              #   contrast-validated palettes
   harvest_icons.py            #   fetches icon paths into the CV folder's icons.typ at build time
 tests/                        # integration/ (gate suite), unit/, backend_equiv.py, fixtures
-docs/                         # sources.md, models.md (tested agents and models)
+docs/                         # sources.md, models.md (tested agents and models), extractors.md (PDF extractor behaviour)
 assets/                       # README example image, badges, family previews
 ```
 
