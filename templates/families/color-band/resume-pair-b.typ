@@ -41,7 +41,7 @@
 // failed, leaving the URL as plain text.
 #import "../../lib.typ": marks, nb, contact, ghost, drawn-marker, list-marker, workday, wd-section, wd-page, entry as wd-entry, srow, masthead
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
-#let rhythm = 1.000
+#let rhythm = 0.987
 #let mk = marks(ic-col)
 // the hand-drawn pin/phone follow the marks' all-or-nothing rule (no mixed row)
 #let ic-on(g) = if mk.mail == none { ghost } else { g }
@@ -49,7 +49,7 @@
 #set page(paper: "us-letter", margin: (x: 1.5cm, top: 1.2cm, bottom: 1.2cm))
 #set page(..wd-page) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.569em, spacing: 0.619em)
+#set par(justify: false, leading: 0.569em, spacing: 0.611em)
 
 // device: heading reversed out of a solid accent bar, no rules at all
 #let section(t, body, airy: false) = block(breakable: false,
@@ -73,20 +73,19 @@
   brk: true, brk-gap: 2pt * rhythm, above: auto, below: 0pt)
 
 #set list(marker: list-marker("dot", accent2, bold: true), indent: 10pt,
-  spacing: 0.758em, body-indent: 6pt)
+  spacing: 0.748em, body-indent: 6pt)
 
 // header: full-width accent band (page 1 only) — lib.typ `masthead` grows with the text
 #masthead(accent, rhythm: rhythm)[
   #text(font: dispf, size: 24pt, weight: "bold", fill: white)[Firstname Lastname]
   #v(-4pt)
   #text(size: 10.5pt, fill: white, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
-  #v(-4pt)
+  #v(0pt)
   #text(size: 9pt, fill: white)[
     #contact(ic-on(ic-pin))[\[City, Region\]]
     #h(6pt) #contact(ic-on(ic-tel))[#link("tel:+15555550100")[(555) 555-0100]]
     #h(6pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]]
-    #h(6pt) #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(6pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #h(6pt) #contact(mk.web)[\[profile or portfolio — only if in the facts\]]
   ]
 ]
 
@@ -161,6 +160,7 @@ with the field's key terms in *bold*.]
 ]
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// Optional section: keep it only per the Languages rule in references/steps/4-draft.md, otherwise delete it.
 #section("Languages")[
 [Language] ([level as stated]) #h(8pt)#drawn-marker("dot", accent2)#h(8pt) [Language] ([level as stated])
 ]

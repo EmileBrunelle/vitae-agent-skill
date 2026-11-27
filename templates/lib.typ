@@ -421,7 +421,7 @@
 // specline — the SPECIALITIES LINE: the mastered skills the facts support, set under the
 // name/title in the header, before the profile. Two independent real CVs
 // converged on this device; what it buys is that the 30-second scan gets the
-// stack before it gets the prose, and retailoring per application becomes one
+// skills before it gets the prose, and retailoring per application becomes one
 // line to edit.
 //
 // It is a FAMILY TRAIT, never universal — a device on all thirteen families is
@@ -558,8 +558,8 @@
 //
 // The generator always writes the file, even when the network fails — then
 // with empty strings. Empty body => `pmark` draws nothing => the contact line
-// keeps the URL it already carries in plain text (linkedin.com/in/handle,
-// github.com/handle), and the CV stays valid and ATS-readable. Typst has no
+// keeps the URL it already carries in plain text (the profile or portfolio
+// address from the facts), and the CV stays valid and ATS-readable. Typst has no
 // "if this file exists", which is exactly why the file is unconditional.
 //
 // The marks are vector and emit NO text (verified at the gate in every family)
@@ -588,7 +588,7 @@
     format: "svg", height: h))
 }
 
-// One call per family: `#let mk = marks(ic-col)` then `nb(mk.li, [..])`.
+// One call per family: `#let mk = marks(ic-col)` then `nb(mk.web, [..])`.
 // The email/phone/pin/website glyphs come in three kits so the small marks
 // stop being a shared fingerprint of the tool; pick_design.py draws one per
 // candidate. LinkedIn/GitHub stay the same in every kit — a brand logo is a

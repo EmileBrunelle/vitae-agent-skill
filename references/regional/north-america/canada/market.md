@@ -8,6 +8,7 @@ Loaded on demand when the target market is Canada. The files that go with it are
 - **CV language:** not covered here (not checked); see [`north-america/common.md`](../common.md)
 - **Personal data:** not covered here (not checked); see [`north-america/common.md`](../common.md)
 - **Length:** not covered here (not checked); see [`north-america/common.md`](../common.md)
+- **Spelling (English CV):** "colour", "centre" (-our, -re); "licence" (noun) / "license" (verb); -ize ("organize") (CIHR, « CIHR English Style Guide », June 2021, consulted 2026-11-26, S657; a federal-agency guide, no CV-specific rule)
 - **Protected titles:** "engineer" / « ingénieur » and designations are reserved in all provinces; for "software engineer" the safest default is "software developer" (details below)
 - **Québec and francophone Canada:** Québec target, Québec credentials and French CVs outside Québec each have their own file (see the Québec section below)
 

@@ -33,6 +33,10 @@ _SAMPLES = (
 _ANY_SPAN = re.compile(r"\[([^\[\]]{3,80})\]")   # capped: a stray `[` far from a `]` is not one span
 
 
+# Samples the templates no longer carry (a fixed handle invents a profile for a candidate who has none) but an
+# agent may still recopy from memory or an older folder: they stay a FAIL.
+_RETIRED_SAMPLES = ("linkedin.com/in/handle", "github.com/handle")
+
 _SCRATCH_PREFIXES = ("_raw", "_drawn")
 
 _FOLD = str.maketrans({"\u2019": "'", "\u2018": "'", "\u201c": '"', "\u201d": '"', "*": None, "_": None})
@@ -93,6 +97,8 @@ def placeholders_from(templates: Path) -> tuple[str, ...]:
 def check_placeholders(ctx: VerifyContext, templates: Path = TEMPLATES) -> list[Finding]:
     flat = _fold(ctx.txt)
     known = placeholders_from(templates)
+    if known:
+        known = tuple(sorted({*known, *_RETIRED_SAMPLES}, key=lambda s: (-len(s), s)))
     out: list[Finding] = []
     if not known:
         known = _FALLBACK

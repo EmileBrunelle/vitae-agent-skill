@@ -100,8 +100,7 @@
     #text(size: 9pt, fill: muted)[
       #contact(none)[\[City, Region\]] #h(7pt) #contact(none)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)
       #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
-      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
-      #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+      #contact(mk.web)[\[profile or portfolio — only if in the facts\]]]
   ]
 ]
 

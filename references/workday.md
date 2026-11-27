@@ -1,10 +1,10 @@
 # Workday (myworkdayjobs) — measured résumé-parser behaviour
 
-Measured 2026-10-28 on two tenants. Main series on the first (a Canadian financial institution, `wd10` host): test uploads of the same CV (baseline T0, variants A-F, then single-variable variants); the final recipe was then re-uploaded unchanged on a second tenant (another Canadian financial institution, whose form has no Education section). Same caveat as the ATS notes in [`ats.md`](ats.md): post-upload checklist, no `verify.py` gate. Overlap with the Eightfold section of [`ats.md`](ats.md) is deliberate (same family of defects, different fixes).
+Measured 2026-10-28 on two tenants. Main series on the first (a financial institution, `wd10` host): test uploads of the same CV (baseline T0, variants A-F, then single-variable variants); the final recipe was then re-uploaded unchanged on a second tenant (another financial institution, whose form has no Education section). Same caveat as the ATS notes in [`ats.md`](ats.md): post-upload checklist, no `verify.py` gate. Overlap with the Eightfold section of [`ats.md`](ats.md) is deliberate (same family of defects, different fixes).
 
 ## Scope and version
 
-- `wdN` in the URL is the data-centre pod (WD10 = Canada), NOT a product version. Workday is single-version SaaS with two releases a year, so the parser should be the same for every employer.
+- `wdN` in the URL is the data-centre pod (the number maps to a data-centre region), NOT a product version. Workday is single-version SaaS with two releases a year, so the parser should be the same for every employer.
 - Form configuration (required fields, degree picklist contents) does vary per employer. Expect the parse to match; expect the form around it to differ.
 - 2 tenants measured: the recipe parsed identically on the second, so treat it as product behaviour, not tenant configuration. Re-test when a new release lands.
 

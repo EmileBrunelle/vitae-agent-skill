@@ -24,7 +24,7 @@
 #let accent = rgb("#7d2231")
 #let font = ("Carlito", "Noto Sans", "Liberation Sans")
 #let name = "Firstname Lastname"
-#let contact = "me@example.com · (555) 555-0100 · [City, Region] · linkedin.com/in/handle"
+#let contact = "me@example.com · (555) 555-0100 · [City, Region] · [profile or portfolio — only if in the facts]"
 
 // ---------- Letterhead (~2.5cm) ----------
 #set page(paper: "us-letter", margin: (x: 2.7cm, top: 2.2cm, bottom: 2.2cm))

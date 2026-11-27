@@ -70,8 +70,7 @@
      #v(-3pt)
      #text(size: 9pt, fill: muted)[#contact(mk.pin)[\[City, Region\]] #h(7pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]]
        #h(7pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
-       #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
-       #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]],
+       #contact(mk.web)[\[profile or portfolio — only if in the facts\]]]],
   )
 ]
 
@@ -144,6 +143,7 @@
 ]
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// Optional section: keep it only per the Languages rule in references/steps/4-draft.md, otherwise delete it.
 #section("Languages")[
 [Language] ([level as stated]) #h(8pt)#drawn-marker("dot", accent)#h(8pt) [Language] ([level as stated])
 ]

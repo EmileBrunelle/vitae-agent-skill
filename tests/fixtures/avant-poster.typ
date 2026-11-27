@@ -122,14 +122,13 @@
     #contact(ic.pin)[\[City, Region\]] #h(14pt)
     #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(14pt)
     #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(14pt)
-    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(14pt)
-    #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+    #contact(mk.web)[\[profile or portfolio — only if in the facts\]]]
 ]
 
 // SECTION ORDER (this family's default): the narrative-led skeleton — profile,
 // then the full chronology, then EDUCATION BEFORE SKILLS, with the skills row
 // block near the end. The specialities line in the header already carries the
-// stack for the 30-second scan, so the detailed skills block does not need to
+// skills for the 30-second scan, so the detailed skills block does not need to
 // come first. A target market's own convention wins over this default
 // (references/regional.md).
 

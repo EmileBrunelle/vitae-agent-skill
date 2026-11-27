@@ -8,7 +8,7 @@
 // unbreakable mark+value box, platform marks, generic icon sets, specialities).
 #import "../../lib.typ": *
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
-#let rhythm = 1.000
+#let rhythm = 0.996
 #let accent = rgb("#b3261e")    // hue A — the monogram block + the specialities line
 #let accent2 = rgb("#0f4c5c")   // hue B — the dates, the markers, the icons
 // DUOTONE family (core.md § Duotone): the pair is validated together —
@@ -37,7 +37,7 @@
 #set page(paper: "us-letter", margin: (x: 1.6cm, top: 1.3cm, bottom: 1.3cm))
 #set page(..wd-page-x(1.6cm)) if workday
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.529em, spacing: 0.619em)
+#set par(justify: false, leading: 0.529em, spacing: 0.617em)
 
 // DEVICE: the title KNOCKED OUT of a hard black slab, the slab only as wide as
 // its own title — nothing full-width anywhere in the document. Square corners,
@@ -109,7 +109,7 @@
 // List marker: a hard-bordered SQUARE OUTLINE, drawn (emits no text). Nobody
 // else uses an outlined marker — mono-technical's is filled.
 #set list(marker: bullet-marked(box(width: 4pt, height: 4pt, baseline: -0.5pt,
-    stroke: 1pt + accent2)), indent: 10pt, spacing: 0.732em, body-indent: 7pt)
+    stroke: 1pt + accent2)), indent: 10pt, spacing: 0.729em, body-indent: 7pt)
 
 // HEADER: MONOGRAM + TWO ZONES. A hard-bordered square holds the initials
 // reversed out of hue A, the name sits beside it, then the specialities line
@@ -126,7 +126,6 @@
      #h(9pt)
      #box(baseline: 12pt)[
        #text(font: dispf, size: 25pt, weight: "bold")[Firstname Lastname] \
-       #v(-5pt)
        #text(font: monof, size: 9pt, fill: muted)[[Target title, as in the facts or posting] — [Degree, if the facts state it]]]],
     [], cols: (auto, 1fr), gutter: 0pt,
     align-cells: (left + top, left + top), above: 0pt, below: 5pt * rhythm)
@@ -143,8 +142,7 @@
     #contact(ic.pin)[\[City, Region\]] #h(7pt)
     #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(7pt)
     #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
-    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
-    #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+    #contact(mk.web)[\[profile or portfolio — only if in the facts\]]]
 ]
 
 // SECTION ORDER (this family's default): SKILLS SECOND, straight after the
@@ -159,14 +157,14 @@
 // the facts; no trait sentence.
 
 // Tip: #box[*[term]*] keeps a fragile token unbroken.
-#section("Profile")[
+#section("Professional Summary")[
 [Role and field, as the facts state them.] [Strongest verifiable fact from the
 facts, with its number if the facts give one.] [One sentence the facts support,
 with the field's key terms in *bold*.]
 ]
 
 // ---------- Skills: a few rows, one per category the facts support, items as the facts word them (no gloss, no expansion); fewer rows when facts are thin ----------
-#section("Technical Stack")[
+#section("Expertise")[
 #skill("[Category from the facts]", "[item], [item], [item], [item], [item]")
 #skill("[Category from the facts]", "[item], [item], [item], [item], [item], [item]")
 #skill("[Category from the facts]", "[item], [item], [item], [item]")
@@ -213,6 +211,7 @@ with the field's key terms in *bold*.]
 ]
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// Optional section: keep it only per the Languages rule in references/steps/4-draft.md, otherwise delete it.
 #section("Languages")[
 [Language] ([level as stated])\u{2002}#box[#text(fill: accent2)[|]\u{2002}[Language]] ([level as stated])
 ]

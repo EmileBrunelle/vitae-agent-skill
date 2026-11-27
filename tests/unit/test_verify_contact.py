@@ -132,10 +132,10 @@ def test_a_verify_runs_one_typst_query_for_all_labels(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("rel", ["resume.typ", "families/engraved-card/resume.typ"])
 def test_every_header_contact_item_is_tagged(tmp_path, rel):
-    """City, phone, mail, LinkedIn, GitHub: five tagged items, so a wrap of any of them is seen."""
+    """City, phone, mail, profile or portfolio: four tagged items, so a wrap of any of them is seen."""
     from vitae.verify.groups.query import _typst_values
     vals = _typst_values(str(TEMPLATES / rel), "<vitae-contact>", str(ROOT))
-    assert vals is not None and len(vals) == 5
+    assert vals is not None and len(vals) == 4
 
 
 def test_contact_is_recognised_by_its_explicit_kind_only(tmp_path, monkeypatch):

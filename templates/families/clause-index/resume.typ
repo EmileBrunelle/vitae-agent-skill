@@ -138,7 +138,7 @@
     sep: [ · ])]],
     text(size: 9.5pt, fill: muted)[
       #contact-rows(2)#contact(ic.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(8pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] \
-      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(8pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+      #contact(mk.web)[\[profile or portfolio — only if in the facts\]]],
     row-gutter: 3pt * rhythm, gutter: 10pt,
   )
 ]
@@ -214,6 +214,7 @@ with the field's key terms in *bold*.]
 ]
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// Optional section: keep it only per the Languages rule in references/steps/4-draft.md, otherwise delete it.
 #section("Languages")[
 [Language] ([level as stated])\u{2002}#box[#drawn-marker("mid", ink)\u{2002}[Language]] ([level as stated])
 ]

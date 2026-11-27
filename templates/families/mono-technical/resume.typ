@@ -73,8 +73,7 @@
   #text(font: dispf, size: 8.5pt, fill: muted)[
     #contact(ic.pin)[\[City, Region\]] #h(6pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(6pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(6pt)
-    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(6pt)
-    #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+    #contact(mk.web)[\[profile or portfolio — only if in the facts\]]]
 ]
 
 // ---------- Profile ----------
@@ -130,13 +129,14 @@
 ]
 
 // ---------- Skills: a few rows, one per category the facts support, items as the facts word them (no gloss, no expansion); fewer rows when facts are thin ----------
-#section("Technical Stack")[
+#section("Technical Skills")[
 #skill("[Category from the facts]", "[item], [item], [item], [item], [item]")
 #skill("[Category from the facts]", "[item], [item], [item], [item], [item], [item]")
 #skill("[Category from the facts]", "[item], [item], [item], [item]")
 ]
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// Optional section: keep it only per the Languages rule in references/steps/4-draft.md, otherwise delete it.
 #section("Languages")[
 [Language] ([level as stated])\u{2002}#box[#drawn-marker("mid", accent2)\u{2002}[Language]] ([level as stated])
 ]

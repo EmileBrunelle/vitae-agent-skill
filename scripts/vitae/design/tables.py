@@ -95,7 +95,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#b3261e", "#8c3b00", "#72191f"],
         accents2=["#1f3a5f", "#0e6862", "#2f4858"],
         markers=["● (vector circle, hue B)", "•"],
-        labels=Labels(profile="Summary", skills="Technical Stack"),
+        labels=Labels(profile="Summary", skills="Skills"),
         header="full-bleed masthead bar, oversized name, specialities "
                "line, contacts on one line (NO diagonal)",
         photo_ok=True, conservative_ok=False,
@@ -112,7 +112,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#8c3b00", "#0e6862", "#3b3486", "#b3261e"],
         accents2=["#105a90", "#72191f", "#7d3312", "#1a6265"],
         markers=["▪", "•"],
-        labels=Labels(profile="Profile", skills="Technical Stack"),
+        labels=Labels(profile="Profile", skills="Expertise"),
         header="oversized hue-A name, role line, contacts on two wide-gap lines",
         photo_ok=False, conservative_ok=False,
         page=STD_PAGE, order=CHRONO, spec=True,
@@ -215,7 +215,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#b3261e", "#1e5631", "#3b3486"],
         accents2=["#0f4c5c", "#5c1f3a", "#8c3b00"],
         markers=["▫ (vector outlined square, hue B)", "▫"],
-        labels=Labels(profile="Profile", skills="Technical Stack"),
+        labels=Labels(profile="Professional Summary", skills="Expertise"),
         header="monogram block + name, then the specialities line, then one "
                "mono contact line",
         photo_ok=False, conservative_ok=False,
@@ -271,7 +271,7 @@ FAMILIES: dict[str, Family] = {
         accents=["#1f3a5f", "#33475b", "#0f4c5c", "#5b2a5e"],
         accents2=["#8f2d3f", "#8a2f2a", "#66291a", "#3c633a"],
         markers=["▪ (vector square, hue B)", "▪"],
-        labels=Labels(profile="Profile", skills="Technical Stack"),
+        labels=Labels(profile="Profile", skills="Technical Skills"),
         header="name, role, then one mono contact line",
         photo_ok=False, conservative_ok=False,
         # NOT STD_PAGE: the spec-sheet look needs a roomier measure than the

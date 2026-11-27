@@ -65,7 +65,7 @@
   #text(size: 11pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]
   #v(2pt * rhythm)
   // SPECIALITIES LINE — the skills the facts support, before the profile prose, so
-  // the 30-second scan gets the stack first and retailoring per application is
+  // the 30-second scan gets the skills first and retailoring per application is
   // one line. NO `tracking`: letterspacing extracts as "N E X T" and stops
   // matching. Each item boxed so none can break across a line end. Every item
   // is CONTENT — SKILL.md rule 2 applies to it in the most prominent position
@@ -77,8 +77,7 @@
   #text(size: 9pt, fill: muted)[
     #contact-rows(2)#contact(ic.pin)[\[City, Region\]] #h(9pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(9pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]
-    #h(9pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]
+    #contact(mk.web)[\[profile or portfolio — only if in the facts\]]
   ]
 ]
 

@@ -65,8 +65,7 @@
   #text(size: 8.5pt, fill: muted)[
     #contact(ic.pin)[\[City, Region\]] #h(7pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]]
     #h(7pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] #h(7pt)
-    #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(7pt)
-    #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]]
+    #contact(mk.web)[\[profile or portfolio — only if in the facts\]]]
   #v(3pt * rhythm)
   #text(font: dispf, size: 22pt, weight: "bold")[Firstname Lastname]
   #v(-4pt)

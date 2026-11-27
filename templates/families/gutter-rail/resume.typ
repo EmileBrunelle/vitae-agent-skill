@@ -217,8 +217,7 @@
     (contact(mk.pin, seg[\[City, Region\]]),
      contact(mk.phone, seg[#link("tel:+15555550100")[(555) 555-0100]]),
      contact(mk.mail, seg[#link("mailto:me@example.com")[me\@example.com]]),
-     contact(mk.li, seg[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]]),
-     contact(mk.gh, seg[#link("https://github.com/handle")[github.com/handle]])).join([#sym.space.quad])
+     contact(mk.web, seg[\[profile or portfolio — only if in the facts\]])).join([#sym.space.quad])
   }]
   #v(5pt * rhythm)
   #text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]
@@ -227,7 +226,7 @@
 ]
 
 // SECTION ORDER (this family's default): skills-forward hybrid — the profile,
-// then the stack, then the full reverse chronology. A target market's own
+// then the skills, then the full reverse chronology. A target market's own
 // convention wins over this default (references/regional.md).
 
 // ---------- Profile ----------
@@ -293,6 +292,7 @@ with the field's key terms in *bold*.]
 ]
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// Optional section: keep it only per the Languages rule in references/steps/4-draft.md, otherwise delete it.
 #section("Languages")[
 [Language] ([level as stated]) #box[#h(2.5pt)#box(width: 2pt, height: 6pt,
   fill: accent2, baseline: -0.9pt)#h(2.5pt);[Language]] ([level as stated])

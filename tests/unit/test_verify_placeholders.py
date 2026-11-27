@@ -103,7 +103,7 @@ def test_gate_is_registered():
 def test_list_is_read_off_the_templates():
     found = placeholders.placeholders_from(TEMPLATES)
     for expected in ("[Role]", "[YYYY]", "[, outcome, if stated]", "Firstname Lastname", "me@example.com",
-                     "(555) 555-0100", "linkedin.com/in/handle", "github.com/handle"):
+                     "(555) 555-0100", "[profile or portfolio — only if in the facts]"):
         assert expected in found, expected
 
 
@@ -445,3 +445,35 @@ def test_bare_salutation_is_not_a_placeholder_but_its_bracketed_form_is(tmp_path
     assert placeholders.check_placeholders(bare, tmp_path) == []
     marked = _ctx(tmp_path, "Dear \\[Hiring Manager\\],", name="marked")
     assert [lvl for lvl, _ in placeholders.check_placeholders(marked, tmp_path)] == [Level.FAIL]
+
+
+# ------------------------------------------------- one generic profile placeholder, no invented handles
+PROFILE_PLACEHOLDER = "[profile or portfolio — only if in the facts]"
+_ESCAPED_PROFILE = PROFILE_PLACEHOLDER.replace("[", "\\[").replace("]", "\\]")
+ALL_TEMPLATE_FILES = sorted(p for p in TEMPLATES.rglob("*.typ") if not p.name.startswith(("_raw", "_drawn")))
+
+
+def test_profile_placeholder_left_in_a_cv_is_a_fail(tmp_path):
+    out = placeholders.check_placeholders(_ctx(tmp_path, f"Alix Bernard\n{_ESCAPED_PROFILE}"))
+    assert out[0][0] == Level.FAIL and "profile or portfolio" in out[0][1]
+
+
+def test_profile_placeholder_replaced_by_a_fact_passes(tmp_path):
+    ctx = _ctx(tmp_path, "Alix Bernard\nalix-bernard.example/portfolio")
+    assert placeholders.check_placeholders(ctx) == []
+
+
+def test_language_placeholder_left_in_a_cv_is_a_fail(tmp_path):
+    out = placeholders.check_placeholders(_ctx(tmp_path, "\\[Language\\] (\\[level as stated\\])"))
+    assert out[0][0] == Level.FAIL
+
+
+def test_profile_placeholder_is_read_off_the_templates():
+    assert PROFILE_PLACEHOLDER in placeholders.placeholders_from(TEMPLATES)
+
+
+@pytest.mark.parametrize("typ", ALL_TEMPLATE_FILES, ids=lambda p: str(p.relative_to(TEMPLATES)))
+def test_no_template_hardcodes_a_platform_handle(typ):
+    src = typ.read_text(encoding="utf-8")
+    assert "linkedin.com/in/handle" not in src
+    assert "github.com/handle" not in src

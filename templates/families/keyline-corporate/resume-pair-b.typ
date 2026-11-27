@@ -63,7 +63,7 @@
     [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]],
     [#text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
     text(size: 9pt, fill: muted)[#set par(leading: 0.42em); #contact-rows(2)#contact(ic.pin)[\[City, Region\]] #h(10pt) #contact(ic.tel)[#link("tel:+15555550100")[(555) 555-0100]] #h(10pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(18pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+      #contact(mk.web)[\[profile or portfolio — only if in the facts\]]],
     row-gutter: 6pt * rhythm,
   )
 ]
@@ -131,6 +131,7 @@
 ]
 
 // ---------- Languages: as the facts state them; "Bilingual" only if two are fluent/native ----------
+// Optional section: keep it only per the Languages rule in references/steps/4-draft.md, otherwise delete it.
 #section("Languages")[
 [Language] ([level as stated])\u{2002}#box[#drawn-marker("dot", accent)\u{2002}[Language]] ([level as stated])
 ]

@@ -1,10 +1,10 @@
 # Field pack: construction and skilled trades (common rules)
 
-Loaded on demand when the candidate targets site-based trade work (construction, industrial or maintenance trades). Read together with the jurisdiction file: Québec → [`quebec/trades.md`](../regional/north-america/quebec/trades.md), other Canadian provinces → [`canada/trades.md`](../regional/north-america/canada/trades.md), US → [`us/trades.md`](../regional/north-america/us/trades.md). Credential bodies in general: [`../certifications/rules.md`](../certifications/rules.md).
+Loaded on demand when the candidate targets site-based trade work (construction, industrial or maintenance trades). Read together with the jurisdiction's trades file (find it in [`regional.md`](../regional.md) § Market files). Credential bodies in general: [`../certifications/rules.md`](../certifications/rules.md).
 
 ## Scope
 
-Protected professional titles (ingénieur and others): [`../regional/north-america/quebec/market.md`](../regional/north-america/quebec/market.md).
+Protected professional titles: the target market file's Protected titles section (step 2).
 
 Every fact in the trades files is what the issuing body's own page says (consulted 2026-11-07). None of the pages read prescribes a CV format; Job Bank's general advice is that a résumé "should generally include details such as your contact information, objective, work experience, education and credentials" (Job Bank (Government of Canada), « How do I apply for a job? », consulted 2026-11-07, S334).
 
@@ -22,7 +22,7 @@ Every fact in the trades files is what the issuing body's own page says (consult
 - A machine is not a qualification.
 - Name equipment exactly as on the candidate's certificate.
 - Driver's licence: give the class and any mention exactly as on the licence when the job drives.
-- Forklift, OSHA 10/30-hour card or workplace first aid: [`../regional/north-america/workplace-safety.md`](../regional/north-america/workplace-safety.md). US commercial driver's licence (CDL): [`../regional/north-america/driving.md`](../regional/north-america/driving.md).
+- Forklift, site-safety cards, workplace first aid, commercial driving licence: the workplace-safety and driving files in [`regional.md`](../regional.md) § Market files.
 
 ## Exam is not the licence
 

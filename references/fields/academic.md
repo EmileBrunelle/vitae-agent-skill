@@ -14,7 +14,7 @@ An academic CV is exhaustive and cumulative, not curated: a career-spanning list
 
 ## Canonical sections
 
-Order below is the research-track default, most common in North America. Mandatory = **M**, optional = **o**.
+Order below is the research-track default; the market file overrides. Mandatory = **M**, optional = **o**.
 
 | # | Section | | Notes |
 |---|---|---|---|
@@ -60,7 +60,7 @@ Order below is the research-track default, most common in North America. Mandato
 - References often appear on the CV itself or on a separate page — the reverse of the European norm.
 - Research statement / teaching statement / diversity statement are **separate documents**, out of scope for the CV.
 
-**Not covered:** UK, DACH, and the rest of the world. Do not invent — the same rule [`regional.md`](../regional.md) already states applies here: if the market has no file, verify with a current source or ask, and label the assumption in the deliverable.
+**Not covered:** markets without an academic file. Do not invent — the same rule [`regional.md`](../regional.md) already states applies here: if the market has no file, verify with a current source or ask, and label the assumption in the deliverable.
 
 ## Funding agency formats: firm recommendation — do not target them
 
