@@ -64,16 +64,29 @@ NON_CV_RE = re.compile(
     re.IGNORECASE)
 
 
-def is_gated(typ: str) -> bool:
+def read_head(path: str) -> str | None:
+    """The first 4096 characters of a file (the window every marker and header is looked for in), or None when it cannot be read as UTF-8 text."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read(4096)
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def is_gated_head(typ: str, head: str | None) -> bool:
     """--all's rule: gate every .typ except known non-CV deliverables (guide,
-    letter, cover, lisez-moi, readme by name); a `// vitae:` header opts in."""
+    letter, cover, lisez-moi, readme by name); a `// vitae:` header opts in.
+    `head` is the file's `read_head` (None: unreadable), only consulted for a companion name."""
     if not NON_CV_RE.search(os.path.basename(typ)):
         return True
-    try:
-        with open(typ, encoding="utf-8") as fh:
-            return bool(HEADER_RE.search(fh.read(4096)))
-    except OSError:
-        return False
+    return head is not None and bool(HEADER_RE.search(head))
+
+
+def is_gated(typ: str) -> bool:
+    """`is_gated_head` on a path; an ordinary name never opens the file."""
+    if not NON_CV_RE.search(os.path.basename(typ)):
+        return True
+    return is_gated_head(typ, read_head(typ))
 
 
 # Both markers (and HEADER_RE in is_gated/check_all) are looked for in the first 4096 bytes:
@@ -82,7 +95,7 @@ ACADEMIC_MARKER = "// vitae-academic:"
 LETTER_MARKER = "// vitae letter template"
 
 
-def is_academic(path: str) -> bool:
+def is_academic_head(head: str | None) -> bool:
     """True for an academic CV, which this gate must NOT judge.
 
     An academic CV is a different genre: the atom is the ENTRY, not the
@@ -94,14 +107,15 @@ def is_academic(path: str) -> bool:
     `scripts/verify_academic.py`. The marker is a line-1 comment the academic
     template emits (templates/academic/cv.typ).
     """
-    try:
-        with open(path, encoding="utf-8") as fh:
-            return ACADEMIC_MARKER in fh.read(4096)
-    except OSError:
-        return False
+    return head is not None and ACADEMIC_MARKER in head
 
 
-def is_letter(path: str) -> bool:
+def is_academic(path: str) -> bool:
+    """`is_academic_head` on a path."""
+    return is_academic_head(read_head(path))
+
+
+def is_letter_head(head: str | None) -> bool:
     """True for a cover letter, which this gate must NOT judge either.
 
     A letter is prose with a letterhead, not a sectioned resume: it has ONE
@@ -118,11 +132,12 @@ def is_letter(path: str) -> bool:
     The marker is the template's own line 1 — nothing new to emit, and it
     travels with a delivered copy the way the family banner does.
     """
-    try:
-        with open(path, encoding="utf-8") as fh:
-            return LETTER_MARKER in fh.read(4096)
-    except OSError:
-        return False
+    return head is not None and LETTER_MARKER in head
+
+
+def is_letter(path: str) -> bool:
+    """`is_letter_head` on a path."""
+    return is_letter_head(read_head(path))
 
 
 def placeholders_allowed(typ: str) -> bool:
@@ -143,14 +158,18 @@ def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = 
     lib*.typ and icons*.typ are shared code, not deliverables; academic CVs and letters carry
     their own gates (`is_academic`, `is_letter`).
     """
-    typs = sorted(f for f in glob.glob(os.path.join(directory, "**", "*.typ"),
-                                       recursive=True)
-                  if not os.path.basename(f).startswith(("lib", "icons"))
-                  and not is_academic(f) and not is_letter(f))
-    for t in [t for t in typs if not is_gated(t)]:
+    heads: dict[str, str | None] = {}
+    for f in sorted(glob.glob(os.path.join(directory, "**", "*.typ"), recursive=True)):
+        if os.path.basename(f).startswith(("lib", "icons")):
+            continue
+        head = read_head(f)
+        if not is_academic_head(head) and not is_letter_head(head):
+            heads[f] = head
+    gated = {f: is_gated_head(f, h) for f, h in heads.items()}
+    for t in [t for t in heads if not gated[t]]:
         print(f"SKIP  {t}  (name matches a non-CV deliverable, no `// vitae:` header)")
-    skipped = len(typs) - len([t for t in typs if is_gated(t)])
-    typs = [t for t in typs if is_gated(t)]
+    typs = [t for t in heads if gated[t]]
+    skipped = len(heads) - len(typs)
     if not typs:
         print(f"{skipped} skipped, 0 checked" if skipped
               else f"no .typ found under {directory}")
@@ -158,8 +177,12 @@ def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = 
     fail = 0
     unchecked: list[str] = []
     for typ in typs:
-        with open(typ, encoding="utf-8") as fh:
-            m = HEADER_RE.search(fh.read(4096))
+        head = heads[typ]
+        if head is None:
+            print(f"\n=== {typ}\nFAIL  unreadable: the file could not be read as UTF-8 text")
+            fail = 1
+            continue
+        m = HEADER_RE.search(head)
         if m:
             args = [m.group(1)] + ([m.group(2), m.group(3)] if m.group(2) else [])
         else:

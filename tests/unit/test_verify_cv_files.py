@@ -995,6 +995,41 @@ def test_check_all_reads_only_the_first_4096_bytes_for_the_header(tmp_path, swee
     assert by_file == {"cv.typ": ["2"], "cv-2page.typ": ["2"]}
 
 
+def test_unreadable_file_in_the_sweep_is_reported_and_fails(tmp_path, capsys, sweep):
+    _w(tmp_path, "cv.typ", "// vitae: pages=1\n")
+    (tmp_path / "bad.typ").write_bytes(b"\xff\xfe\x00\xc3(")          # not UTF-8
+    assert cv.check_all(str(tmp_path)) == 1
+    out = capsys.readouterr().out
+    assert f"=== {tmp_path}/bad.typ\nFAIL  unreadable" in out
+    assert [c[2].rsplit("/", 1)[-1] for c in sweep[0]] == ["cv.typ"]       # the rest is still checked
+    assert out.rstrip().endswith("FAIL — see above")
+
+
+def test_unreadable_companion_is_skipped_not_gated(tmp_path, capsys, sweep):
+    _w(tmp_path, "cv.typ")
+    (tmp_path / "guide.typ").write_bytes(b"\xff\xfe\xc3(")
+    assert cv.check_all(str(tmp_path)) == 0
+    assert "SKIP  " in capsys.readouterr().out
+
+
+def test_check_all_opens_each_file_once(tmp_path, sweep, monkeypatch):
+    import builtins
+    _w(tmp_path, "cv.typ", "// vitae: pages=1\n")
+    _w(tmp_path, "guide.typ", "// vitae: pages=1\n")
+    _w(tmp_path, "plain.typ")
+    opened: list[str] = []
+    real_open = builtins.open
+
+    def spy(file, *a, **kw):
+        if str(file).endswith(".typ"):
+            opened.append(Path(str(file)).name)
+        return real_open(file, *a, **kw)
+
+    monkeypatch.setattr(builtins, "open", spy)
+    assert cv.check_all(str(tmp_path)) == 0
+    assert sorted(opened) == ["cv.typ", "guide.typ", "plain.typ"]
+
+
 # ---------- _leading_warn: silent cases and the printed numbers ----------
 
 def _lead_cv(tmp_path, body, banner=""):
