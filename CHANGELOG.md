@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Tests: the Cyrillic fixture (`tests/language/uk.typ`, `uk-facts.md`, the `cyrillic` sample family) is Ukrainian instead of Russian, so it also covers і ї є ґ and the apostrophe ʼ.
 - Removed the built-in `--selftest` modes (`verify.py`, `verify_academic.py`, `verify_letter.py`, `pick_design.py`, palette) and `scripts/vitae/selftest/`: their scenarios now live in `tests/` (pytest); `--doctor` remains the install check.
 - `references/ats.md`: RTL rule (Arabic/Hebrew extraction order differs by parser, so suggest a plain-text or form copy; Vazirmatn, not the Noto Arabic faces, which double letters in extraction).
 - Removed `scripts/look.py` (route 3 of the visual pass: a separate local vision model through an OpenAI-compatible API) with its tests, and the route-3 bench in `docs/models.md`: every common agent harness gets the PNGs to a vision model, so the script was dead weight. The visual pass stays mandatory and `references/look-checklist.md` (L1-L15) stays; routes are now self, subagent, user. The report lines `Visual pass:` and `Layout review:` no longer accept `other-model <model>`, and the review-record gate rejects `layout: other-model …`.
