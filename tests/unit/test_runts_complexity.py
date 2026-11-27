@@ -4,6 +4,7 @@ documents on a grid, with lines that share baselines, a sidebar and a left-hand 
 bullets, bullets that run on to the next page, and pages that do not exist), the layout is built once and shared by the
 runts and rhythm gates, and a page of hundreds of bullets stays fast (`slow`)."""
 import time
+from collections.abc import Callable
 
 import pytest
 from _pages import bullet, cv_page, head_mark
@@ -168,6 +169,26 @@ def test_a_bullet_on_a_page_outside_the_document_is_dropped_not_read_from_anothe
     moved = [bullet(m["y"], m["x"], page) for m in bullet_marks if "x" in m and "y" in m]
 
     assert runts.located_bullets(moved, [words], [800.0]) == []
+
+
+def test_the_content_bottom_of_a_column_is_read_once_for_all_its_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+    bottoms: list[int] = []
+    real_bottoms = runts._Document._lowest_per_page
+    monkeypatch.setattr(runts._Document, "_lowest_per_page", lambda self, col: bottoms.append(1) or real_bottoms(self, col))
+    pages: list[list[WordBox]] = [[((30.0, 118.0, 200.0, 127.0), "last line")] for _ in range(3)]
+    marks = [bullet(118.0, page=n) for n in (1, 2, 3)]
+
+    got = runts.located_bullets(marks, pages, [150.0] * 3)
+
+    assert got == located_bullets_rebuilding(marks, pages, [150.0] * 3) and len(got) == 3
+    assert len(bottoms) == 1
+
+
+@pytest.mark.parametrize("check", [runts.check_runts, rhythm.check_rhythm], ids=["runts", "rhythm"])
+def test_gates_warn_when_the_word_positions_are_unavailable(check: Callable[..., list[Finding]]) -> None:
+    out = check([bullet(10.0)], None, fail=_fail)
+
+    assert [lvl for lvl, _ in out] == [Level.WARN] and "word positions unavailable" in out[0][1]
 
 
 # ------------------------------------------------------------------ the declared size and the time
