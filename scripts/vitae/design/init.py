@@ -64,7 +64,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     selective imports and devices are untouched — a wholesale preamble swap
     would drop them: color-band keeps its own ic-* defs, avant-poster its `mx`)."""
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    fam, d, fp = p["family"], p["recipe"], FONTS[p["family"]]
+    fam, d, fp = p.family, p.recipe, FONTS[p.family]
     fdir = os.path.join(root, "templates", "families", fam)
     out = os.path.join(folder, "cv.typ")
     for _n in ("cv.typ", "lib.typ", "icons.typ"):
@@ -78,8 +78,8 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
                          "with --force to replace it)" % out)
     import shlex
     q = shlex.quote
-    body_c = _chain(fp["body"], p["body"], "body", p["have"])
-    disp_c = _chain(fp["display"], p["display"], "display", p["have"])
+    body_c = _chain(fp["body"], p.body, "body", p.have)
+    disp_c = _chain(fp["display"], p.display, "display", p.have)
 
     def head_names(src: str) -> tuple[re.Match[str] | None, re.Match[str] | None]:
         g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.MULTILINE)
@@ -91,8 +91,8 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
         if not os.path.exists(fpth):
             continue
         b, ds = head_names(Path(fpth).read_text(encoding="utf-8"))
-        score = (b is not None and b.group(1) == p["body"][0]) + \
-                (ds is not None and ds.group(1) == p["display"][0])
+        score = (b is not None and b.group(1) == p.body[0]) + \
+                (ds is not None and ds.group(1) == p.display[0])
         if score > best or (score == best and fn == "resume.typ"):
             pick_file, best = fn, score
     src = Path(os.path.join(fdir, pick_file)).read_text(encoding="utf-8")
@@ -114,10 +114,10 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
                     lambda mm: mm.group(1) + 'rgb("%s")' % val + mm.group(2))
         return (lead(name),
                 lambda mm: mm.group(1) + 'rgb("%s")' % val + (mm.group(2) or ""))
-    pat, afn = accent_line("accent", p["accent"])
+    pat, afn = accent_line("accent", p.accent)
     src = _sub1(src, pat, afn, "#let accent", fam)
-    if p["accent2"]:
-        pat, afn = accent_line("accent2", p["accent2"])
+    if p.accent2:
+        pat, afn = accent_line("accent2", p.accent2)
         src = _sub1(src, pat, afn, "#let accent2", fam)
     sub: Callable[[str], Callable[[re.Match[str]], str]] = lambda v: (lambda mm: mm.group(1) + v + (mm.group(2) or ""))
     src = _sub1(src, lead("bodyf"), sub(body_c), "#let bodyf", fam)
@@ -127,9 +127,9 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     else:
         src = _sub1(src, lead("dispf"), sub(disp_c), "#let dispf", fam)
         mono_pool = fp.get("mono")
-        if p["mono"] and mono_pool is not None:
+        if p.mono and mono_pool is not None:
             src = _sub1(src, lead("monof"), sub(
-                _chain(mono_pool, p["mono"], "mono", p["have"])),
+                _chain(mono_pool, p.mono, "mono", p.have)),
                 "#let monof", fam)
     if lang != "en" or region:            # worked files ship lang: "en"
         src, n_lang = re.subn(r'(#set text\([^\n]*?)lang: "en"',
@@ -145,16 +145,16 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
                     d["leading"], d["spacing"]) + mm.group(2),
                 "#set par", fam)
     src = _sub1(src, r'^(#let mk = marks\(ic-col)(\).*)$',
-                lambda mm: mm.group(1) + ', kit: "%s"' % p["markset"][0]
+                lambda mm: mm.group(1) + ', kit: "%s"' % p.markset[0]
                 + mm.group(2), "#let mk", fam)
-    if p["variant"]:                      # gutter-rail's square/pill axis
-        r = "2.5pt" if "pill" in p["variant"] else "0pt"
+    if p.variant:                      # gutter-rail's square/pill axis
+        r = "2.5pt" if "pill" in p.variant else "0pt"
         src = _sub1(src, r'^(#let seg-radius = )\S+', lambda mm: mm.group(1) + r,
                     "#let seg-radius", fam)
     if band:                              # opt-in accent band (lib.typ accent-band)
         src = _sub1(src, r'^(#let band = )false', lambda mm: mm.group(1) + "true",
                     "#let band", fam)
-    src = _apply_labels(src, d["labels"], p["labels"], fam)
+    src = _apply_labels(src, d["labels"], p.labels, fam)
     pg = d["page"]
     for k, v in (("margin", pg["margin"]), ("body", pg["body"])):
         if k == "margin" and "(%s)" % v not in src and v not in src:
@@ -183,10 +183,10 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     _write_nofollow(out, (_vitae_header(pg) + "\n" + src).encode("utf-8"))
     lo, hi = pg["fill"].split("-")
     if any((note or "").startswith("NO pool member")
-           for note in (p["display_note"], p["body_note"], p["mono_note"])):
+           for note in (p.display_note, p.body_note, p.mono_note)):
         kept.append("at least one font role of %s has NO pool member installed "
                     "locally — install the face above before verifying%s"
-                    % (fam, "" if p["offline"] else
+                    % (fam, "" if p.offline else
                        ", or in an offline sandbox re-run pick_design.py "
                        "with --offline --force"))
     print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "

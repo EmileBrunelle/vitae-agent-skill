@@ -57,7 +57,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
              region: str | None = None, band: bool = False) -> str:
     """A ready-to-paste PREAMBLE for the drawn recipe — not a whole CV, and
     deliberately not the devices (those are the recipe: references/design/families/<family>.md)."""
-    d, fp, pg = p["recipe"], FONTS[p["family"]], p["recipe"]["page"]
+    d, fp, pg = p.recipe, FONTS[p.family], p.recipe["page"]
     lo, hi = pg["fill"].split("-")
     try:                                  # the duotone hue jobs live next door
         from vitae.palette import DUOTONE
@@ -65,7 +65,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
         DUOTONE = {}
     o = [_vitae_header(pg),
          "// %s — %s / %s, drawn for key %r"
-         % (p["family"], p["career"], market, p["key"]),
+         % (p.family, p.career, market, p.key),
          "// PREAMBLE ONLY. The hand-off is TWO files: this .typ and lib.typ "
          "beside it.",
          "// Copy templates/icons.typ here too (the empty fallback lib.typ "
@@ -80,12 +80,12 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
          "",
          "// ---------- Palette (scripts/gen_palette.py validates every "
          "contrast) ----------"]
-    jobs = DUOTONE.get(p["family"])
+    jobs = DUOTONE.get(p.family)
     o.append('#let accent = rgb("%s")%s' % (
-        p["accent"], "        // hue A — %s" % jobs[1] if jobs else ""))
-    if p["accent2"]:
+        p.accent, "        // hue A — %s" % jobs[1] if jobs else ""))
+    if p.accent2:
         o.append('#let accent2 = rgb("%s")%s' % (
-            p["accent2"], "       // hue B — %s" % jobs[2] if jobs else
+            p.accent2, "       // hue B — %s" % jobs[2] if jobs else
             "       // hue B, paired with hue A by index"))
         o.append("// Each hue keeps 1-2 jobs, never more (core.md § Tokens).")
     o += ["#let pal = derive(accent)",
@@ -94,13 +94,13 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "#let muted = ink",
           "#let dark = pal.dark        // body ink",
           "",
-          "// ---------- Type: %s ----------" % p["font_register"],
-          "#let bodyf = %s" % _chain(fp["body"], p["body"], "body", p["have"]),
-          "#let dispf = %s" % _chain(fp["display"], p["display"], "display", p["have"])]
+          "// ---------- Type: %s ----------" % p.font_register,
+          "#let bodyf = %s" % _chain(fp["body"], p.body, "body", p.have),
+          "#let dispf = %s" % _chain(fp["display"], p.display, "display", p.have)]
     mono_pool = fp.get("mono")
-    if p["mono"] and mono_pool is not None:
+    if p.mono and mono_pool is not None:
         o.append("#let monof = %s   // ALL metadata sits in this face"
-                 % _chain(mono_pool, p["mono"], "mono", p["have"]))
+                 % _chain(mono_pool, p.mono, "mono", p.have))
     col = _icon_colour(d["icons"])
     o += ["",
           "// ---------- Contact icons + platform marks ----------",
@@ -115,7 +115,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
                  + ("   // bg: the band colour where they sit reversed out"
                     if col == "white" else ""))
     o += ["#let mk = marks(ic-col, kit: \"%s\")   // drawn mark set: %s"
-          % p["markset"]]
+          % p.markset]
     if "no generic icon" not in d["icons"]:
         o.append("#let ic = gate-icons(ic, mk)   // drawn icons follow marks' "
                  "all-or-nothing")
@@ -135,11 +135,11 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "// ---------- The rest of the recipe (NOT emitted, on purpose) "
           "----------",
           "// section labels : profile=%r  skills=%r"
-          % (p["labels"]["profile"], p["labels"]["skills"]),
+          % (p.labels["profile"], p.labels["skills"]),
           "//                  Education / Languages / the experience sections "
           "keep their",
           "//                  conventional stems (regional.md, ats.md).",
-          *(["// family variant : %s" % p["variant"]] if p["variant"] else []),
+          *(["// family variant : %s" % p.variant] if p.variant else []),
           "// section order  : %s" % " → ".join(d["order"]),
           "//                  the family DEFAULT — a target market's own "
           "convention overrides it.",

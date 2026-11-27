@@ -6,12 +6,12 @@ from _paths import ROOT
 from vitae.design.emit import _chain
 from vitae.design.fonts import _family_usable, _installed
 from vitae.design.init import _apply_labels
-from vitae.design.pick import pick
+from vitae.design.pick import PickRequest, pick
 from vitae.design.tables import CAREER, FAMILIES, FONTS, LABEL_VARIANTS, MIN_POOL, ORDER_ROLES
 
 
 def draw(name="Candidate A", field="software", **kw):
-    return pick(name, field, check_fonts=False, **kw)
+    return pick(PickRequest(name, field, check_fonts=False, **kw))
 
 
 # ---------- the roster ----------
@@ -65,15 +65,15 @@ def test_starter_headings_are_exactly_the_drawn_labels(family):
 
 def test_draw_is_deterministic_and_depends_on_the_field():
     a = draw()
-    assert a == draw() and draw(field="nursing")["key"] != a["key"]
-    assert a["accent"] in FAMILIES[a["family"]]["accents"]
+    assert a == draw() and draw(field="nursing").key != a.key
+    assert a.accent in FAMILIES[a.family]["accents"]
 
 
 @pytest.mark.parametrize("flags", [{}, {"photo": True}, {"conservative": True}, {"photo": True, "conservative": True},
                                    {"creative": True}, {"creative": True, "conservative": True}], ids=str)
 @pytest.mark.parametrize("career", CAREER)
 def test_pool_size_flags_and_creative_unlock(career, flags):
-    elig = draw("X", "y", career=career, **flags)["eligible"]
+    elig = draw("X", "y", career=career, **flags).eligible
     assert len(elig) >= MIN_POOL
     assert all(FAMILIES[f]["photo_ok"] for f in elig) or not flags.get("photo")
     assert all(FAMILIES[f]["conservative_ok"] for f in elig) or not flags.get("conservative")
@@ -83,36 +83,36 @@ def test_pool_size_flags_and_creative_unlock(career, flags):
 
 def test_career_selects_the_register_pool():
     early = draw()
-    assert early["career"] == "early" and all(FAMILIES[f]["register"] in ("modern", "neutral") for f in early["eligible"])
-    assert {f for f, d in FAMILIES.items() if d["register"] == "modern"} <= set(early["eligible"])
-    assert {FAMILIES[f]["register"] for f in draw(career="senior")["eligible"]} <= {"neutral", "classic"}
+    assert early.career == "early" and all(FAMILIES[f]["register"] in ("modern", "neutral") for f in early.eligible)
+    assert {f for f, d in FAMILIES.items() if d["register"] == "modern"} <= set(early.eligible)
+    assert {FAMILIES[f]["register"] for f in draw(career="senior").eligible} <= {"neutral", "classic"}
 
 
 def test_field_lifts_or_caps_the_dial():
     cg = draw(field="graphic design")
-    assert cg["domain"] == "creative" and cg["audacity"] == "expressive"
-    assert any(FAMILIES[f]["register"] == "creative" for f in cg["eligible"])
+    assert cg.domain == "creative" and cg.audacity == "expressive"
+    assert any(FAMILIES[f]["register"] == "creative" for f in cg.eligible)
     kl = draw(field="corporate law", audacity="bold")
-    assert kl["domain"] == "conservative" and kl["audacity"] == "sober"
-    assert all(FAMILIES[f]["conservative_ok"] for f in kl["eligible"])
-    assert draw(audacity="bold")["audacity"] == "bold"             # survives only when nothing caps it
+    assert kl.domain == "conservative" and kl.audacity == "sober"
+    assert all(FAMILIES[f]["conservative_ok"] for f in kl.eligible)
+    assert draw(audacity="bold").audacity == "bold"             # survives only when nothing caps it
 
 
 def test_second_hue_and_variant_follow_the_family_declaration():
     for i in range(60):
         p = draw("N%02d" % i, creative=True)
-        d = FAMILIES[p["family"]]
-        want2 = d["accents2"][d["accents"].index(p["accent"])] if "accents2" in d else None
-        assert p["accent2"] == want2
-        assert (p["variant"] in d["variants"]) if "variants" in d else p["variant"] is None
+        d = FAMILIES[p.family]
+        want2 = d["accents2"][d["accents"].index(p.accent)] if "accents2" in d else None
+        assert p.accent2 == want2
+        assert (p.variant in d["variants"]) if "variants" in d else p.variant is None
 
 
 def test_names_spread_over_the_pool_with_labels_from_the_variants():
     spread = set()
     for i in range(200):
         p = draw("Person %03d" % i, career="mid")
-        spread.add(p["family"])
-        assert all(p["labels"][r] in LABEL_VARIANTS[r] for r in ("profile", "skills"))
+        spread.add(p.family)
+        assert all(p.labels[r] in LABEL_VARIANTS[r] for r in ("profile", "skills"))
     assert len(spread) >= MIN_POOL
 
 
@@ -142,11 +142,11 @@ def test_offline_keeps_only_families_with_every_role_installed(capsys):
     have = {"Liberation Sans", "Noto Sans", "DejaVu Sans Mono", "P052", "Cantarell", "PT Sans", "Adwaita Sans",
             "Adwaita Mono", "URW Gothic", "Libertinus Serif"}
     assert not _family_usable("keyline-corporate", have) and _family_usable("humanist-quiet", have)
-    p = pick("Candidate A", "operations", offline=True, have_fonts=have)
-    assert p["eligible"] and all(_family_usable(f, have) for f in p["eligible"])
+    p = pick(PickRequest("Candidate A", "operations", offline=True, have_fonts=have))
+    assert p.eligible and all(_family_usable(f, have) for f in p.eligible)
     assert capsys.readouterr().err == ""
-    fallback = pick("Candidate A", "operations", offline=True, have_fonts={"Nope"})
+    fallback = pick(PickRequest("Candidate A", "operations", offline=True, have_fonts={"Nope"}))
     assert "no family in the pool has all font roles installed" in capsys.readouterr().err
-    assert fallback["family"] == pick("Candidate A", "operations", have_fonts={"Nope"})["family"]
-    pick("Candidate A", "operations", offline=True, check_fonts=False)
+    assert fallback.family == pick(PickRequest("Candidate A", "operations", have_fonts={"Nope"})).family
+    pick(PickRequest("Candidate A", "operations", offline=True, check_fonts=False))
     assert "--offline is ignored with --no-font-check" in capsys.readouterr().err

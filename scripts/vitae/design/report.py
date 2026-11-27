@@ -5,49 +5,49 @@ from vitae.design.pick import Pick
 
 
 def report(p: Pick, market: str) -> str:
-    d = p["recipe"]
+    d = p.recipe
     lines = [
-        "design family   : %s   [register: %s]" % (p["family"], d["register"]),
+        "design family   : %s   [register: %s]" % (p.family, d["register"]),
         "  current       : %s" % d["current"],
         "accent          : %s   (from that family's gamut %s)"
-        % (p["accent"], " ".join(d["accents"])),
+        % (p.accent, " ".join(d["accents"])),
     ]
-    if p["accent2"]:
+    if p.accent2:
         lines.append("accent2 (duotone): %s   hue B, validated as a PAIR with "
-                     "the accent above — never mix indexes" % p["accent2"])
+                     "the accent above — never mix indexes" % p.accent2)
     # right after the colour block, duotone or not: an insert(4) landed before
     # the hue B line on monochrome families and after it on duotone ones.
-    if p["audacity"] != "sober":
+    if p.audacity != "sober":
         lines.append("  palette       : python3 scripts/gen_palette.py "
                      "--family %s --seed %r --audacity %s --typst"
-                     % (p["family"], p["key"], p["audacity"]))
+                     % (p.family, p.key, p.audacity))
     lines += [
-        "audacity        : %s" % p["audacity"],
-        "list marker     : %s" % p["marker"],
+        "audacity        : %s" % p.audacity,
+        "list marker     : %s" % p.marker,
         *(["family variant  : %s   (this family's own variant axis — apply it "
-           "as drawn)" % p["variant"]] if p["variant"] else []),
+           "as drawn)" % p.variant] if p.variant else []),
         "contact icons   : %s" % d["icons"],
         "platform marks  : email · LinkedIn · GitHub · site — in EVERY family; "
         "mail/web/phone/pin glyphs from the drawn mark set: %s (%s); "
-        "LinkedIn/GitHub always Simple Icons, CC0" % p["markset"],
+        "LinkedIn/GitHub always Simple Icons, CC0" % p.markset,
         "section labels  : profile=%r  skills=%r"
-        % (p["labels"]["profile"], p["labels"]["skills"]),
+        % (p.labels["profile"], p.labels["skills"]),
         "                  (Education / Languages / the experience sections keep"
         " their conventional stems — regional.md)",
-        "type register    : %s" % p["font_register"],
+        "type register    : %s" % p.font_register,
         "display font    : %s   [%s]  — %s"
-        % (p["display"][0], p["display"][1], p["display_note"]),
+        % (p.display[0], p.display[1], p.display_note),
         "body font       : %s   [%s]  — %s"
-        % (p["body"][0], p["body"][1], p["body_note"]),
+        % (p.body[0], p.body[1], p.body_note),
     ]
-    if p["mono"]:
+    if p.mono:
         lines.append("mono font       : %s   [%s]  — %s   (ALL metadata)"
-                     % (p["mono"][0], p["mono"][1], p["mono_note"]))
+                     % (p.mono[0], p.mono[1], p.mono_note))
     # A GF-only face is in no distro and has to be fetched; a "GF · Linux:
     # <pkg>" face has two routes. Say so once, and only when this draw needs it.
-    roles = [p["display"], p["body"]] + ([p["mono"]] if p["mono"] else [])
-    notes = [p["display_note"], p["body_note"]] + (
-        [p["mono_note"]] if p["mono"] else [])
+    roles = [p.display, p.body] + ([p.mono] if p.mono else [])
+    notes = [p.display_note, p.body_note] + (
+        [p.mono_note] if p.mono else [])
     need = [r[1] or "" for r, nt in zip(roles, notes)
             if "GF" in (r[1] or "") and not (
                 "Linux:" in r[1] and (nt or "").startswith("available"))]
@@ -69,7 +69,7 @@ def report(p: Pick, market: str) -> str:
             "                  the licence and both installation routes "
             "(~/.local/share/fonts + fc-cache, or --font-path).")
     if any((nt or "").startswith("NO pool member") for nt in notes) \
-            and p["have"] is not None and not p["offline"]:
+            and p.have is not None and not p.offline:
         lines.append(
             "                  offline sandbox (cannot fetch fonts)? Re-run "
             "pick_design.py with --offline to draw from locally installed "
@@ -86,9 +86,9 @@ def report(p: Pick, market: str) -> str:
         "convention overrides it: regional.md)",
         "header order    : %s" % d["header"],
         "career / market : %s / %s (field register: %s)"
-        % (p["career"], market, p["domain"]),
-        "eligible were   : %s" % ", ".join(p["eligible"]),
-        "hash key        : %r" % p["key"],
+        % (p.career, market, p.domain),
+        "eligible were   : %s" % ", ".join(p.eligible),
+        "hash key        : %r" % p.key,
     ]
     if d["spec"]:
         lines += [
@@ -100,7 +100,7 @@ def report(p: Pick, market: str) -> str:
         ]
     lines += [
         "",
-        "Apply the family's recipe: read references/design/families/%s.md whole" % p["family"],
+        "Apply the family's recipe: read references/design/families/%s.md whole" % p.family,
         "(plus references/design/core.md, the shared rules), then re-run",
         "scripts/verify.py — the leading/spacing above were verified",
         "on the template's own filler content, not on this candidate's, and a",

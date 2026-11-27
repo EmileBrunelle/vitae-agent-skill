@@ -89,11 +89,12 @@ import argparse
 import re
 import sys
 
+from vitae.design.args import add_audacity_arg
 from vitae.design.emit import emit_typ
 from vitae.design.init import init_folder
-from vitae.design.pick import pick
+from vitae.design.pick import PickRequest, pick
 from vitae.design.report import report
-from vitae.design.tables import AUDACITIES, CAREER, FAMILIES, FONTS, band_ok, is_audacity
+from vitae.design.tables import CAREER, FAMILIES, FONTS, band_ok, is_audacity
 
 
 def main() -> None:
@@ -102,7 +103,7 @@ def main() -> None:
     ap.add_argument("--field")
     ap.add_argument("--market", default="unspecified")
     ap.add_argument("--career", default="early", choices=sorted(CAREER))
-    ap.add_argument("--audacity", default="sober", choices=AUDACITIES)
+    add_audacity_arg(ap)
     ap.add_argument("--photo", action="store_true")
     ap.add_argument("--conservative", action="store_true")
     ap.add_argument("--creative", action="store_true",
@@ -169,15 +170,16 @@ def main() -> None:
         audacity: str = a.audacity
         if not is_audacity(audacity):
             ap.error(f"invalid --audacity {audacity!r}")
-        p = pick(a.name, a.field, a.career, a.photo, a.conservative,
-                 audacity, not a.no_font_check, a.creative,
-                 a.offline)
+        p = pick(PickRequest(name=a.name, field=a.field, career=a.career, photo=a.photo,
+                             conservative=a.conservative, audacity=audacity,
+                             check_fonts=not a.no_font_check, creative=a.creative,
+                             offline=a.offline))
         band = a.band
-        if band and not band_ok(p["family"]):
+        if band and not band_ok(p.family):
             band = False
             sys.stderr.write("note: --band ignored: %s has its own band/rail/"
                              "margin furniture or is creative-register\n"
-                             % p["family"])
+                             % p.family)
         if a.init:
             print(report(p, a.market))
             print()

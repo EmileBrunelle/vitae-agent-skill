@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TYPE_CHECKING, TypedDict
+from dataclasses import dataclass
 
 from vitae.design.fonts import _family_usable, _fonts_available, _pick_font
 from vitae.design.tables import (
@@ -21,34 +21,32 @@ from vitae.design.tables import (
     _idx,
 )
 
-if TYPE_CHECKING:
-    # type checking only: typing_extensions is never imported at run time (annotations are strings here)
-    from typing_extensions import ReadOnly
 
-
-class Pick(TypedDict):
-    key: ReadOnly[str]
-    family: ReadOnly[str]
-    have: ReadOnly[set[str] | None]
-    offline: ReadOnly[bool]
-    eligible: ReadOnly[list[str]]
-    recipe: ReadOnly[Family]
-    mono: ReadOnly[Font | None]
-    mono_note: ReadOnly[str | None]
-    variant: ReadOnly[str | None]
-    career: ReadOnly[str]
-    domain: ReadOnly[str]
-    audacity: ReadOnly[Audacity]
-    accent: ReadOnly[str]
-    accent2: ReadOnly[str | None]
-    marker: ReadOnly[str]
-    markset: ReadOnly[tuple[str, str]]
-    labels: ReadOnly[dict[str, str]]
-    font_register: ReadOnly[str]
-    display: ReadOnly[Font]
-    display_note: ReadOnly[str]
-    body: ReadOnly[Font]
-    body_note: ReadOnly[str]
+@dataclass(frozen=True)
+class Pick:
+    """One drawn design: built in-process by pick(), consumed by report/emit/init, never serialized."""
+    key: str
+    family: str
+    have: set[str] | None
+    offline: bool
+    eligible: list[str]
+    recipe: Family
+    mono: Font | None
+    mono_note: str | None
+    variant: str | None
+    career: str
+    domain: str
+    audacity: Audacity
+    accent: str
+    accent2: str | None
+    marker: str
+    markset: tuple[str, str]
+    labels: dict[str, str]
+    font_register: str
+    display: Font
+    display_note: str
+    body: Font
+    body_note: str
 
 
 def _field_has(field: str | None, key: str) -> bool:
@@ -66,13 +64,25 @@ def domain_register(field: str | None) -> str | None:
     return None                                    # unknown field: full pool
 
 
-def pick(name: str, field: str | None, career: str = "early",
-         photo: bool = False, conservative: bool = False,
-         audacity: Audacity = "sober", check_fonts: bool = True,
-         creative: bool = False, offline: bool = False,
-         have_fonts: set[str] | None = None) -> Pick:
-    key = "%s+%s" % (name, field)
-    dom = domain_register(field)
+@dataclass(frozen=True)
+class PickRequest:
+    """The inputs of one draw: the candidate (name + field seed the hash) and the flags that narrow the pool."""
+    name: str
+    field: str | None
+    career: str = "early"
+    photo: bool = False
+    conservative: bool = False
+    audacity: Audacity = "sober"
+    check_fonts: bool = True
+    creative: bool = False
+    offline: bool = False
+    have_fonts: set[str] | None = None
+
+
+def pick(req: PickRequest) -> Pick:
+    conservative, audacity = req.conservative, req.audacity
+    key = "%s+%s" % (req.name, req.field)
+    dom = domain_register(req.field)
     conservative = conservative or dom == "conservative"
     if conservative and audacity != "sober":
         audacity = "sober"                         # a market only caps the dial
@@ -80,7 +90,7 @@ def pick(name: str, field: str | None, career: str = "early",
         audacity = "expressive"
 
     hard = [f for f, d in FAMILIES.items()
-            if (d["photo_ok"] or not photo)
+            if (d["photo_ok"] or not req.photo)
             and (d["conservative_ok"] or not conservative)]
     # The `creative` register is NEVER in the default pool: those families are
     # eligible only when the FIELD resolves to creative or --creative was
@@ -89,7 +99,7 @@ def pick(name: str, field: str | None, career: str = "early",
     # for a non-creative profile. --conservative drops them anyway via
     # conservative_ok=False, which is why creative+conservative is not an
     # empty pool but simply the conservative one.
-    unlocked = creative or dom == "creative"
+    unlocked = req.creative or dom == "creative"
     if not unlocked:
         hard = [f for f in hard if FAMILIES[f]["register"] != "creative"]
     # gutter-rail carries a SECOND lock on top of the creative one: its vertical
@@ -98,19 +108,19 @@ def pick(name: str, field: str | None, career: str = "early",
     # this lock: a fashion designer passing --creative drew it, and the device
     # was simply wrong for the trade. The creative unlock is necessary, not
     # sufficient.
-    if not any(_field_has(field, t) for t in GUTTER_RAIL_DOMAIN):
+    if not any(_field_has(req.field, t) for t in GUTTER_RAIL_DOMAIN):
         hard = [f for f in hard if f != "gutter-rail"]
-    have = have_fonts if have_fonts is not None else (
-        _fonts_available() if check_fonts else None)
+    have = req.have_fonts if req.have_fonts is not None else (
+        _fonts_available() if req.check_fonts else None)
     # In an offline sandbox (--offline), restrict `hard` to families whose font
     # roles all have at least one locally installed face (when at least one
     # eligible family is usable), so the draw never lands on a family whose
     # display or mono pool has 0 installed members (run 17: 7/14 families were
     # installed, yet keyline-corporate was drawn with no display face).
-    if offline and have is None:
+    if req.offline and have is None:
         print("warning: --offline is ignored with --no-font-check (no installed-font "
               "list to filter by); drawing from the full pool", file=sys.stderr)
-    elif offline and have is not None:
+    elif req.offline and have is not None:
         usable = [f for f in hard if _family_usable(f, have)]
         if usable:
             hard = usable
@@ -123,7 +133,7 @@ def pick(name: str, field: str | None, career: str = "early",
     # Register weighting: a creative field (or --creative) leans on the
     # creative then modern families whatever the career stage; otherwise the
     # career stage decides.
-    prefer, widen = CAREER[career]
+    prefer, widen = CAREER[req.career]
     if unlocked:
         prefer, widen = ("creative", "modern"), ("neutral", "classic")
     # Widening is ADDITIVE and stops the moment MIN_POOL is reached: replacing
@@ -163,9 +173,9 @@ def pick(name: str, field: str | None, career: str = "early",
         # the family's own default is in the pool, so it can be drawn back.
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
         lab[role] = opts[_idx(key, len(opts), "label|%s|" % role)]
-    return Pick(key=key, family=fam, have=have, offline=offline, eligible=eligible, recipe=d,
+    return Pick(key=key, family=fam, have=have, offline=req.offline, eligible=eligible, recipe=d,
                 mono=mono, mono_note=mono_note, variant=variant,
-                career=career, domain=dom or "none, full pool", audacity=audacity,
+                career=req.career, domain=dom or "none, full pool", audacity=audacity,
                 accent=d["accents"][ai],
                 accent2=d.get("accents2", [None] * len(d["accents"]))[ai],
                 marker=d["markers"][_idx(key, len(d["markers"]), "marker|")],

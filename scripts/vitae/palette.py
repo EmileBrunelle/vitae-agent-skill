@@ -49,7 +49,8 @@ from typing import TYPE_CHECKING, TypeAlias, TypedDict
 
 from vitae.core.colour import contrast_from_lum
 from vitae.core.colour import rel_luminance as _lum
-from vitae.design.tables import AUDACITIES, Audacity, is_audacity
+from vitae.design.args import add_audacity_arg
+from vitae.design.tables import Audacity, is_audacity
 
 if TYPE_CHECKING:
     # type checking only: typing_extensions is never imported at run time (annotations are strings here)
@@ -361,7 +362,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
     ap.add_argument("--family")
     ap.add_argument("--seed")
-    ap.add_argument("--audacity", default="sober", choices=AUDACITIES)
+    add_audacity_arg(ap)
     ap.add_argument("--typst", action="store_true", help="print the #let block")
     a = ap.parse_args()
     if a.family and a.seed:
