@@ -7,9 +7,15 @@ from types import ModuleType
 
 import pytest
 from _paths import SCRIPTS
+from hypothesis import settings
 
 # Appended, not prepended: mutmut puts its mutated copy of the package (mutants/src) first, and it must win.
 sys.path.append(str(SCRIPTS))
+
+# Same examples on every run and every machine (a CI failure reproduces locally); `print_blob` prints the
+# `@reproduce_failure` line of a failure; no deadline: the oracle comparisons and compiles have no stable timing.
+settings.register_profile("vitae", derandomize=True, deadline=None, print_blob=True, database=None)
+settings.load_profile("vitae")
 
 
 TEMPLATE_FAMILIES = {"Carlito", "Montserrat"}      # resume.typ fits its one page only with these (body, headings)

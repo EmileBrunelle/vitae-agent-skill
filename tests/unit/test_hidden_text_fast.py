@@ -154,7 +154,7 @@ def test_word_stats_bound_time_on_a_full_page(kind: str, bound: float) -> None:
 
         out = text.hidden_word_stats("x.pdf", pages=[page], pngs=[png])
 
-        assert time.perf_counter() - start < bound   # measured ~0.05 s (gray, colour) and ~1 s (noise: 1000+ colours per box); a coarse bound, the constant factor is tested by call count
+        assert time.perf_counter() - start < bound   # measured ~0.05 s (gray, colour) and ~2.1 s (noise: 1000+ colours per box; bound 6.0 s = 2.9x margin); a coarse bound, the constant factor is tested by call count
     assert len(out) == 3000
 
 # ------------------------------------------------------------------ _classify_runs

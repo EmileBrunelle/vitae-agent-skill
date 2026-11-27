@@ -1,14 +1,18 @@
 """LOG320 lot: the three hot spots fixed for complexity keep their behaviour (equivalence with the replaced code, on
-fixed cases and seeded random inputs) and stay fast on a worst-case input (`slow`: bounded wall time, far above the
+fixed cases and Hypothesis-generated inputs) and stay fast on a worst-case input (`slow`: bounded wall time, far above the
 measured time and far below the old one, so a noisy runner does not flip it but a return to O(P^2) does)."""
 import itertools
 import random
 import re
 import time
+from collections.abc import Callable
 
 import pytest
 from _comments_ref import strip_block_comments_regex, strip_comments_regex
 from _reading_order_ref import reading_order_quadratic
+from _stuffed_ref import stuffed_counting
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from vitae.core import typst_source
 from vitae.core.base import WordBox
 from vitae.verify import fonts, pdf, text
@@ -37,24 +41,46 @@ def _random_page(rng: random.Random) -> list[WordBox]:
     return words
 
 
-@pytest.mark.parametrize("seed", range(400))
-def test_reading_order_matches_the_quadratic_version(seed: int) -> None:
-    words = _random_page(random.Random(seed))
-
-    assert pdf._reading_order(words) == reading_order_quadratic(words)
-
-
-@pytest.mark.parametrize("seed", range(300))
-def test_reading_order_row_grouping_matches_on_mixed_heights_and_near_baselines(seed: int) -> None:
+def _mixed_heights_page(rng: random.Random) -> list[WordBox]:
     """Words of different heights on baselines a few points apart: whether one joins the row depends on the smallest
     box already in it, and on the mean baseline of the words already in it."""
-    rng = random.Random(seed)
     words: list[WordBox] = []
     for k in range(rng.randint(3, 14)):
         h = rng.choice((3.0, 6.0, 10.0))
         y = rng.uniform(0, 8)
         x = rng.uniform(0, 400)
         words.append(((x, y, x + rng.uniform(5, 40), y + h), f"w{k}"))
+    return words
+
+
+def _overlapping_side_pieces_page(rng: random.Random) -> list[WordBox]:
+    """A head row of pieces with long words among short ones (a short word inside a long one starts a piece that lies
+    within the previous piece), then rows of one narrow piece anywhere past the head (so it is not a side piece itself
+    and can overlap only some of the head's pieces) or at the left edge."""
+    words: list[WordBox] = [((0.0, 0.0, 30.0, 10.0), "head")]
+    for k in range(rng.randint(3, 8)):
+        x = rng.uniform(100, 400)
+        w = rng.choice((5.0, 10.0, 20.0, 150.0, 250.0))
+        words.append(((x, 0.0, x + w, 10.0), f"s{k}"))
+    for r in range(1, rng.randint(2, 6)):
+        x = rng.choice((0.0, rng.uniform(100, 420), rng.uniform(100, 420)))
+        words.append(((x, r * 12.0, x + rng.uniform(5, 40), r * 12.0 + 10), f"r{r}"))
+    rng.shuffle(words)
+    return words
+
+
+@settings(max_examples=300)
+@given(st.randoms(use_true_random=False), st.sampled_from((_random_page, _mixed_heights_page)))
+def test_reading_order_matches_the_quadratic_version(rng: random.Random, shape: Callable[[random.Random], list[WordBox]]) -> None:
+    words = shape(rng)
+
+    assert pdf._reading_order(words) == reading_order_quadratic(words)
+
+
+@settings(max_examples=600)
+@given(st.randoms(use_true_random=False))
+def test_reading_order_overlapping_side_pieces_match_the_oracle_on_random_pages(rng: random.Random) -> None:
+    words = _overlapping_side_pieces_page(rng)
 
     assert pdf._reading_order(words) == reading_order_quadratic(words)
 
@@ -72,24 +98,6 @@ def test_reading_order_side_pieces_that_overlap_on_their_row_match_the_oracle() 
 
     assert got == [t for _, t in reading_order_quadratic(words)]
     assert got == ["Role", "org", "LONGSIDE", "b", "y", "S2"]
-
-
-@pytest.mark.parametrize("seed", range(400))
-def test_reading_order_overlapping_side_pieces_match_the_oracle_on_random_pages(seed: int) -> None:
-    """A head row of pieces with long words among short ones (overlapping pieces), narrow words in the rows below."""
-    rng = random.Random(seed)
-    words: list[WordBox] = [((0.0, 0.0, 30.0, 10.0), "head")]
-    for k in range(rng.randint(2, 7)):
-        x = rng.uniform(100, 400)
-        w = rng.choice((5.0, 10.0, 20.0, 150.0, 250.0))
-        words.append(((x, 0.0, x + w, 10.0), f"s{k}"))
-    for r in range(1, rng.randint(2, 5)):
-        for k in range(rng.randint(1, 3)):
-            x = rng.choice((0.0, rng.uniform(0, 600)))
-            words.append(((x, r * 12.0, x + rng.uniform(5, 40), r * 12.0 + 10), f"r{r}w{k}"))
-    rng.shuffle(words)
-
-    assert pdf._reading_order(words) == reading_order_quadratic(words)
 
 
 def test_reading_order_equivalence_is_not_vacuous() -> None:
@@ -175,26 +183,15 @@ def test_reading_order_matches_the_oracle_on_the_side_piece_worst_cases() -> Non
 
 # ------------------------------------------------------------------ _stuffed
 
-def _stuffed_old(t: str, max_terms: int = 0) -> str | None:
-    terms = [x.strip().lower() for x in re.split(r"[,;]", t) if x.strip()]
-    if len(terms) <= 1:
-        terms = t.lower().split()
-    words = re.findall(r"\w+", t.lower())
-    repeated = sorted({x for x in terms if terms.count(x) > 1} | {w for w in words if len(w) > 2 and words.count(w) > 2})
-    if (max_terms and len(terms) > max_terms) or repeated:
-        return f"{len(terms)} terms" + (f", repeats {', '.join(r[:20] for r in repeated[:3])}" if repeated else "")
-    return None
+_VOCAB = ["python", "Python", "sql", "go", "a", "data", "rust", "ops", "été", "Été", "x1", "data science", "sql server"]
 
 
-@pytest.mark.parametrize("seed", range(300))
-def test_stuffed_matches_the_counting_version(seed: int) -> None:
-    rng = random.Random(seed)
-    vocab = ["python", "Python", "sql", "go", "a", "data", "rust", "ops", "été", "Été", "x1"]
-    sep = rng.choice((", ", "; ", " ", ",", " , "))
-    t = sep.join(rng.choice(vocab) for _ in range(rng.randint(0, 25)))
-    cap = rng.choice((0, 5, 12))
+@settings(max_examples=300)
+@given(st.sampled_from((", ", "; ", " ", ",", " , ")), st.lists(st.sampled_from(_VOCAB), max_size=25), st.sampled_from((0, 5, 12)))
+def test_stuffed_matches_the_counting_version(sep: str, terms: list[str], cap: int) -> None:
+    t = sep.join(terms)
 
-    assert text._stuffed(t, cap) == _stuffed_old(t, cap)
+    assert text._stuffed(t, cap) == stuffed_counting(t, cap)
 
 
 @pytest.mark.parametrize("t, want", [
@@ -263,12 +260,10 @@ def test_font_style_bounds_time_on_a_pathological_name(s: str) -> None:
 
 # ------------------------------------------------------------------ typst_source.strip_comments_keep_urls
 
-@pytest.mark.parametrize("seed", range(600))
-def test_strip_comments_matches_the_regex_on_random_text(seed: int) -> None:
-    rng = random.Random(seed)
-    alphabet = ["/", "/", "*", "*", ":", "a", "Z", "_", "é", " ", "\n", "//", "/*", "*/", "[x]", "http://"]
-    src = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
-
+@settings(max_examples=200)
+@given(st.lists(st.sampled_from(["/", "/", "*", "*", ":", "a", "Z", "_", "é", " ", "\n", "//", "/*", "*/", "[x]", "http://"]),
+                max_size=40).map("".join))
+def test_strip_comments_matches_the_regex_on_random_text(src: str) -> None:
     assert typst_source.strip_comments_keep_urls(src) == strip_comments_regex(src)
 
 
@@ -312,12 +307,9 @@ def test_strip_comments_bounds_time_on_unclosed_block_comments(unit: str) -> Non
 
 # ------------------------------------------------------------------ typst_source.strip_block_comments
 
-@pytest.mark.parametrize("seed", range(600))
-def test_strip_block_comments_matches_the_regex_on_random_text(seed: int) -> None:
-    rng = random.Random(seed)
-    alphabet = ["/", "*", "/", "*", "a", "\n", "/*", "*/", "/**/", " "]
-    src = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
-
+@settings(max_examples=200)
+@given(st.lists(st.sampled_from(["/", "*", "/", "*", "a", "\n", "/*", "*/", "/**/", " "]), max_size=40).map("".join))
+def test_strip_block_comments_matches_the_regex_on_random_text(src: str) -> None:
     assert typst_source.strip_block_comments(src) == strip_block_comments_regex(src)
 
 

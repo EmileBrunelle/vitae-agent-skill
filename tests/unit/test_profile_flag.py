@@ -8,11 +8,11 @@ import pytest
 from _paths import ROOT
 
 TABLE = "function calls"
-RUNS = [
-    pytest.param("verify.py", ["--doctor"], id="verify-doctor"),
-    pytest.param("verify.py", ["no-such-file.typ", "1"], id="verify-failing-gate"),
-    pytest.param("verify_academic.py", ["--doctor"], id="academic-doctor"),
-    pytest.param("verify_academic.py", ["no-such-file.typ", "no-such.toml"], id="academic-failing-gate"),
+RUNS = [      # (script, args, whether the plain run exits non-zero: the equality of exit codes is then not "0 == 0")
+    pytest.param("verify.py", ["--doctor"], False, id="verify-doctor"),
+    pytest.param("verify.py", ["no-such-file.typ", "1"], True, id="verify-failing-gate"),
+    pytest.param("verify_academic.py", ["--doctor"], False, id="academic-doctor"),
+    pytest.param("verify_academic.py", ["no-such-file.typ", "no-such.toml"], True, id="academic-failing-gate"),
 ]
 
 
@@ -21,8 +21,9 @@ def run(script: str, args: list[str], cwd: Path) -> subprocess.CompletedProcess[
                           capture_output=True, text=True, cwd=cwd)
 
 
-@pytest.mark.parametrize(("script", "args"), RUNS)
-def test_profile_prints_the_table_on_stderr_and_changes_nothing_else(script: str, args: list[str], tmp_path: Path) -> None:
+@pytest.mark.parametrize(("script", "args", "fails"), RUNS)
+def test_profile_prints_the_table_on_stderr_and_changes_nothing_else(script: str, args: list[str], fails: bool,
+                                                                     tmp_path: Path) -> None:
     (tmp_path / "a").mkdir()
     (tmp_path / "b").mkdir()                                  # a gate may drop files in its cwd: one directory per run
     plain = run(script, args, tmp_path / "a")
@@ -33,8 +34,6 @@ def test_profile_prints_the_table_on_stderr_and_changes_nothing_else(script: str
     assert TABLE not in profiled.stdout
     assert profiled.stdout.replace(str(tmp_path / "b"), "CWD") == plain.stdout.replace(str(tmp_path / "a"), "CWD")
     assert profiled.returncode == plain.returncode
+    assert (plain.returncode != 0) or not fails        # control: a failing gate keeps failing under the flag
     assert len([ln for ln in profiled.stderr.splitlines() if "{" in ln or ".py:" in ln]) >= 5
 
-
-def test_the_failing_runs_exit_non_zero_so_the_equality_above_is_not_vacuous(tmp_path: Path) -> None:
-    assert run("verify.py", ["no-such-file.typ", "1"], tmp_path).returncode != 0

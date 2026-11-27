@@ -15,6 +15,12 @@ def _timed(call: Callable[[], object]) -> float:
     return time.perf_counter() - start
 
 
+def best_time(call: Callable[[], object], repeats: int = 5) -> float:
+    """Best wall time of `repeats` calls: an absolute bound on it holds on a noisy runner (a stall hits one repetition)
+    and complements the growth ratio, which cannot see a function that is linear but a constant factor too slow."""
+    return min(_timed(call) for _ in range(repeats))
+
+
 def growth_ratio(prepare: Callable[[int], Callable[[], object]], n: int, repeats: int = 3) -> float:
     """best time of `prepare(2 * n)()` over best time of `prepare(n)()`; `prepare(size)` builds the input (untimed)
     and returns the call to time. The two sizes alternate in each repetition, so a burst of load slows both."""

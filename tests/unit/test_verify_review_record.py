@@ -3,12 +3,50 @@
 The record check is pure file parsing, tested directly; the verdict wiring is tested through `cv._check_cv` with the
 mechanical gates stubbed out (what they decide is covered elsewhere), so a lorem CV can reach the record step."""
 import os
+import shutil
 import sys
+from pathlib import Path
 
 import pytest
 from vitae.core.level import Level
 from vitae.verify import cv
 from vitae.verify.review_record import check_review_record, layout_report_line
+
+LOREM_CV = ("#set document(title: \"Test CV\")\n#set page(width: 400pt, height: 300pt, margin: 20pt)\n#set text(size: 11pt)\n"
+            "#set par(leading: 0.65em, spacing: 0.65em)\n#lorem(130)\n")
+
+
+@pytest.fixture(scope="module")
+def lorem_render(tmp_path_factory):
+    """The lorem CV compiled once: its PDF and its 90 ppi PNG. Every test below writes this same source (a `// vitae:`
+    header comment aside) and only the record beside it varies, so they share the render instead of compiling it again."""
+    d = tmp_path_factory.mktemp("lorem")
+    typ = d / "cv.typ"
+    typ.write_text(LOREM_CV, encoding="utf-8")
+    pdf = d / "cv.pdf"
+    err, failed = cv.compile_or_messages(str(typ), str(pdf))
+    assert not failed, failed
+    (png,) = cv.render_pngs(str(typ), str(d))
+    return pdf, Path(png)
+
+
+@pytest.fixture(autouse=True)
+def shared_gate_inputs(monkeypatch, lorem_render):
+    """The gate probes typst, fonts and PDF tools, then compiles and rasterizes the CV: ~0.25 s of subprocesses per run
+    for what these tests do not vary. The probe is stubbed to "all present" and the compile and the raster copy the shared
+    render; the gates that read the PDF (page count, word boxes, text) still run on it."""
+    pdf, png = lorem_render
+    monkeypatch.setattr(cv, "preflight", lambda: (True, "pdfium"))
+
+    def compile_shared(typ, out):
+        shutil.copy(pdf, out)
+        return "", []
+
+    def render_shared(typ, tmp_dir):
+        return [shutil.copy(png, Path(tmp_dir) / "p1.png")]
+    monkeypatch.setattr(cv, "compile_or_messages", compile_shared)
+    monkeypatch.setattr(cv, "render_pngs", render_shared)
+
 
 GOOD = """runtime: sub-agents
 cv: cv.typ
@@ -22,8 +60,7 @@ layout: subagent haiku
 
 def _cv(tmp_path):
     typ = tmp_path / "cv.typ"
-    typ.write_text("#set document(title: \"Test CV\")\n#set page(width: 400pt, height: 300pt, margin: 20pt)\n#set text(size: 11pt)\n"
-                   "#set par(leading: 0.65em, spacing: 0.65em)\n#lorem(130)\n", encoding="utf-8")
+    typ.write_text(LOREM_CV, encoding="utf-8")
     os.utime(typ, (1_000, 1_000))
     return typ
 

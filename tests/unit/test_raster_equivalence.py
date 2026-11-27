@@ -1,18 +1,21 @@
 """Raster hot spots moved from Python pixel loops to Pillow: `layout.check_text_clip` (flat-box test of every word box)
 and `fill.bands` (dark rows and rule-wide rows of a page). Each keeps its behaviour (equivalence with the replaced code,
-kept in `_raster_ref`, on seeded random rasters and on a real rendered page) and stays fast on a full page (`slow`: wall
+kept in `_raster_ref`, on Hypothesis-generated rasters and on a real rendered page) and stays fast on a full page (`slow`: wall
 time bounded far above the measured time and far below the old one, so a noisy runner does not flip it but a return to
 a per-pixel loop does)."""
 import math
 import random
+import tempfile
 import time
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from _growth import GROWTH_BOUND, growth_ratio
+from _growth import GROWTH_BOUND, best_time, growth_ratio
 from _paths import ROOT
 from _raster_ref import bands_per_row, check_text_clip_per_pixel
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from PIL import Image
 from vitae import fill
 from vitae.core.base import WordBox
@@ -22,6 +25,9 @@ from vitae.verify.pdf import _pdfium_render, typst_compile, word_boxes
 
 S = FURNITURE_SCALE
 WHITE = (255, 255, 255)
+# A seeded generator per example: the raster builders draw thousands of values, too many to take from Hypothesis' own
+# data (health check `large_base_example`); the seed is what a failing example prints and what `random.Random` replays.
+_rngs = st.builds(random.Random, st.integers(0, 2**32))
 
 # ------------------------------------------------------------------ check_text_clip
 
@@ -50,13 +56,15 @@ def _random_page(rng: random.Random) -> tuple[Image.Image, list[WordBox]]:
     return im, boxes
 
 
-@pytest.mark.parametrize("seed", range(250))
-def test_text_clip_matches_the_per_pixel_version(tmp_path: Path, seed: int) -> None:
-    im, boxes = _random_page(random.Random(seed))
-    png = tmp_path / "p.png"
-    im.save(png)
+@settings(max_examples=250)
+@given(_rngs)
+def test_text_clip_matches_the_per_pixel_version(rng: random.Random) -> None:
+    im, boxes = _random_page(rng)
+    with tempfile.TemporaryDirectory() as tmp:
+        png = str(Path(tmp) / "p.png")
+        im.save(png)
 
-    assert check_text_clip(str(png), boxes) == check_text_clip_per_pixel(str(png), boxes)
+        assert check_text_clip(png, boxes) == check_text_clip_per_pixel(png, boxes)
 
 
 def test_text_clip_equivalence_is_not_vacuous(tmp_path: Path) -> None:
@@ -136,15 +144,16 @@ def _random_bands_page(rng: random.Random) -> Image.Image:
     return im
 
 
-@pytest.mark.parametrize("seed", range(250))
-def test_bands_match_the_per_row_version(tmp_path: Path, seed: int) -> None:
-    rng = random.Random(seed)
-    png = tmp_path / "p.png"
-    _random_bands_page(rng).save(png)
-    kw = {"thr": rng.choice([100, 150, 200]), "rule": rng.choice([0.0, 0.01, 0.04, 0.08, 0.9]),
-          "contrast": rng.choice([5, 20, 60])}
+@settings(max_examples=250)
+@given(_rngs)
+def test_bands_match_the_per_row_version(rng: random.Random) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        png = str(Path(tmp) / "p.png")
+        _random_bands_page(rng).save(png)
+        kw = {"thr": rng.choice([100, 150, 200]), "rule": rng.choice([0.0, 0.01, 0.04, 0.08, 0.9]),
+              "contrast": rng.choice([5, 20, 60])}
 
-    assert fill.bands(str(png), **kw) == bands_per_row(str(png), **kw)
+        assert fill.bands(png, **kw) == bands_per_row(png, **kw)
 
 
 def test_bands_equivalence_is_not_vacuous(tmp_path: Path) -> None:
@@ -209,6 +218,7 @@ def test_text_clip_time_grows_linearly_with_the_word_box_area(tmp_path: Path) ->
         return lambda: check_text_clip(str(png), boxes)
 
     assert growth_ratio(prepare, 100) < GROWTH_BOUND
+    assert best_time(prepare(100)) < 0.1         # measured ~0.007 s idle; the per-pixel loop takes ~0.54 s: linear, but 80x slower
 
 
 @pytest.mark.slow
@@ -248,6 +258,6 @@ def test_bands_bound_time_on_rows_of_runs_just_short_of_a_rule(tmp_path: Path) -
 
     got = fill.bands(png)
 
-    assert time.perf_counter() - start < 0.5     # measured ~0.05 s; a per-pixel Python scan takes tens of seconds
+    assert time.perf_counter() - start < 0.5     # measured ~0.05 s; the kept per-row version takes ~0.34 s, the per-pixel Python scan before it tens of seconds
     assert got[2] == []                          # need-1 is not a rule
 

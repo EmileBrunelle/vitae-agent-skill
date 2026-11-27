@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 
 import pytest
-from _growth import GROWTH_BOUND, growth_ratio
+from _growth import GROWTH_BOUND, best_time, growth_ratio
 from _placeholders_ref import check_placeholders_squashing, placeholders_in_scanning
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -80,4 +80,5 @@ def test_check_placeholders_time_grows_linearly_with_the_bracketed_spans() -> No
         return lambda: placeholders.check_placeholders(ctx)
 
     assert growth_ratio(prepare, 15000) < GROWTH_BOUND
+    assert best_time(prepare(30000)) < 2.0       # measured ~0.19 s idle; the squash per placeholder takes ~2.3 s: linear too, 12x slower
     assert [lvl.name for lvl, _ in placeholders.check_placeholders(_ctx(known + " [abc def]"))] == ["FAIL", "WARN"]
