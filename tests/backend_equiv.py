@@ -27,6 +27,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
@@ -70,10 +71,10 @@ def parse(out: str) -> dict:
             continue
         v[(key, st)] += 1
     fm = FILL.search(out)
-    pm = re.search(r"^(?:OK|FAIL)\s+pages: (\d+)", out, re.M)
+    pm = re.search(r"^(?:OK|FAIL)\s+pages: (\d+)", out, re.MULTILINE)
     return {"v": v, "fill": tuple(map(int, fm.groups())) if fm else None,
             "pages": int(pm.group(1)) if pm else None,
-            "result": "PASS" if re.search(r"^PASS\b", out, re.M) else "FAIL"}
+            "result": "PASS" if re.search(r"^PASS\b", out, re.MULTILINE) else "FAIL"}
 
 
 def run(env: str, work: str, args: list[str], tools: dict[str, str]) -> str:
@@ -81,9 +82,9 @@ def run(env: str, work: str, args: list[str], tools: dict[str, str]) -> str:
     # children would see another font set than the one the bench runs under, and the engines would diverge.
     font_env = {k: v for k, v in os.environ.items() if k.startswith("TYPST_") or k == "FONTCONFIG_FILE"}
     path = {"ref": os.environ["PATH"], "cli-pdfium": tools["bin_typst"], "pure": tools["bin_none"]}[env]
-    r = subprocess.run([sys.executable, "-I", "scripts/verify.py"] + args, cwd=work, text=True,
+    r = subprocess.run([sys.executable, "-I", "scripts/verify.py", *args], cwd=work, text=True,
                        capture_output=True, timeout=600, env={"PATH": path, "HOME": os.environ.get("HOME", "/"),
-                                                              "LANG": "C.UTF-8", **font_env})
+                                                              "LANG": "C.UTF-8", **font_env}, check=False)
     return r.stdout + r.stderr
 
 
@@ -142,8 +143,8 @@ def main() -> int:
     full: list[tuple[str, list[str], bool]] = []
     for f in sorted(FAMILIES):
         a, b = FAMILIES[f]["page"]["fill"].split("-")
-        for t in ("resume", "resume-pair-b"):
-            full.append((f"templates/{f}/{t}", [f"templates/families/{f}/{t}.typ", "1", a, b, "--allow-placeholders"], False))
+        full.extend((f"templates/{f}/{t}", [f"templates/families/{f}/{t}.typ", "1", a, b, "--allow-placeholders"], False)
+                    for t in ("resume", "resume-pair-b"))
     full.append(("templates/swiss-grid/resume-2page", ["templates/families/swiss-grid/resume-2page.typ", "2", "94", "96", "--allow-placeholders"], False))
     full.append(("mustfail/fill-99-100", ["templates/families/swiss-grid/resume.typ", "1", "99", "100", "--allow-placeholders"], True))
     full.append(("mustfail/pages-1-of-2", ["templates/families/swiss-grid/resume-2page.typ", "1", "94", "96", "--allow-placeholders"], True))
@@ -187,15 +188,15 @@ def main() -> int:
     names = sorted(f[:-4] for f in os.listdir(os.path.join(wr, "tests/fixtures")) if f.endswith(".typ"))
     if quick:
         names = names[:2]
-    rtl_src = open(os.path.join(wr, "tests/fixtures/swiss-grid.typ"), encoding="utf-8").read()
+    rtl_src = Path(os.path.join(wr, "tests/fixtures/swiss-grid.typ")).read_text(encoding="utf-8")
     rtl_src = rtl_src.replace('"Employer One"', '"شركة التقنية العربية"').replace('"Employer Two"', '"مؤسسة الخليج"')
     for w in (wr, wc):
-        open(os.path.join(w, "tests/fixtures/rtl-swiss-grid.typ"), "w", encoding="utf-8").write(rtl_src)
+        Path(os.path.join(w, "tests/fixtures/rtl-swiss-grid.typ")).write_text(rtl_src, encoding="utf-8")
     names.append("rtl-swiss-grid")
     for n in names:
         typ = f"tests/fixtures/{n}.typ"
         c = subprocess.run(["typst", "compile", "--root", ".", "--pdf-standard", "a-2a,ua-1", typ, f"tests/fixtures/{n}.pdf"], cwd=wr,
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, check=False)
         if c.returncode:
             bad += 1; log.append(f"  COMPILE FAIL {n}: {c.stderr.strip()[:200]}"); continue
         shutil.copy(os.path.join(wr, f"tests/fixtures/{n}.pdf"), os.path.join(wc, f"tests/fixtures/{n}.pdf"))

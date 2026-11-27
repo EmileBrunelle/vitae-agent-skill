@@ -48,9 +48,9 @@ def run(tmp_path, boxes=False, **kw):
 
 
 @pytest.mark.parametrize("kw", [
-    pytest.param(dict(rule_luma=180), id="pale-full-hairline"),
-    pytest.param(dict(rule_luma=30, rule_len=70, gap=75), id="short-5.5pct-rule-RULE_FLOOR"),
-    pytest.param(dict(rule_luma=30, gap=25), id="tight-but-inked"),
+    pytest.param({"rule_luma": 180}, id="pale-full-hairline"),
+    pytest.param({"rule_luma": 30, "rule_len": 70, "gap": 75}, id="short-5.5pct-rule-RULE_FLOOR"),
+    pytest.param({"rule_luma": 30, "gap": 25}, id="tight-but-inked"),
 ])
 def test_rule_at_boundaries_is_counted_as_device(tmp_path, kw):
     fails, msgs = run(tmp_path, **kw)
@@ -76,7 +76,7 @@ def test_one_rule_seen_by_both_scans_counts_once(tmp_path):
     assert any(f and "no ink" in m for f, m in zip(fails, msgs))
 
 
-@pytest.mark.parametrize("kw", [dict(gap=10), dict(gap=90), dict(gap=53)], ids=["tight", "bare-7.9x", "airy"])
+@pytest.mark.parametrize("kw", [{"gap": 10}, {"gap": 90}, {"gap": 53}], ids=["tight", "bare-7.9x", "airy"])
 def test_zero_devices_fail_whatever_the_ratio(tmp_path, kw):
     assert any(run(tmp_path, **kw)[0])
 

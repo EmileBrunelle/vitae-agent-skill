@@ -18,7 +18,7 @@ RUNS = [      # (script, args, whether the plain run exits non-zero: the equalit
 
 def run(script: str, args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / script), *args],
-                          capture_output=True, text=True, cwd=cwd)
+                          capture_output=True, text=True, cwd=cwd, check=False)
 
 
 @pytest.mark.parametrize(("script", "args", "fails"), RUNS)

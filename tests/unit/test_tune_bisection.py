@@ -1,4 +1,6 @@
 """vitae.verify.tune.tune: bisection bounds, caps, restoration. The compile/measure probe and preflight are injected."""
+from pathlib import Path
+
 import pytest
 from vitae.core.base import LEADING_WARN
 from vitae.verify import tune as T
@@ -22,7 +24,7 @@ def install(monkeypatch, *, lstar, fill_of=lambda l: round(l * 100), preflight=(
     def probe(typ_path, text, leading, spacing, expected, backend):
         if log is not None:
             log.append(leading)
-        open(typ_path, "w", encoding="utf-8").write("PROBE-JUNK")   # like the real probe: rewrites in place
+        Path(typ_path).write_text("PROBE-JUNK", encoding="utf-8")   # like the real probe: rewrites in place
         return (True, fill_of(leading)) if leading <= lstar else (False, None)
     monkeypatch.setattr(T, "_probe", probe)
 
@@ -150,7 +152,7 @@ class TestFailures:
 
         def probe(typ_path, *a):
             calls.append(1)
-            open(typ_path, "w", encoding="utf-8").write("JUNK")
+            Path(typ_path).write_text("JUNK", encoding="utf-8")
             if len(calls) == 2:
                 raise KeyboardInterrupt
             return True, 90

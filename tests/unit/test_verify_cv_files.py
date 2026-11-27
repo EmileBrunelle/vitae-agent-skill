@@ -3,6 +3,7 @@ import inspect
 from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
+from typing import ClassVar
 
 import pytest
 from vitae.core.base import LEADING_FAMILY_RATIO_WARN, LOWERED_FILL_FLOOR
@@ -400,7 +401,7 @@ class Env:
     """Knobs for the faked pipeline; `run` calls `_check_cv` and returns (rc, footer, printed lines)."""
     pages = "1"
     pngs = ("p1.png",)
-    fills = {"p1.png": "ink from 3% to 95%"}
+    fills: ClassVar[dict[str, str]] = {"p1.png": "ink from 3% to 95%"}
     err = ""
     compile_ok = True
     preflight_ok = True
@@ -411,7 +412,7 @@ class Env:
     lib = ()
     layout = None
     can_query = False
-    boxes = [[]]
+    boxes: ClassVar[list[list[object]]] = [[]]
     # set by the `env` fixture
     dir: Path
     calls: dict[str, list[tuple[tuple[object, ...], dict[str, object]]]]
@@ -466,7 +467,7 @@ def _cap(request):
 
 
 def test_pass_without_fill_targets_warns_and_says_how_to_rerun(env):
-    rc, footer, out = env.run()
+    rc, _footer, out = env.run()
     assert rc == 0
     (w,) = [ln for ln in out.splitlines() if ln.startswith("WARN  fill NOT checked")]
     assert w.startswith("WARN  fill NOT checked (no FILL_MIN FILL_MAX given) — rerun as scripts/verify.py ")
@@ -515,7 +516,7 @@ def test_under_fill_below_floor_says_a_fact_is_missing(env):
     assert w.endswith("add real facts or ask the user")
     env.pages = "2"
     _, _, out = env.run(expected="2", fmin="90", fmax="99")
-    assert [ln for ln in out.splitlines() if ln.startswith("NEXT")][0].endswith(
+    assert next(ln for ln in out.splitlines() if ln.startswith("NEXT")).endswith(
         "add real facts or ask the user, or drop to fewer pages")
 
 
@@ -586,7 +587,7 @@ def test_preflight_failure_stops_with_no_footer(env):
 
 def test_footer_is_armed_after_preflight(env):
     from vitae.core.base import _FOOTER_GATE
-    rc, footer, _ = env.run(fmin="90", fmax="99")
+    _rc, footer, _ = env.run(fmin="90", fmax="99")
     assert footer == _FOOTER_GATE
 
 
@@ -845,7 +846,7 @@ def test_without_word_boxes_the_dependent_gates_degrade_with_one_notice(env, mon
     lines = out.splitlines()
     notice = f"WARN  text-clip gate skipped: no word boxes for {env.dir}/cv.pdf"
     assert lines.count(notice) == 1
-    assert lines.index(notice) < [i for i, ln in enumerate(lines) if ln.startswith("OK    fill: p2.png")][0]
+    assert lines.index(notice) < next(i for i, ln in enumerate(lines) if ln.startswith("OK    fill: p2.png"))
     for ws in _bound_all(env, "check_whitespace", real_layout.check_whitespace):
         assert ws["boxes"] is None and ws["degraded"] is True
     assert [c["boxes"] for c in _bound_all(env, "check_text_clip", real_layout.check_text_clip)] == [None, None]

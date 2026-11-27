@@ -63,7 +63,7 @@ class TestHierarchy:
         assert "entries barely separated" in msg
 
     def test_ratio_1_3_does_not_warn(self):
-        (lv, msg), = _run(13)
+        (lv, _msg), = _run(13)
         assert lv is Level.OK
 
     def test_threshold_is_1_2_inclusive(self):

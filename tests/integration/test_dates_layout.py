@@ -150,7 +150,7 @@ def layouts2(toolchain: str, tmp_path_factory: pytest.TempPathFactory) -> Verdic
 
 
 def _inline(marks: list[Mark]) -> bool:
-    return bool([m for m in marks if m.get("kind") == "date"][0].get("inline"))
+    return bool(next(m for m in marks if m.get("kind") == "date").get("inline"))
 
 
 @pytest.mark.parametrize("case", CASES, ids=[c.name for c in CASES])

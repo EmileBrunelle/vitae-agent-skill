@@ -55,7 +55,7 @@ def run_check(name: str, argv: Sequence[str | int | os.PathLike[str]], cwd: Path
         full_env.update(env)
     try:
         p = subprocess.run([str(a) for a in argv], cwd=cwd, env=full_env, capture_output=True, text=True,
-                           errors="replace", timeout=timeout, stdin=subprocess.DEVNULL)
+                           errors="replace", timeout=timeout, stdin=subprocess.DEVNULL, check=False)
         rc, out, so = p.returncode, p.stdout + p.stderr, p.stdout
     except subprocess.TimeoutExpired:
         rc, out, so = 124, f"FAIL timeout after {timeout}s", ""
@@ -100,8 +100,7 @@ def discover_templates() -> list[Template]:
     out: list[Template] = []
     for fam in sorted(FAMILIES):
         lo, hi = (int(x) for x in FAMILIES[fam]["page"]["fill"].split("-"))
-        for name in ("resume", "resume-pair-b"):
-            out.append(Template(fam, name, 1, lo, hi))
+        out.extend(Template(fam, name, 1, lo, hi) for name in ("resume", "resume-pair-b"))
     for fam, (lo, hi) in sorted(TWO_PAGE_FILL.items()):
         out.append(Template(fam, "resume-2page", 2, lo, hi))
     return out
@@ -163,4 +162,4 @@ def run_doctor(name: str, d: Path, cwd: Path, log_dir: Path, *, stub: bool = Fal
 def importable_isolated(module: str) -> bool:
     """Whether `python -I` can import `module`. The gates run isolated (no user site, no PYTHONPATH), so a skip guard
     must decide the same way: find_spec in the pytest process also sees a `pip install --user` copy the gate cannot."""
-    return subprocess.run([sys.executable, "-I", "-c", f"import {module}"], capture_output=True).returncode == 0
+    return subprocess.run([sys.executable, "-I", "-c", f"import {module}"], capture_output=True, check=False).returncode == 0

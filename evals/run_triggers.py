@@ -66,6 +66,7 @@ def run_one(adapter: ModuleType, workdir: Path, query: str) -> str | None:
         done = subprocess.run(
             argv, cwd=workdir, env=env, stdin=subprocess.DEVNULL,
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT,
+            check=False,
         )  # fmt: skip
     except subprocess.TimeoutExpired as exc:
         (workdir / "out.partial.txt").write_text(_text(exc.stdout), encoding="utf-8")
@@ -132,7 +133,7 @@ def _run_all(adapter: ModuleType, queries: list[dict[str, Any]], runs: int, jobs
         for key, future in futures.items():
             try:
                 error = future.result()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - one failed future must not abort the others; reported as the error text
                 error = f"{type(exc).__name__}: {exc}"
             if error:
                 errors[key] = error

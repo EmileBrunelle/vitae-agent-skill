@@ -1,4 +1,6 @@
 """Luminance (vitae.core.colour) and pure helpers of vitae.verify.page: section-boundary location."""
+from typing import ClassVar
+
 import pytest
 from vitae.core import colour
 from vitae.verify import page
@@ -45,7 +47,7 @@ class TestBoundaryInk:
 
 class TestNearBoundary:
     """Furniture on a heading's own line counts when within one median gap of a white run >= BOUNDARY_ADJACENT x median."""
-    WHITE = [(100, 130)]   # 30px run, med 10 -> needs >= 12
+    WHITE: ClassVar[list[tuple[int, int]]] = [(100, 130)]   # 30px run, med 10 -> needs >= 12
 
     @pytest.mark.parametrize("band, expected", [
         ((140, 145), True),    # exactly one median gap below the run

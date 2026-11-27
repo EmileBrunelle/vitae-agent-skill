@@ -169,7 +169,7 @@ def main() -> None:
         sys.exit(0)
     ap = _DocParser(add_help=False, allow_abbrev=False)
     ap.add_argument("paths", nargs="*")
-    args = ap.parse_args(["--"] + sys.argv[1:])   # any other argument is a positional, even "-x"
+    args = ap.parse_args(["--", *sys.argv[1:]])   # any other argument is a positional, even "-x"
     if not args.paths:
         ap.error("no image given")
     for path in args.paths:

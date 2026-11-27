@@ -104,7 +104,7 @@ def hexify_pdf(path: str) -> bool:
                      object_stream_mode=pk.ObjectStreamMode.preserve, fix_metadata_version=False)
         os.replace(tmp, path)
         return True
-    except Exception as e:   # kept broad: pikepdf raises its own PdfError family, OSError, ValueError; the original PDF stays as compiled
+    except Exception as e:   # noqa: BLE001 - kept broad: pikepdf raises its own PdfError family, OSError, ValueError; the original PDF stays as compiled
         _warn_once(e)
         return False
     finally:

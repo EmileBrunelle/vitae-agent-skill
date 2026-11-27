@@ -16,7 +16,7 @@ from vitae.design.tables import FONTS
 def _sub1(src: str, pat: str, repl: str | Callable[[re.Match[str]], str],
           what: str, family: str, required: bool = True) -> str:
     """Replace exactly one match of `pat` (MULTILINE) in `src`."""
-    new, n = re.subn(pat, repl, src, count=0, flags=re.M)
+    new, n = re.subn(pat, repl, src, count=0, flags=re.MULTILINE)
     if n != 1:
         if n == 0 and not required:
             return src
@@ -82,7 +82,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     disp_c = _chain(fp["display"], p["display"], "display", p["have"])
 
     def head_names(src: str) -> tuple[re.Match[str] | None, re.Match[str] | None]:
-        g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.M)
+        g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.MULTILINE)
         return g("bodyf"), g("dispf")
     # pair B iff the drawn faces are the second pair's lead faces
     pick_file, best = "resume.typ", -1
@@ -90,12 +90,12 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
         fpth = os.path.join(fdir, fn)
         if not os.path.exists(fpth):
             continue
-        b, ds = head_names(open(fpth, encoding="utf-8").read())
+        b, ds = head_names(Path(fpth).read_text(encoding="utf-8"))
         score = (b is not None and b.group(1) == p["body"][0]) + \
                 (ds is not None and ds.group(1) == p["display"][0])
         if score > best or (score == best and fn == "resume.typ"):
             pick_file, best = fn, score
-    src = open(os.path.join(fdir, pick_file), encoding="utf-8").read()
+    src = Path(os.path.join(fdir, pick_file)).read_text(encoding="utf-8")
     # family files import the shared lib by repo-relative path; the starter has
     # lib.typ/icons.typ copied beside it, so point the import there.
     src = src.replace('#import "../../lib.typ"', '#import "lib.typ"')
@@ -107,7 +107,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
         # gutter-rail: `if screen { rgb(A) } else { rgb(B) }` — drawn value is
         # the print branch; keep the screen branch as shipped.
         m = re.search(r'^#let %s = if screen \{ (rgb\("[^"]+"\)) \} else '
-                      r'\{ rgb\("[^"]+"\) \}' % name, src, re.M)
+                      r'\{ rgb\("[^"]+"\) \}' % name, src, re.MULTILINE)
         if m:
             return (r'^(#let %s = if screen \{ rgb\("[^"]+"\) \} else \{ )'
                     r'rgb\("[^"]+"\)( \}.*)$' % name,
@@ -121,7 +121,7 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
         src = _sub1(src, pat, afn, "#let accent2", fam)
     sub: Callable[[str], Callable[[re.Match[str]], str]] = lambda v: (lambda mm: mm.group(1) + v + (mm.group(2) or ""))
     src = _sub1(src, lead("bodyf"), sub(body_c), "#let bodyf", fam)
-    if re.search(r'^#let dispf = monof\b', src, re.M):
+    if re.search(r'^#let dispf = monof\b', src, re.MULTILINE):
         # mono-technical: the display face IS the mono face
         src = _sub1(src, lead("monof"), sub(disp_c), "#let monof", fam)
     else:
@@ -166,20 +166,20 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     for f in ("lib.typ", "icons.typ"):
         srcf, dst = os.path.join(root, "templates", f), os.path.join(folder, f)
         if os.path.exists(dst):
-            if f == "lib.typ" and open(dst, "rb").read() != open(srcf, "rb").read():
+            if f == "lib.typ" and Path(dst).read_bytes() != Path(srcf).read_bytes():
                 kept.append("kept existing %s (differs from the skill's) — a lib "
                             "update is deliberate: cp %s %s"
                             % (q(dst), q(srcf), q(dst)))
-                if is_old_lib(open(dst, encoding="utf-8", errors="replace").read()):
+                if is_old_lib(Path(dst).read_text(encoding="utf-8", errors="replace")):
                     kept.append("WARN %s is %s: update it with the cp above" % (q(dst), OLD_LIB_NOTE))
                 continue
             if f == "icons.typ" and os.path.getsize(dst) > 0:
                 kept.append("kept existing %s (harvested icons)" % q(dst))
                 continue
-        _write_nofollow(dst, open(srcf, "rb").read())
+        _write_nofollow(dst, Path(srcf).read_bytes())
     # one comment line: the full call form of the family's entry wrapper
     src = re.sub(r'^(#job\()', r'// job(role, org, dates, note) - 4 positional args, "note" required; '
-                 r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.M)
+                 r'bullets follow as "- ..." lines\n\1', src, count=1, flags=re.MULTILINE)
     _write_nofollow(out, (_vitae_header(pg) + "\n" + src).encode("utf-8"))
     lo, hi = pg["fill"].split("-")
     if any((note or "").startswith("NO pool member")

@@ -14,7 +14,7 @@ from vitae.verify.page import FURNITURE_SCALE
 
 class RgbPixels:
     """`px[x, y]` of an "RGB" image: its (r, g, b)."""
-    __slots__ = ("_data", "_w", "_h")
+    __slots__ = ("_data", "_h", "_w")
 
     def __init__(self, im: Image.Image) -> None:
         if im.mode != "RGB":

@@ -41,7 +41,7 @@ def test_fixture_gates(name: str, fixtures_rendered: tuple[CheckResult, Path], s
 def test_fixtures_are_generated(tmp_path: Path) -> None:
     """The committed tests/fixtures/*.typ are what gen.py produces from the current templates (byte for byte). Cheap: runs under --quick too."""
     gen = ROOT / "tests" / "fixtures" / "gen.py"
-    p = subprocess.run([sys.executable, "-I", str(gen), "--out", str(tmp_path)], capture_output=True, text=True)
+    p = subprocess.run([sys.executable, "-I", str(gen), "--out", str(tmp_path)], capture_output=True, text=True, check=False)
     assert p.returncode == 0, p.stderr
     made = sorted(f.name for f in tmp_path.glob("*.typ"))
     kept = sorted(f.name for f in (ROOT / "tests" / "fixtures").glob("*.typ"))

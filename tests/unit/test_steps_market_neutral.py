@@ -56,7 +56,7 @@ def strip_paths(text):
     A path names a file, not a market rule. A fenced block holds data or logs (measured strings quoted exactly as
     logged), not instructions. Any other backticked span is an instruction's wording and stays scanned.
     """
-    text = re.sub(r"^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[ \t]*$", "", text, flags=re.S | re.M)
+    text = re.sub(r"^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[ \t]*$", "", text, flags=re.DOTALL | re.MULTILINE)
     text = re.sub(r"\]\([^)\s]*\)", "]", text)
     return re.sub(r"`[^`\n]*(?:/|\.md)[^`\n]*`", "", text)
 

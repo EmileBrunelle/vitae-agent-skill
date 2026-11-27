@@ -90,7 +90,7 @@ def _cli_probe() -> str | None:
 def _cli_version() -> str:
     """Version token of `typst --version`; "?" when the CLI cannot run or prints none."""
     try:
-        return subprocess.run(["typst", "--version"], capture_output=True, text=True).stdout.split()[1]
+        return subprocess.run(["typst", "--version"], capture_output=True, text=True, check=False).stdout.split()[1]
     except (OSError, subprocess.SubprocessError, IndexError):   # cannot run, or no version token in the output
         return "?"
 
@@ -188,7 +188,7 @@ def importable(name: str) -> bool:
     try:
         importlib.import_module(name)
         return True
-    except Exception:   # kept broad: a broken wheel may raise anything on import (OSError, RuntimeError...); False reads as backend absent, the callers WARN
+    except Exception:   # noqa: BLE001 - kept broad: a broken wheel may raise anything on import (OSError, RuntimeError...); False reads as backend absent, the callers WARN
         return False
 
 
@@ -239,13 +239,12 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
         print("  - `pip install pypdfium2`: text, word boxes, raster and metadata then run in Python close to poppler's (see the CHANGELOG)")
         print("  poppler (academic mode only): install `poppler-utils` (or `poppler`) with the system package manager")
         return True, "pypdf"
-    else:
-        print("MISSING  poppler-utils -- needed for page-count and ATS extraction checks:")
-        print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
-        print("  choco install poppler | scoop install poppler          # Windows")
-        print("  pip install pypdfium2                                  # fallback: text, boxes, raster and metadata in Python, close to poppler's (used automatically if present)")
-        print("  pip install pypdf                                      # last resort: exact page count, indicative extraction only (used automatically if present)")
-        return False, None
+    print("MISSING  poppler-utils -- needed for page-count and ATS extraction checks:")
+    print("  brew install poppler | sudo dnf install poppler-utils | sudo apt install poppler-utils")
+    print("  choco install poppler | scoop install poppler          # Windows")
+    print("  pip install pypdfium2                                  # fallback: text, boxes, raster and metadata in Python, close to poppler's (used automatically if present)")
+    print("  pip install pypdf                                      # last resort: exact page count, indicative extraction only (used automatically if present)")
+    return False, None
 
 
 def check_pikepdf() -> None:
@@ -371,7 +370,7 @@ def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
         mod = importlib.import_module("typst")   # ModuleType: attribute access is untyped (no stubs)
     except ImportError:
         return None, "", "", False
-    except Exception as e:   # kept broad: a broken wheel may raise anything on import; reported as the probe's problem text, which the doctor prints
+    except Exception as e:   # noqa: BLE001 - kept broad: a broken wheel may raise anything on import; reported as the probe's problem text, which the doctor prints
         return None, "", f"import failed: {type(e).__name__}: {e}", False
     comp_cls = getattr(mod, "Compiler", None)
     if comp_cls is not None and not hasattr(comp_cls, "compile_with_warnings"):
@@ -400,7 +399,7 @@ def _typst_py_probe() -> tuple[ModuleType | None, str, str, bool]:
         except (RuntimeError, OSError):   # Fonts() failing: the module is compile-only, full stays False
             pass
         return mod, ver, "", full
-    except Exception as e:   # kept broad: the probe runs a third-party wheel; any failure is reported as the problem text (type and message)
+    except Exception as e:   # noqa: BLE001 - kept broad: the probe runs a third-party wheel; any failure is reported as the problem text (type and message)
         return None, "", f"{type(e).__name__}: {e}", False
 
 
@@ -477,7 +476,7 @@ def typst_fonts() -> list[str] | None:
     """Family names `typst fonts` reports (CLI, else typst-py), or None."""
     if typst_route().query == "cli":
         try:
-            r = subprocess.run(["typst", "fonts"], capture_output=True, text=True, timeout=20)
+            r = subprocess.run(["typst", "fonts"], capture_output=True, text=True, timeout=20, check=False)
         except (OSError, subprocess.SubprocessError):
             return None
         return [l.strip() for l in r.stdout.splitlines() if l.strip()] if r.returncode == 0 else None

@@ -9,6 +9,7 @@ they stay in vitae/verify/cv.py.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from vitae.core.base import DetailRow, HiddenStat, Mark
 from vitae.core.context import VerifyContext
@@ -108,7 +109,7 @@ def _no_split(ctx: VerifyContext) -> list[Finding]:
 def _facts_coverage(ctx: VerifyContext) -> list[Finding]:
     assert ctx.facts is not None   # `applies` guards it
     try:
-        facts_text = open(ctx.facts, encoding="utf-8").read()
+        facts_text = Path(ctx.facts).read_text(encoding="utf-8")
     except OSError as e:
         return [(Level.FAIL, f"--facts: cannot read {ctx.facts} ({e.strerror})")]
     return [(Level.WARN, w.removeprefix("WARN  ")) for w in check_facts_coverage(ctx.txt, facts_text)]
@@ -148,8 +149,8 @@ def _date_adjacency(ctx: VerifyContext) -> list[Finding]:
         out.append((Level.WARN, "date adjacency not measured: no lib entry()/srow() heads"))
     dwarn: list[str] = []
     dst: dict[str, int] = {}
-    for msg in check_date_adjacency(ctx.typ, ctx.pdf, marks=ctx.marks or [], warns=dwarn, stats=dst):
-        out.append((Level.FAIL, "date adjacency: " + msg))
+    out.extend((Level.FAIL, "date adjacency: " + msg)
+               for msg in check_date_adjacency(ctx.typ, ctx.pdf, marks=ctx.marks or [], warns=dwarn, stats=dst))
     if ctx.marks is not None:
         _n = dst.get("measured", 0)
         out.append((Level.INFO, f"date adjacency: {_n} lib entr{'y' if _n == 1 else 'ies'} measured, "

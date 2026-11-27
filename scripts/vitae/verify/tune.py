@@ -373,8 +373,7 @@ def tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None,
 
     saved: list[tuple[signal.Signals, Callable[[int, FrameType | None], object] | int | None]] = []
     try:
-        for sig in (signal.SIGTERM, signal.SIGHUP):
-            saved.append((sig, signal.signal(sig, on_signal)))
+        saved.extend((sig, signal.signal(sig, on_signal)) for sig in (signal.SIGTERM, signal.SIGHUP))
     except ValueError:      # not the main thread: no handler can be installed, nothing to restore
         pass
     try:

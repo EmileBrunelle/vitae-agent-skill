@@ -16,6 +16,7 @@ import unicodedata
 from collections import Counter
 from collections.abc import Sequence
 from enum import StrEnum
+from pathlib import Path
 
 from vitae.core.level import Finding, Level
 from vitae.core.typst_source import strip_block_comments
@@ -79,7 +80,7 @@ def _font_sources(typ: str, root: str | None = None, seen: set[str] | None = Non
         return ""
     seen.add(path)
     try:
-        text = open(path, encoding="utf-8").read()
+        text = Path(path).read_text(encoding="utf-8")
     except OSError:
         return ""
     out = [text]

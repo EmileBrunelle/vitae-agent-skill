@@ -39,7 +39,7 @@ def skill_version() -> str | None:
         text = (Path(__file__).resolve().parents[3] / "SKILL.md").read_text(encoding="utf-8")
     except OSError:
         return None
-    m = re.search(r'^\s+version:\s*"?([^"\s]+)"?\s*$', text.split("\n---", 2)[0], re.M)
+    m = re.search(r'^\s+version:\s*"?([^"\s]+)"?\s*$', text.split("\n---", 2)[0], re.MULTILINE)
     return m.group(1) if m else None
 
 
@@ -126,7 +126,7 @@ def run_json(argv: list[str], dispatch: Dispatch) -> tuple[int, None]:
                 bad, rc = True, 2
                 if isinstance(e.code, str):
                     print(e.code, file=sys.stderr)
-        except Exception as e:      # kept broad: top-level; a gate crash is not a gate FAIL: exit 2, one JSON line with the type and message
+        except Exception as e:      # noqa: BLE001 - kept broad: top-level; a gate crash is not a gate FAIL: exit 2, one JSON line with the type and message
             crash, rc = f"{type(e).__name__}: {e}", 2
     if crash:
         sys.stderr.write(out.getvalue() + err.getvalue())

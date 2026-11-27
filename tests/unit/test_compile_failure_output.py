@@ -16,7 +16,7 @@ REFUSED = f"{ADVICE}\n{TYPST_ERR}"
 
 
 def _advice_lines(out: str) -> list[str]:
-    return re.findall(r"^FAIL  vitae.*$", out, flags=re.M)
+    return re.findall(r"^FAIL  vitae.*$", out, flags=re.MULTILINE)
 
 
 def test_the_helper_splits_the_advice_from_typsts_error() -> None:

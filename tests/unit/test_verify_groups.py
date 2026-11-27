@@ -5,6 +5,7 @@ Everything runs on small synthetic word lists and marks (the shapes lib.typ's ma
 extraction give), so no PDF or Typst is needed."""
 import math
 from collections.abc import Sequence
+from typing import ClassVar
 
 import pytest
 from vitae.core.base import DetailRow, GroupRow, Mark, SecRow, _Line
@@ -371,7 +372,7 @@ class TestCheckGroupProximity:
         assert out[-1][0] is Level.FAIL
 
     def test_detail_rows_are_appended_and_printed(self, capsys):
-        out, detail = _prox(7)
+        _out, detail = _prox(7)
         assert [d["kind"] for d in detail] == ["group"]
         assert capsys.readouterr().out == 'DETAIL group "Role" p1 lines=2 internal=10.00pt between=7.00pt ratio=0.70\n'
 
@@ -435,7 +436,7 @@ class TestSectionProximity:
 
     def test_section_findings_come_before_the_group_verdict(self):
         out = self._run(5, 20)
-        assert [lv for lv, _ in out][0] is Level.FAIL and out[-1][1].startswith("group proximity")
+        assert next(lv for lv, _ in out) is Level.FAIL and out[-1][1].startswith("group proximity")
 
     def test_section_detail_row_is_printed(self, capsys):
         self._run(30, 20)
@@ -494,7 +495,7 @@ def WB(x0, y0, x1, y1, t):
 
 
 class TestFirstWord:
-    words = [WB(50, 0, 60, 10, "right"), WB(10, 1, 20, 11, "left"), WB(10, 30, 20, 40, "below")]
+    words: ClassVar[list[WB]] = [WB(50, 0, 60, 10, "right"), WB(10, 1, 20, 11, "left"), WB(10, 30, 20, 40, "below")]
 
     def test_top_line_then_leftmost(self):
         assert groups._first_word(self.words, 10, 0, 20) == 1
@@ -581,7 +582,7 @@ class TestCheckDateAdjacency:
         assert 'AFTER text set below the entry head (read first: "Bullet")' in msg
 
     def test_org_emitted_before_the_date_fails_without_reading_positions(self):
-        fails, warns, stats = adj([H, O, D], [DEV, DATE, ACME])
+        fails, _warns, stats = adj([H, O, D], [DEV, DATE, ACME])
         (msg,) = fails
         assert "EMITTED before its date" in msg
         assert stats["unmeasured"] == 1 and stats["measured"] == 0
@@ -615,7 +616,7 @@ class TestCheckDateAdjacency:
 
     def test_no_entry_carries_markers_is_one_note(self):
         old = Mark(kind="entry", text="Old", page=1, x=10.0, y=0.0)
-        fails, warns, stats = adj([old], [DEV])
+        fails, warns, _stats = adj([old], [DEV])
         assert fails == [] and len(warns) == 1 and "no lib markers" in warns[0]
 
     def test_no_entries_at_all(self):
@@ -650,7 +651,7 @@ class TestCheckDateAdjacency:
     def test_inline_date_after_the_role_is_measured_on_the_head_line(self):
         d: Mark = {**D, "x": 35.0, "inline": True, "w": 25.0}
         words = [DEV, WB(35, 0, 60, 10, "2020"), ACME]
-        fails, warns, stats = adj([H, d, O], words)
+        fails, _warns, stats = adj([H, d, O], words)
         assert (fails, stats["measured"]) == ([], 1)
 
     def test_inline_date_read_after_the_org_line_fails_with_the_rebuild_advice(self):
@@ -752,7 +753,7 @@ class TestMarkValidation:
     def test_json_list_accepts_only_arrays(self):
         assert query._json_list('[1, {"a": 2}]') == [1, {"a": 2}]
         assert query._json_list('{"a": 1}') is None
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Expecting value"):
             query._json_list("[1,")
 
     def test_unplaced_marks_are_ignored_by_entry_records(self):

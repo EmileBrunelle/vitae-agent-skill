@@ -7,6 +7,8 @@ is "not measured", never guessed.
 """
 from __future__ import annotations
 
+import itertools
+
 from vitae.core.level import Finding, Level
 from vitae.verify.groups.query import _is_num
 
@@ -28,7 +30,7 @@ def _item_ys(values: list[object]) -> dict[int, list[float]]:
 def count_rows(ys: list[float], gap: float = ROW_GAP) -> int:
     """Rows in `ys`: a new row starts where the sorted y jumps by more than `gap`."""
     ordered = sorted(ys)
-    return sum(1 for a, b in zip(ordered, ordered[1:]) if b - a > gap) + 1 if ordered else 0
+    return sum(1 for a, b in itertools.pairwise(ordered) if b - a > gap) + 1 if ordered else 0
 
 
 def _declared_rows(values: list[object]) -> tuple[int, str | None]:

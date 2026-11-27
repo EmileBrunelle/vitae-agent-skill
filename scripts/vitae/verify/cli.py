@@ -82,6 +82,7 @@ import json
 import os
 import sys
 import tempfile
+from pathlib import Path
 from typing import NoReturn
 
 from vitae.core import profiling
@@ -175,7 +176,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         ga = ap.parse_known_args(argv[1:])[0]
         rows: list[DetailRow] = []
         backend = pdf_backend()
-        src = open(ga.typ, encoding="utf-8").read()
+        src = Path(ga.typ).read_text(encoding="utf-8")
         rc = run_gates(LAYOUT_GATES, make_context(ga.typ, ga.pdf, extract_text(ga.pdf, backend), src, backend,
                                                   root=ga.root, detail=rows))
         print("DETAIL " + json.dumps(rows))
@@ -258,7 +259,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
     ap.add_argument("expected")
     ap.add_argument("fill_min", nargs="?")
     ap.add_argument("fill_max", nargs="?")
-    ca = ap.parse_known_args(["--"] + argv)[0]
+    ca = ap.parse_known_args(["--", *argv])[0]
     return _check_cv(ca.typ, ca.expected, ca.fill_min, ca.fill_max, facts_path, allow_placeholders, rebuild)
 
 

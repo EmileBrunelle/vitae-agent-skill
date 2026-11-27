@@ -21,7 +21,7 @@ def reading_order_quadratic(words: list[WordBox]) -> list[WordBox]:  # noqa: C90
             rb = [words[k][0] for k in rows[-1]]
             ryc = sum((q[1] + q[3]) / 2 for q in rb) / len(rb)
             # 0.4x box height (~4pt on 10pt text): keeps bold/regular or small-caps words on one baseline together
-            if abs(yc - ryc) <= 0.4 * min(hh, min(q[3] - q[1] for q in rb)):
+            if abs(yc - ryc) <= 0.4 * min(hh, *(q[3] - q[1] for q in rb)):
                 rows[-1].append(i)
                 continue
         rows.append([i])

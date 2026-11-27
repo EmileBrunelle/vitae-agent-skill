@@ -18,19 +18,21 @@ import re
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 STEP = 1.5
 TAIL = " — extended so that this bullet runs on to a second line of the same paragraph, with enough extra words to wrap on any measure"
-LINE = re.compile(r'<line xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">(.*?)</line>', re.S)
+LINE = re.compile(r'<line xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">(.*?)</line>', re.DOTALL)
 
 
 def lengthen(src: str, bullet: str) -> str:
     out, n = [], 0
     for ln in src.split("\n"):
         if n < 2 and re.match(r"-\s+" + bullet, ln):
-            ln = ln.rstrip() + TAIL
+            out.append(ln.rstrip() + TAIL)
             n += 1
-        out.append(ln)
+        else:
+            out.append(ln)
     return "\n".join(out)
 
 
@@ -42,11 +44,11 @@ def to_pdf(path: str, bullet: str, work: str) -> str:
     pdf = os.path.join(work, "m.pdf")
     try:
         with open(tmp, "w", encoding="utf-8") as f:
-            f.write(lengthen(open(path, encoding="utf-8").read(), bullet))
+            f.write(lengthen(Path(path).read_text(encoding="utf-8"), bullet))
         root = d
         while root != os.path.dirname(root) and not os.path.exists(os.path.join(root, "templates", "lib.typ")):
             root = os.path.dirname(root)
-        r = subprocess.run(["typst", "compile", "--root", root, tmp, pdf], capture_output=True, text=True)
+        r = subprocess.run(["typst", "compile", "--root", root, tmp, pdf], capture_output=True, text=True, check=False)
         if r.returncode:
             sys.exit("typst compile failed:\n" + r.stderr)
     finally:
@@ -58,7 +60,7 @@ def to_pdf(path: str, bullet: str, work: str) -> str:
 def lines_of(pdf: str, work: str):
     html = os.path.join(work, "m.html")
     subprocess.run(["pdftotext", "-bbox-layout", pdf, html], check=True)
-    pages = open(html, encoding="utf-8").read().split("<page ")[1:]
+    pages = Path(html).read_text(encoding="utf-8").split("<page ")[1:]
     out = []
     for pi, p in enumerate(pages):
         for m in LINE.finditer(p):

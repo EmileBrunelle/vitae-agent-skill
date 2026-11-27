@@ -14,10 +14,9 @@ def failures(results):
 
 def _full_data(data):
     # Mirrors the parsed TOML [counts] table: ints, plus nested tables for publications and talks.
-    flat: dict[str, int] = {k: 0 for k in ("education", "appointments", "honours", "funding", "supervision", "teaching", "service",
-                                           "knowledge_mobilization", "references")}
+    flat: dict[str, int] = dict.fromkeys(("education", "appointments", "honours", "funding", "supervision", "teaching", "service", "knowledge_mobilization", "references"), 0)
     publications: dict[str, int] = {"journal": 0, "conference": 0, "preprint": 0}
-    talks: dict[str, int] = {k: 0 for k in ("plenary", "invited", "conference", "seminar", "poster")}
+    talks: dict[str, int] = dict.fromkeys(("plenary", "invited", "conference", "seminar", "poster"), 0)
     publications.update(data["counts"].get("publications", {}))
     counts: dict[str, int | dict[str, int]] = {**flat, "publications": publications, "talks": talks}
     counts.update({k: v for k, v in data["counts"].items() if k != "publications"})

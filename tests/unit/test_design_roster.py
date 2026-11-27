@@ -57,7 +57,7 @@ def test_starter_headings_are_exactly_the_drawn_labels(family):
     for role in ("profile", "skills"):
         for new in LABEL_VARIANTS[role]:
             out = _apply_labels(src, d["labels"], dict(d["labels"], **{role: new}), family)
-            heads = re.findall(r'^#section\("([^"]*)"', out, re.M)
+            heads = re.findall(r'^#section\("([^"]*)"', out, re.MULTILINE)
             assert new in heads and (new == d["labels"][role] or d["labels"][role] not in heads), (role, new, heads)
 
 

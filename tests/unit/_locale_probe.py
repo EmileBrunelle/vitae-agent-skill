@@ -20,13 +20,13 @@ def _write(path, text):
 
 
 def _check_cv_output(cv, typ):
-    stubs = dict(
-        preflight=lambda: (True, "pdftotext"), check_lib_integrity=lambda t: [], ensure_icons=lambda t: None,
-        compile_or_messages=lambda t, p: ("", []), count_pages=lambda pdf, backend: "1",
-        word_boxes=lambda pdf, with_text=False: None, render_pngs=lambda t, tmp: [],
-        extract_text=lambda pdf, backend: "", make_context=lambda *a, **k: object(), GATES=(),
-        run_gates=lambda gates, ctx: 0, check_review_record=lambda t: [], layout_report_line=lambda t: None,
-        typst_can_query=lambda: False)
+    stubs = {
+        "preflight": lambda: (True, "pdftotext"), "check_lib_integrity": lambda t: [], "ensure_icons": lambda t: None,
+        "compile_or_messages": lambda t, p: ("", []), "count_pages": lambda pdf, backend: "1",
+        "word_boxes": lambda pdf, with_text=False: None, "render_pngs": lambda t, tmp: [],
+        "extract_text": lambda pdf, backend: "", "make_context": lambda *a, **k: object(), "GATES": (),
+        "run_gates": lambda gates, ctx: 0, "check_review_record": lambda t: [], "layout_report_line": lambda t: None,
+        "typst_can_query": lambda: False}
     out = io.StringIO()
     with contextlib.ExitStack() as stack:
         for name, stub in stubs.items():
@@ -92,7 +92,7 @@ def run(workdir):
     _write(p("cv.typ"), "#lorem(5)\n")
     os.utime(p("cv.typ"), (1_000, 1_000))
     record = review_record.check_review_record(p("cv.typ"))
-    res["record"] = [str(lvl) for lvl, _ in record][-1:] + [str(not any(m.startswith("review record unreadable") for _, m in record))]
+    res["record"] = [*[str(lvl) for lvl, _ in record][-1:], str(not any(m.startswith("review record unreadable") for _, m in record))]
     res["layout"] = review_record.layout_report_line(p("cv.typ"))
 
     res["version"] = jsonout.skill_version()

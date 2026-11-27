@@ -377,4 +377,4 @@ def check_group_proximity(typ: str, pdf: str, root: str | None = None,
     sec = [r for r in rows if r["kind"] == "sec"]
     if sec:
         out.append(_section_finding(sec))
-    return out + [_group_finding(grp)]
+    return [*out, _group_finding(grp)]

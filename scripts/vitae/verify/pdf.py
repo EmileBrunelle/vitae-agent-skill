@@ -95,7 +95,7 @@ def _typst_compile(src: str, out: str, *, fmt: Literal["pdf", "png"], standards:
         argv += ["--pdf-standard", ",".join(PDF_STANDARDS)] if standards else []
         argv += ["--ppi", str(ppi)] if ppi is not None else []
         argv += ["--root", root] if root else []
-        r = subprocess.run(argv, capture_output=True, text=True)
+        r = subprocess.run(argv, capture_output=True, text=True, check=False)
         return r.returncode == 0, r.stdout + r.stderr
     mod = route.api
     if route.compile != "api" or mod is None:
@@ -108,7 +108,7 @@ def _typst_compile(src: str, out: str, *, fmt: Literal["pdf", "png"], standards:
     try:
         comp = mod.Compiler(src, **({"root": root} if root else {}), **typst_font_kw())
         res = comp.compile_with_warnings(**options)
-    except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
+    except Exception as e:   # noqa: BLE001 - kept broad: any failure is a compile FAIL carrying its message, never a pass
         return False, str(e)
     warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
     return True, "\n".join(str(w) for w in warns or [])
@@ -174,7 +174,7 @@ def count_pages(pdf: str, backend: PdfBackend) -> str | None:
     if backend == "pdfium":
         return str(len(_pdfium_doc(pdf)))
     if backend == "poppler":
-        out = subprocess.run(["pdfinfo", pdf], capture_output=True, text=True).stdout
+        out = subprocess.run(["pdfinfo", pdf], capture_output=True, text=True, check=False).stdout
         for line in out.splitlines():
             if line.startswith("Pages:"):
                 return line.split()[1]
@@ -278,7 +278,7 @@ def _pdfium_page_text(pg: PdfiumPage) -> str:
 def extract_text(pdf: str, backend: PdfBackend) -> str:
     """The PDF text the ATS checks read, in pdftotext's shape whatever the backend. pypdf's is indicative only."""
     if backend == "poppler":
-        return subprocess.run(["pdftotext", pdf, "-"], capture_output=True, text=True).stdout
+        return subprocess.run(["pdftotext", pdf, "-"], capture_output=True, text=True, check=False).stdout
     if backend == "pdfium":
         # pdftotext's shape: pages end with \f (a blank line before it), lines with \n
         return "".join(t.replace("\r\n", "\n").rstrip("\n") + "\n\n\f"
@@ -302,7 +302,7 @@ def family_from_path(path: str) -> str | None:
     try:
         with open(path, encoding="utf-8") as fh:
             head = "".join(fh.readline() for _ in range(3))   # line 1 may be the `// vitae:` header
-        m = re.search(r"^\s*//\s*FAMILY:\s*([\w-]+)", head, re.M)
+        m = re.search(r"^\s*//\s*FAMILY:\s*([\w-]+)", head, re.MULTILINE)
         if m:
             return m.group(1)
     except OSError:
@@ -352,7 +352,7 @@ def _bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
         return _pdfium_bbox_pages(pdf)[0]
     try:
         r = subprocess.run(["pdftotext", "-bbox", pdf, "-"],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, check=False)
     except (FileNotFoundError, OSError):
         return None
     if r.returncode != 0:
@@ -564,7 +564,7 @@ def _pdfium_bbox_pages(pdf: str) -> tuple[list[tuple[float, float, list[WordBox]
             flush()
             pages.append((float(pw), float(ph), _reading_order(items)))
         return pages, None
-    except Exception as e:   # kept broad: the caller turns the reason (type and message) into a visible "gate skipped" WARN
+    except Exception as e:   # noqa: BLE001 - kept broad: the caller turns the reason (type and message) into a visible "gate skipped" WARN
         return None, f"{type(e).__name__}: {e}"[:120]
 
 
@@ -596,9 +596,9 @@ def _render_pages_png(pdf: str, tmp: str, ppi: int = HIDDEN_PPI) -> list[str]:
     if not shutil.which("pdftoppm"):
         return []
     subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "h")],
-                   capture_output=True, text=True)
+                   capture_output=True, text=True, check=False)
     return sorted(glob.glob(os.path.join(tmp, "h*.png")),
-                  key=lambda f: _png_number(f))
+                  key=_png_number)
 
 
 def pdf_unreadable(pdf: str) -> bool:
@@ -609,7 +609,7 @@ def pdf_unreadable(pdf: str) -> bool:
                 return True
         backend = pdf_backend()
         return backend is not None and not count_pages(pdf, backend)
-    except Exception:   # kept broad: a corrupt file can make any backend raise anything; fails closed (unreadable), never a pass
+    except Exception:   # noqa: BLE001 - kept broad: a corrupt file can make any backend raise anything; fails closed (unreadable), never a pass
         return True
 
 
@@ -636,11 +636,11 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
         return []
     with tempfile.TemporaryDirectory() as tmp:
         subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "p")],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, check=False)
         paths = []
         drop_stale()
         for f in sorted(glob.glob(os.path.join(tmp, "p*.png")),
-                        key=lambda f: _png_number(f)):
+                        key=_png_number):
             n = _png_number(f)
             paths.append(os.path.join(out_dir, f"{stem}-p{n}.png"))
             shutil.move(f, paths[-1])
@@ -655,9 +655,9 @@ def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
         return []
     with tempfile.TemporaryDirectory() as tmp:
         subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "c")],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, check=False)
         files = sorted(glob.glob(os.path.join(tmp, "c*.png")),
-                       key=lambda f: _png_number(f))
+                       key=_png_number)
         out = []
         for f in files:
             with Image.open(f) as fh:

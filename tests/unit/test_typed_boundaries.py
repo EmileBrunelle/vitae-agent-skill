@@ -1,5 +1,6 @@
 """The validators that replaced `cast`: a valid value passes unchanged, a malformed one has a stated outcome."""
 import io
+from typing import ClassVar
 
 import pytest
 from _raster_ref import RgbPixels
@@ -154,7 +155,7 @@ class TestCountDegraded:
 
 
 class TestMalformedMarksAreReported:
-    GOOD = {"text": "ok", "page": 1, "x": 1.0, "y": 2.0}
+    GOOD: ClassVar[dict[str, object]] = {"text": "ok", "page": 1, "x": 1.0, "y": 2.0}
     NOTE = "1 lib marks ignored: malformed (first: w = None)"
 
     def _q(self, monkeypatch, vals):

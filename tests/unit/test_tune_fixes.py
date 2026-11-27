@@ -163,7 +163,7 @@ def test_termination_signal_mid_probe_restores_original(tmp_path, monkeypatch, s
             os.kill(os.getpid(), sig)       # the handler raises right here, with a probe on disk
         return False
     install(monkeypatch, raise_if=kill_on_third, breakat=105)
-    with pytest.raises(BaseException) as ei:
+    with pytest.raises(T._Terminated) as ei:
         T.tune(str(p), 1, 74, 76)
     assert not isinstance(ei.value, Exception) and calls[0] == 3
     assert p.read_bytes() == orig                   # no probe left in the CV
@@ -192,7 +192,7 @@ def test_a_cv_that_does_not_compile_is_reported_and_never_probed(tmp_path, monke
 
     out = capsys.readouterr().out
     assert code == 1 and footer is None
-    assert re.search(r"^FAIL  vitae:.*title", out, flags=re.M) and "missing document title" in out
+    assert re.search(r"^FAIL  vitae:.*title", out, flags=re.MULTILINE) and "missing document title" in out
     assert "page count off" not in out
     assert log == [] and p.read_text() == BASE        # no probe was compiled, the file is untouched
 
@@ -215,4 +215,4 @@ def test_a_real_cv_without_a_title_never_prints_page_count_off(tmp_path, monkeyp
     code, _ = T.tune(str(p), 1, 74, 76)
     out = capsys.readouterr().out
     assert code == 1 and "page count off" not in out
-    assert re.search(r"^FAIL  vitae:.*title", out, flags=re.M)
+    assert re.search(r"^FAIL  vitae:.*title", out, flags=re.MULTILINE)

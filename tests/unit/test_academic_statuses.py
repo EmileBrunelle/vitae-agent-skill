@@ -73,5 +73,5 @@ def test_no_declared_status_reads_as_an_empty_list(data):
 
 
 def test_declared_status_that_is_not_a_list_is_rejected():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="entry_status must be a list of strings"):
         va_spec.declared_statuses({"meta": {"entry_status": "Soumis"}})

@@ -27,19 +27,19 @@ def _marks(tmp_path, filled):
 
 
 def test_all_present_is_unchanged(tmp_path):
-    m = _marks(tmp_path, GENERIC + ("li", "gh"))
+    m = _marks(tmp_path, (*GENERIC, "li", "gh"))
     assert all(drawn for drawn, _ in m.values())
     assert not m["li"][1] and not m["gh"][1]  # own artwork, not the globe
 
 
 def test_empty_li_falls_back_to_web(tmp_path):
-    m = _marks(tmp_path, GENERIC + ("gh",))
+    m = _marks(tmp_path, (*GENERIC, "gh"))
     assert m["li"] == (True, True)
     assert m["gh"] == (True, False)
 
 
 def test_empty_gh_falls_back_to_web(tmp_path):
-    m = _marks(tmp_path, GENERIC + ("li",))
+    m = _marks(tmp_path, (*GENERIC, "li"))
     assert m["gh"] == (True, True)
     assert m["li"] == (True, False)
 
@@ -51,6 +51,6 @@ def test_both_brand_marks_empty_all_draw(tmp_path):
 
 @pytest.mark.parametrize("missing", GENERIC)
 def test_one_missing_generic_mark_gives_all_none_even_with_brand_data(tmp_path, missing):
-    filled = tuple(g for g in GENERIC if g != missing) + ("li", "gh")
+    filled = (*(g for g in GENERIC if g != missing), "li", "gh")
     m = _marks(tmp_path, filled)
     assert not any(drawn for drawn, _ in m.values())

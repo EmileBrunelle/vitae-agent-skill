@@ -311,7 +311,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
         except (OSError, RuntimeError):   # pypdfium2 cannot open or read the file (PdfiumError is a RuntimeError)
             pass
     elif shutil.which("pdfinfo"):
-        for line in subprocess.run(["pdfinfo", pdf], capture_output=True, text=True).stdout.splitlines():
+        for line in subprocess.run(["pdfinfo", pdf], capture_output=True, text=True, check=False).stdout.splitlines():
             k, _, v = line.partition(":")
             if k in ("Keywords", "Title", "Author", "Subject"):
                 info[k] = v.strip()
@@ -328,7 +328,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
                 info = {k: str(md.get("/" + k) or "") for k in ("Keywords", "Title", "Author", "Subject")}
             except (OSError, ValueError, pypdf.errors.PyPdfError):   # file unreadable or malformed for pypdf
                 pass
-            except Exception as e:   # broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
+            except Exception as e:   # noqa: BLE001 - broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
                 scan_failed = type(e).__name__
     out: list[str] = []
     if scan_failed:
@@ -350,7 +350,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
         n_att = doc.count_attachments()
     elif shutil.which("pdfdetach"):
         m = re.search(r"(\d+) embedded files?", subprocess.run(["pdfdetach", "-list", pdf],
-                                                                 capture_output=True, text=True).stdout)
+                                                                 capture_output=True, text=True, check=False).stdout)
         n_att = int(m[1]) if m else 0
     if n_att:
         out.append(f"metadata: {n_att} embedded attachment(s) — remove them; ATS may read a file the reader never sees")
@@ -376,7 +376,7 @@ class _ScriptIndex:
     A segment tree over the runs keeps, per node, the largest size and the lowest and highest y, so a whole node is
     skipped when every run in it would be: the same float comparisons as run by run, since each is monotone.
     Node 1 covers runs [0, k); node v covers [lo, hi) and its children cover [lo, mid) and [mid, hi)."""
-    __slots__ = ("_runs", "_size", "_ymin", "_ymax")
+    __slots__ = ("_runs", "_size", "_ymax", "_ymin")
 
     def __init__(self, runs: Sequence[Run]) -> None:
         self._runs = runs
@@ -503,7 +503,7 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
             return [], [], False, type(e).__name__
         # unreadable overall: the other gates already FAIL it, so "ran, found nothing" adds no false pass
         return [], [], True, ""
-    except Exception as e:   # broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
+    except Exception as e:   # noqa: BLE001 - broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
         return [], [], False, type(e).__name__
 
 
@@ -590,6 +590,5 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
             break
         msgs.append((Level.WARN, f'tiny text: "{text[:60]}" (p.{pno}) is set at {sz:.1f}pt — below {TINY_TEXT_PT:g}pt '
                              "nobody reads it; if it is a keyword block, remove it"))
-    for m in check_pdf_metadata(pdf):
-        msgs.append((Level.WARN, m))
+    msgs.extend((Level.WARN, m) for m in check_pdf_metadata(pdf))
     return msgs

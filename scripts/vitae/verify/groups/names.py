@@ -17,9 +17,6 @@ def check_duplicate_names(secs: Sequence[Mark] | None, heads: Sequence[Mark] | N
     for s in secs or []:
         if _gnorm(s.get("text", "")):
             titles.setdefault(_gnorm(s["text"]), s["text"])
-    out = []
-    for h in heads or []:
-        if h.get("kind") == "skill" and _gnorm(h["text"]) in titles:
-            out.append(f'"{h["text"].strip()}" is both a skill row label and the section title '
-                       f'"{titles[_gnorm(h["text"])]}" — rename one (e.g. "Programming languages")')
-    return out
+    return [f'"{h["text"].strip()}" is both a skill row label and the section title '
+            f'"{titles[_gnorm(h["text"])]}" — rename one (e.g. "Programming languages")'
+            for h in heads or [] if h.get("kind") == "skill" and _gnorm(h["text"]) in titles]

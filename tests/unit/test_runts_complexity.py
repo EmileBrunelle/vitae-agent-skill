@@ -36,14 +36,14 @@ def _docs(draw: st.DrawFn) -> tuple[list[Mark], list[list[WordBox]], list[float]
                 x += w + draw(st.sampled_from([2.0, 4.0, 20.0]))
         pages.append(draw(st.permutations(words)))
     marks: list[Mark] = []
-    for _ in range(draw(st.integers(0, 7))):
-        marks.append(bullet(40.0 + 12.0 * draw(st.integers(0, rows)) + draw(st.sampled_from([0.0, 0.0, 1.0, -1.0, -2.0])),
-                            x=draw(st.sampled_from([22.0, 22.0, 22.0, 22.5, 23.5, 24.0, 190.0, 300.0])),
-                            page=draw(st.integers(1, n_pages + 1))))
-    for _ in range(draw(st.integers(0, 3))):
-        marks.append(head_mark(40.0 + 12.0 * draw(st.integers(0, rows)), x=draw(st.sampled_from([10.0, 30.0, 200.0])),
-                               page=draw(st.integers(1, n_pages)), text="Head",
-                               kind=draw(st.sampled_from(["entry", "part"]))))
+    marks.extend(bullet(40.0 + 12.0 * draw(st.integers(0, rows)) + draw(st.sampled_from([0.0, 0.0, 1.0, -1.0, -2.0])),
+                        x=draw(st.sampled_from([22.0, 22.0, 22.0, 22.5, 23.5, 24.0, 190.0, 300.0])),
+                        page=draw(st.integers(1, n_pages + 1)))
+                 for _ in range(draw(st.integers(0, 7))))
+    marks.extend(head_mark(40.0 + 12.0 * draw(st.integers(0, rows)), x=draw(st.sampled_from([10.0, 30.0, 200.0])),
+                           page=draw(st.integers(1, n_pages)), text="Head",
+                           kind=draw(st.sampled_from(["entry", "part"])))
+                 for _ in range(draw(st.integers(0, 3))))
     heights = draw(st.sampled_from([None, [_BOTTOM] * n_pages, [_BOTTOM + 70.0] * n_pages]))
     return draw(st.permutations(marks)), pages, heights
 

@@ -124,7 +124,7 @@ def test_academic_template_content_is_not_flagged():
 
 # ---------------------------------------------------------------- shipped templates, compiled as-is
 
-TEMPLATE_CVS = sorted(p for p in (TEMPLATES / "families").rglob("resume*.typ")) + [TEMPLATES / "resume.typ"]
+TEMPLATE_CVS = [*sorted(p for p in (TEMPLATES / "families").rglob("resume*.typ")), TEMPLATES / "resume.typ"]
 
 
 @pytest.mark.parametrize("typ", TEMPLATE_CVS, ids=lambda p: str(p.relative_to(TEMPLATES)))
@@ -176,7 +176,7 @@ def test_span_wrapped_over_lines_is_derived_whole():
         "[Strongest fact from the facts, with its number.]"}
 
 
-SYNC_FILES = TEMPLATE_CVS + [TEMPLATES / "letter.typ"]
+SYNC_FILES = [*TEMPLATE_CVS, TEMPLATES / "letter.typ"]
 
 
 @pytest.mark.parametrize("typ", SYNC_FILES, ids=lambda p: str(p.relative_to(TEMPLATES)))
@@ -218,7 +218,7 @@ def test_underscore_in_a_real_handle_is_not_folded_away(tmp_path, text):
 
 def test_pypdf_downgrades_the_fail_to_a_warn(tmp_path):
     ctx = _ctx(tmp_path, "Contact: me\\@example.com")
-    assert [lvl for lvl, _ in _placeholders(ctx)][0] == Level.FAIL
+    assert next(lvl for lvl, _ in _placeholders(ctx)) == Level.FAIL
     out = _placeholders(dataclasses.replace(ctx, backend="pypdf"))
     assert out[0][0] == Level.WARN and "pypdf extraction is indicative" in out[0][1]
 
@@ -235,7 +235,7 @@ def test_allow_placeholders_scope(tmp_path, monkeypatch):
 
 def _verify(*args, script=None):
     return subprocess.run([sys.executable, "-I", str(script or SCRIPTS / "verify.py"), *args], capture_output=True,
-                          text=True, timeout=300, stdin=subprocess.DEVNULL).stdout
+                          text=True, timeout=300, stdin=subprocess.DEVNULL, check=False).stdout
 
 
 def _lorem_cv(path, words):
@@ -370,7 +370,7 @@ def test_tune_refuses_the_flag_outside_the_skill_templates(tmp_path):
     typ = _lorem_cv(tmp_path / "cv.typ", 130)
     before = pathlib.Path(typ).read_text(encoding="utf-8")
     proc = subprocess.run([sys.executable, "-I", str(SCRIPTS / "verify.py"), "--tune", typ, "1", "99", "100", "--allow-placeholders"],
-                          capture_output=True, text=True, timeout=300, stdin=subprocess.DEVNULL)
+                          capture_output=True, text=True, timeout=300, stdin=subprocess.DEVNULL, check=False)
     assert proc.returncode == 1 and "FAIL  --allow-placeholders is only for the shipped templates" in proc.stdout
     assert "--allow-placeholders`" not in proc.stdout and "tuning" not in proc.stdout
     assert pathlib.Path(typ).read_text(encoding="utf-8") == before

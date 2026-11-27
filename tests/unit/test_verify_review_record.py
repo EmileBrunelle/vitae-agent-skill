@@ -24,7 +24,7 @@ def lorem_render(tmp_path_factory):
     typ = d / "cv.typ"
     typ.write_text(LOREM_CV, encoding="utf-8")
     pdf = d / "cv.pdf"
-    err, failed = cv.compile_or_messages(str(typ), str(pdf))
+    _err, failed = cv.compile_or_messages(str(typ), str(pdf))
     assert not failed, failed
     (png,) = cv.render_pngs(str(typ), str(d))
     return pdf, Path(png)

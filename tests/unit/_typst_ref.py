@@ -15,7 +15,7 @@ PAR_RE = re.compile(r"(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(em[^)]*?spacing:\
 def par_rule_spans_quadratic(masked: str) -> list[tuple[int, int]]:
     """(start, end) of every column-0 `#set par(... leading: ...)` rule in a _mask_non_markup'd text."""
     spans = []
-    for m in re.finditer(r"^#set\s+par\(", masked, re.M):
+    for m in re.finditer(r"^#set\s+par\(", masked, re.MULTILINE):
         k, d = m.end(), 1
         while k < len(masked) and d:
             d += (masked[k] == "(") - (masked[k] == ")")

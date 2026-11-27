@@ -1,6 +1,8 @@
 """--tune with a `#let rhythm` line (phase 1: scale every gap together, leading fixed; phase 2: leading at the
 rhythm bound), without one (old path), and with two `#set par` rules (the tuned line is the gate's, the last).
 The compile/measure probe and preflight are injected; the fake page is `50 * rhythm + 50 * leading` tall."""
+from pathlib import Path
+
 import pytest
 from vitae.verify import tune as T
 from vitae.verify.typst import (
@@ -42,7 +44,7 @@ def install(monkeypatch, *, breakat=1000.0, weights=(50, 50), log=None, prefligh
     monkeypatch.setattr(T, "preflight", lambda: preflight)
 
     def probe(typ, candidate, expected, backend):
-        open(typ, "w", encoding="utf-8").write(candidate)
+        Path(typ).write_text(candidate, encoding="utf-8")
         r = _read_rhythm(candidate) or 1.0
         lead = _doc_leading(candidate)
         assert lead is not None
@@ -95,7 +97,7 @@ class TestRhythmPhase:
         log = []
         install(monkeypatch, log=log)
         code, _ = T.tune(str(p), 1, 100, 102)
-        r, (_, spacing), _ = state(p)
+        _r, (_, spacing), _ = state(p)
         assert code == 0 and spacing <= T.SPACING_CAP + 1e-3
         assert max(_read_rhythm(c) or 0 for c in log) <= T.SPACING_CAP / 1.1 + 1e-9
 
@@ -119,7 +121,7 @@ class TestRhythmPhase:
 
         def probe(typ, candidate, *a):
             calls.append(1)
-            open(typ, "w", encoding="utf-8").write(candidate)
+            Path(typ).write_text(candidate, encoding="utf-8")
             if len(calls) == when:
                 raise KeyboardInterrupt
             return True, 50                                    # under-filled everywhere: runs through both phases
@@ -132,7 +134,7 @@ class TestRhythmPhase:
         p = write(tmp_path, RHYTHM_FILE)
         install(monkeypatch)
         T.tune(str(p), 1, 106, 108)
-        ok_line = [ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("OK")][0]
+        ok_line = next(ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("OK"))
         assert "rhythm %.3f" % (state(p)[0] or 0) in ok_line
 
 

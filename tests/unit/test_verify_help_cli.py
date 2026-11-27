@@ -9,7 +9,7 @@ SCRIPTS = ["verify.py", "verify_academic.py", "verify_letter.py"]
 
 
 def run(script, *args):
-    return subprocess.run([sys.executable, str(ROOT / "scripts" / script), *args], capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(ROOT / "scripts" / script), *args], capture_output=True, text=True, check=False)
 
 
 @pytest.mark.parametrize("script", SCRIPTS)

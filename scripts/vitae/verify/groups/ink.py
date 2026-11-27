@@ -26,7 +26,7 @@ def _render_page(pdf: str, page: int) -> Image.Image | None:
             pre = os.path.join(d, f"p{page}")
             r = subprocess.run(["pdftoppm", "-r", str(INK_DPI), "-gray", "-singlefile",
                                 "-f", str(page), "-l", str(page), pdf, pre],
-                               capture_output=True)
+                               capture_output=True, check=False)
             if r.returncode == 0:
                 gray = Image.open(pre + ".pgm").convert("L")
                 gray.load()
@@ -150,7 +150,7 @@ def _page_ink_gap(pdf: str) -> GapFn:
         return pbg[page]
 
     def metrics(page: int, im: Image.Image, ln: LineBox) -> tuple[int, int] | None:
-        key = (page,) + tuple(round(v, 1) for v in ln)
+        key = (page, *(round(v, 1) for v in ln))
         if key not in met:
             met[key] = _line_rows(im, page_bg(page, im), ln)
         return met[key]

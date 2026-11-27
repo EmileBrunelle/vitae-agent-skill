@@ -19,6 +19,8 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+import itertools
+
 from vitae.core.env import PdfBackend
 from vitae.verify.pdf import extract_text
 
@@ -40,7 +42,7 @@ def bigrams_ok(a: list[str], b: list[str]) -> bool:
     stream (poppler's lines joined): a word swapped or moved between lines makes a new pair.
     A line pdfium merged or split only makes pairs that exist across poppler's line ends."""
     stream = [w for ln in a for w in ln.split()]
-    known = set(zip(stream, stream[1:]))
+    known = set(itertools.pairwise(stream))
     return all(pr in known for ln in b for pr in zip(ln.split(), ln.split()[1:]))
 
 

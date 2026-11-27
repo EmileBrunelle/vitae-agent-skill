@@ -4,6 +4,7 @@ backends, the reading-order approximation, PDF readability, rendering and compil
 The PDFs are tiny Typst documents compiled once per module with the `typst` package."""
 import os
 import shutil
+from pathlib import Path
 
 import pytest
 import typst
@@ -322,7 +323,7 @@ class TestPdfUnreadable:
 
     def test_header_after_the_first_kilobyte_does_not_count(self, tmp_path, two_page):
         p = tmp_path / "x.pdf"
-        p.write_bytes(b"x" * 1024 + open(two_page, "rb").read())
+        p.write_bytes(b"x" * 1024 + Path(two_page).read_bytes())
         assert pdf.pdf_unreadable(str(p)) is True
 
     def test_no_backend_means_only_the_header_is_checked(self, two_page, monkeypatch):

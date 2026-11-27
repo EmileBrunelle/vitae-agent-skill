@@ -63,7 +63,7 @@ def classify_runs_quadratic(runs: list[tuple[str, float, float, float]], box: tu
     tiny: list[tuple[str, float, int]] = []
 
     def script_of(i: int) -> bool:
-        t, x, y, sz = runs[i]
+        _t, x, y, sz = runs[i]
         for step in (-1, 1):
             j = i + step
             while 0 <= j < len(runs) and runs[j][3] < 1.15 * sz and abs(runs[j][2] - y) < 0.5:

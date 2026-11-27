@@ -258,11 +258,11 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
     white = sum(n for n, c in colours if min(c) >= 250)
     m = min(4, w // 4, h // 4)          # 4 px inside: poppler leaves a white last row and column on some page sizes
     bg: tuple[int, ...] | None = None
-    for inset in sorted({m, round(CROP_RING_INSET[0] * min(w, h)), round(CROP_RING_INSET[1] * min(w, h))}, reverse=True):
+    for raw_inset in sorted({m, round(CROP_RING_INSET[0] * min(w, h)), round(CROP_RING_INSET[1] * min(w, h))}, reverse=True):
         # The paper is what the innermost uniform ring shows: a frame stroked at the page edge colours
         # the outer rings, the paper lies inside it; a dark page keeps its colour under a white card
         # further in than the rings; a sidebar or a header band leaves every ring mixed.
-        inset = min(inset, w // 4, h // 4)
+        inset = min(raw_inset, w // 4, h // 4)
         ring: Counter[tuple[int, ...]] = Counter()
         for strip in ((0, inset, w, inset + 1), (0, h - inset - 1, w, h - inset), (inset, 0, inset + 1, h), (w - inset - 1, 0, w - inset, h)):
             for n, c in colour_counts(im.crop(strip), w * h):

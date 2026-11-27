@@ -13,13 +13,15 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "ANN401", "C901", "PLR0915", "PLW0603"]  # ANN401: no explicit Any; a third-party boundary that needs one carries `# noqa: ANN401` and a reason. C901/PLR0915: function complexity and length caps (see [tool.ruff.lint.mccabe] and per-file-ignores)
+select = ["E", "F", "I", "B", "ANN401", "C901", "PLR0915", "PLW", "SIM115", "BLE001", "RUF012", "RUF100", "RUF059", "PT011", "RET", "PIE", "C4", "PERF", "FURB", "RUF"]  # ANN401: no explicit Any; a third-party boundary that needs one carries `# noqa: ANN401` and a reason. C901/PLR0915: function complexity and length caps (see [tool.ruff.lint.mccabe] and per-file-ignores)
 ignore = [
     "E501",  # long lines: no reformatting of the codebase (code lines reach ~250 chars)
     "E702",  # several statements on one line with ';' is this repo's style
     "E731",  # assigned lambdas are kept for short local helpers
     "E741",  # ambiguous l/O/I names: renaming them across the verify.py + verify_*.py modules is risky for little gain
     "B007",  # unused loop variable: kept for readable tuple unpacking
+    "RUF001",  # ambiguous unicode in strings: the repo carries intentional non-ASCII text
+    "RUF003",  # same, in comments
     "B905",  # zip() without strict=: adding it would change behaviour on unequal lengths
 ]
 

@@ -105,7 +105,7 @@ def build_sections_spec(data: Toml) -> list[Section]:
 def _leaf_paths(table: object, prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
     if not isinstance(table, dict):
         return [prefix]
-    return [p for k, v in table.items() for p in _leaf_paths(v, prefix + (k,))]
+    return [p for k, v in table.items() for p in _leaf_paths(v, (*prefix, k))]
 
 
 def _is_table_section(path: tuple[str, ...]) -> bool:

@@ -5,6 +5,7 @@ import stat
 import subprocess
 import types
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 from vitae.core import env
@@ -15,7 +16,7 @@ API_VERSION = "0.15.2"
 
 
 class FakeCompiler:
-    calls: list[str] = []
+    calls: ClassVar[list[str]] = []
 
     def __init__(self, src: str, **_kw: object) -> None:
         self.src = src

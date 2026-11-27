@@ -47,20 +47,20 @@ from vitae.verify.typst import _doc_body_size, _doc_par_list
 # ---------- main gate ----------
 
 HEADER_RE = re.compile(r"^//\s*vitae:\s*pages=(\d+)(?:\s+fill=(\d+)-(\d+))?",
-                       re.M)
+                       re.MULTILINE)
 
 
 def pages_from_name(typ: str) -> str:
     """The page count a headerless deliverable declares in its own file name."""
     return "2" if re.search(r"[-_]2\s*p(?:ages?)?(?![a-z])",
-                            os.path.basename(typ), re.I) else "1"
+                            os.path.basename(typ), re.IGNORECASE) else "1"
 
 
 # Whole-word stems of non-CV companion deliverables (step 7 application guide, cover letter, readme)
 # that `verify.py --all` skips when they carry no `// vitae:` header (step 6).
 NON_CV_RE = re.compile(
     r"(?<![^\W\d_])(?:guide|lettre|letter|cover|lisez-moi|readme)(?![^\W\d_])",
-    re.I)
+    re.IGNORECASE)
 
 
 def is_gated(typ: str) -> bool:
@@ -176,7 +176,7 @@ def check_all(directory: str, allow_placeholders: bool = False, rebuild: bool = 
         r = subprocess.run([sys.executable,
                             os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "verify.py"), typ]
                            + args + (["--allow-placeholders"] if allow_placeholders else [])
-                           + (["--rebuild"] if rebuild else []))
+                           + (["--rebuild"] if rebuild else []), check=False)
         fail |= bool(r.returncode)
     if unchecked:
         print("\nNOTE — page count inferred from the file name, fill not "
@@ -294,7 +294,7 @@ def _family_default(family: str, pages: int) -> tuple[float, float] | None:
     d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "templates", "families", family)
     for name in (("resume-2page.typ",) if pages >= 2 else ()) + ("resume.typ",):
         try:
-            lead, lsp = _doc_par_list(open(os.path.join(d, name), encoding="utf-8").read())
+            lead, lsp = _doc_par_list(Path(os.path.join(d, name)).read_text(encoding="utf-8"))
         except OSError:
             continue
         if lead and lsp:
@@ -309,7 +309,7 @@ def _leading_warn(typ: str, pages: int = 1) -> str:
     leading check takes precedence), else ''. A WARN, never a FAIL: the page may be honestly full; the
     message points at the facts to add instead."""
     try:
-        lead, lsp = _doc_par_list(open(typ, encoding="utf-8").read())
+        lead, lsp = _doc_par_list(Path(typ).read_text(encoding="utf-8"))
     except OSError:
         return ""
     if lead is None:
@@ -345,7 +345,7 @@ _BODY_SIZE_WARN = ("WARN  body text {z:g}pt (shipped templates stay at 10.5-11pt
 def _body_size_warn(typ: str) -> str:
     """The WARN line when cv.typ's top-level body text size is above BODY_SIZE_WARN, else ''."""
     try:
-        size = _doc_body_size(open(typ, encoding="utf-8").read())
+        size = _doc_body_size(Path(typ).read_text(encoding="utf-8"))
     except OSError:
         return ""
     if size is not None and size > BODY_SIZE_WARN + 1e-9:
@@ -495,7 +495,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
                   f"lowest fill the gate prints, not below {LOWERED_FILL_FLOOR}) and tell the user")
     # Clone markers: the template's own accent and its "Category: items" skills block, left in
     # place, make every CV from the skill look alike (references/design/draw-rules.md, three clone markers).
-    typ_text = open(typ, encoding="utf-8").read()
+    typ_text = Path(typ).read_text(encoding="utf-8")
     if "7d2231" in typ_text.lower():
         print("WARN  template default accent (#7d2231) — run scripts/pick_design.py and apply the family it draws (references/design/families/<family>.md)")
     if "[#cat:]" in typ_text:

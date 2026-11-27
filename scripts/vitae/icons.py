@@ -173,7 +173,7 @@ def main() -> None:
         sys.exit(0)
     ap = _DocParser(add_help=False, allow_abbrev=False)
     ap.add_argument("folder", nargs="*")
-    args = ap.parse_args(["--"] + sys.argv[1:])   # any argument is a positional, even "-x"
+    args = ap.parse_args(["--", *sys.argv[1:]])   # any argument is a positional, even "-x"
     if len(args.folder) != 1:
         sys.exit(__doc__)
     out = args.folder[0].rstrip("/") + "/icons.typ"

@@ -15,7 +15,7 @@ from vitae.core.level import Finding, Level
 RECORD_NAME = "review.md"
 STEP_7 = Path(__file__).resolve().parents[3] / "references" / "steps" / "7-review.md"
 
-_LAYOUT = re.compile(r"(?:subagent\s+(?!(?:skipped|none|n/a|na|not run|no|-)\s*$)\S.*|self|user|not run \(no redesign\))\s*", re.I)
+_LAYOUT = re.compile(r"(?:subagent\s+(?!(?:skipped|none|n/a|na|not run|no|-)\s*$)\S.*|self|user|not run \(no redesign\))\s*", re.IGNORECASE)
 # core persona -> (stem a normalized name must start with, as whole words; words allowed after it, None = any).
 # reviews.md: "Recruiter, 30-second scan", "Hiring manager of the field", "ATS / parsing expert". A name containing
 # `segment` ("nurse recruiter segment", "fintech hiring manager segment") is a market-segment persona, never a core one
@@ -31,7 +31,7 @@ _ACADEMIC = {
 }
 _FACT_DIFF = ("fact diff", {"reviewer", "check", "ats"})
 _ATS_FACT_DIFF = "ats fact diff"
-_RESOLVED = re.compile(r"(?:→|->)\s*(?:applied(?:\s*(?!→|->)[(\[:;,.—–-](?:(?!→|->).)*)?\s*|rejected\s*:\s*(\S(?:(?!→|->).)*))$", re.I)
+_RESOLVED = re.compile(r"(?:→|->)\s*(?:applied(?:\s*(?!→|->)[(\[:;,.—–-](?:(?!→|->).)*)?\s*|rejected\s*:\s*(\S(?:(?!→|->).)*))$", re.IGNORECASE)
 _BULLET = re.compile(r"(\s*)(?:[-*]|\d+[.)])\s+(\S.*)")
 
 
@@ -40,7 +40,7 @@ def _field(lines: list[str], key: str) -> str | None:
     for ln in lines:
         if ln.lstrip().startswith("##"):
             break
-        m = re.match(rf"\s*{key}\s*:\s*(.*?)\s*$", ln, re.I)
+        m = re.match(rf"\s*{key}\s*:\s*(.*?)\s*$", ln, re.IGNORECASE)
         if m:
             return m.group(1)
     return None
@@ -67,7 +67,7 @@ def _has(personas: list[str], core: tuple[str, set[str] | None]) -> bool:
 def _findings_block(lines: list[str]) -> list[str] | None:
     """The lines under `## Findings` up to the next `## ` heading; None when the heading is absent."""
     for i, ln in enumerate(lines):
-        if re.match(r"##\s+findings\b", ln.strip(), re.I):
+        if re.match(r"##\s+findings\b", ln.strip(), re.IGNORECASE):
             out: list[str] = []
             for nxt in lines[i + 1:]:
                 if nxt.startswith("## "):
@@ -176,7 +176,7 @@ def check_review_record(typ: str, sources: tuple[str, ...] | list[str] = (), pan
     return out
 
 
-_LAYOUT_KEYWORD = re.compile(r"subagent|self|user|not run \(no redesign\)", re.I)
+_LAYOUT_KEYWORD = re.compile(r"subagent|self|user|not run \(no redesign\)", re.IGNORECASE)
 _ANSI_CSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")      # C0 and C1 (tab/newline are whitespace, collapsed below)
 LAYOUT_VALUE_MAX = 80

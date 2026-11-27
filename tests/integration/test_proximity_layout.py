@@ -37,7 +37,7 @@ def ratio(toolchain: str, tmp_path: Path) -> Ratio:
                               "x": (w := next(p for p in page if p[4] == n))[0], "y": w[1]} for n in ("One", "Two")]
         detail: list[DetailRow] = []
         out = check_group_proximity(str(src), str(pdf), heads=heads, secs=[], pages=[page], detail=detail)
-        return [r for r in detail if r["kind"] == "group"][0]["ratio"], out[-1][0]
+        return next(r for r in detail if r["kind"] == "group")["ratio"], out[-1][0]
     return measure
 
 

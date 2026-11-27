@@ -97,7 +97,7 @@ def _cv_words(entries: int) -> tuple[list[Mark], list[list[Word]]]:
 @settings(max_examples=60, deadline=None)
 @given(st.integers(1, 12), st.integers(1, 4), st.integers(1, 14))
 def test_measure_groups_matches_on_cv_pages(entries: int, bullets: int, per_line: int) -> None:
-    heads, bullet_marks, items = cv_page(entries, bullets, per_line)
+    heads, _bullet_marks, items = cv_page(entries, bullets, per_line)
     pages = [[(b[0], b[1], b[2], b[3], t) for b, t in items]]
 
     assert proximity.measure_groups(heads, [], pages) == measure_groups_rebuilding(heads, [], pages)

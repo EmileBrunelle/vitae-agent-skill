@@ -8,7 +8,7 @@ from _paths import PICK_DESIGN
 def run(*args):
     """pick_design.py with the given arguments (no font check); returns the CompletedProcess."""
     return subprocess.run([sys.executable, str(PICK_DESIGN), "--no-font-check", *args],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, check=False)
 
 
 def init(folder, name, field, *extra):

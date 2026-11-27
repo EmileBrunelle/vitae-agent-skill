@@ -1,5 +1,7 @@
 """check_whitespace: canyon / hole / device-quorum / separation decisions, with the raster scans injected."""
 
+from typing import ClassVar
+
 import vitae.fill as measure_fill
 from vitae.verify import layout
 
@@ -54,10 +56,10 @@ class TestHole:
     MED = [30] * 5   # median 30 -> boundary exemption starts at 60
 
     def test_run_exactly_at_hole_limit_is_fine(self, monkeypatch):
-        assert not [m for m in fails(run_gate(monkeypatch, self.MED + [35])) if m.startswith("hole")]
+        assert not [m for m in fails(run_gate(monkeypatch, [*self.MED, 35])) if m.startswith("hole")]
 
     def test_run_just_over_hole_limit_inside_a_section_is_a_hole(self, monkeypatch):
-        assert [m for m in fails(run_gate(monkeypatch, self.MED + [36])) if m.startswith("hole")]
+        assert [m for m in fails(run_gate(monkeypatch, [*self.MED, 36])) if m.startswith("hole")]
 
     def test_run_at_twice_median_is_a_boundary_not_a_hole(self, monkeypatch):
         r = fails(run_gate(monkeypatch, [30] * 5 + [60]))
@@ -75,7 +77,7 @@ class TestHole:
 
 class TestDeviceQuorum:
     """A boundary system needs DEVICE_QUORUM (2) ink bands AT section boundaries."""
-    RUNS = [10, 10, 10, 10, 30, 30]   # two boundary-sized runs, median 10
+    RUNS: ClassVar[list[int]] = [10, 10, 10, 10, 30, 30]   # two boundary-sized runs, median 10
 
     def msgs(self, results):
         return [m for _, m in results if m.startswith("boundar")]

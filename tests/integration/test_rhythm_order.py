@@ -20,5 +20,5 @@ if not all(shutil.which(t) for t in ("typst", "pdftotext")):
 def test_rhythm_order(template: Template, scratch: Path) -> None:
     typ = scratch / "templates" / "families" / template.family / f"{template.name}.typ"
     r = subprocess.run([sys.executable, str(ROOT / "tests" / "rhythm_measure.py"), str(typ)],
-                       capture_output=True, text=True, timeout=60)
+                       capture_output=True, text=True, timeout=60, check=False)
     assert r.returncode == 0, r.stdout + r.stderr

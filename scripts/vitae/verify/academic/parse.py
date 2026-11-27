@@ -19,7 +19,7 @@ def entry_start_re(statuses: Sequence[str] = ()) -> re.Pattern[str]:
     not a prefix: list every inflection printed. No built-in words: with none declared only a year starts an entry."""
     words = {" ".join(w.split()) for w in statuses if w.strip()}
     alts = "|".join(r"\s+".join(re.escape(t) for t in w.split(" ")) for w in sorted(words, key=len, reverse=True))
-    return re.compile(r'^(\d{4}(-\d{4})?%s)(?!\w)' % (f"|{alts}" if alts else ""), re.I)
+    return re.compile(r'^(\d{4}(-\d{4})?%s)(?!\w)' % (f"|{alts}" if alts else ""), re.IGNORECASE)
 
 
 
@@ -49,7 +49,7 @@ def extract_layout_text(pdf: str) -> str:
         raise RuntimeError("pdftotext (poppler-utils) is required for the "
                             "-layout column structure the checks depend on")
     return subprocess.run(["pdftotext", "-layout", pdf, "-"],
-                           capture_output=True, text=True).stdout
+                           capture_output=True, text=True, check=False).stdout
 
 
 def parse_pages(text: str) -> list[str]:

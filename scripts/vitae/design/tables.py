@@ -488,10 +488,10 @@ FONTS: dict[str, FontPool] = {
 # language, references/ats.md): a conventional stem, optionally qualified —
 # never an exotic name. "Education", "Languages" and the experience sections
 # are NOT variable: their stems are what ATS section classifiers key on.
-LABEL_VARIANTS: dict[str, list[str]] = dict(
-    profile=["Profile", "Summary", "Professional Summary"],
-    skills=["Technical Skills", "Skills & Tools", "Skills", "Expertise"],
-)
+LABEL_VARIANTS: dict[str, list[str]] = {
+    "profile": ["Profile", "Summary", "Professional Summary"],
+    "skills": ["Technical Skills", "Skills & Tools", "Skills", "Expertise"],
+}
 
 # Career stage → preferred registers, then the widening tier if the preferred
 # pool is too small to individualise (< 2 families).

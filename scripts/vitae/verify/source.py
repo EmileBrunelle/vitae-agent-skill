@@ -23,7 +23,7 @@ SECTION_CALL_RE = re.compile(r'#section\(\s*"([^"]*)"')
 # parsers). pdftotext may put the name and the `n / total` on one line or two,
 # in either order, so the pagination token is what identifies the band — and a
 # section heading never carries one.
-PAGINATION_RE = re.compile(r"\b\d+\s*/\s*\d+\b|\bpage\s+\d+\b", re.I)
+PAGINATION_RE = re.compile(r"\b\d+\s*/\s*\d+\b|\bpage\s+\d+\b", re.IGNORECASE)
 
 
 def _norm_heading(s: str) -> str:
@@ -93,7 +93,7 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
         # at the very top of the page to be considered at all.
         ok = bool(f) and any(h == f or h.startswith(f + " ") for h in headings)
         fw = _heading_words(first)
-        ok = ok or bool(fw) and any(fw <= hw for hw in loose)   # non-Latin: marks and word order not trusted
+        ok = ok or (bool(fw) and any(fw <= hw for hw in loose))   # non-Latin: marks and word order not trusted
         out.append((not ok,
                     f'no-split: page {pageno} opens on "{first[:60]}"'
                     + ("" if ok else " -- not a section heading, so the "
@@ -102,7 +102,7 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
     return out
 
 
-_BANNER_RE = re.compile(r"^\s*//\s*FAMILY:\s*([\w-]+)", re.M)
+_BANNER_RE = re.compile(r"^\s*//\s*FAMILY:\s*([\w-]+)", re.MULTILINE)
 
 
 _HEADER1_RE = re.compile(r"//\s*vitae:\s*pages=(\d+)(?:\s+fill=(\d+)-(\d+))?")
@@ -182,7 +182,7 @@ def check_forced_linebreak(src: str) -> list[str]:
     return out
 
 
-TILDE_RE = re.compile(r"(?:^|(?<=[\s\[(*_]))~(?=[0-9A-Za-z])", re.M)
+TILDE_RE = re.compile(r"(?:^|(?<=[\s\[(*_]))~(?=[0-9A-Za-z])", re.MULTILINE)
 
 
 def check_literal_tilde(src: str) -> list[str]:

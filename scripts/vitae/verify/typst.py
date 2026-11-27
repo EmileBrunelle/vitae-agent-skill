@@ -64,7 +64,7 @@ def _mask_non_markup(src: str) -> str:
     return "".join(out)
 
 
-_PAR_OPEN = re.compile(r"^#set\s+par\(", re.M)
+_PAR_OPEN = re.compile(r"^#set\s+par\(", re.MULTILINE)
 _PARENS = re.compile(r"[()]")
 # `#set par(... leading: Xem ... spacing: Yem)`, the pair --tune rewrites. It only matches leading before spacing
 # and em units: accepting the reverse order would make _write_par swap the two values (the unit tests pin this).
@@ -130,7 +130,7 @@ def _write_par(text: str, leading: float, spacing: float) -> str:
                                text[m.end(4):])
 
 
-_RHYTHM_LINE = re.compile(r"^#let\s+rhythm(?![\w-]).*$", re.M)
+_RHYTHM_LINE = re.compile(r"^#let\s+rhythm(?![\w-]).*$", re.MULTILINE)
 _RHYTHM_RE = re.compile(r"(#let rhythm = )([0-9]+(?:\.[0-9]+)?|\.[0-9]+)[ \t\r]*;?[ \t\r]*")
 
 

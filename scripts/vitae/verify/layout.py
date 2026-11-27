@@ -199,8 +199,8 @@ def check_whitespace(path: str, boxes: Sequence[Box] | None = None, family: str 
         return not (a[1] < b[0] or b[1] < a[0])
 
     union = list(ink)
-    for band in furniture:
-        band = (band[0] - off, band[1] - off)
+    for raw in furniture:
+        band = (raw[0] - off, raw[1] - off)
         if near_boundary(band, white, med) and \
                 not any(_overlap(band, u) for u in union):
             union.append(band)

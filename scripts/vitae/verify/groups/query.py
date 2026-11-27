@@ -91,11 +91,10 @@ def _typst_values(typ: str, selector: str, root: str | None = None) -> list[obje
     if typst_route().query != "cli":
         return _values_py(typ, selector, root)
     rootargs = ["--root", root] if root else []
-    for cmd in (["typst", "query", typ, selector, "--field", "value"] + rootargs,
-                ["typst", "eval", f"query({selector}).map(it => it.value)",
-                 "--in", typ, "--target", "paged"] + rootargs):
+    for cmd in (["typst", "query", typ, selector, "--field", "value", *rootargs],
+                ["typst", "eval", f"query({selector}).map(it => it.value)", "--in", typ, "--target", "paged", *rootargs]):
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True)
+            r = subprocess.run(cmd, capture_output=True, text=True, check=False)
         except (FileNotFoundError, OSError):
             return None
         if r.returncode == 0 and r.stdout.strip().startswith("["):

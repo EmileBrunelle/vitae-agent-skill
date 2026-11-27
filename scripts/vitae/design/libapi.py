@@ -7,7 +7,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-_DEF = re.compile(r"^#let ([A-Za-z][\w-]*)(\()?", re.M)
+_DEF = re.compile(r"^#let ([A-Za-z][\w-]*)(\()?", re.MULTILINE)
 _OPEN, _CLOSE = "([{", ")]}"
 
 OLD_LIB_NOTE = ("an OLD lib.typ (defines `nb` but not `contact`): header contacts and bullet markers are not "

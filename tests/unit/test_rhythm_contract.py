@@ -160,8 +160,8 @@ def scan(text: str) -> list[tuple[str, str, str]]:
             exprs = [a.split(":", 1)[-1] if re.match(r"\s*[\w-]+\s*:", a) else a for a in _call_args(text, m.end())]
         else:
             exprs = [_span(text, m.end())[0]]
-        for expr in exprs:
-            expr = " ".join(expr.split())
+        for raw in exprs:
+            expr = " ".join(raw.split())
             _check_terms(expr, True, slot, expr, found)
     for m in ENTRY_CALL.finditer(text):
         if text[:m.start()].rstrip().endswith("#let") or re.search(r"#let\s+$", text[:m.start()]):

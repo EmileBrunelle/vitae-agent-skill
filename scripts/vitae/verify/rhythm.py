@@ -11,6 +11,7 @@ a wrapped line sits as far as (or farther than) the next bullet and the eye cann
 from the next bullet: that is the FAIL."""
 from __future__ import annotations
 
+import itertools
 from bisect import bisect_left, bisect_right
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -90,9 +91,9 @@ def measure_columns(marks: list[Mark], located: list[tuple[Pos, list[BulletLine]
     heads = _HeadIndex(marks)
     for cl in clusters:
         cl.sort(key=lambda b: (b[0].page, b[0].y))
-        wrapped = [b.y1 - a.y1 for _, ls in cl for a, b in zip(ls, ls[1:]) if a.page == b.page]
+        wrapped = [b.y1 - a.y1 for _, ls in cl for a, b in itertools.pairwise(ls) if a.page == b.page]
         gaps: list[float] = []
-        for (pa, la), (pb, lb) in zip(cl, cl[1:]):
+        for (pa, la), (pb, lb) in itertools.pairwise(cl):
             if pa.page != pb.page:
                 continue    # no pitch across a page break, whatever the two y values say
             # a bullet that runs on to the next page gives a gap <= 0 here

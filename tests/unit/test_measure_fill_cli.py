@@ -9,7 +9,7 @@ SCRIPT = ROOT / "scripts" / "measure_fill.py"
 
 
 def run(*args):
-    return subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True, text=True, check=False)
 
 
 @pytest.mark.parametrize("flag", ["--help", "-h"])

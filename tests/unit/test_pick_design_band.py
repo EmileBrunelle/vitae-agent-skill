@@ -9,7 +9,7 @@ pytestmark = pytest.mark.integration
 
 
 def text(pdf, *flags):
-    return subprocess.run(["pdftotext", *flags, str(pdf), "-"], capture_output=True, text=True).stdout
+    return subprocess.run(["pdftotext", *flags, str(pdf), "-"], capture_output=True, text=True, check=False).stdout
 
 
 def build(folder):
@@ -18,7 +18,7 @@ def build(folder):
         pytest.skip("typst CLI not installed")
     pdf = folder / "cv.pdf"
     r = subprocess.run([typst, "compile", "--root", str(folder), str(folder / "cv.typ"), str(pdf)],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, check=False)
     assert r.returncode == 0, r.stderr
     return pdf
 

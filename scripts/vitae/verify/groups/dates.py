@@ -225,7 +225,7 @@ def check_date_adjacency(typ: str, pdf: str, marks: list[Mark] | None = None, ro
     never a FAIL."""
     marks = _typst_query(typ, ENTRY_MARKS, root) if marks is None else marks
     out: list[str] = []
-    warn: Callable[[str], object] = (lambda m: warns.append(m)) if warns is not None else (lambda m: None)
+    warn: Callable[[str], object] = (warns.append) if warns is not None else (lambda m: None)
     recs = _entry_records(marks)
     st = stats if stats is not None else {}
     st.update(measured=0, undated=0, unmeasured=0)

@@ -119,7 +119,7 @@ def main() -> None:
     argv = [a for a in argv if a != "--allow-placeholders"]
     # as the old manual argv: only argv[0] is a mode flag (the rest is
     # ignored then); otherwise every argument is a positional, even "-x"
-    argv = ["--"] + argv
+    argv = ["--", *argv]
     parsed = ap.parse_args(argv)
 
     if len(parsed.args) != 3:

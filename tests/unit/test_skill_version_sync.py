@@ -8,5 +8,5 @@ from vitae.verify import jsonout
 
 def test_skill_version_matches_the_latest_released_changelog_heading():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    latest = re.search(r"^## (\d+\.\d+\.\d+) - ", changelog, re.M)
+    latest = re.search(r"^## (\d+\.\d+\.\d+) - ", changelog, re.MULTILINE)
     assert latest and jsonout.skill_version() == latest.group(1)

@@ -11,7 +11,7 @@ from vitae import icons
 
 def run(*args):
     return subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "harvest_icons.py"), *args],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, check=False)
 
 
 @pytest.mark.parametrize("flag", ["--help", "-h"])
