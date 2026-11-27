@@ -27,13 +27,14 @@ pytestmark = pytest.mark.skipif(not preflight().ok, reason="needs typst and a PD
 
 SEEDS = ("0", "12345")
 FAM = "templates/families/swiss-grid"
-# (relative path, pages, fill min, fill max or None): a 1-page résumé, a 2-page résumé, an academic CV (no fill window).
+# (relative path, pages, fill min, fill max or None): a 1-page résumé, a 2-page résumé. (An academic CV has its own gate,
+# verify_academic.py: the standard gate refuses it with exit 2.)
 CVS: list[tuple[str, int, int | None, int | None]] = [
     (f"{FAM}/resume.typ", 1, 94, 96),
     (f"{FAM}/resume-2page.typ", 2, 94, 96),
-    ("templates/academic/cv.typ", 2, None, None),
 ]
-IDS = ["resume-1page", "resume-2page", "academic-cv"]
+IDS = ["resume-1page", "resume-2page"]
+ACADEMIC = ["scripts/verify_academic.py", "templates/academic/cv.typ", "templates/academic/faits-academique.example.toml"]
 LETTER = "templates/letter.typ"
 LETTER_RUN = ("import json, sys; sys.path.insert(0, 'scripts')\n"
               "from vitae.verify.letter import check_letter\n"
@@ -65,6 +66,12 @@ def test_seed_really_changes_hashing(scratch: Path) -> None:
 def test_json_is_identical_across_hash_seeds(scratch: Path, cv: tuple[str, int, int | None, int | None]) -> None:
     outs = [_seeded(scratch, ["scripts/verify.py", *_argv(cv), "--json"], s) for s in SEEDS]
     assert json.loads(outs[0])["verdict"] in ("PASS", "FAIL")     # a real verdict, not an ERROR object
+    assert outs[0] == outs[1]
+
+
+def test_academic_gate_is_identical_across_hash_seeds(scratch: Path) -> None:
+    outs = [_seeded(scratch, ACADEMIC, s) for s in SEEDS]
+    assert "mechanical gates: PASS" in outs[0]
     assert outs[0] == outs[1]
 
 

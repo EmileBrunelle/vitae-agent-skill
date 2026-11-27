@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
+from harness import ROOT, run_check
 from vitae.core.env import check_typst
 from vitae.verify.academic.checks import analyze
 from vitae.verify.academic.gate import hidden_text_msgs
@@ -87,3 +89,16 @@ def test_hidden_text_fails_the_shared_gate(tmp_path: Path, extra: str, hidden: b
     msgs = hidden_text_msgs(str(_pdf(tmp_path, ONE_PAGE + extra)))
     assert any(f and m.startswith("hidden text: remove") for f, m in msgs) is hidden
     assert not any(f for f, _ in msgs) or hidden
+
+
+def test_shipped_academic_template_passes_the_mechanical_gate(tmp_path: Path) -> None:
+    """templates/academic/cv.typ + its example TOML clear the five checks. The only FAILs left are the step-7 review
+    record (not written for a template), which is the gate saying the next step is the review, not a layout defect."""
+    shutil.copytree(ROOT / "templates", tmp_path / "templates", ignore=shutil.ignore_patterns("*.pdf", "*.png", "__pycache__"))
+    a = tmp_path / "templates" / "academic"
+    r = run_check("academic-template", [sys.executable, "-I", ROOT / "scripts" / "verify_academic.py",
+                                        a / "cv.typ", a / "faits-academique.example.toml"], tmp_path)
+    fails = [ln for ln in r.output.splitlines() if ln.startswith("FAIL")]
+
+    assert "mechanical gates: PASS  all five checks hold" in r.output, r.tail(30)
+    assert len(fails) == 2 and all("review record" in ln for ln in fails), fails

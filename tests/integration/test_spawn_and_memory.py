@@ -4,7 +4,8 @@ Wall-clock tests flake on a loaded runner and pass on a fast one whatever the co
 machine: the child processes one gate run starts (counted by a Python audit hook, per tool and sub-command, so a second
 `pdfinfo` of the same PDF shows up as a number) and the peak of Python-side allocations (`tracemalloc`; the children's
 own memory and C buffers are outside it). The runs are the shipped swiss-grid résumé (1 page), its 2-page version and the
-academic CV, each on its own copy of the templates; the verdict is not asserted (that is the job of test_templates).
+academic CV, each on its own copy of the templates; the verdict is not asserted (that is the job of test_templates). The academic CV is measured
+through its own gate (`verify_academic.run_gate`): the standard gate refuses it (exit 2).
 
 An audit hook cannot be removed, so one is installed for the process and counts only inside `_measured()`.
 `# current: N, target: M` marks a count above what the design needs: the bound is today's count, so it fails when a
@@ -78,6 +79,17 @@ def _measured() -> Generator[None]:
         tracemalloc.stop()
 
 
+ACADEMIC_TOML = "templates/academic/faits-academique.example.toml"
+
+
+def _gate_academic(copy: Path, rel: str) -> Run:
+    from vitae.verify.academic.gate import run_gate
+    with _measured():
+        run_gate(str(copy / rel), str(copy / ACADEMIC_TOML))
+        peak = tracemalloc.get_traced_memory()[1]
+    return Run(Counter(_kind(a) for a in _SPAWNED), peak // 1024)
+
+
 def _gate(copy: Path, rel: str, pages: str, fill: tuple[str, str] | None) -> Run:
     from vitae.verify.cv import PageTarget, check_cv
     target = PageTarget(pages, *fill) if fill else PageTarget(pages)
@@ -90,7 +102,7 @@ def _gate(copy: Path, rel: str, pages: str, fill: tuple[str, str] | None) -> Run
 CASES = {
     "resume-1page": ("templates/families/swiss-grid/resume.typ", "1", ("94", "96")),
     "resume-2page": ("templates/families/swiss-grid/resume-2page.typ", "2", ("94", "96")),
-    "academic": ("templates/academic/cv.typ", "2", None),
+    "academic": ("templates/academic/cv.typ", "2", None),     # pages/fill unused: verify_academic takes the TOML
 }
 
 
@@ -105,7 +117,8 @@ def runs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Run]:
 
     rel, pages, fill = CASES["resume-1page"]
     _gate(copy("warmup"), rel, pages, fill)
-    return {name: _gate(copy(name), *case) for name, case in CASES.items()}
+    return {name: (_gate_academic(copy(name), case[0]) if name == "academic" else _gate(copy(name), *case))
+            for name, case in CASES.items()}
 
 
 # Budget per case: tool kind -> (target, current). Bound: target <= count <= current (the lower bound catches a gate
@@ -121,11 +134,12 @@ _COMMON = {
 BUDGET = {
     "resume-1page": {**_COMMON, "pdftoppm": (2, 2)},           # one 150-ppi render, one 300-ppi ink page
     "resume-2page": {**_COMMON, "pdftoppm": (3, 3)},           # the ink page once per page
-    "academic": {**_COMMON, "pdftoppm": (1, 1)},
+    # verify_academic.run_gate: no lib/section queries (the TOML declares the structure); pdfinfo is read twice
+    "academic": {**_COMMON, "typst query": (0, 0), "pdfinfo": (1, 2), "pdftoppm": (1, 1)},     # current: 2 pdfinfo, target: 1
 }
 # Peak of Python-side allocations in KiB, measured on the gate after a warm-up: bound = 2 x measured
-# (1557 KiB 1 page, 2048 KiB 2 pages, 1587 KiB academic; the 2-page résumé is the largest).
-PEAK_KIB = {"resume-1page": 3200, "resume-2page": 4100, "academic": 3200}
+# (1557 KiB 1 page, 2048 KiB 2 pages, 953 KiB academic (verify_academic.run_gate); the 2-page résumé is the largest).
+PEAK_KIB = {"resume-1page": 3200, "resume-2page": 4100, "academic": 1900}
 
 
 @pytest.mark.parametrize("case", CASES)

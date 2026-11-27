@@ -117,6 +117,16 @@ def is_academic(path: str) -> bool:
     return is_academic_head(read_head(path))
 
 
+def refuse_academic(typ: str) -> None:
+    """Exit 2 (wrong invocation) with ONE stderr line when `typ` is an academic CV: the standard gate would print
+    FAILs about a genre it is not calibrated for, and a weaker agent would "fix" a correct CV. Called at the entry
+    of `check_cv` (every one-file gate run) and by `--tune` (which compiles without `check_cv`)."""
+    if is_academic(typ):
+        print(f"{typ}: academic CV — run scripts/verify_academic.py {typ} instead; "
+              "the standard gate does not judge this genre", file=sys.stderr)
+        sys.exit(2)
+
+
 def is_letter_head(head: str | None) -> bool:
     """True for a cover letter, which this gate must NOT judge either.
 
@@ -391,7 +401,9 @@ class PageTarget:
 
 def check_cv(typ: str, target: PageTarget, *, facts: str | None = None, allow_placeholders: bool = False,
               rebuild: bool = False) -> tuple[int, str | None]:
-    """`_check_cv` in its own memo scope: each tool runs once per file state in this gate run and never across runs."""
+    """`_check_cv` in its own memo scope: each tool runs once per file state in this gate run and never across runs.
+    An academic CV is refused first (`refuse_academic`): this is the one door every one-file CV run passes through."""
+    refuse_academic(typ)
     with run_memo():
         return _check_cv(typ, target, facts=facts, allow_placeholders=allow_placeholders, rebuild=rebuild)
 

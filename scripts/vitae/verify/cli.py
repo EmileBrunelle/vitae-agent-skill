@@ -88,7 +88,7 @@ from typing import NoReturn
 from vitae.core import limits, proc, profiling
 from vitae.core.base import FOOTER_GATE, HIDDEN_PPI, DetailRow
 from vitae.core.env import pdf_backend, preflight
-from vitae.verify.cv import ALLOW_REFUSED, PageTarget, check_all, check_cv, placeholders_allowed
+from vitae.verify.cv import ALLOW_REFUSED, PageTarget, check_all, check_cv, placeholders_allowed, refuse_academic
 from vitae.verify.gates import LAYOUT_GATES, make_context
 from vitae.verify.pdf import extract_text, pdf_unreadable, render_crops, render_pages
 from vitae.verify.registry import run_gates
@@ -236,6 +236,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
         # the placeholder gate is not part of --tune; the flag is only carried into the follow-up commands it prints
         ta = ap.parse_known_args(["--"] + [a for a in argv[1:] if a != "--allow-placeholders"])[0]
         limits.check_size(ta.typ, limits.MAX_TYP_BYTES)
+        refuse_academic(ta.typ)
         if not fill_args_ok(ta.pages, ta.fill_min, ta.fill_max):
             sys.exit(1)
         # LO alone is ignored: the bounds come as a pair or not at all
