@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from bisect import bisect_left
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, NamedTuple
 
 from vitae.core.base import Mark, Word, _Line
-from vitae.core.env import typst_font_kw, typst_py
+from vitae.core.env import _typst_cli_for_queries, typst_font_kw, typst_py
 from vitae.verify.pdf import auto_root
 
 if TYPE_CHECKING:
@@ -84,7 +83,7 @@ def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None
 def _typst_values(typ: str, selector: str, root: str | None = None) -> list[object] | None:
     """JSON list of the values of every element labelled `selector`, or None."""
     root = root or auto_root(typ)
-    if not shutil.which("typst"):
+    if not _typst_cli_for_queries():
         return _values_py(typ, selector, root)
     rootargs = ["--root", root] if root else []
     for cmd in (["typst", "query", typ, selector, "--field", "value"] + rootargs,

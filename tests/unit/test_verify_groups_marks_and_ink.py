@@ -15,7 +15,7 @@ def route(request, monkeypatch):
         if not shutil.which("typst"):
             pytest.skip("typst CLI missing")
     else:
-        monkeypatch.setattr(query.shutil, "which", lambda name: None)
+        monkeypatch.setattr(query, "_typst_cli_for_queries", lambda: False)
     return request.param
 
 
@@ -63,7 +63,7 @@ class TestTypstQuery:
         assert groups._typst_query(typ, "<vitae-sec>") == [{"text": "UP"}]
 
     def test_without_cli_or_package_it_is_none(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(query.shutil, "which", lambda name: None)
+        monkeypatch.setattr(query, "_typst_cli_for_queries", lambda: False)
         monkeypatch.setattr(query, "typst_py", lambda: None)
         assert groups._typst_values(_typ(tmp_path, MARKS), "<vitae-head>") is None
 

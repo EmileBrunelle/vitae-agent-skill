@@ -271,7 +271,7 @@ def check_fonts() -> None:
         print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
               f"(pick_design draws from at least {MIN_POOL}), so it will substitute.")
         print("  Fetch only the fonts the draw asks for (references/fonts.md, \"Downloading from Google Fonts\"):")
-        r2 = ("typst --font-path <dir> (no install)" if shutil.which("typst")
+        r2 = ("typst --font-path <dir> (no install)" if typst_cli_usable()
               else "export TYPST_FONT_PATHS=<dir> (no install; the Python API reads it here)")
         print(f"  Route 1: install into ~/.local/share/fonts/vitae (persistent, recommended); Route 2: {r2}")
     else:
@@ -397,6 +397,23 @@ def typst_py() -> ModuleType | None:
     return mod if full else None
 
 
+@functools.cache
+def typst_cli_usable() -> bool:
+    """The one decision for every typst call: True when a `typst` CLI on PATH can write PDF/UA-1 + PDF/A-2a (0.14 or
+    newer; a version it will not print counts as fine). False sends compile to the Python API, as `check_typst` reports.
+    Probed once per process: `typst --version` is a subprocess."""
+    if not shutil.which("typst"):
+        return False
+    ver = _cli_version()
+    return ver == "?" or _ver_tuple(ver) >= TYPST_STANDARDS_MIN
+
+
+def _typst_cli_for_queries() -> bool:
+    """Whether query / eval / fonts run through the CLI. A usable CLI always does. A CLI too old for PDF standards
+    still answers those three the same way (they write no PDF), so it serves only when no full Python API can."""
+    return typst_cli_usable() or (bool(shutil.which("typst")) and typst_py() is None)
+
+
 def typst_can_query() -> bool:
     """True when `typst query`/`eval`/`fonts` can run: the CLI, or typst-py."""
     return bool(shutil.which("typst")) or typst_py() is not None
@@ -404,7 +421,7 @@ def typst_can_query() -> bool:
 
 def typst_fonts() -> list[str] | None:
     """Family names `typst fonts` reports (CLI, else typst-py), or None."""
-    if shutil.which("typst"):
+    if _typst_cli_for_queries():
         try:
             r = subprocess.run(["typst", "fonts"], capture_output=True, text=True, timeout=20)
         except (OSError, subprocess.SubprocessError):

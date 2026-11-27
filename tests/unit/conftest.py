@@ -34,3 +34,12 @@ def tuner_original_compiles(monkeypatch):
     `pytestmark = pytest.mark.usefixtures("tuner_original_compiles")`."""
     from vitae.verify import tune
     monkeypatch.setattr(tune, "compile_pdf", lambda typ, pdf, use_cli: (True, ""))
+
+
+@pytest.fixture(autouse=True)
+def _fresh_typst_cli_decision():
+    """`env.typst_cli_usable` is probed once per process; tests that fake `typst` on PATH need their own probe."""
+    from vitae.core import env
+    env.typst_cli_usable.cache_clear()
+    yield
+    env.typst_cli_usable.cache_clear()

@@ -9,7 +9,6 @@ import urllib.error
 import pytest
 from vitae import icons
 from vitae.core import env
-from vitae.design import fonts
 from vitae.verify import layout, text
 from vitae.verify.groups import query
 
@@ -54,43 +53,6 @@ class TestIcons:
         monkeypatch.setattr(icons, "fetch", _raiser(KeyError("boom")))
         with pytest.raises(KeyError):
             icons.fetch_set("lucide", ["mail"])
-
-
-class TestFontsAvailable:
-    def _no_cli(self, monkeypatch, exc):
-        monkeypatch.setattr(fonts.subprocess, "run", _raiser(FileNotFoundError("typst")))
-        import importlib
-        real = importlib.import_module
-
-        def fake(name: str, *a: str):
-            if name == "typst":
-                raise exc
-            return real(name, *a)
-        monkeypatch.setattr(importlib, "import_module", fake)
-
-    @pytest.mark.parametrize("exc", [ImportError("no typst"), RuntimeError("fonts"), OSError("fs")])
-    def test_missing_or_failing_typst_py_is_unknown(self, monkeypatch, exc):
-        self._no_cli(monkeypatch, exc)
-        assert fonts._fonts_available() is None
-
-    @pytest.mark.parametrize("fake_attrs", [{}, {"Fonts": "TypeError"}], ids=["no-Fonts", "other-signature"])
-    def test_old_typst_py_is_unknown_not_a_crash(self, monkeypatch, fake_attrs):
-        import sys
-        calls: list[dict[str, object]] = []
-
-        def fonts_ctor(**kw: object) -> object:
-            calls.append(kw)
-            raise TypeError("unexpected keyword")
-        fake = types.SimpleNamespace(**({"Fonts": fonts_ctor} if fake_attrs else {}))
-        monkeypatch.setitem(sys.modules, "typst", fake)
-        monkeypatch.setattr(fonts.subprocess, "run", _raiser(FileNotFoundError("typst")))
-        assert fonts._fonts_available() is None
-        assert bool(calls) == bool(fake_attrs)   # the fake really was the module in use
-
-    def test_a_bug_is_not_swallowed(self, monkeypatch):
-        self._no_cli(monkeypatch, KeyError("boom"))
-        with pytest.raises(KeyError):
-            fonts._fonts_available()
 
 
 class TestPdfCharFonts:

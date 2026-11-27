@@ -1,33 +1,16 @@
 """Design fonts: what `typst fonts` reports, and the deterministic font draw with its availability fallback."""
 from __future__ import annotations
 
-import os
 import re
-import subprocess
 
+from vitae.core.env import typst_fonts
 from vitae.design.tables import FONTS, Font, _idx
 
 
 def _fonts_available() -> set[str] | None:
-    """Set of family names `typst fonts` reports (typst-py if no CLI), or None if neither."""
-    try:
-        out = subprocess.run(["typst", "fonts"], capture_output=True,
-                             text=True, timeout=20)
-    except FileNotFoundError:   # no CLI: typst-py reports the same families
-        try:
-            import importlib
-            typst = importlib.import_module("typst")
-            if not hasattr(typst, "Fonts"):   # an old typst-py without Fonts
-                return None
-            fp = [d for d in os.environ.get("TYPST_FONT_PATHS", "").split(os.pathsep) if d]
-            return set(typst.Fonts(include_system_fonts=True, **({"font_paths": fp} if fp else {})).families())
-        except (ImportError, OSError, RuntimeError, TypeError):   # typst-py missing, or its Fonts() failing (pyo3 errors are RuntimeError; TypeError: another signature)
-            return None
-    except (OSError, subprocess.SubprocessError):
-        return None
-    if out.returncode != 0:
-        return None
-    return {l.strip() for l in out.stdout.splitlines() if l.strip()}
+    """Set of family names Typst reports (see `env.typst_fonts`), or None if it cannot list them."""
+    have = typst_fonts()
+    return None if have is None else set(have)
 
 
 def _installed(name: str, have: set[str]) -> str | None:

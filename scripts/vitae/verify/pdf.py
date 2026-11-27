@@ -23,7 +23,7 @@ from typing import Literal, overload
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
-from vitae.core.env import PdfBackend, _importable, pdf_backend, typst_font_kw, typst_py
+from vitae.core.env import PdfBackend, _importable, pdf_backend, typst_cli_usable, typst_font_kw, typst_py
 from vitae.core.pdfium import PdfiumDoc, PdfiumPage, PdfiumTextPage
 from vitae.verify.hexstrings import hexify_pdf
 from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
@@ -217,10 +217,10 @@ def ensure_icons(typ: str) -> None:
 
 def typst_compile(src: str, pdf: str | None = None, standards: bool = False) -> tuple[bool, str]:
     """(ok, stderr) for `typst compile src [pdf]` via the CLI, else typst-py
-    (the tests' compile step; warnings are included in the text). Intentionally bypasses the
+    (the tests' compile step; the CLI only when `typst_cli_usable`; warnings are included in the text). Intentionally bypasses the
     pikepdf post-step of `compile_pdf`: it is the raw Typst output. `standards` asks for PDF_STANDARDS as
     `compile_pdf` does (off by default: a test snippet needs no document title)."""
-    if shutil.which("typst"):
+    if typst_cli_usable():
         r = subprocess.run(["typst", "compile", src] + ([pdf] if pdf else []) + (_standard_cli() if standards else []) + _root_cli(src),
                            capture_output=True, text=True)
         return r.returncode == 0, r.stderr
