@@ -58,6 +58,24 @@ _SAMPLES = (
     re.compile(r"(?:linkedin\.com/in|github\.com)/handle\b"),
     re.compile(r"\bFirstname Lastname\b"),
 )
+# `_SAMPLES[0]` as a finditer would run it tries every start inside a long run of address characters and rescans the
+# run each time (a text with no `@`: quadratic). A run is tried once, from its first character; the one other start the
+# old scan had, right after a match inside the same run (`a@example.com.b@example.org`), is tried first.
+_EMAIL_RUN = re.compile(r"(?<![\w.+-])" + _SAMPLES[0].pattern)
+
+
+def _email_samples(src: str) -> list[re.Match[str]]:
+    """The matches of `_SAMPLES[0].finditer(src)`, in linear time."""
+    out: list[re.Match[str]] = []
+    pos = 0
+    while True:
+        m = (_SAMPLES[0].match(src, pos) if out else None) or _EMAIL_RUN.search(src, pos)
+        if m is None:
+            return out
+        out.append(m)
+        pos = m.end()
+
+
 _ANY_SPAN = re.compile(r"\[([^\[\]]{3,80})\]")   # capped: a stray `[` far from a `]` is not one span
 
 
@@ -106,8 +124,9 @@ def placeholders_in(src: str) -> set[str]:
     src = strip_comments(src)
     found = {"[" + " ".join(m.group(1).split()) + "]" for rx in (_SPAN, _ESCAPED_SPAN) for m in rx.finditer(src)
              if re.search(r"[A-Za-z]", m.group(1)) and not any(r.fullmatch(m.group(1)) for r in _SAMPLES)}
-    for rx in _SAMPLES:
+    for rx in _SAMPLES[1:]:
         found.update(m.group(0).replace("\\", "") for m in rx.finditer(src))
+    found.update(m.group(0).replace("\\", "") for m in _email_samples(src))
     return found
 
 
@@ -120,6 +139,11 @@ def placeholders_from(templates: Path) -> tuple[str, ...]:
             continue
         found |= placeholders_in(f.read_text(encoding="utf-8"))
     return tuple(sorted(found, key=lambda s: (-len(s), s)))
+
+
+def _covered(squashed: str, keys: set[str]) -> bool:
+    """True when one of the hit keys is inside the squashed span (the span is squashed once, not once per key)."""
+    return any(k in squashed for k in keys)
 
 
 def check_placeholders(ctx: VerifyContext, templates: Path = TEMPLATES) -> list[Finding]:
@@ -141,8 +165,8 @@ def check_placeholders(ctx: VerifyContext, templates: Path = TEMPLATES) -> list[
         shown = ", ".join(f'"{p}"' for p in hits[:6]) + (f" (+{len(hits) - 6} more)" if len(hits) > 6 else "")
         out.append((Level.FAIL, f"template placeholder left in the text: {shown} — replace it with the facts' value or remove it"))
     hit_keys = {_squash(p) for p in hits}
-    others = [m.group(0) for m in _ANY_SPAN.finditer(" ".join(ctx.txt.split()))
-              if re.search(r"[A-Za-z]", m.group(1)) and not any(k in _squash(m.group(0)) for k in hit_keys)]
+    spans = [m for m in _ANY_SPAN.finditer(" ".join(ctx.txt.split())) if re.search(r"[A-Za-z]", m.group(1))]
+    others = [m.group(0) for m in spans if not _covered(_squash(m.group(0)), hit_keys)]
     if others:
         shown = ", ".join(f'"{o}"' for o in others[:5]) + (f" (+{len(others) - 5} more)" if len(others) > 5 else "")
         out.append((Level.WARN, f"bracketed text in the extraction: {shown} — a placeholder left over, or intended?"))
