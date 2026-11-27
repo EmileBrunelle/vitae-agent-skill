@@ -190,11 +190,6 @@ def pdf_backend() -> PdfBackend:
     return None
 
 
-def pdf_tool(name: str) -> bool:
-    """True when `name` (pdftotext, pdftoppm, pdfdetach) can be served: on PATH, or by pypdfium2."""
-    return bool(shutil.which(name)) or pdf_backend() == "pdfium"
-
-
 def check_pdf_tools() -> tuple[bool, PdfBackend]:
     """Doctor lines for the PDF reader; returns (available, backend), the backend being the one pdf_backend() would
     pick. A missing pdftoppm, or pypdf standing in for poppler, only degrades: the checks it cannot serve are named

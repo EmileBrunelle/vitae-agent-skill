@@ -3,9 +3,14 @@ import re
 
 from _paths import ROOT
 from _pick_design_cli import init
-from vitae.design.libapi import public_signatures, signatures
+from vitae.design.libapi import signatures
 
 TEMPLATES = ROOT / "templates"
+
+
+def public_signatures(lib_path):
+    """Signatures of every top-level `#let` of `lib_path`, in file order."""
+    return list(signatures(lib_path.read_text(encoding="utf-8")).values())
 
 
 def printed(tmp_path):

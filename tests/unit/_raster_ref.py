@@ -7,9 +7,28 @@ from collections.abc import Callable, Sequence
 
 from PIL import Image
 from vitae.core.base import WordBox
-from vitae.core.pixels import gray_pixels, rgb_pixels
+from vitae.core.pixels import gray_pixels
 from vitae.fill import RULE_CONTRAST, RULE_FLOOR
 from vitae.verify.page import FURNITURE_SCALE
+
+
+class RgbPixels:
+    """`px[x, y]` of an "RGB" image: its (r, g, b)."""
+    __slots__ = ("_data", "_w", "_h")
+
+    def __init__(self, im: Image.Image) -> None:
+        if im.mode != "RGB":
+            raise ValueError(f'RgbPixels needs an "RGB" image, got {im.mode!r}')
+        self._w, self._h = im.size
+        self._data = im.tobytes()
+
+    def __getitem__(self, xy: tuple[int, int]) -> tuple[int, int, int]:
+        x, y = xy
+        if not (0 <= x < self._w and 0 <= y < self._h):
+            raise IndexError("image index out of range")
+        i = 3 * (y * self._w + x)
+        d = self._data
+        return d[i], d[i + 1], d[i + 2]
 
 
 def check_text_clip_per_pixel(png: str, boxes: Sequence[WordBox] | None) -> list[str]:  # noqa: C901 (verbatim copy of the replaced code)
@@ -33,7 +52,7 @@ def check_text_clip_per_pixel(png: str, boxes: Sequence[WordBox] | None) -> list
     lum = im.convert("L")
     w, h = im.size
     px = gray_pixels(lum)
-    rgb = rgb_pixels(im)
+    rgb = RgbPixels(im)
     s = FURNITURE_SCALE
     found: list[tuple[str, int, str]] = []   # (kind, line-row, word) — folded into one FAIL per line below
 

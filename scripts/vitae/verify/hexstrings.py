@@ -48,10 +48,6 @@ def _pikepdf() -> ModuleType | None:
     return mod
 
 
-def available() -> bool:
-    return _pikepdf() is not None
-
-
 def _warn_once(exc: Exception) -> None:
     global _warned
     if not _warned:

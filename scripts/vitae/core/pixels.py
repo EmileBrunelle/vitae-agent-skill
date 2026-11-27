@@ -23,33 +23,9 @@ class GrayPixels:
         return self._data[y * self._w + x]
 
 
-class RgbPixels:
-    """`px[x, y]` of an "RGB" image: its (r, g, b)."""
-    __slots__ = ("_data", "_w", "_h")
-
-    def __init__(self, im: Image.Image) -> None:
-        if im.mode != "RGB":
-            raise ValueError(f'rgb_pixels needs an "RGB" image, got {im.mode!r}')
-        self._w, self._h = im.size
-        self._data = im.tobytes()
-
-    def __getitem__(self, xy: tuple[int, int]) -> tuple[int, int, int]:
-        x, y = xy
-        if not (0 <= x < self._w and 0 <= y < self._h):
-            raise IndexError("image index out of range")
-        i = 3 * (y * self._w + x)
-        d = self._data
-        return d[i], d[i + 1], d[i + 2]
-
-
 def gray_pixels(im: Image.Image) -> GrayPixels:
     """Pixel access of an image already converted to "L"."""
     return GrayPixels(im)
-
-
-def rgb_pixels(im: Image.Image) -> RgbPixels:
-    """Pixel access of an image already converted to "RGB"."""
-    return RgbPixels(im)
 
 
 def colour_counts(im: Image.Image, maxcolors: int) -> list[tuple[int, tuple[int, ...]]]:

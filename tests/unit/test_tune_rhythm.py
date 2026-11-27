@@ -4,12 +4,17 @@ The compile/measure probe and preflight are injected; the fake page is `50 * rhy
 import pytest
 from vitae.verify import tune as T
 from vitae.verify.typst import (
-    _doc_leading,
     _doc_par_list,
     _read_par,
     _read_rhythm,
     _write_par,
 )
+
+
+def _doc_leading(text):
+    """The gate's leading reader: the first of `_doc_par_list`."""
+    return _doc_par_list(text)[0]
+
 
 pytestmark = pytest.mark.usefixtures("tuner_original_compiles")
 

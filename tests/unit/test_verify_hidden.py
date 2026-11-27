@@ -1,13 +1,20 @@
 """verify.text.check_hidden_text on real PDFs (compiled with the `typst` package): contrast, box size, page edge,
 metadata stuffing, attachments, and the missing-pypdf notice. Each case is one tiny document."""
+import shutil
 import sys
 from unittest import mock
 
 import pytest
 import typst
-from vitae.core.env import pdf_backend, pdf_tool
+from vitae.core.env import pdf_backend
 from vitae.core.level import Level
 from vitae.verify.text import check_hidden_text
+
+
+def pdf_tool(name: str) -> bool:
+    """True when `name` (pdftotext, pdftoppm, pdfdetach) can be served: on PATH, or by pypdfium2."""
+    return bool(shutil.which(name)) or pdf_backend() == "pdfium"
+
 
 pytestmark = pytest.mark.skipif(not (pdf_tool("pdftoppm") and pdf_tool("pdftotext")), reason="no PDF raster/text reader")
 

@@ -1,6 +1,6 @@
 """Helpers shared by the integration checks: run a subprocess check into a log, apply the PASS rule.
 
-The rule is run_all.sh's: a check PASSES only if it exits 0 AND prints no line starting with "FAIL" (verify.py's verdict
+The rule: a check PASSES only if it exits 0 AND prints no line starting with "FAIL" (verify.py's verdict
 is its last line; a wrapper that swallows the exit code must not turn a FAIL into a PASS).
 """
 from __future__ import annotations
@@ -16,6 +16,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "scripts"
+
+
+def pdf_tool(name: str) -> bool:
+    """True when `name` (pdftotext, pdftoppm, pdfdetach) can be served: on PATH, or by pypdfium2."""
+    from vitae.core.env import pdf_backend
+
+    return bool(shutil.which(name)) or pdf_backend() == "pdfium"
 
 
 @dataclass(frozen=True)
@@ -106,7 +113,7 @@ def grep(text: str, pattern: str) -> bool:
 
 
 def typst_compile(src: Path, pdf: Path, cwd: Path) -> CheckResult:
-    """Compile with the typst CLI, else with typst-py through the current python (run_all.sh's fallback)."""
+    """Compile with the typst CLI, else with typst-py through the current python."""
     if shutil.which("typst"):
         return run_check(f"typst/{src.stem}", ["typst", "compile", src, pdf], cwd)
     return run_check(f"typst/{src.stem}", [sys.executable, "-I", "-c",

@@ -308,11 +308,6 @@ def _scale_list_spacing(text: str, factor: float, after: int = 0) -> str:
     return "".join(out)
 
 
-def _doc_leading(text: str) -> float | None:
-    """The document's paragraph leading in em; see _doc_par_list_size."""
-    return _doc_par_list(text)[0]
-
-
 def _doc_par_list(text: str) -> tuple[float | None, float | None]:
     """(leading, list spacing) in em; see _doc_par_list_size."""
     return _doc_par_list_size(text)[:2]

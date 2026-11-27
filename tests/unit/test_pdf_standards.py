@@ -19,7 +19,7 @@ DOC = (f'#set document(title: "Jane Roe", author: "Jane Roe")\n#set text(lang: "
        f'#set page(width: 800pt, height: 80pt)\n= Experience\n{LETTERS}\n')
 CLI_OR_PY = [pytest.param(True, id="cli", marks=pytest.mark.skipif(not shutil.which("typst"), reason="typst CLI missing")),
              pytest.param(False, id="typst-py")]
-needs_pikepdf = pytest.mark.skipif(not hexstrings.available(), reason="pikepdf not installed (optional)")
+needs_pikepdf = pytest.mark.skipif(hexstrings._pikepdf() is None, reason="pikepdf not installed (optional)")
 
 
 def _write(tmp_path: Path, src: str, name: str = "a") -> Path:

@@ -4,7 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from vitae.core.env import pdf_tool, preflight
+from harness import pdf_tool
+from vitae.core.env import preflight
 from vitae.verify.letter import check_letter
 
 pytestmark = pytest.mark.skipif(not preflight()[0], reason="needs typst and a PDF text backend")

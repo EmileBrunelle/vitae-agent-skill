@@ -2,12 +2,13 @@
 import io
 
 import pytest
+from _raster_ref import RgbPixels
 from PIL import Image
 from vitae import palette as P
 from vitae.core import env
 from vitae.core.base import is_placed, is_sec_placed
 from vitae.core.pdfium import PdfiumDoc
-from vitae.core.pixels import colour_counts, gray_pixels, rgb_pixels
+from vitae.core.pixels import colour_counts, gray_pixels
 from vitae.design.tables import is_audacity
 from vitae.verify import pdf
 from vitae.verify.groups.query import _is_mark
@@ -28,7 +29,7 @@ class TestPixels:
     def test_rgb_reads_the_same_as_pillow(self):
         im = Image.new("RGB", (2, 2))
         im.putdata([(1, 2, 3), (4, 5, 6), (7, 8, 9), (250, 251, 252)])
-        px, ref = rgb_pixels(im), im.load()
+        px, ref = RgbPixels(im), im.load()
         assert ref is not None
         assert [px[x, y] for y in range(2) for x in range(2)] == [ref[x, y] for y in range(2) for x in range(2)]
 
@@ -37,13 +38,13 @@ class TestPixels:
         with pytest.raises(IndexError):
             gray_pixels(self._gray())[xy]
         with pytest.raises(IndexError):
-            rgb_pixels(Image.new("RGB", (3, 2)))[xy]
+            RgbPixels(Image.new("RGB", (3, 2)))[xy]
 
     def test_wrong_mode_is_a_value_error(self):
         with pytest.raises(ValueError, match="L"):
             gray_pixels(Image.new("RGB", (1, 1)))
         with pytest.raises(ValueError, match="RGB"):
-            rgb_pixels(Image.new("L", (1, 1)))
+            RgbPixels(Image.new("L", (1, 1)))
 
 
 class TestColourCounts:

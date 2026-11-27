@@ -86,11 +86,6 @@ def signatures(lib_src: str, failed: list[str] | None = None) -> dict[str, str]:
     return sigs
 
 
-def public_signatures(lib_path: Path) -> list[str]:
-    """Signatures of every top-level `#let` of `lib_path`, in file order; never raises on syntax."""
-    return list(signatures(lib_path.read_text(encoding="utf-8")).values())
-
-
 def api_line(lib_path: Path) -> str:
     """The `--init` line listing the API of `lib_path`, plus a WARN tail for unparsed signatures."""
     failed: list[str] = []

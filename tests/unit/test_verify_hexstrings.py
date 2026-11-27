@@ -12,7 +12,7 @@ from vitae.verify import hexstrings, pdf
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"     # 52 distinct glyphs, codes 1..52
 SRC = f'#set document(title: "T", author: "A")\n#set text(lang: "fr", font: "Libertinus Serif")\n#set page(width: 800pt, height: 60pt)\n{LETTERS}\n'
 
-needs_pikepdf = pytest.mark.skipif(not hexstrings.available(), reason="pikepdf not installed (optional)")
+needs_pikepdf = pytest.mark.skipif(hexstrings._pikepdf() is None, reason="pikepdf not installed (optional)")
 
 
 def nested_parens(raw: bytes) -> bool:
@@ -122,7 +122,7 @@ def test_without_pikepdf_the_file_is_byte_identical(paren_pdf, monkeypatch):
     before = paren_pdf.read_bytes()
     monkeypatch.setattr(builtins, "__import__", no_pikepdf)
     monkeypatch.setattr(importlib, "import_module", no_pikepdf_module)
-    assert hexstrings.available() is False
+    assert hexstrings._pikepdf() is None
     assert hexstrings.hexify_pdf(str(paren_pdf)) is False
     monkeypatch.undo()
     assert paren_pdf.read_bytes() == before
@@ -134,7 +134,7 @@ def test_a_too_old_pikepdf_leaves_the_file_untouched_and_the_doctor_says_so(pare
     pikepdf = importlib.import_module("pikepdf")
     monkeypatch.setattr(pikepdf, "__version__", "10.7.0")
     before = paren_pdf.read_bytes()
-    assert hexstrings.available() is False
+    assert hexstrings._pikepdf() is None
     assert hexstrings.hexify_pdf(str(paren_pdf)) is False
     assert paren_pdf.read_bytes() == before
     monkeypatch.setattr(importlib.metadata, "version", lambda name: "10.7.0")
