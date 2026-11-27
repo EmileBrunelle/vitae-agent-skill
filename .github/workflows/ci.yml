@@ -50,7 +50,7 @@ jobs:
       - name: Python dependencies
         # typst + pypdfium2 are what the integration suite's backend comparison and the equivalence bench
         # need next to the CLI/poppler; typst-py is pinned to its own PyPI version.
-        run: pip install Pillow pypdf pyyaml==6.0.4 mypy==2.4.1 ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 pypdfium2 "typst==$TYPST_PY_VERSION" ${{ matrix.pip-extra }}
+        run: pip install Pillow pypdf pyyaml==6.0.4 mypy==2.4.1 ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 hypothesis==6.170.17 pypdfium2 "typst==$TYPST_PY_VERSION" ${{ matrix.pip-extra }}
 
       - name: Typst ${{ env.TYPST_VERSION }}
         env:
@@ -132,7 +132,7 @@ jobs:
 
       - name: Lint (pyproject.toml)
         run: |
-          pip install ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 pyyaml==6.0.4
+          pip install ruff==0.17.6 pytest==9.2.0 pytest-xdist==3.8.0 hypothesis==6.170.17 pyyaml==6.0.4
           ruff check scripts tests evals
           python -m pytest -q -rs -n auto tests/unit
 

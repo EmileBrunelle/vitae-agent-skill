@@ -3,6 +3,9 @@
 # post-step in scripts/vitae/verify/hexstrings.py was run on that version.
 [dependency-groups]
 pdf = ["pikepdf>=10.8.0"]
+# Test-only: the property tests (tests/unit/test_*_complexity.py) compare the rewritten scanners with the code they replaced, on
+# generated inputs and worst cases. CI installs the same pin on its `pip install` lines; `pip install --group test` (pip 25.1+) for dev venvs.
+test = ["hypothesis==6.170.17"]
 
 [tool.ruff]
 target-version = "py311"
