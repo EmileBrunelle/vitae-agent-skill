@@ -5,7 +5,7 @@
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
-#let rhythm = 1.000
+#let rhythm = 0.931
 // DUOTONE family: two harmonised hues, each with its own job.
 #let accent = rgb("#1f3a5f")    // hue A — STRUCTURE: heading marks, chip keylines
 #let accent2 = rgb("#8f2d3f")   // hue B — DATA: dates, list markers, icons
@@ -35,16 +35,16 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.489em, spacing: 0.608em)
+#set par(justify: false, leading: 0.489em, spacing: 0.566em)
 
 // device: a filled hue-A square, then the title in the MONO face. No rules.
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 25pt * rhythm } else { 20pt * rhythm }, below: 0pt)[
-  #box(width: 6pt, height: 6pt, fill: accent, baseline: 0pt)
-  #box(width: 3pt, height: 6pt, fill: accent2, baseline: 0pt)
+  above: if airy { 32pt * rhythm } else { 27pt * rhythm }, below: 0pt)[
+  #box(width: 8pt, height: 8pt, fill: accent, baseline: 0pt)
+  #box(width: 3pt, height: 8pt, fill: accent2, baseline: 0pt)
   #h(5pt)
-  #text(font: dispf, size: 11.5pt, weight: "bold", fill: dark)[#t]
-  #v(13pt * rhythm)
+  #text(font: dispf, size: 12.3pt, weight: "bold", fill: dark)[#t]
+  #v(10pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -62,7 +62,7 @@
 #let skill(cat, items) = srow([#text(font: dispf, size: 8.5pt, weight: "bold", fill: accent)[#upper(cat)] #text(font: dispf, size: 8.5pt, fill: accent2)[=]], items)
 
 #set list(marker: bullet-marked(box(width: 3pt, height: 3pt, fill: accent2, baseline: -0.5pt)),
-  indent: 10pt, spacing: 0.779em, body-indent: 7pt)
+  indent: 10pt, spacing: 0.725em, body-indent: 7pt)
 
 // header: name, role, then the contacts on ONE mono line (spec-sheet footer)
 #block(above: 0pt, below: 12pt * rhythm)[
