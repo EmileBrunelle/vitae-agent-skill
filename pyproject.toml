@@ -48,6 +48,7 @@ max-statements = 50     # ruff default
 "scripts/vitae/verify/tune.py" = ["C901", "PLR0915"]
 "scripts/vitae/verify/typst.py" = ["C901"]
 "tests/backend_equiv.py" = ["C901", "PLR0915"]
+"tests/unit/_typst_ref.py" = ["C901"]   # the replaced _mask_non_markup, verbatim (oracle)
 
 [tool.pyright]
 # Mirrors mypy.ini: the minimum supported Python (CI tests 3.11), and scripts/ on the import path the way tests/conftest.py puts it there, so `vitae` and the façades resolve in editors and the CLI.

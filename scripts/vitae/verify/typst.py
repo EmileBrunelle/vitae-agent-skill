@@ -10,6 +10,7 @@ This module imports nothing from this package (never verify). No module state be
 from __future__ import annotations
 
 import re
+from bisect import bisect_left
 
 
 def strip_block_comments(src: str) -> str:
@@ -92,7 +93,9 @@ def _mask_non_markup(src: str) -> str:
         if c == "\\":
             blank(min(i + 2, n))
         elif c == "`":
-            e = len(src) - i - len(src[i:].lstrip("`"))
+            e = 1
+            while i + e < n and src[i + e] == "`":
+                e += 1
             close = src.find("`" * e, i + e)
             blank(n if close < 0 else close + e)
         elif src.startswith("/*", i):
@@ -125,21 +128,41 @@ def _mask_non_markup(src: str) -> str:
     return "".join(out)
 
 
+_PAR_OPEN = re.compile(r"^#set\s+par\(", re.M)
+_PARENS = re.compile(r"[()]")
 # `#set par(... leading: Xem ... spacing: Yem)`, the pair --tune rewrites. It only matches leading before spacing
 # and em units: accepting the reverse order would make _write_par swap the two values (the unit tests pin this).
-PAR_RE = re.compile(r"(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(em[^)]*?spacing:\s*)([0-9.]+)(em)")
+# The atomic group commits to the FIRST `leading: Xem` of the rule: a later one can only be followed by fewer `spacing:`
+# than the first, so retrying it when `spacing:` is missing found nothing and rescanned the rule once per `leading:`.
+PAR_RE = re.compile(r"(?>(#set\s+par\([^)]*?leading:\s*)([0-9.]+)(?=em))(em[^)]*?spacing:\s*)([0-9.]+)(em)")
 
 
 def _par_rule_spans(masked: str) -> list[tuple[int, int]]:
-    """(start, end) of every column-0 `#set par(... leading: ...)` rule in a _mask_non_markup'd text."""
+    """(start, end) of every column-0 `#set par(... leading: ...)` rule in a _mask_non_markup'd text. Linear in the
+    text: the closing parenthesis of every rule comes from one pass with a stack, and the `leading:` arguments are
+    found once in the whole text (they cannot overlap each other) then looked up by bisection per rule. A rule that
+    never closes runs to the end of the text, less its last character."""
+    starts = list(_PAR_OPEN.finditer(masked))
+    if not starts:
+        return []
+    close: dict[int, int] = {}
+    stack: list[int] = []
+    for p in _PARENS.finditer(masked):
+        if p.group() == "(":
+            stack.append(p.start())
+        elif stack:
+            close[stack.pop()] = p.start()
+    # `masked[:-1]`: an unclosed rule's arguments stop one character short of the text, which is where a trailing
+    # `\b` is judged; a closed rule's arguments end at its `)`, a non-word character, so both read the same.
+    leads = list(_LEAD_ARG.finditer(masked[:-1]))
+    lead_at = [m.start() for m in leads]
     spans = []
-    for m in re.finditer(r"^#set\s+par\(", masked, re.M):
-        k, d = m.end(), 1
-        while k < len(masked) and d:
-            d += (masked[k] == "(") - (masked[k] == ")")
-            k += 1
-        if _LEAD_ARG.search(masked[m.end():k - 1]):
-            spans.append((m.start(), k))
+    for m in starts:
+        end = close.get(m.end() - 1, len(masked) - 1)
+        # the match may start on the `(` itself (the `^` of a slice of the arguments)
+        k = bisect_left(lead_at, m.end() - 1)
+        if k < len(leads) and leads[k].end() <= end:
+            spans.append((m.start(), end + 1))
     return spans
 
 
@@ -172,7 +195,7 @@ def _write_par(text: str, leading: float, spacing: float) -> str:
 
 
 _RHYTHM_LINE = re.compile(r"^#let\s+rhythm(?![\w-]).*$", re.M)
-_RHYTHM_RE = re.compile(r"(#let rhythm = )([0-9]*\.?[0-9]+)[ \t\r]*;?[ \t\r]*")
+_RHYTHM_RE = re.compile(r"(#let rhythm = )([0-9]+(?:\.[0-9]+)?|\.[0-9]+)[ \t\r]*;?[ \t\r]*")
 
 
 def _rhythm_line(text: str) -> tuple[int, str] | None:
@@ -224,9 +247,11 @@ def _par_scope(text: str) -> int:
 
 # The set rules _doc_par_list_size reads; only at column 0, so a rule inside a #let or #show body never counts.
 _SET_RE = re.compile(r"^#set\s+(par|text|list|enum)\(")
-_LEAD_ARG = re.compile(r"(?:^|[,(\s])leading\s*:\s*([0-9]*\.?[0-9]+)\s*(em|pt)\b")
+# The number is `[0-9]*\.?[0-9]+` written without the nested quantifiers (backtracking over a run of digits took
+# quadratic time): the same strings, the same captured text.
+_LEAD_ARG = re.compile(r"(?:^|[,(\s])leading\s*:\s*([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*(em|pt)\b")
 _SPACING_KEY = re.compile(r"(?:^|[,(\s])spacing\s*:\s*")
-_SPACING_VAL = re.compile(r"([0-9]*\.?[0-9]+)\s*(em|pt)\b")
+_SPACING_VAL = re.compile(r"([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*(em|pt)\b")
 
 
 def _spacing_arg(args: str) -> tuple[bool, re.Match[str] | None]:
@@ -244,7 +269,7 @@ def _spacing_arg(args: str) -> tuple[bool, re.Match[str] | None]:
         if at[pos] == 0:
             return True, _SPACING_VAL.match(args, km.end())
     return False, None
-_SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]*\.?[0-9]+)\s*pt\b")
+_SIZE_ARG = re.compile(r"(?:^|[,(\s])size\s*:\s*([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*pt\b")
 
 
 def _scale_list_spacing(text: str, factor: float, after: int = 0) -> str:
