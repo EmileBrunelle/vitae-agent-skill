@@ -599,9 +599,10 @@
 // network that still has some data) would otherwise leave icons on some items
 // and not others, which reads as broken. If ANY of the four generic marks
 // (mail, web, phone, pin) has empty data, `marks` returns `none` for those four
-// and the line is plain text. The brand marks li/gh are judged on their own
-// data: an empty LinkedIn/GitHub harvest gives `none` for that mark only and
-// never erases the generic ones. harvest_icons.py prints the matching WARN.
+// and the line is plain text. When the four generic marks are complete, a
+// brand mark (li/gh) whose harvest is empty falls back to the web mark (globe):
+// it is never `none`, so a failed LinkedIn/GitHub harvest erases nothing and
+// never mixes iconified and bare items. harvest_icons.py prints the matching WARN.
 #let marks(c, h: 7pt, kit: "tabler") = {
   let sets = if kit == "phosphor" {
     (mail: (ph-envelope_simple_fill-body, ph-envelope_simple_fill-vb),
@@ -618,19 +619,19 @@
      phone: (phone-body, phone-vb), pin: (pin-body, pin-vb))
   }
   let complete = sets.values().all(d => d.at(0) != "")
-  sets.insert("li", (li-body, li-vb))
-  sets.insert("gh", (gh-body, gh-vb))
+  let web = sets.web
+  sets.insert("li", if li-body != "" { (li-body, li-vb) } else { web })
+  sets.insert("gh", if gh-body != "" { (gh-body, gh-vb) } else { web })
   let out = (:)
   for (k, d) in sets {
-    let ok = if k in ("li", "gh") { d.at(0) != "" } else { complete }
-    out.insert(k, if ok { pmark(d.at(0), d.at(1), c, h: h) } else { none })
+    out.insert(k, if complete { pmark(d.at(0), d.at(1), c, h: h) } else { none })
   }
   out
 }
 
 // The drawn generic icons (`icons-line` / `icons-solid`: pin, tel, mail, web)
 // follow the SAME all-or-nothing rule as `marks`: a contact row with a drawn pin
-// and phone but no mail/LinkedIn/GitHub mark (harvest blocked) is a mixed row.
+// and phone but no mail mark (harvest blocked) is a mixed row.
 // `#let ic = gate-icons(ic, mk)` right after `mk` turns every drawn icon into
 // `ghost` when the marks were not all harvested; `nb(ghost, v)` is then plain
 // text carrying an invisible zero-width strut as tall as the drawn icon, so the

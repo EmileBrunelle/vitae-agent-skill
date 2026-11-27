@@ -246,8 +246,8 @@ def main() -> None:
               file=sys.stderr)
     elif missing_default:
         print("WARN  ICONS: incomplete harvest — "
-              f"missing: {', '.join(missing_default)}; only those brand marks are absent, "
-              "the other contact marks are kept. Re-run with network to get them.",
+              f"missing: {', '.join(missing_default)}; those brand marks fall back to the "
+              "web (globe) mark, the other contact marks are kept. Re-run with network to get them.",
               file=sys.stderr)
     elif got != len(ICONS):
         print("ICONS: the default kit is complete; only the optional phosphor/bootstrap "
