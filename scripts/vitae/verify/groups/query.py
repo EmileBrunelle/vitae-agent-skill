@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from bisect import bisect_left
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, NamedTuple
 
+from vitae.core import proc
 from vitae.core.base import Mark, TextLine, Word
 from vitae.core.env import typst_font_kw, typst_py, typst_route
 from vitae.core.narrow import is_object_dict, is_object_list
@@ -95,8 +95,8 @@ def typst_values(typ: str, selector: str, root: str | None = None) -> list[objec
     for cmd in (["typst", "query", typ, selector, "--field", "value", *rootargs],
                 ["typst", "eval", f"query({selector}).map(it => it.value)", "--in", typ, "--target", "paged", *rootargs]):
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        except (FileNotFoundError, OSError):
+            r = proc.run(cmd, proc.TYPST_S, name=f"typst {cmd[1]}")
+        except (OSError, proc.ToolTimeout):
             return None
         if r.returncode == 0 and r.stdout.strip().startswith("["):
             try:

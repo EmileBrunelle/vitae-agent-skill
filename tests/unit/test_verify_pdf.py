@@ -10,6 +10,7 @@ import pytest
 import typst
 from _paths import ROOT
 from PIL import Image
+from vitae.core import proc
 from vitae.verify import pdf
 
 DOC = """#set document(title: "Test CV")
@@ -140,13 +141,13 @@ class TestCountPages:
     def test_poppler_without_pages_line_is_none(self, monkeypatch):
         class R:
             stdout = "Title: x\nProducer: y\n"
-        monkeypatch.setattr(pdf.subprocess, "run", lambda *a, **k: R())
+        monkeypatch.setattr(proc.subprocess, "run", lambda *a, **k: R())
         assert pdf.count_pages("x.pdf", "poppler") is None
 
     def test_poppler_reads_the_pages_line(self, monkeypatch):
         class R:
             stdout = "Pages:          7\nPage size: 1 x 1\n"
-        monkeypatch.setattr(pdf.subprocess, "run", lambda *a, **k: R())
+        monkeypatch.setattr(proc.subprocess, "run", lambda *a, **k: R())
         assert pdf.count_pages("x.pdf", "poppler") == "7"
 
 
@@ -233,7 +234,7 @@ class TestBboxPagesPoppler:
             returncode = 0
             stdout = out
         monkeypatch.setattr(pdf, "pdf_backend", lambda: "poppler")
-        monkeypatch.setattr(pdf.subprocess, "run", lambda *a, **k: R())
+        monkeypatch.setattr(proc.subprocess, "run", lambda *a, **k: R())
         assert pdf.bbox_pages("x.pdf") == [
             (100.0, 50.5, [((1.5, 2.0, 10.0, 12.0), "A&B"), ((-3.0, 2.0, 4.0, 12.0), "x")]),
             (10.0, 10.0, [])]
@@ -243,12 +244,12 @@ class TestBboxPagesPoppler:
             returncode = 1
             stdout = ""
         monkeypatch.setattr(pdf, "pdf_backend", lambda: "poppler")
-        monkeypatch.setattr(pdf.subprocess, "run", lambda *a, **k: R())
+        monkeypatch.setattr(proc.subprocess, "run", lambda *a, **k: R())
         assert pdf.bbox_pages("x.pdf") is None
 
         def boom(*a, **k):
             raise FileNotFoundError("pdftotext")
-        monkeypatch.setattr(pdf.subprocess, "run", boom)
+        monkeypatch.setattr(proc.subprocess, "run", boom)
         assert pdf.bbox_pages("x.pdf") is None
 
 

@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import re
 import shutil
-import subprocess
 from collections.abc import Sequence
 
+from vitae.core import proc
 from vitae.verify.academic.spec import NONDATED_HEADINGS, Footer, StreamLine
 
 # Matches lib-academic.typ's running footer (`n / N` on its own line) for check E.
@@ -48,8 +48,7 @@ def extract_layout_text(pdf: str) -> str:
     if not shutil.which("pdftotext"):
         raise RuntimeError("pdftotext (poppler-utils) is required for the "
                             "-layout column structure the checks depend on")
-    return subprocess.run(["pdftotext", "-layout", pdf, "-"],
-                           capture_output=True, text=True, check=False).stdout
+    return proc.run(["pdftotext", "-layout", pdf, "-"], proc.POPPLER_S).stdout
 
 
 def parse_pages(text: str) -> list[str]:

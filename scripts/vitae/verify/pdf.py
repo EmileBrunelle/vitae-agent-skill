@@ -14,7 +14,6 @@ import math
 import os
 import re
 import shutil
-import subprocess
 import tempfile
 from collections.abc import Callable, Sequence
 from types import ModuleType
@@ -22,6 +21,7 @@ from typing import Literal, overload
 
 from PIL import Image
 
+from vitae.core import proc
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
 from vitae.core.env import PDF_STANDARDS, PdfBackend, importable, pdf_backend, typst_font_kw, typst_route
 from vitae.core.narrow import is_object_list, is_object_tuple
@@ -96,7 +96,10 @@ def _typst_compile(src: str, out: str, *, fmt: Literal["pdf", "png"], standards:
         argv += ["--pdf-standard", ",".join(PDF_STANDARDS)] if standards else []
         argv += ["--ppi", str(ppi)] if ppi is not None else []
         argv += ["--root", root] if root else []
-        r = subprocess.run(argv, capture_output=True, text=True, check=False)
+        try:
+            r = proc.run(argv, proc.TYPST_S, name="typst compile")
+        except proc.ToolTimeout as e:
+            return False, str(e)
         return r.returncode == 0, r.stdout + r.stderr
     mod = route.api
     if route.compile != "api" or mod is None:
@@ -176,7 +179,7 @@ def count_pages(pdf: str, backend: PdfBackend) -> str | None:
     if backend == "pdfium":
         return str(len(pdfium_doc(pdf)))
     if backend == "poppler":
-        out = subprocess.run(["pdfinfo", pdf], capture_output=True, text=True, check=False).stdout
+        out = proc.run(["pdfinfo", pdf], proc.POPPLER_S).stdout
         for line in out.splitlines():
             if line.startswith("Pages:"):
                 return line.split()[1]
@@ -280,7 +283,7 @@ def _pdfium_page_text(pg: PdfiumPage) -> str:
 def extract_text(pdf: str, backend: PdfBackend) -> str:
     """The PDF text the ATS checks read, in pdftotext's shape whatever the backend. pypdf's is indicative only."""
     if backend == "poppler":
-        return subprocess.run(["pdftotext", pdf, "-"], capture_output=True, text=True, check=False).stdout
+        return proc.run(["pdftotext", pdf, "-"], proc.POPPLER_S).stdout
     if backend == "pdfium":
         # pdftotext's shape: pages end with \f (a blank line before it), lines with \n
         return "".join(t.replace("\r\n", "\n").rstrip("\n") + "\n\n\f"
@@ -353,9 +356,8 @@ def bbox_pages(pdf: str) -> list[tuple[float, float, list[WordBox]]] | None:
     if pdf_backend() == "pdfium":
         return _pdfium_bbox_pages(pdf)[0]
     try:
-        r = subprocess.run(["pdftotext", "-bbox", pdf, "-"],
-                            capture_output=True, text=True, check=False)
-    except (FileNotFoundError, OSError):
+        r = proc.run(["pdftotext", "-bbox", pdf, "-"], proc.POPPLER_S)
+    except (OSError, proc.ToolTimeout):
         return None
     if r.returncode != 0:
         return None
@@ -597,8 +599,7 @@ def render_pages_png(pdf: str, tmp: str, ppi: int = HIDDEN_PPI) -> list[str]:
         return paths
     if not shutil.which("pdftoppm"):
         return []
-    subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "h")],
-                   capture_output=True, text=True, check=False)
+    proc.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "h")], proc.POPPLER_S)
     return sorted(glob.glob(os.path.join(tmp, "h*.png")),
                   key=_png_number)
 
@@ -637,8 +638,7 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
     if not shutil.which("pdftoppm"):
         return []
     with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "p")],
-                       capture_output=True, text=True, check=False)
+        proc.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "p")], proc.POPPLER_S)
         paths = []
         drop_stale()
         for f in sorted(glob.glob(os.path.join(tmp, "p*.png")),
@@ -656,8 +656,7 @@ def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
     if not shutil.which("pdftoppm"):
         return []
     with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "c")],
-                       capture_output=True, text=True, check=False)
+        proc.run(["pdftoppm", "-r", str(ppi), "-png", pdf, os.path.join(tmp, "c")], proc.POPPLER_S)
         files = sorted(glob.glob(os.path.join(tmp, "c*.png")),
                        key=_png_number)
         out: list[Image.Image] = []

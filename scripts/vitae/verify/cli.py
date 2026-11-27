@@ -85,7 +85,7 @@ import tempfile
 from pathlib import Path
 from typing import NoReturn
 
-from vitae.core import profiling
+from vitae.core import proc, profiling
 from vitae.core.base import FOOTER_GATE, HIDDEN_PPI, DetailRow
 from vitae.core.env import pdf_backend, preflight
 from vitae.verify.cv import ALLOW_REFUSED, PageTarget, check_all, check_cv, placeholders_allowed
@@ -266,7 +266,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
 def run_cli() -> None:
     """Entry point: run main(), and on a non-zero exit print the mode's footer last, so the
     next step is the final thing a reader sees. Exit codes are passed through unchanged."""
-    rc, footer = profiling.run(main, profiling.take_flag())
+    rc, footer = proc.guarded(lambda: profiling.run(main, profiling.take_flag()))
     if footer and rc != 0:
         print(footer, flush=True)
     sys.exit(rc)

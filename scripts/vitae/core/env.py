@@ -26,6 +26,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Literal, TextIO, TypeAlias
 
+from vitae.core import proc
 from vitae.core.narrow import is_object_list, is_object_tuple
 
 # ---------- dependency preflight ("doctor") ----------
@@ -159,7 +160,7 @@ def _cli_probe() -> str | None:
 def _cli_version() -> str:
     """Version token of `typst --version`; "?" when the CLI cannot run or prints none."""
     try:
-        return subprocess.run(["typst", "--version"], capture_output=True, text=True, check=False).stdout.split()[1]
+        return proc.run(["typst", "--version"], proc.PROBE_S, name="typst --version").stdout.split()[1]
     except (OSError, subprocess.SubprocessError, IndexError):   # cannot run, or no version token in the output
         return "?"
 
@@ -563,7 +564,7 @@ def typst_fonts() -> list[str] | None:
     """Family names `typst fonts` reports (CLI, else typst-py), or None."""
     if typst_route().query == "cli":
         try:
-            r = subprocess.run(["typst", "fonts"], capture_output=True, text=True, timeout=20, check=False)
+            r = proc.run(["typst", "fonts"], proc.PROBE_S, name="typst fonts")
         except (OSError, subprocess.SubprocessError):
             return None
         return [l.strip() for l in r.stdout.splitlines() if l.strip()] if r.returncode == 0 else None

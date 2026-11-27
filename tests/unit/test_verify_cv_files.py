@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import ClassVar
 
 import pytest
+from vitae.core import proc
 from vitae.core.base import LEADING_FAMILY_RATIO_WARN, LOWERED_FILL_FLOOR
 from vitae.core.env import PdfBackend, PdfCheck
 from vitae.core.level import Level
@@ -107,7 +108,7 @@ def sweep(monkeypatch):
         calls.append(cmd)
         return SimpleNamespace(returncode=codes.get(cmd[2], 0))
 
-    monkeypatch.setattr(cv.subprocess, "run", fake_run)
+    monkeypatch.setattr(proc.subprocess, "run", fake_run)
     return calls, codes
 
 

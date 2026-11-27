@@ -8,7 +8,6 @@ import importlib
 import math
 import re
 import shutil
-import subprocess
 import tempfile
 import unicodedata
 import warnings
@@ -19,6 +18,7 @@ from functools import partial
 
 from PIL import Image
 
+from vitae.core import proc
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
 from vitae.core.colour import contrast_from_lum, counted_luminances, rel_luminance
 from vitae.core.env import pdf_backend
@@ -312,7 +312,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
         except (OSError, RuntimeError):   # pypdfium2 cannot open or read the file (PdfiumError is a RuntimeError)
             pass
     elif shutil.which("pdfinfo"):
-        for line in subprocess.run(["pdfinfo", pdf], capture_output=True, text=True, check=False).stdout.splitlines():
+        for line in proc.run(["pdfinfo", pdf], proc.POPPLER_S).stdout.splitlines():
             k, _, v = line.partition(":")
             if k in ("Keywords", "Title", "Author", "Subject"):
                 info[k] = v.strip()
@@ -350,8 +350,7 @@ def check_pdf_metadata(pdf: str) -> list[str]:
     if doc is not None:
         n_att = doc.count_attachments()
     elif shutil.which("pdfdetach"):
-        m = re.search(r"(\d+) embedded files?", subprocess.run(["pdfdetach", "-list", pdf],
-                                                                 capture_output=True, text=True, check=False).stdout)
+        m = re.search(r"(\d+) embedded files?", proc.run(["pdfdetach", "-list", pdf], proc.POPPLER_S).stdout)
         n_att = int(m[1]) if m else 0
     if n_att:
         out.append(f"metadata: {n_att} embedded attachment(s) — remove them; ATS may read a file the reader never sees")

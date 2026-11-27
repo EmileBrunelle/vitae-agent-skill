@@ -10,6 +10,7 @@ import sys
 import pytest
 import typst
 from _paths import ROOT, SCRIPTS
+from vitae.core import proc
 from vitae.core.level import Level
 from vitae.verify import cv, pdf, placeholders
 from vitae.verify.gates import EXTRACTION_GATES, make_context, placeholder_gate
@@ -295,7 +296,7 @@ def test_tune_hints_keep_the_flag(skill_copy):
 
 def test_all_forwards_the_flag_to_each_child(tmp_path, monkeypatch):
     seen = []
-    monkeypatch.setattr(cv.subprocess, "run", lambda cmd, *a, **k: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0))
+    monkeypatch.setattr(proc.subprocess, "run", lambda cmd, *a, **k: seen.append(cmd) or subprocess.CompletedProcess(cmd, 0))
     d = tmp_path / "templates"
     _lorem_cv(d / "a.typ", 20)
     _lorem_cv(d / "b" / "c.typ", 20)

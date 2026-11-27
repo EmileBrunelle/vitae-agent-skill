@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import tempfile
 
 from PIL import Image
 
+from vitae.core import proc
 from vitae.core.base import GapFn, LineBox
 from vitae.core.env import pdf_backend
 from vitae.verify.page import INK_DELTA, INK_DPI, RULE_PT, row_stats, xheight_band
@@ -23,14 +23,13 @@ def _render_page(pdf: str, page: int) -> Image.Image | None:
         # a 300 dpi page raster is ~9 MB: one scoped temp dir per page, removed even on a crash
         with tempfile.TemporaryDirectory(prefix="vitae-prox-") as d:
             pre = os.path.join(d, f"p{page}")
-            r = subprocess.run(["pdftoppm", "-r", str(INK_DPI), "-gray", "-singlefile",
-                                "-f", str(page), "-l", str(page), pdf, pre],
-                               capture_output=True, check=False)
+            r = proc.run(["pdftoppm", "-r", str(INK_DPI), "-gray", "-singlefile",
+                          "-f", str(page), "-l", str(page), pdf, pre], proc.POPPLER_S)
             if r.returncode == 0:
                 gray = Image.open(pre + ".pgm").convert("L")
                 gray.load()
                 return gray
-    except (OSError, ValueError, RuntimeError):
+    except (OSError, ValueError, RuntimeError, proc.ToolTimeout):
         pass
     return None
 
