@@ -1,14 +1,15 @@
-"""LOG320 lot: the three hot spots fixed for complexity keep their behaviour (equivalence with the replaced code, on
-fixed cases and Hypothesis-generated inputs) and stay fast on a worst-case input (`slow`: bounded wall time, far above the
-measured time and far below the old one, so a noisy runner does not flip it but a return to O(P^2) does)."""
+"""LOG320 lot: the hot spots fixed for complexity keep their behaviour (equivalence with the replaced code, on fixed
+cases and Hypothesis-generated inputs) and keep their work linear on a worst-case input: a deterministic count of the
+work (Python line events, characters scanned by `find`, ways a regex can split) grows at most 2.2 x per doubling of
+the input, where a return to O(P^2) quadruples it. No wall-clock measurement, so a loaded runner cannot flip it."""
 import itertools
+import operator
 import random
 import re
 import sys
-import time
 from collections.abc import Callable
 from types import FrameType
-from typing import Protocol, SupportsIndex
+from typing import Protocol, SupportsIndex, TypeVar
 
 import pytest
 from _comments_ref import strip_block_comments_regex, strip_comments_regex
@@ -127,15 +128,57 @@ def _grid(n: int, per_row: int = 20) -> list[WordBox]:
               20.0 + (i // per_row) * 12), f"w{i}") for i in range(n)]
 
 
-@pytest.mark.slow
-def test_reading_order_bounds_time_on_a_large_table() -> None:
-    words = _grid(8000)
-    start = time.perf_counter()
+class TraceFunction(Protocol):
+    def __call__(self, frame: FrameType, event: str, arg: object, /) -> "TraceFunction | None": ...
 
-    out = pdf._reading_order(words)
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.05 s; the quadratic version takes ~6 s
+_T = TypeVar("_T")
+
+
+def _line_events(files: frozenset[str], call: Callable[[], _T]) -> tuple[int, _T]:
+    """Run `call` and count the Python line events executed in the source `files` (all their frames, comprehensions and
+    lambdas included): a deterministic measure of the Python-level work, immune to runner load. It does not see C-level
+    work (`str.find`, `list.count`, a regex): see `_ScanStr` and `_CountingStr` for those."""
+    events = 0
+
+    def local(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
+        nonlocal events
+        if event == "line":
+            events += 1
+        return local
+
+    def tracer(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
+        return local if event == "call" and frame.f_code.co_filename in files else None
+
+    previous = sys.gettrace()
+    sys.settrace(tracer)
+    try:
+        result = call()
+    finally:
+        sys.settrace(previous)
+    return events, result
+
+
+def _assert_linear(measure: Callable[[int], int], base: int) -> None:
+    """The work at `base`, 2 x `base` and 4 x `base` grows at most 2.2 x per doubling (a quadratic one: 4 x)."""
+    w1, w2, w4 = (measure(base * k) for k in (1, 2, 4))
+    assert w1 > 0                    # the measure saw some work: the ratios are not vacuous
+    assert w2 / w1 <= 2.2
+    assert w4 / w2 <= 2.2
+
+
+_PDF_FILE = frozenset({pdf._reading_order.__code__.co_filename})
+
+
+def _reading_order_events(words: list[WordBox]) -> int:
+    events, out = _line_events(_PDF_FILE, lambda: pdf._reading_order(words))
     assert len(out) == len(words)
+    return events
+
+
+def test_reading_order_work_grows_linearly_on_a_large_table() -> None:
+    # the quadratic version compared every piece with every piece above it (6 s on 8000 words)
+    _assert_linear(lambda n: _reading_order_events(_grid(n)), 1000)
 
 
 def _one_baseline(n: int) -> list[WordBox]:
@@ -152,26 +195,16 @@ def _side_then_rows(n: int) -> list[WordBox]:
     return words
 
 
-@pytest.mark.slow
-def test_reading_order_bounds_time_on_a_single_baseline() -> None:
-    words = _one_baseline(8000)
-    start = time.perf_counter()
-
-    out = pdf._reading_order(words)
-
-    assert time.perf_counter() - start < 1.0     # measured ~0.03 s; recomputing the row's mean per word took ~4 s
-    assert out == words
+def test_reading_order_work_grows_linearly_on_a_single_baseline() -> None:
+    # recomputing the row's mean per word was quadratic (4 s on 8000 words)
+    _assert_linear(lambda n: _reading_order_events(_one_baseline(n)), 1000)
+    words = _one_baseline(1000)
+    assert pdf._reading_order(words) == words
 
 
-@pytest.mark.slow
-def test_reading_order_bounds_time_on_many_side_pieces_then_many_rows() -> None:
-    words = _side_then_rows(3000)
-    start = time.perf_counter()
-
-    out = pdf._reading_order(words)
-
-    assert time.perf_counter() - start < 0.5     # measured ~0.03 s; rescanning the rows per side piece took ~1.8 s
-    assert len(out) == len(words)
+def test_reading_order_work_grows_linearly_on_many_side_pieces_then_many_rows() -> None:
+    # rescanning the rows per side piece was quadratic (1.8 s on 3000 + 3000)
+    _assert_linear(lambda n: _reading_order_events(_side_then_rows(n)), 400)
 
 
 def test_reading_order_matches_the_oracle_on_the_side_piece_worst_cases() -> None:
@@ -207,32 +240,10 @@ def test_stuffed_signals(t: str, want: bool) -> None:
     assert (text._stuffed(t) is not None) is want
 
 
-class TraceFunction(Protocol):
-    def __call__(self, frame: FrameType, event: str, arg: object, /) -> "TraceFunction | None": ...
-
-
 def _stuffed_line_events(n: int) -> int:
-    """Python line events executed inside `text._stuffed` (all its frames, comprehensions included) on `n` distinct terms:
-    a deterministic count of the Python-level work, immune to runner load."""
+    """Python line events inside `text._stuffed` on `n` distinct terms."""
     t = ", ".join(f"t{i}" for i in range(n))
-    target = text._stuffed.__code__.co_filename
-    events = 0
-
-    def local(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
-        nonlocal events
-        if event == "line":
-            events += 1
-        return local
-
-    def tracer(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
-        return local if event == "call" and frame.f_code.co_filename == target else None
-
-    previous = sys.gettrace()
-    sys.settrace(tracer)
-    try:
-        out = text._stuffed(t, max_terms=0)
-    finally:
-        sys.settrace(previous)
+    events, out = _line_events(frozenset({text._stuffed.__code__.co_filename}), lambda: text._stuffed(t, max_terms=0))
     assert out is None
     return events
 
@@ -344,15 +355,44 @@ def test_font_style_control_rejects_a_foreign_word() -> None:
     assert not fonts._FONT_STYLE_RE.match("boldmono")
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("s", ["1" * 26 + "x", "semibold" * 22 + "x", "extralight" * 22 + "x", "1" * 20000 + "x"])
-def test_font_style_bounds_time_on_a_pathological_name(s: str) -> None:
-    start = time.perf_counter()
+def _style_alternatives() -> list[str]:
+    pattern = fonts._FONT_STYLE_RE.pattern
+    head, tail = "^(?:", ")*$"
+    assert pattern.startswith(head) and pattern.endswith(tail)
+    body = pattern[len(head):-len(tail)]
+    assert not any(c in body for c in "()[]{}*+?."), "nested group or quantifier: split the alternatives by a real parser"
+    return body.split("|")
 
-    out = fonts._FONT_STYLE_RE.match(s)
 
-    assert time.perf_counter() - start < 0.5      # linear; the old pattern backtracks exponentially (26 digits: ~6 s; sized so the old pattern fails the bound instead of hanging the run)
-    assert out is None
+def _style_splits(alternatives: list[re.Pattern[str]], s: str) -> int:
+    """The number of ways `s` splits into the alternatives under the pattern's star. A failing match backtracks once
+    per way (the old pattern: 2 ways per `semibold`, so 2**22 on 22 of them, ~6 s), so the count IS the work of the
+    engine, which no Python-level counter sees."""
+    ways = [1] + [0] * len(s)
+    for end in range(1, len(s) + 1):
+        for start in range(end):
+            if ways[start]:
+                ways[end] += ways[start] * sum(1 for alt in alternatives if alt.fullmatch(s, start, end))
+    return ways[len(s)]
+
+
+def test_font_style_alternatives_never_concatenate_into_another_way_to_split() -> None:
+    # Two alternatives that concatenate into a third (or into another split of the same text) make a failing match
+    # backtrack through every combination: `semi` + `bold` next to `semibold`. Every pair of the live pattern's
+    # alternatives (`\d` stands for the digit "1") must split in the one way it was written.
+    texts = [alt if alt.isalpha() else "1" for alt in _style_alternatives()]
+    assert all(alt.isalpha() or alt == r"\d" for alt in _style_alternatives()), "an alternative that is neither a word nor `\\d`"
+    compiled = [re.compile(alt) for alt in _style_alternatives()]
+
+    ambiguous = [a + b for a in texts for b in texts if _style_splits(compiled, a + b) != 1]
+
+    assert not ambiguous
+
+
+def test_font_style_rejects_a_failing_name() -> None:
+    # short on purpose: a pattern that backtracks fails the pair test above, and must not hang this one
+    assert fonts._FONT_STYLE_RE.match("1" * 20 + "x") is None
+    assert fonts._FONT_STYLE_RE.match("semibold" * 3 + "x") is None
 
 
 # ------------------------------------------------------------------ typst_source.strip_comments_keep_urls
@@ -390,16 +430,39 @@ def test_strip_comments_equivalence_is_not_vacuous() -> None:
     assert sum(typst_source.strip_comments_keep_urls(s) != s for s in srcs) > 100
 
 
-@pytest.mark.slow
+class _ScanStr(str):
+    """A `str` that counts the characters its `find` scans (up to the hit, or to the end when it fails): the C-level
+    work of a search that restarts from every unclosed `/*`, which the line-event count cannot see."""
+    scanned = 0
+    calls = 0
+
+    def find(self, sub: str, start: SupportsIndex | None = None, end: SupportsIndex | None = None, /) -> int:
+        _ScanStr.calls += 1
+        begin = 0 if start is None else operator.index(start)
+        found = str.find(self, sub, start, end)
+        _ScanStr.scanned += (len(self) if found < 0 else found) - begin
+        return found
+
+
+_COMMENT_FILES = frozenset({typst_source.strip_comments_keep_urls.__code__.co_filename, fonts.requested_families.__code__.co_filename})
+
+
+def _scan_work(strip: Callable[[str], object], src: str) -> int:
+    """Python line events in `typst_source` and `fonts` plus characters scanned by `find` on the source text."""
+    _ScanStr.scanned = _ScanStr.calls = 0
+    events, out = _line_events(_COMMENT_FILES, lambda: strip(_ScanStr(src)))
+    assert out
+    # the scan went through the counted `find`: a regex (`re.sub(r"/\*.*?\*/")`) scans in C without calling it, and
+    # its quadratic rescan would go unseen
+    assert _ScanStr.calls > 0
+    assert _ScanStr.scanned > 0
+    return events + _ScanStr.scanned
+
+
 @pytest.mark.parametrize("unit", ["/* ", "/*", "/* // ", "/*\n// x\n"])
-def test_strip_comments_bounds_time_on_unclosed_block_comments(unit: str) -> None:
-    src = unit * (100_000 // len(unit))
-    start = time.perf_counter()
-
-    out = typst_source.strip_comments_keep_urls(src)
-
-    assert time.perf_counter() - start < 0.5      # measured ~0.01 s; the regex takes ~12 s on the first case
-    assert isinstance(out, str)
+def test_strip_comments_work_grows_linearly_on_unclosed_block_comments(unit: str) -> None:
+    # the regex it replaced rescanned to the end of the text from every unclosed `/*` (13.9 s on 100 000 characters)
+    _assert_linear(lambda n: _scan_work(typst_source.strip_comments_keep_urls, unit * (n // len(unit))), 4000)
 
 
 # ------------------------------------------------------------------ typst_source.strip_block_comments
@@ -425,13 +488,7 @@ def test_strip_block_comments_cases(src: str, want: str) -> None:
     assert typst_source.strip_block_comments(src) == want == strip_block_comments_regex(src)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("unit", ["/* ", "/*", "/*\n"])
-def test_requested_families_bounds_time_on_unclosed_block_comments(unit: str) -> None:
-    src = unit * (100_000 // len(unit))
-    start = time.perf_counter()
-
-    out = fonts.requested_families(src)
-
-    assert time.perf_counter() - start < 0.5      # measured ~0.01 s; the regex took ~11 s
-    assert out                                    # no font asked: Typst's own defaults
+def test_requested_families_work_grows_linearly_on_unclosed_block_comments(unit: str) -> None:
+    # the regex rescanned to the end of the text from every unclosed `/*` (11 s on 100 000 characters)
+    _assert_linear(lambda n: _scan_work(fonts.requested_families, unit * (n // len(unit))), 4000)
