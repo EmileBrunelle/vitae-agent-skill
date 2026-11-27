@@ -5,6 +5,7 @@ A leaf under verify_pdf: no `import verify`.
 from __future__ import annotations
 
 import importlib
+import math
 import re
 import shutil
 import subprocess
@@ -378,6 +379,91 @@ def check_pdf_metadata(pdf: str) -> list[str]:
 TINY_TEXT_PT = 5.0   # real font size under which a run is "tiny" (WARN): nobody reads it
 
 
+Run = tuple[str, float, float, float]   # (text, x, y, real size) of one text run of a page
+
+
+class _ScriptIndex:
+    """Which run is a super/subscript of a larger neighbour, in O(log k) per run instead of a walk over the neighbours
+    (k tiny runs on one baseline walked O(k^2) before). From run i the walk skips neighbours that are no larger than
+    1.15 x its size and on its baseline (|dy| < 0.5), and stops at the first one that is larger or off the baseline.
+    A segment tree over the runs keeps, per node, the largest size and the lowest and highest y, so a whole node is
+    skipped when every run in it would be: the same float comparisons as run by run, since each is monotone."""
+    __slots__ = ("_runs", "_n", "_size", "_ymin", "_ymax")
+
+    def __init__(self, runs: Sequence[Run]) -> None:
+        self._runs = runs
+        n = 1
+        while n < max(len(runs), 1):
+            n *= 2
+        self._n = n
+        self._size = [-1.0] * (2 * n)    # unused leaves: never a stop, always skipped
+        self._ymin = [math.inf] * (2 * n)
+        self._ymax = [-math.inf] * (2 * n)
+        for i, (_, _, y, sz) in enumerate(runs):
+            if math.isnan(y) or math.isnan(sz):   # no comparison holds for NaN: the walk always stops there
+                self._size[n + i], self._ymin[n + i], self._ymax[n + i] = math.inf, -math.inf, math.inf
+            else:
+                self._size[n + i], self._ymin[n + i], self._ymax[n + i] = sz, y, y
+        for k in range(n - 1, 0, -1):
+            self._size[k] = max(self._size[2 * k], self._size[2 * k + 1])
+            self._ymin[k] = min(self._ymin[2 * k], self._ymin[2 * k + 1])
+            self._ymax[k] = max(self._ymax[2 * k], self._ymax[2 * k + 1])
+
+    def _skipped(self, node: int, limit: float, y: float) -> bool:
+        """True if every run under `node` is no larger than `limit` and on the baseline `y`."""
+        if self._ymin[node] == math.inf and self._ymax[node] == -math.inf:
+            return True   # no run under this node (the padding up to a power of two)
+        return (self._size[node] < limit and abs(self._ymin[node] - y) < 0.5 and abs(self._ymax[node] - y) < 0.5)
+
+    def _stop(self, node: int, lo: int, hi: int, start: int, step: int, limit: float, y: float) -> int:
+        """Index of the first run from `start` in direction `step` inside node [lo, hi) that the walk stops at, or -1."""
+        if (hi <= start if step > 0 else lo > start) or self._skipped(node, limit, y):
+            return -1
+        if hi - lo == 1:
+            return lo
+        mid = (lo + hi) // 2
+        first, second = ((2 * node, lo, mid), (2 * node + 1, mid, hi))[::step]
+        found = self._stop(*first, start, step, limit, y)
+        return found if found >= 0 else self._stop(*second, start, step, limit, y)
+
+    def is_script(self, i: int) -> bool:
+        _, x, y, sz = self._runs[i]
+        limit = 1.15 * sz
+        for step in (-1, 1):
+            j = self._stop(1, 0, self._n, i + step, step, limit, y)
+            if j >= 0:
+                _, xn, yn, szn = self._runs[j]
+                if szn >= limit and 0.05 * szn < abs(yn - y) < 0.6 * szn and (x >= xn if step < 0 else xn >= x):
+                    return True
+        return False
+
+
+def _classify_runs(runs: Sequence[Run], box: tuple[float, float, float, float]) -> tuple[list[str], list[tuple[str, float]]]:
+    """([text of runs whose origin is outside the box], [(text, smallest size) of each block of consecutive tiny runs
+    that are no super/subscript]) for one page: the geometry half of `_text_runs`."""
+    x0, y0, x1, y1 = box
+    off: list[str] = []
+    blocks: list[tuple[list[str], float]] = []   # (texts, smallest size) per block, one join each at the end
+    index: _ScriptIndex | None = None
+    last_tiny = -2
+    for i, (t, x, y, sz) in enumerate(runs):
+        if x < x0 - 0.5 or x > x1 + 0.5 or y < y0 - 0.5 or y > y1 + 0.5:
+            off.append(t)
+        elif 0 < sz < TINY_TEXT_PT:
+            if index is None:
+                index = _ScriptIndex(runs)
+            if index.is_script(i):
+                continue
+            # consecutive tiny runs are one block: report it once, at its smallest size
+            if last_tiny == i - 1:
+                blocks[-1][0].append(t)
+                blocks[-1] = (blocks[-1][0], min(blocks[-1][1], sz))
+            else:
+                blocks.append(([t], sz))
+            last_tiny = i
+    return off, [(" ".join(texts), sz) for texts, sz in blocks]
+
+
 def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, float]], bool, str]:
     """([(page_no, text, off_page)], [(page_no, text, real_size_pt)], ran, failure): text runs the
     PDF places outside the page box, and runs set under TINY_TEXT_PT. `ran` is False when pypdf
@@ -401,14 +487,14 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
             warnings.simplefilter("ignore")
             reader = pypdf.PdfReader(pdf)
             off: list[tuple[int, str]] = []
-            tiny: list[tuple[int, str, float, int]] = []
+            tiny: list[tuple[int, str, float]] = []
             for pno, pg in enumerate(reader.pages, 1):
                 box = pg.cropbox
                 x0, y0, x1, y1 = float(box.left), float(box.bottom), float(box.right), float(box.top)
-                runs: list[tuple[str, float, float, float]] = []   # (text, x, y, real size)
+                runs: list[Run] = []
 
                 def visit(text: str, cm: Sequence[float] | None, tm: Sequence[float] | None, fd: object, fs: float | None,
-                          runs: list[tuple[str, float, float, float]] = runs) -> None:
+                          runs: list[Run] = runs) -> None:
                     if not text.strip() or not cm or not tm:
                         return
                     x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
@@ -416,31 +502,10 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
                     det = abs((tm[0] * tm[3] - tm[1] * tm[2]) * (cm[0] * cm[3] - cm[1] * cm[2]))
                     runs.append((" ".join(text.split()), x, y, (fs or 0) * det ** 0.5))
                 pg.extract_text(visitor_text=visit)
-
-                def script_of(i: int, runs: list[tuple[str, float, float, float]] = runs) -> bool:
-                    # True if run i is a super/subscript of a larger neighbour on the same line
-                    t, x, y, sz = runs[i]
-                    for step in (-1, 1):
-                        j = i + step
-                        # skip neighbours that are scripts too (same size, same baseline): "10th" may be two runs
-                        while 0 <= j < len(runs) and runs[j][3] < 1.15 * sz and abs(runs[j][2] - y) < 0.5:
-                            j += step
-                        if 0 <= j < len(runs):
-                            _, xn, yn, szn = runs[j]
-                            if (szn >= 1.15 * sz and 0.05 * szn < abs(yn - y) < 0.6 * szn
-                                    and (x >= xn if step < 0 else xn >= x)):
-                                return True
-                    return False
-                for i, (t, x, y, sz) in enumerate(runs):
-                    if x < x0 - 0.5 or x > x1 + 0.5 or y < y0 - 0.5 or y > y1 + 0.5:
-                        off.append((pno, t))
-                    elif 0 < sz < TINY_TEXT_PT and not script_of(i):
-                        # consecutive tiny runs are one block: report it once, at its smallest size
-                        if tiny and tiny[-1][0] == pno and tiny[-1][3] == i - 1:
-                            tiny[-1] = (pno, tiny[-1][1] + " " + t, min(tiny[-1][2], sz), i)
-                        else:
-                            tiny.append((pno, t, sz, i))
-        return off, [(p_, t, sz) for p_, t, sz, _ in tiny], True, ""
+                page_off, page_tiny = _classify_runs(runs, (x0, y0, x1, y1))
+                off += [(pno, t) for t in page_off]
+                tiny += [(pno, t, sz) for t, sz in page_tiny]
+        return off, tiny, True, ""
     except (OSError, ValueError, pypdf.errors.PyPdfError) as e:
         if not pdf_unreadable(pdf):
             # the primary backend reads this PDF but pypdf rejects it: say the off-page/tiny-text scan did not run
@@ -449,6 +514,10 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
         return [], [], True, ""
     except Exception as e:   # broad on purpose: pypdf parses untrusted input and raises NotImplementedError and more
         return [], [], False, type(e).__name__
+
+
+HIDDEN_TAIL = ("text a reader cannot see is still read by ATS and recruiters' tools, "
+               "and disqualifies the CV.")
 
 
 HIDDEN_TAIL = ("text a reader cannot see is still read by ATS and recruiters' tools, "

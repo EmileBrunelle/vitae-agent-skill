@@ -1,8 +1,9 @@
-"""verify.text `hidden_word_stats`: a luminance table per page, two luminances per word box instead of one per colour, one
-gray band for a black-on-white page. It keeps its behaviour (equivalence with the replaced code, kept in `_hidden_ref`, on
+"""verify.text `hidden_word_stats` (a luminance table per page, two luminances per word box, one gray band for a gray page) and
+`_classify_runs` (a segment tree instead of a neighbour walk per tiny run). Each keeps its behaviour (equivalence with the replaced code, kept in `_hidden_ref`, on
 realistic and worst-case rasters) and stays bounded on a full page (`slow`)."""
 from __future__ import annotations
 
+import math
 import random
 import tempfile
 import time
@@ -10,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from _hidden_ref import hidden_word_stats_per_colour
+from _hidden_ref import classify_runs_quadratic, hidden_word_stats_per_colour
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from PIL import Image
@@ -174,3 +175,52 @@ def test_word_stats_bound_time_on_a_full_page(kind: str, bound: float) -> None:
 
         assert time.perf_counter() - start < bound   # measured ~0.05 s (gray, colour) and ~1 s (noise: 1000+ colours per box); a coarse bound, the constant factor is tested by call count
     assert len(out) == 3000
+
+# ------------------------------------------------------------------ _classify_runs
+
+Run = tuple[str, float, float, float]
+BOX = (0.0, 0.0, 600.0, 800.0)
+
+
+@st.composite
+def _run_lists(draw: st.DrawFn) -> list[Run]:
+    sizes = st.sampled_from([0.0, 2.0, 3.0, 4.9, 5.0, 5.5, 6.0, 6.9, 8.0, 9.6, 12.0, math.nan, math.inf])
+    ys = st.sampled_from([100.0, 100.0, 100.3, 100.5, 101.0, 102.4, 103.0, 106.0, 99.5, 400.0, -9.0, 900.0, math.nan, math.inf])
+    xs = st.sampled_from([10.0, 20.0, 30.0, 50.0, 700.0, -50.0, 15.5])
+    n = draw(st.integers(0, 14))
+    return [(f"t{i}", draw(xs), draw(ys), draw(sizes)) for i in range(n)]
+
+
+@settings(deadline=None, max_examples=2000)
+@given(_run_lists())
+def test_classify_runs_matches_the_neighbour_walk(runs: list[Run]) -> None:
+    assert text._classify_runs(runs, BOX) == classify_runs_quadratic(runs, BOX)
+
+
+def test_classify_runs_equivalence_is_not_vacuous() -> None:
+    # control: a "10th" superscript is dropped, a loose tiny block is merged and reported at its smallest size, and an
+    # off-page run is found, so equality is not "([], []) == ([], [])"
+    runs: list[Run] = [("10", 10.0, 100.0, 9.6), ("th", 20.0, 103.0, 4.0), ("tiny", 30.0, 300.0, 4.0), ("small", 40.0, 300.0, 3.0),
+                       ("away", 900.0, 300.0, 9.0)]
+    off, tiny = text._classify_runs(runs, BOX)
+
+    assert (off, tiny) == (["away"], [("tiny small", 3.0)])
+    assert (off, tiny) == classify_runs_quadratic(runs, BOX)
+
+
+def test_classify_runs_a_superscript_between_equal_sizes_is_still_found() -> None:
+    # the walk skips same-size neighbours on the baseline ("10th" may be two runs): 4 tiny runs, then the larger one
+    runs: list[Run] = [("big", 10.0, 100.0, 9.0), ("a", 20.0, 103.0, 4.0), ("b", 25.0, 103.0, 4.0), ("c", 30.0, 103.0, 4.0)]
+
+    assert text._classify_runs(runs, BOX) == classify_runs_quadratic(runs, BOX) == ([], [])
+
+
+@pytest.mark.slow
+def test_classify_runs_bounds_time_on_one_baseline() -> None:
+    runs: list[Run] = [(f"w{i}", 10.0 + i * 0.01, 300.0, 3.0) for i in range(8000)]
+    start = time.perf_counter()
+
+    off, tiny = text._classify_runs(runs, BOX)
+
+    assert time.perf_counter() - start < 1.0     # measured ~0.05 s; the neighbour walk and the string `+` took ~5 s
+    assert off == [] and len(tiny) == 1 and tiny[0][1] == 3.0 and tiny[0][0].count(" ") == 7999
