@@ -23,6 +23,7 @@ from PIL import Image
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
 from vitae.core.env import PdfBackend, _importable, pdf_backend, typst_font_kw, typst_py
 from vitae.core.pdfium import PdfiumDoc, PdfiumPage, PdfiumTextPage
+from vitae.verify.hexstrings import hexify_pdf
 from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
 from vitae.verify.typst import _strip_typst_comments
 
@@ -62,13 +63,16 @@ def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
     """Returns (ok, stderr_text)."""
     if use_cli:
         r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)] + _root_cli(typ), capture_output=True, text=True)
+        if r.returncode == 0:
+            hexify_pdf(pdf)      # optional (pikepdf): the PDF the gates measure is the one the user gets
         return r.returncode == 0, (r.stdout + r.stderr)
     try:
         typst = importlib.import_module("typst")
         typst.compile(typ, output=pdf, **_root_kw(typ), **typst_font_kw())
-        return True, ""
     except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
         return False, str(e)
+    hexify_pdf(pdf)
+    return True, ""
 
 
 def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
