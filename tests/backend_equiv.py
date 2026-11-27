@@ -52,7 +52,6 @@ FILL_TOL_PP = 1
 
 STATUS = re.compile(r"^(OK|WARN|FAIL|INFO|PASS|SKIP)\b\s*(.*)$")
 FILL = re.compile(r"ink from (\d+)% to (\d+)%")
-PAGES = re.compile(r"^OK\s+pages: (\d+)|^FAIL\s+pages: .*?(\d+)", re.M)
 
 
 def parse(out: str) -> dict:

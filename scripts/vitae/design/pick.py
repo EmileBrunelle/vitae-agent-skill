@@ -46,10 +46,8 @@ class Pick(TypedDict):
     labels: ReadOnly[dict[str, str]]
     font_register: ReadOnly[str]
     display: ReadOnly[Font]
-    display_wanted: ReadOnly[Font | None]
     display_note: ReadOnly[str]
     body: ReadOnly[Font]
-    body_wanted: ReadOnly[Font | None]
     body_note: ReadOnly[str]
 
 
@@ -149,8 +147,8 @@ def pick(name: str, field: str | None, career: str = "early",
     d = FAMILIES[fam]
     ai = _idx(key, len(d["accents"]), "accent|")
     fp = FONTS[fam]
-    disp, disp_want, disp_note = _pick_font(fp["display"], key, "display|", have)
-    body, body_want, body_note = _pick_font(fp["body"], key, "body|", have)
+    disp, _, disp_note = _pick_font(fp["display"], key, "display|", have)
+    body, _, body_note = _pick_font(fp["body"], key, "body|", have)
     mono = mono_note = None
     if "mono" in fp:                    # optional third role
         mono, _, mono_note = _pick_font(fp["mono"], key, "mono|", have)
@@ -173,5 +171,5 @@ def pick(name: str, field: str | None, career: str = "early",
                 marker=d["markers"][_idx(key, len(d["markers"]), "marker|")],
                 markset=MARK_SETS[_idx(key, len(MARK_SETS), "markset|")],
                 labels=lab, font_register=fp["register"],
-                display=disp, display_wanted=disp_want, display_note=disp_note,
-                body=body, body_wanted=body_want, body_note=body_note)
+                display=disp, display_note=disp_note,
+                body=body, body_note=body_note)

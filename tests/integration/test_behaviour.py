@@ -1,8 +1,8 @@
-"""verify.py / pick_design behaviour checks on the scratch copy, ported from run_all.sh (drawn header, --all, lowered fill,
+"""verify.py / pick_design behaviour checks on the scratch copy (drawn header, --all, lowered fill,
 placeholders, review record, facts, --text/--render/--crops, font fallback).
 
-Every assertion is run_all's, with its strictness: where the bash read stdout alone (`$(...)` without 2>&1, `>"$log"`) the test
-reads `.stdout`; where it merged stderr it reads `.output`.
+Each assertion keeps the strictness of the check it came from: where only stdout is meaningful the test reads `.stdout`;
+where stderr is merged it reads `.output`.
 """
 from __future__ import annotations
 
@@ -94,8 +94,7 @@ def _fill_samples(src: str) -> str:
         if ph.startswith("["):
             src = re.sub(r"\\?\[" + re.escape(ph[1:-1]) + r"\\?\]", "Sample text", src)
     src = src.replace("Firstname Lastname", "Jane Roe").replace("(555) 555-0100", "(613) 555-0142")
-    src = re.sub(r"me\\?@example\.com", r"jane\\@roe.test", src)
-    return src
+    return re.sub(r"me\\?@example\.com", r"jane\\@roe.test", src)
 
 
 def test_review_record_required(check: Check, py: str, scratch: Path) -> None:

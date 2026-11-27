@@ -408,7 +408,6 @@ class Env:
     record = ()
     clip = ()
     ws = ()
-    gate_lines = ()
     lib = ()
     layout = None
     use_cli = False

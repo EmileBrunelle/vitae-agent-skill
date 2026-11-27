@@ -215,7 +215,7 @@ def _escape_hue_veto(h: int, anchor: int, min_sep: int = 55) -> int | None:
         return h
     lo, hi = next((lo, hi) for lo, hi in HUE_B_VETO if lo <= h <= hi)
     for start in ((lo - BROWN_MARGIN) % 360, (hi + BROWN_MARGIN) % 360):
-        for step in range(0, 180):
+        for step in range(180):
             for cand in ((start - step) % 360, (start + step) % 360):
                 if not vetoed(cand) and _hue_sep(cand, anchor) >= min_sep:
                     return cand

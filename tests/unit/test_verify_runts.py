@@ -235,7 +235,7 @@ def test_runt_is_found_whatever_the_room_left_widow_orphan_control(tmp_path):
     every split of a 5-line bullet whose last word lands alone on page 2 is found."""
     body_for = f"#v({{room}}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n"
     split = 0
-    for room in range(0, 40):
+    for room in range(40):
         ctx = _compile_doc(tmp_path, f"wo{room}", "width: 330pt, height: 160pt, margin: 20pt",
                            body_for.format(room=room))
         pdf_doc = _pages(tmp_path, f"wo{room}")
@@ -251,7 +251,7 @@ def test_runt_is_found_with_unequal_margins(tmp_path, top, bottom):
     page = f"width: 330pt, height: 160pt, margin: (top: {top}pt, bottom: {bottom}pt, x: 20pt)"
     # a full first page tells the document where its content ends
     fill = "#block(height: 100%, align(bottom)[Filled.])\n#pagebreak()\n"
-    for room in range(0, 90):
+    for room in range(90):
         ctx = _compile_doc(tmp_path, f"um{room}", page, f"{fill}#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
         pdf_doc = _pages(tmp_path, f"um{room}")
         if len(pdf_doc) == 3 and "ms." in pdf_doc[2].get_textpage().get_text_range():
