@@ -6,7 +6,7 @@
 #import "../../lib.typ": *
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
 #let rhythm = 0.928
-#let accent = rgb("#33475b")    // slate — the clause numbers and the section hairline, nothing else
+#let accent = rgb("#1d4ed8")    // cobalt — the clause numbers and the section hairline, nothing else
 #let pal = derive(accent)
 #let soft = pal.soft
 #let ink = pal.ink

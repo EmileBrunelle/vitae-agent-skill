@@ -123,7 +123,7 @@ FAMILIES: dict[str, Family] = {
                 "(ISO 2145 / DIN 1421 divisions)",
         icons="line: thin stroke + rounded, metadata gray (the accent is "
               "reserved for the numbers)",
-        accents=["#33475b", "#1f3a5f", "#0f4c5c"],
+        accents=["#33475b", "#1f3a5f", "#0f4c5c", "#1d4ed8"],
         markers=["–", "▪"],
         labels=Labels(profile="Summary", skills="Skills & Tools"),
         header="name row, then role line + DIN-676 reference row + specialities "
