@@ -218,9 +218,11 @@ def _contrast_in_box(crop: Image.Image) -> float:
     strongest colour in it. Contrast against a fixed background rises with the distance of a luminance from it, so
     the strongest colour is the darkest or the lightest one: two luminances, not one per colour. Luminances come
     from the per-channel tables of `counted_luminances` (a noisy box holds over a thousand colours)."""
-    cols = crop.getcolors(crop.width * crop.height) or []
-    if cols and not isinstance(cols[0][1], tuple):   # one band: Pillow gives a bare number per colour
-        raise ValueError(f"_contrast_in_box needs a multi-band image, got {crop.mode!r}")
+    cols: list[tuple[int, tuple[int, ...]]] = []
+    for count, colour in crop.getcolors(crop.width * crop.height) or []:
+        if not isinstance(colour, tuple):   # one band: Pillow gives a bare number per colour
+            raise ValueError(f"_contrast_in_box needs a multi-band image, got {crop.mode!r}")
+        cols.append((count, colour))
     values = counted_luminances(cols)
     lb = rel_luminance(max(cols)[1])
     return max(1.0, contrast_from_lum(min(values), lb), contrast_from_lum(max(values), lb))

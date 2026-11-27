@@ -7,8 +7,10 @@ import pypdfium2
 import pytest
 import typst
 from _paths import ROOT
+from vitae.core.base import Mark, WordBox
 from vitae.core.level import Level
-from vitae.verify import pdf
+from vitae.verify import pdf, runts
+from vitae.verify.bounds import MAX_PAGE_WORK
 from vitae.verify.gates import LAYOUT_GATES, _bullet_runts, make_context
 from vitae.verify.runts import BulletLine, Extent, check_runts, is_runt
 
@@ -313,3 +315,17 @@ def test_runt_next_to_a_justified_sidebar_with_a_narrow_gutter_is_found(tmp_path
 def test_not_measured_notice_names_the_tagging_markers():
     out = check_runts([], None, fail=lambda m: (Level.FAIL, m))
     assert "list-marker" in out[0][1] and "bullet-marked" in out[0][1]
+
+
+def test_a_page_denser_than_the_work_limit_is_not_located(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("located_bullets called on a dense page")
+
+    monkeypatch.setattr(runts, "located_bullets", refuse)
+    words: list[WordBox] = [((0.0, 0.0, 1.0, 1.0), "w")] * 2000
+    marks = [Mark(text="m", page=1, x=0.0, y=float(i)) for i in range(MAX_PAGE_WORK // 2000 + 1)]
+
+    layout = runts.bullet_layout(marks, [(600.0, 800.0, words)])
+
+    assert layout.located == []
+    assert layout.pages == [words]
