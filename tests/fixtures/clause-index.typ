@@ -7,7 +7,7 @@
 #import "../../templates/lib.typ": *
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
 #let rhythm = 0.993
-#let accent = rgb("#33475b")    // slate — the clause numbers, and nothing else
+#let accent = rgb("#33475b")    // slate — the clause numbers and the section hairline, nothing else
 #let pal = derive(accent)
 #let soft = pal.soft
 #let ink = pal.ink
@@ -17,7 +17,7 @@
 #let dispf = ("PT Sans", "Schibsted Grotesk", "Noto Sans")
 
 // Line icons in the METADATA GRAY, never the accent: this family's accent has
-// exactly one job (the numbers), so a coloured pin would be a third job.
+// exactly one job (the numbers and the section hairline), so a coloured pin would be a third job.
 #let ic-col = ink
 #let ic = icons-line(ic-col)
 #let mk = marks(ic-col)
@@ -31,15 +31,24 @@
 // opt-in accent band (pick_design.py --band flips this): a text-free strip in the
 // left margin, drawn in the page background (lib.typ accent-band)
 #let band = false
+// section-rule: how a section heading is underlined (vector line, no text):
+//   "inline"      hairline fills the rest of the heading row (default)
+//   "under"       full-width hairline under the heading
+//   "under-short" bar under the number and title only
+//   "none"        no rule (the original sober look)
+// Total space under the heading is the same for all four values.
+#let section-rule = "inline"
+#let section-rules = ("inline", "under", "under-short", "none")
+#assert(section-rule in section-rules, message: "section-rule must be one of: " + section-rules.join(", ") + " (got " + repr(section-rule) + ")")
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
 #set par(justify: false, leading: 0.517em, spacing: 0.597em)
 
 // DEVICE: an OUTDENTED CLAUSE NUMBER. The numbering-of-divisions convention of
 // technical standards (ISO 2145, DIN 1421): the division number hangs in a
-// fixed 20pt gutter, the title sits flush at the text edge, and there is no
-// rule, no bar, no fill, no panel anywhere in the document. Nobody else numbers
-// its sections, and nobody else spends its accent only on numerals.
+// fixed 20pt gutter, the title sits flush at the text edge, and the only
+// ornament is one thin accent hairline (section-rule below), no bar, no fill,
+// no panel. Nobody else numbers its sections.
 //
 // The number NEVER replaces the conventional heading stem — harvested
 // counter-evidence: an ordinal used AS the label ("01" alone) costs the reader
@@ -53,11 +62,25 @@
   above: if airy { 27pt * rhythm } else { 22pt * rhythm }, below: 0pt)[
   #clause.step()
   #sub.update(1)   // display() reads the value BEFORE this row’s step, so 1-based
-  #grid(columns: (20pt, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom),
-    text(size: 12.5pt, weight: "bold", fill: accent, number-type: "lining",
-      number-width: "tabular")[#context clause.display()],
-    text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t])
-  #v(14pt * rhythm)
+  #let num = text(size: 12.5pt, weight: "bold", fill: accent, number-type: "lining",
+    number-width: "tabular")[#context clause.display()]
+  #let ttl = text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t]
+  #if section-rule == "inline" [
+    #grid(columns: (20pt, auto, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom, left + horizon),
+      num, ttl, pad(left: 8pt, move(dy: 0.7pt, line(length: 100%, stroke: 1pt + accent))))
+    #v(14pt * rhythm)
+  ] else if section-rule == "under" [
+    #grid(columns: (20pt, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom), num, ttl)
+    #v(3pt * rhythm)
+    #block(above: 0pt, below: 0pt)[#line(length: 100%, stroke: 1pt + accent)]
+    #v(10.5pt * rhythm)
+  ] else if section-rule == "under-short" [
+    #box(stroke: (bottom: 1.5pt + accent), inset: (bottom: 3pt, right: 6pt))[#grid(columns: (20pt, auto), column-gutter: 0pt, align: (left + bottom, left + bottom), num, ttl)]
+    #v(10.5pt * rhythm)
+  ] else [
+    #grid(columns: (20pt, 1fr), column-gutter: 0pt, align: (left + bottom, left + bottom), num, ttl)
+    #v(14pt * rhythm)
+  ]
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
