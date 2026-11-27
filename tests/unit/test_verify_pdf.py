@@ -361,12 +361,13 @@ class TestRender:
         assert not left & set(stale)
         assert set(keep) <= left
 
+    @pytest.mark.usefixtures("typst_api_only")
     def test_render_pngs_typstpy_makes_pages_in_order(self, tmp_path):
         typ = tmp_path / "d.typ"
         typ.write_text(DOC, encoding="utf-8")
         out = tmp_path / "png"
         out.mkdir()
-        paths = pdf.render_pngs(str(typ), str(out), use_cli=False)
+        paths = pdf.render_pngs(str(typ), str(out))
         assert [os.path.basename(p) for p in paths] == ["p1.png", "p2.png"]
         with Image.open(paths[0]) as im:
             assert im.size == (250, 125)               # 90 ppi of 200 x 100 pt
@@ -394,17 +395,19 @@ class TestRender:
 # ---------------------------------------------------------------- compile
 
 class TestCompile:
+    @pytest.mark.usefixtures("typst_api_only")
     def test_ok_writes_the_pdf(self, tmp_path):
         typ = tmp_path / "a.typ"
         typ.write_text(DOC, encoding="utf-8")
-        ok, err = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"), use_cli=False)
+        ok, err = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"))
         assert (ok, err) == (True, "")
         assert (tmp_path / "a.pdf").read_bytes().startswith(b"%PDF")
 
+    @pytest.mark.usefixtures("typst_api_only")
     def test_a_syntax_error_is_reported_not_raised(self, tmp_path):
         typ = tmp_path / "a.typ"
         typ.write_text("#let x = (", encoding="utf-8")
-        ok, err = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"), use_cli=False)
+        ok, err = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"))
         assert ok is False and err
         assert not (tmp_path / "a.pdf").exists()
 
@@ -413,7 +416,7 @@ class TestCompile:
     def test_cli_return_code_decides(self, tmp_path, src, ok):
         typ = tmp_path / "a.typ"
         typ.write_text(src, encoding="utf-8")
-        got, text = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"), use_cli=True)
+        got, text = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"))
         assert got is ok
         assert bool(text) is (not ok)
 

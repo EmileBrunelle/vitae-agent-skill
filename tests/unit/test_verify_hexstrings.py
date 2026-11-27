@@ -98,10 +98,11 @@ class TestWithPikepdf:
         assert bad.read_bytes() == b"not a pdf"
         assert list(tmp_path.iterdir()) == [bad]       # no temp file left behind
 
+    @pytest.mark.usefixtures("typst_api_only")
     def test_compile_pdf_delivers_the_hexified_file(self, tmp_path):
         typ = tmp_path / "a.typ"
         typ.write_text(SRC, encoding="utf-8")
-        ok, _ = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"), use_cli=False)
+        ok, _ = pdf.compile_pdf(str(typ), str(tmp_path / "a.pdf"))
         assert ok and not nested_parens(page_content(str(tmp_path / "a.pdf")))
 
 

@@ -209,7 +209,7 @@ def _dispatch(argv: list[str]) -> tuple[int, str | None]:
                 print(note, file=sys.stderr)
         sys.exit(0)
     if argv and argv[0] == "--doctor":     # dependency preflight only; no cv.typ, no footer
-        ok, _, _ = preflight()
+        ok, _ = preflight()
         sys.exit(0 if ok else 1)
 
     if argv and argv[0] == "--tune":

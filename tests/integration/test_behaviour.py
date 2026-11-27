@@ -13,7 +13,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from harness import CheckResult, Template, discover_templates, grep, importable_isolated, typst_compile
+from harness import CheckResult, Template, discover_templates, grep, importable_isolated
+from vitae.verify.pdf import typst_compile
 
 Check = Callable[..., CheckResult]
 
@@ -23,9 +24,9 @@ def _first_template_target() -> tuple[str, int, int]:
     return t.family, t.fill_min, t.fill_max
 
 
-def _compile(src: Path, pdf: Path, cwd: Path) -> None:
-    r = typst_compile(src, pdf, cwd)
-    assert r.rc == 0, f"typst could not compile {src.name}\n{r.output}"
+def _compile(src: Path, pdf: Path) -> None:
+    ok, err = typst_compile(str(src), str(pdf))
+    assert ok, f"typst could not compile {src.name}\n{err}"
 
 
 def test_drawn_header(check: Check, py: str, scratch: Path) -> None:
@@ -205,7 +206,7 @@ def _typ(d: Path, name: str, body: str) -> Path:
     d.mkdir(parents=True, exist_ok=True)
     p = d / f"{name}.typ"
     p.write_text(body)
-    _compile(p, d / f"{name}.pdf", d.parent)
+    _compile(p, d / f"{name}.pdf")
     return p
 
 
@@ -323,7 +324,7 @@ def test_font_fallback(check: Check, py: str, scratch: Path) -> None:
         pytest.skip("needs pypdfium2")
     d = scratch / "tests" / "font_fallback"
     for f in ("bad", "near", "cjk", "math", "symbols", "math-libertinus", "ncm", "raw-only"):
-        _compile(d / f"{f}.typ", d / f"{f}.pdf", scratch)
+        _compile(d / f"{f}.typ", d / f"{f}.pdf")
 
     def gates(f: str) -> str:
         return check(f"font-fallback/{f}", [py, "-I", "scripts/verify.py", "--gates", d / f"{f}.typ", d / f"{f}.pdf"]).output

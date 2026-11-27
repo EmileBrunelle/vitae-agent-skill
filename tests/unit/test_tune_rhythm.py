@@ -36,12 +36,12 @@ def write(tmp_path, text):
     return p
 
 
-def install(monkeypatch, *, breakat=1000.0, weights=(50, 50), log=None, preflight=(True, True, "pypdf")):
+def install(monkeypatch, *, breakat=1000.0, weights=(50, 50), log=None, preflight=(True, "pypdf")):
     """Pages hold iff the fake height <= breakat; fill = round(height). Height reads the gate's own
     leading (_doc_leading) and the rhythm line, from the candidate text the tuner writes."""
     monkeypatch.setattr(T, "preflight", lambda: preflight)
 
-    def probe(typ, candidate, expected, use_cli, backend):
+    def probe(typ, candidate, expected, backend):
         open(typ, "w", encoding="utf-8").write(candidate)
         r = _read_rhythm(candidate) or 1.0
         lead = _doc_leading(candidate)
@@ -114,7 +114,7 @@ class TestRhythmPhase:
     @pytest.mark.parametrize("when", [1, 3, 12], ids=["floor", "phase1", "phase2"])
     def test_interrupt_restores_and_propagates(self, tmp_path, monkeypatch, when):
         p = write(tmp_path, RHYTHM_FILE)
-        monkeypatch.setattr(T, "preflight", lambda: (True, True, "pypdf"))
+        monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
         calls = []
 
         def probe(typ, candidate, *a):

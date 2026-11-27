@@ -5,17 +5,16 @@ import shutil
 import pytest
 import typst
 from vitae.verify import groups, pdf
-from vitae.verify.groups import query
 
 
 @pytest.fixture(params=["cli", "typst-py"])
-def route(request, monkeypatch):
+def route(request, fake_typst):
     """The mark reader through the CLI, then forced through the typst package."""
     if request.param == "cli":
         if not shutil.which("typst"):
             pytest.skip("typst CLI missing")
     else:
-        monkeypatch.setattr(query, "_typst_cli_for_queries", lambda: False)
+        fake_typst(api=pytest.importorskip("typst"))
     return request.param
 
 
@@ -62,9 +61,8 @@ class TestTypstQuery:
         typ = _typ(sub, '#import "../lib.typ": m\n#m()', "cv.typ")
         assert groups._typst_query(typ, "<vitae-sec>") == [{"text": "UP"}]
 
-    def test_without_cli_or_package_it_is_none(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(query, "_typst_cli_for_queries", lambda: False)
-        monkeypatch.setattr(query, "typst_py", lambda: None)
+    def test_without_cli_or_package_it_is_none(self, tmp_path, fake_typst):
+        fake_typst()
         assert groups._typst_values(_typ(tmp_path, MARKS), "<vitae-head>") is None
 
 

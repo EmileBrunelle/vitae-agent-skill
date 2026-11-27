@@ -21,7 +21,7 @@ from vitae.core.base import (
     LOWERED_FILL_FLOOR,
 )
 from vitae.core.env import PdfBackend, preflight
-from vitae.verify.pdf import compile_failure_messages, compile_pdf, count_pages, render_pngs
+from vitae.verify.pdf import compile_or_messages, compile_pdf, count_pages, render_pngs
 from vitae.verify.typst import (
     _par_scope,
     _read_par,
@@ -89,7 +89,7 @@ def _write(typ: str, text: str) -> None:
         f.write(text)
 
 
-def _probe_text(typ: str, candidate: str, expected: int, use_cli: bool,
+def _probe_text(typ: str, candidate: str, expected: int,
                 backend: PdfBackend) -> tuple[bool, int | None]:
     """Write `candidate` to `typ`, compile it; return (pages_ok, fill_pct or None).
 
@@ -97,30 +97,29 @@ def _probe_text(typ: str, candidate: str, expected: int, use_cli: bool,
     _write(typ, candidate)
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "t.pdf")
-        ok, _ = compile_pdf(typ, pdf, use_cli)
+        ok, _ = compile_pdf(typ, pdf)
         if not ok:
             return False, None
         if count_pages(pdf, backend) != str(expected):
             return False, None
-        pngs = render_pngs(typ, tmp, use_cli)
+        pngs = render_pngs(typ, tmp)
         if not pngs:
             return False, None
         m = re.search(r"to (\d+)%", measure_fill.measure(pngs[-1]))
         return True, (int(m.group(1)) if m else None)
 
 
-def _original_compile_failure(typ: str, use_cli: bool) -> list[str]:
+def _original_compile_failure(typ: str) -> list[str]:
     """The messages (printed after `FAIL  `) when the CV as it stands does not compile, [] when it does: every probe of the
     tuner would fail the same way, which reads as "page count off" and hides the real cause."""
     with tempfile.TemporaryDirectory() as tmp:
-        ok, err = compile_pdf(typ, os.path.join(tmp, "t.pdf"), use_cli)
-    return [] if ok else compile_failure_messages(err)
+        return compile_or_messages(typ, os.path.join(tmp, "t.pdf"))[1]
 
 
 def _probe(typ: str, text: str, leading: float, spacing: float, expected: int,
-           use_cli: bool, backend: PdfBackend) -> tuple[bool, int | None]:
+           backend: PdfBackend) -> tuple[bool, int | None]:
     """Compile at (leading, spacing); return (pages_ok, fill_pct or None)."""
-    return _probe_text(typ, _with_rhythm(text, leading, spacing), expected, use_cli, backend)
+    return _probe_text(typ, _with_rhythm(text, leading, spacing), expected, backend)
 
 
 # UPWARD CAP. An under-filled page means a fact is missing, not whitespace to inflate. The
@@ -143,7 +142,7 @@ SPACING_CAP = 1.24     # em; largest shipped paragraph spacing 1.075 x 1.15
 RHYTHM_LO, RHYTHM_HI, RHYTHM_STEP = 0.91, 1.30, 0.005
 
 
-def _rhythm_phase(typ: str, original: str, expected: int, fmax: int, use_cli: bool,
+def _rhythm_phase(typ: str, original: str, expected: int, fmax: int,
                   backend: PdfBackend) -> tuple[float, int | None]:
     """Bisect the rhythm r in [RHYTHM_LO, RHYTHM_HI] (upper bound cut where the par spacing would pass
     SPACING_CAP, never below the current rhythm) for the largest r that holds `expected` pages with fill <= fmax.
@@ -155,20 +154,20 @@ def _rhythm_phase(typ: str, original: str, expected: int, fmax: int, use_cli: bo
     hi = max(min(RHYTHM_HI, max(SPACING_CAP, par[1]) / unit), cur)    # never below the current rhythm
     lo = min(RHYTHM_LO, cur, hi)                                      # nor the floor above it
     print("rhythm phase: searching [%.3f, %.3f] with leading fixed at %.3fem" % (lo, hi, par[0]))
-    ok, fill = _probe_text(typ, _with_gap_scale(original, lo), expected, use_cli, backend)
+    ok, fill = _probe_text(typ, _with_gap_scale(original, lo), expected, backend)
     if not ok:
         if lo >= cur - 1e-9:
             return cur, None
         # the floor misses the page count (typically too short for it): the rhythm the file already
         # has stays a candidate
-        ok, fill = _probe_text(typ, _with_gap_scale(original, cur), expected, use_cli, backend)
+        ok, fill = _probe_text(typ, _with_gap_scale(original, cur), expected, backend)
         if not ok:
             return cur, None
         lo = cur
     best, best_fill = lo, fill
     while hi - lo > RHYTHM_STEP:
         mid = round((lo + hi) / 2, 3)
-        ok, fill = _probe_text(typ, _with_gap_scale(original, mid), expected, use_cli, backend)
+        ok, fill = _probe_text(typ, _with_gap_scale(original, mid), expected, backend)
         print("  rhythm %.3f -> %s" % (mid, ("fill %s%%" % fill) if ok else "page count off"))
         if ok and (fill is None or fill <= fmax):
             lo = mid
@@ -190,7 +189,7 @@ def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None
     (leading fixed), the leading only from the rhythm bound that was hit; the footer is the NEXT line the CLI prints last
     on a failure (None when preflight failed). Any failure restores the original file: a
     value that misses the target is worse than the rhythm the family was designed with."""
-    deps_ok, use_cli, backend = preflight()
+    deps_ok, backend = preflight()
     if not deps_ok:
         return 1, None
     allow = " --allow-placeholders" if allow_placeholders else ""   # carried into the printed follow-up commands
@@ -210,7 +209,7 @@ def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None
     if _rhythm_unparsed(original):
         print("NOTE  the last `#let rhythm` line is not a plain `#let rhythm = <number>`: "
               "tuning leading and spacing only, the rhythm is left alone")
-    failure = _original_compile_failure(typ, use_cli)
+    failure = _original_compile_failure(typ)
     if failure:
         for msg in failure:
             print(f"FAIL  {msg}")
@@ -221,7 +220,7 @@ def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None
         r_text = original                     # the text the leading bisection starts from
         best_r: float | None = None
         if _read_rhythm(original) is not None:
-            best_r, r_fill = _rhythm_phase(typ, original, expected, fmax, use_cli, backend)
+            best_r, r_fill = _rhythm_phase(typ, original, expected, fmax, backend)
             if r_fill is not None and fmin <= r_fill <= fmax:
                 _write(typ, _with_gap_scale(original, best_r))
                 print("OK    wrote rhythm %.3f (leading %.3fem unchanged) -> fill %s%% (target %s-%s%%)"
@@ -260,7 +259,7 @@ def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None
                   "the current leading; an under-filled page needs a real fact, not more air"
                   % (cap, LEADING_WARN, SPACING_CAP, delta))
         ok_lo, fill_lo = _probe(typ, r_text, lo, lo + delta, expected,
-                                use_cli, backend)
+                                backend)
         if not ok_lo:
             _write(typ, original)   # undo the probe
             # the floor failed, so no larger leading can hold the page count either
@@ -279,7 +278,7 @@ def _tune(typ: str, expected: int, fmin: int, fmax: int, lo: float | None = None
         while hi - lo > step:
             mid = (lo + hi) / 2
             ok, fill = _probe(typ, r_text, mid, mid + delta, expected,
-                              use_cli, backend)
+                              backend)
             print("  leading %.3fem -> %s" % (
                 mid, ("fill %s%%" % fill) if ok else "page count off"))
             if ok and (fill is None or fill <= fmax):

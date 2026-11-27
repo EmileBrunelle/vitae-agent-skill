@@ -34,7 +34,7 @@ from vitae.core.env import preflight
 from vitae.core.level import Level
 from vitae.verify.cv import _ALLOW_REFUSED, placeholders_allowed
 from vitae.verify.gates import _placeholders, make_context
-from vitae.verify.pdf import compile_failure_messages, compile_pdf, count_pages, ensure_icons, extract_text
+from vitae.verify.pdf import compile_or_messages, count_pages, ensure_icons, extract_text
 from vitae.verify.text import check_hidden_text
 
 
@@ -49,7 +49,7 @@ def check_letter(typ: str, employer: str, job_title: str,
     """
     if allow_placeholders and not placeholders_allowed(typ):
         return False, [(True, _ALLOW_REFUSED.removeprefix("FAIL  "))]
-    ok, use_cli, backend = preflight()
+    ok, backend = preflight()
     if not ok:
         return False, [(True, "missing dependency — see --doctor output above")]
 
@@ -58,9 +58,9 @@ def check_letter(typ: str, employer: str, job_title: str,
     fail = False
     with tempfile.TemporaryDirectory() as tmp:
         pdf = os.path.join(tmp, "letter.pdf")
-        compiled, err = compile_pdf(typ, pdf, use_cli)
-        if not compiled:
-            return False, [(True, m) for m in compile_failure_messages(err)]
+        _, failed = compile_or_messages(typ, pdf)
+        if failed:
+            return False, [(True, m) for m in failed]
 
         pages = count_pages(pdf, backend)
         if pages != "1":

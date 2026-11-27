@@ -100,9 +100,9 @@ def typ(tmp_path):
 
 
 def _install(monkeypatch, lstar=0.90):
-    monkeypatch.setattr(T, "preflight", lambda: (True, True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
 
-    def probe(path, text, leading, spacing, expected, use_cli, backend):
+    def probe(path, text, leading, spacing, expected, backend):
         open(path, "w", encoding="utf-8").write(T._with_rhythm(text, leading, spacing))
         return (True, round(leading * 100)) if leading <= lstar else (False, None)
     monkeypatch.setattr(T, "_probe", probe)

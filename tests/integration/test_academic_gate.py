@@ -13,7 +13,7 @@ from vitae.verify.academic.spec import Section
 from vitae.verify.pdf import compile_pdf
 
 pytestmark = pytest.mark.skipif(
-    not (check_typst()[0] and shutil.which("pdftotext")), reason="needs typst and pdftotext")
+    not (check_typst() and shutil.which("pdftotext")), reason="needs typst and pdftotext")
 
 HEAD = '''#set document(title: "Test CV")
 #set page(paper: "a5", margin: 1.2cm, header: align(right, text(size: 8pt)[Doe]){footer})
@@ -38,7 +38,7 @@ def _sec(heading: str, count: int) -> Section:
 def _pdf(tmp: Path, body: str, footer: bool = True, name: str = "f") -> Path:
     typ, pdf = tmp / f"{name}.typ", tmp / f"{name}.pdf"
     typ.write_text(HEAD.replace("{footer}", FOOTER if footer else "") + body, encoding="utf-8")
-    ok, err = compile_pdf(str(typ), str(pdf), check_typst()[1])
+    ok, err = compile_pdf(str(typ), str(pdf))
     assert ok, err
     return pdf
 

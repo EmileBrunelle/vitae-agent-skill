@@ -122,7 +122,7 @@ def test_dumped_cv_text_is_never_a_check(monkeypatch, capsys):
 
 def test_doctor_failure_is_fail_exit_1(monkeypatch, capsys):
     """Mutation: treating SystemExit(1) as a usage error would give ERROR/2."""
-    monkeypatch.setattr(cli, "preflight", lambda: (False, True, "none"))
+    monkeypatch.setattr(cli, "preflight", lambda: (False, "none"))
     rc, _, out, _ = _run(monkeypatch, capsys, "--doctor", "--json")
     d = json.loads(out)
     assert rc == 1 and d["tool"] == "doctor" and d["verdict"] == "FAIL" and d["exit_code"] == 1

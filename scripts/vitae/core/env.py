@@ -9,6 +9,7 @@ import functools
 import importlib
 import importlib.metadata
 import importlib.util
+import inspect
 import io
 import json
 import os
@@ -18,6 +19,8 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+from collections.abc import Callable
+from dataclasses import dataclass
 from types import ModuleType
 from typing import Literal, TextIO, TypeAlias
 
@@ -42,6 +45,11 @@ TYPST_MIN = (0, 15)
 # Oldest typst that can write the PDFs vitae asks for: `--pdf-standard ua-1` (typst-py `pdf_standards`) and `pdf.artifact`
 # both arrived in Typst 0.14.0 (Typst changelog 0.14.0, "PDF export"). Older is BROKEN: every compile would be refused.
 TYPST_STANDARDS_MIN = (0, 14)
+# The PDF standards every compile asks Typst to enforce: PDF/UA-1 (accessible tagged PDF) and PDF/A-2a, the archival
+# level that is itself tagged and accepts the UA-1 PDF version range (A-1 caps the PDF version at 1.4, A-4 needs 2.0).
+# Typst refuses to write the file when the document breaks one (no title, an image with no description, ...). Next to
+# TYPST_STANDARDS_MIN: the floor is the first Typst that writes exactly these.
+PDF_STANDARDS = ("a-2a", "ua-1")
 _NO_STANDARDS = "PDF/UA-1 + PDF/A-2a output (`--pdf-standard`, `pdf.artifact`) needs Typst 0.14 or newer"
 _NEW_TYPST = ("fill targets are calibrated on typst 0.15; newer versions may measure differently "
               "-- pin with pip install typst==0.15.2 if fills drift")
@@ -70,6 +78,15 @@ def _before_pdf_standards(ver: str, via: str) -> bool:
     return True
 
 
+@functools.cache
+def _cli_probe() -> str | None:
+    """Version token of the `typst` CLI on PATH, "?" when it cannot run or prints none, None when there is no CLI.
+    `which` and `typst --version` run once per process, the doctor included."""
+    if not shutil.which("typst"):
+        return None
+    return _cli_version()
+
+
 def _cli_version() -> str:
     """Version token of `typst --version`; "?" when the CLI cannot run or prints none."""
     try:
@@ -78,7 +95,7 @@ def _cli_version() -> str:
         return "?"
 
 
-def _check_typst_cli(ver: str) -> tuple[bool, bool]:
+def _check_typst_cli(ver: str) -> bool:
     """Doctor lines for the typst CLI on PATH, whose version `ver` is new enough to write PDF/UA-1."""
     if ver != "?" and _ver_tuple(ver) < TYPST_MIN:
         print(f"DEGRADED  typst {ver} (CLI): {_OLD_TYPST}.")
@@ -86,11 +103,11 @@ def _check_typst_cli(ver: str) -> tuple[bool, bool]:
         print("  pip install typst==0.15.2   # no root: add --user, or use a venv; pip picks the CPU architecture")
         print("  brew upgrade typst | cargo install typst-cli --force | winget upgrade Typst.Typst")
         print("  distro packages (dnf, apt, pacman) may be older: check `typst --version` after")
-        return True, True
+        return True
     print(f"OK    typst {ver} (CLI)")
     if ver != "?" and _ver_tuple(ver) > TYPST_MIN:
         print(f"  NOTE: {_NEW_TYPST}.")
-    return True, True
+    return True
 
 
 def _use_api_for_old_cli(cli_ver: str, mod: ModuleType | None, api_ver: str) -> bool:
@@ -104,29 +121,29 @@ def _use_api_for_old_cli(cli_ver: str, mod: ModuleType | None, api_ver: str) -> 
     return True
 
 
-def check_typst() -> tuple[bool, bool]:
-    """Doctor lines for typst; returns (available, use_cli). The CLI is preferred, the Python API is the fallback and
+def check_typst() -> bool:
+    """Doctor lines for typst; returns whether it is available. The CLI is preferred, the Python API is the fallback and
     is judged by running it, not by its attributes. Older than TYPST_MIN, or a Python API without query/fonts, is
     DEGRADED (still available); a broken or missing install is not."""
     cli_old = ""
-    if shutil.which("typst"):
-        cli_ver = _cli_version()
+    cli_ver = _cli_probe()
+    if cli_ver is not None:
         if cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN:
             return _check_typst_cli(cli_ver)
         cli_old = cli_ver
     mod, ver, why, full = _typst_py_probe()
     if cli_old and not _use_api_for_old_cli(cli_old, mod, ver):
-        return False, False
+        return False
     if mod is None and why.startswith("TOOLOLD"):
         print(f"BROKEN  typst: the Python package `typst` is too old ({why[len('TOOLOLD '):]}).")
         print("  Upgrade it: pip install typst==0.15.2   # or install the CLI (brew install typst | cargo install typst-cli)")
-        return False, False
+        return False
     if mod is None and why:
         print(f"BROKEN  typst: the Python package `typst` is installed but does not work ({why}).")
         print("  Reinstall it: pip install --force-reinstall typst   # or install the CLI (brew install typst | cargo install typst-cli)")
-        return False, False
+        return False
     if mod is not None and _before_pdf_standards(ver, "Python API"):
-        return False, False
+        return False
     if mod is not None and not full:
         print("DEGRADED  typst: Python API only, no typst CLI. Compiling and fill measurement work, but these checks are SKIPPED (WARN):")
         print("  - date adjacency (needs `typst query`, and pdftotext)")
@@ -135,16 +152,16 @@ def check_typst() -> tuple[bool, bool]:
         print("  Install the CLI with ONE of (the pip package `typst` is the Python API only, it ships no CLI):")
         print("  brew install typst | cargo install typst-cli")
         print("  winget install --id Typst.Typst | choco install typst | scoop install typst   # Windows")
-        return True, False
+        return True
     if mod is not None:
         if _ver_tuple(ver) < TYPST_MIN:
             print(f"DEGRADED  typst {ver} (Python API): {_OLD_TYPST}.")
             print("  pip install typst==0.15.2")
-            return True, False
+            return True
         print(f"OK    typst {ver} (Python API: compile, query, fonts)")
         if _ver_tuple(ver) > TYPST_MIN:
             print(f"  NOTE: {_NEW_TYPST}.")
-        return True, False
+        return True
     print("MISSING  typst -- install with ONE of:")
     print("  pip install typst==0.15.2                    # no root (--user or a venv); no CLI needed: compiles, queries and lists fonts via the Python API")
     print("  brew install typst                          # macOS")
@@ -158,14 +175,14 @@ def check_typst() -> tuple[bool, bool]:
     print("    (if that platform has no wheel, `python3 -m pip debug --verbose` lists every compatible tag; never install a wheel built for another platform)")
     print("    (or pick the matching wheel from https://pypi.org/project/typst/#files), upload the .whl, then:")
     print("    pip install --no-index <path-to-wheel>")
-    return False, False
+    return False
 
 
 PdfBackend: TypeAlias = Literal["poppler", "pdfium", "pypdf"] | None
 
 
 @functools.cache
-def _importable(name: str) -> bool:
+def importable(name: str) -> bool:
     """True when `name` really imports (find_spec says only that a file exists: a broken
     wheel or a missing shared library passes it and then fails on first use)."""
     try:
@@ -173,6 +190,9 @@ def _importable(name: str) -> bool:
         return True
     except Exception:   # kept broad: a broken wheel may raise anything on import (OSError, RuntimeError...); False reads as backend absent, the callers WARN
         return False
+
+
+_importable = importable   # the old private name, until layout.py (its only other user) switches to `importable`
 
 
 def pdf_backend() -> PdfBackend:
@@ -185,7 +205,7 @@ def pdf_backend() -> PdfBackend:
         return "poppler"
     fallbacks: tuple[tuple[str, Literal["pdfium", "pypdf"]], ...] = (("pypdfium2", "pdfium"), ("pypdf", "pypdf"))
     for name, backend in fallbacks:
-        if _importable(name):
+        if importable(name):
             return backend
     return None
 
@@ -203,7 +223,7 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
             return True, "poppler"
         print("OK    poppler-utils (pdftotext, pdfinfo, pdftoppm)")
         return True, "poppler"
-    if _importable("pypdfium2"):
+    if importable("pypdfium2"):
         try:
             ver = importlib.metadata.version("pypdfium2")
         except importlib.metadata.PackageNotFoundError:
@@ -211,7 +231,7 @@ def check_pdf_tools() -> tuple[bool, PdfBackend]:
         print(f"OK    pdf: pypdfium2 {ver} (Python: text, word boxes, raster, metadata, attachments)")
         print("  - academic mode still needs poppler (verify_academic.py reads `pdftotext -layout`)")
         return True, "pdfium"
-    if _importable("pypdf"):
+    if importable("pypdf"):
         print("DEGRADED  pypdf: Python fallback, no poppler. Page count is exact, but:")
         print("  - ATS text extraction is indicative only (spurious spaces, e.g. \"FORMA TION\")")
         print("  - SKIPPED (WARN): hidden-text gate and text-clip gate (need pdftotext and pdftoppm)")
@@ -233,7 +253,7 @@ def check_pikepdf() -> None:
     """Doctor line for the optional PDF post-step (verify/hexstrings.py); never a failure or a DEGRADED."""
     from vitae.verify.hexstrings import MIN_VERSION, version_tuple
     need = ".".join(map(str, MIN_VERSION))
-    if not _importable("pikepdf"):
+    if not importable("pikepdf"):
         print(f"INFO  pikepdf not installed (optional, >= {need}): compiled PDFs keep Typst's literal strings, which PHP's "
               "smalot/pdfparser can truncate. `uv run` installs it; or `pip install 'pikepdf>=10.8.0'` or `sudo dnf install python3-pikepdf`")
         return
@@ -266,7 +286,7 @@ def check_fonts() -> None:
         print(f"DEGRADED  fonts: only {usable} of {len(pools)} design families have their fonts installed "
               f"(pick_design draws from at least {MIN_POOL}), so it will substitute.")
         print("  Fetch only the fonts the draw asks for (references/fonts.md, \"Downloading from Google Fonts\"):")
-        r2 = ("typst --font-path <dir> (no install)" if typst_cli_usable()
+        r2 = ("typst --font-path <dir> (no install)" if typst_route().compile == "cli"
               else "export TYPST_FONT_PATHS=<dir> (no install; the Python API reads it here)")
         print(f"  Route 1: install into ~/.local/share/fonts/vitae (persistent, recommended); Route 2: {r2}")
     else:
@@ -301,18 +321,19 @@ class _CountDegraded(io.StringIO):
         return getattr(self.inner, name)
 
 
-def preflight() -> tuple[bool, bool, PdfBackend]:
-    """Print the doctor output; returns (all_ok, use_cli_typst, pdf_backend). all_ok is False only when something
+def preflight() -> tuple[bool, PdfBackend]:
+    """Print the doctor output; returns (all_ok, pdf_backend). all_ok is False only when something
     has no fallback (Pillow, typst, a PDF reader); DEGRADED lines leave it True."""
     counter = _CountDegraded(sys.stdout)
     with contextlib.redirect_stdout(counter):
         pillow_ok = check_pillow()
-        typst_ok, use_cli = check_typst()
-        if use_cli or typst_py() is not None:
+        typst_ok = check_typst()
+        route = typst_route()
+        if route.query is not None:
             check_fonts()
         pdf_ok, backend = check_pdf_tools()
         all_ok = pillow_ok and typst_ok and pdf_ok
-        pypdf_missing = backend in ("poppler", "pdfium") and not _importable("pypdf")
+        pypdf_missing = backend in ("poppler", "pdfium") and not importable("pypdf")
         if pypdf_missing:
             # the WARN check_hidden_text prints for this backend, quoted so the doctor and the gate agree
             skipped = ("the tiny-text check of the hidden-text gate will NOT run "
@@ -321,11 +342,11 @@ def preflight() -> tuple[bool, bool, PdfBackend]:
                        "(WARN \"hidden text: off-page check not run (pypdf missing)\")")
             print(f"DEGRADED  pypdf: not installed. {skipped}. Fix: pip install pypdf")
         check_pikepdf()
-        if (all_ok and not counter.n and not use_cli and backend == "pdfium" and typst_py() is not None
+        if (all_ok and not counter.n and route.compile != "cli" and backend == "pdfium" and typst_py() is not None
                 and _ver_tuple(_typst_py_probe()[1]) >= TYPST_MIN):
             print("OK (Python)  no typst CLI, no poppler: compile, query, fonts, text, boxes and raster all run in Python "
                   "(typst-py + pypdfium2 + pypdf + Pillow); academic mode still needs poppler")
-    return all_ok, use_cli, backend
+    return all_ok, backend
 
 
 def typst_font_kw() -> dict[str, list[str]]:
@@ -392,31 +413,70 @@ def typst_py() -> ModuleType | None:
     return mod if full else None
 
 
+def _accepts(fn: Callable[..., object], keyword: str) -> bool:
+    """Whether `fn` takes the keyword `keyword`; True when its signature cannot be read (a modern wheel is assumed)."""
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):   # no readable signature (builtin without __text_signature__)
+        return True
+    return keyword in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+
+@dataclass(frozen=True)
+class TypstPyCaps:
+    """What the installed typst-py takes, recorded once from its signatures (wheels differ): `compile` and
+    `Compiler.compile_with_warnings` take `ppi`; `Compiler.query` takes `field`; `Compiler.eval` takes `format`."""
+    ppi: bool = True
+    query_field: bool = True
+    eval_format: bool = True
+
+
+def _typst_py_caps(mod: ModuleType | None) -> TypstPyCaps:
+    """The capabilities of the typst-py module `mod` (all True when there is none to ask)."""
+    comp = getattr(mod, "Compiler", None)
+    if comp is None:
+        return TypstPyCaps()
+    return TypstPyCaps(ppi=_accepts(comp.compile_with_warnings, "ppi"),
+                       query_field=_accepts(comp.query, "field") if hasattr(comp, "query") else True,
+                       eval_format=_accepts(comp.eval, "format") if hasattr(comp, "eval") else True)
+
+
+Route: TypeAlias = Literal["cli", "api"] | None
+
+
+@dataclass(frozen=True)
+class TypstRoute:
+    """How Typst is reached, decided once per process. `compile` writes PDFs and PNGs: the CLI when it can write
+    PDF/UA-1 + PDF/A-2a (0.14 or newer; a version it will not print counts as fine), else the Python API, else None.
+    `query` serves query / eval / fonts (they write no PDF): a usable CLI, else a full Python API (not a compile-only
+    one), else any CLI on PATH, even an old one. `api` is the working typst-py module (compile at least) and `caps` its
+    signature capabilities."""
+    compile: Route
+    query: Route
+    api: ModuleType | None
+    caps: TypstPyCaps
+
+
 @functools.cache
-def typst_cli_usable() -> bool:
-    """The one decision for every typst call: True when a `typst` CLI on PATH can write PDF/UA-1 + PDF/A-2a (0.14 or
-    newer; a version it will not print counts as fine). False sends compile to the Python API, as `check_typst` reports.
-    Probed once per process: `typst --version` is a subprocess."""
-    if not shutil.which("typst"):
-        return False
-    ver = _cli_version()
-    return ver == "?" or _ver_tuple(ver) >= TYPST_STANDARDS_MIN
-
-
-def _typst_cli_for_queries() -> bool:
-    """Whether query / eval / fonts run through the CLI. A usable CLI always does. A CLI too old for PDF standards
-    still answers those three the same way (they write no PDF), so it serves only when no full Python API can."""
-    return typst_cli_usable() or (bool(shutil.which("typst")) and typst_py() is None)
+def typst_route() -> TypstRoute:
+    """The one decision for every typst call (compile, PNG render, query, eval, fonts), as `check_typst` reports it.
+    Probed once per process: `which`, `typst --version` and the typst-py probe each run once."""
+    cli_ver = _cli_probe()
+    cli_usable = cli_ver is not None and (cli_ver == "?" or _ver_tuple(cli_ver) >= TYPST_STANDARDS_MIN)
+    mod, _, _, full = _typst_py_probe()
+    compile_route: Route = "cli" if cli_usable else "api" if mod is not None else None
+    query_route: Route = "cli" if cli_usable else "api" if full else "cli" if cli_ver is not None else None
+    return TypstRoute(compile_route, query_route, mod, _typst_py_caps(mod))
 
 
 def typst_can_query() -> bool:
     """True when `typst query`/`eval`/`fonts` can run: the CLI, or typst-py."""
-    return bool(shutil.which("typst")) or typst_py() is not None
+    return typst_route().query is not None
 
 
 def typst_fonts() -> list[str] | None:
     """Family names `typst fonts` reports (CLI, else typst-py), or None."""
-    if _typst_cli_for_queries():
+    if typst_route().query == "cli":
         try:
             r = subprocess.run(["typst", "fonts"], capture_output=True, text=True, timeout=20)
         except (OSError, subprocess.SubprocessError):

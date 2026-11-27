@@ -51,8 +51,8 @@ def test_doc_leading_is_the_last_top_level_rule_before_the_body(src, want):
 def test_under_filled_document_fails_with_content_advice(tmp_path, monkeypatch, capsys, under, rng):
     """Under-filled even at the leading cap: FAIL with content advice, search clamped (never padded). A page that
     overflows at every leading keeps the old advice."""
-    monkeypatch.setattr(T, "preflight", lambda: (True, True, "pypdf"))
-    monkeypatch.setattr(T, "_probe_text", lambda typ, cand, exp, cli, be:
+    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+    monkeypatch.setattr(T, "_probe_text", lambda typ, cand, exp, be:
                         (True, 40 + int(20 * (_doc_leading(cand) or 0))) if under else (False, None))
     p = tmp_path / "cv.typ"
     p.write_text("#set par(leading: 0.6em, spacing: 0.7em)\nbody\n", encoding="utf-8")
@@ -66,8 +66,8 @@ def test_under_filled_document_fails_with_content_advice(tmp_path, monkeypatch, 
 
 def test_probe_landing_in_the_window_is_kept_under_the_leading_cap(tmp_path, monkeypatch, capsys):
     """Fill grows with leading: the tuner keeps the largest leading whose fill stays within the window, never above the cap."""
-    monkeypatch.setattr(T, "preflight", lambda: (True, True, "pypdf"))
-    monkeypatch.setattr(T, "_probe_text", lambda typ, cand, exp, cli, be: (True, int(80 + 20 * (_doc_leading(cand) or 0))))
+    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
+    monkeypatch.setattr(T, "_probe_text", lambda typ, cand, exp, be: (True, int(80 + 20 * (_doc_leading(cand) or 0))))
     p = tmp_path / "cv.typ"
     p.write_text("#set par(leading: 0.6em, spacing: 0.7em)\nbody\n", encoding="utf-8")
     rc, _ = T.tune(str(p), 1, 88, 96, 0.40, 1.60)

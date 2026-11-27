@@ -112,14 +112,6 @@ def grep(text: str, pattern: str) -> bool:
     return re.search(pattern, text, re.MULTILINE) is not None
 
 
-def typst_compile(src: Path, pdf: Path, cwd: Path) -> CheckResult:
-    """Compile with the typst CLI, else with typst-py through the current python."""
-    if shutil.which("typst"):
-        return run_check(f"typst/{src.stem}", ["typst", "compile", src, pdf], cwd)
-    return run_check(f"typst/{src.stem}", [sys.executable, "-I", "-c",
-                                           "import sys, typst; typst.compile(sys.argv[1], output=sys.argv[2])", src, pdf], cwd)
-
-
 # Doctor simulations: a PATH of symlinks and shims, plus a stub `typst` Python module on PYTHONPATH.
 
 def doctor_env(d: Path, tools: Sequence[str] = ()) -> Path:

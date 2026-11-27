@@ -30,7 +30,7 @@ from vitae.verify.gates import GATES, make_context
 from vitae.verify.layout import check_text_clip, check_whitespace
 from vitae.verify.pdf import (
     _boxes_unavailable,
-    compile_pdf,
+    compile_or_messages,
     count_pages,
     ensure_icons,
     extract_text,
@@ -393,7 +393,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
             lowered = f"{drawn[0]}-{drawn[1]} → {fmin}-{fmax}"
             print(_LOWERED_WARN.format(a=f"{drawn[0]}-{drawn[1]}"))
 
-    deps_ok, use_cli, backend = preflight()
+    deps_ok, backend = preflight()
     if not deps_ok:
         return 1, footer
     footer = _FOOTER_GATE     # armed only now: before this, a FAIL is not about cv.typ
@@ -403,10 +403,10 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         fail |= level == Level.FAIL
 
     ensure_icons(typ)     # the icons file the CV imports must exist before it compiles
-    ok, err = compile_pdf(typ, pdf, use_cli)
-    if not ok:
-        print("FAIL  compile")
-        print(err)
+    err, failed = compile_or_messages(typ, pdf)
+    if failed:
+        for msg in failed:
+            print(f"FAIL  {msg}")
         return 1, footer
     if "did not converge" in err:
         print("FAIL  compile: Typst warns the layout did not converge, so the PDF depends on "
@@ -432,7 +432,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
     pages_boxes = [[b for b, _ in pg] for pg in pages_text] if pages_text is not None else None
 
     with tempfile.TemporaryDirectory() as tmp:
-        pngs = render_pngs(typ, tmp, use_cli)
+        pngs = render_pngs(typ, tmp)
         if not pngs:
             # No PNG => measure_fill never ran => the fill target is UNTESTED.
             # Silently passing here is how a broken render reads as a PASS: this is a FAIL
@@ -504,7 +504,7 @@ def _check_cv(typ: str, expected: str, fmin: str | None, fmax: str | None,
         print("WARN  pypdf extraction is indicative only (spurious spaces inside words, e.g. \"FORMA TION\") — poppler's pdftotext is the reference extractor (references/ats.md)")
 
     txt = extract_text(pdf, backend)
-    ctx = make_context(typ, pdf, txt, typ_text, backend, facts=facts, can_query=use_cli or typst_can_query())
+    ctx = make_context(typ, pdf, txt, typ_text, backend, facts=facts, can_query=typst_can_query())
     # No `typst query`: the layout gates that need it are skipped with a notice, the rest still run.
     gates = tuple(g for g in GATES if not (allow_placeholders and g.name == "placeholders"))
     if allow_placeholders:

@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, NamedTuple
 
 from vitae.core.base import Mark, Word, _Line
-from vitae.core.env import _typst_cli_for_queries, typst_font_kw, typst_py
+from vitae.core.env import typst_font_kw, typst_py, typst_route
 from vitae.verify.pdf import auto_root
 
 if TYPE_CHECKING:
@@ -58,23 +58,28 @@ def _is_mark(v: object) -> TypeIs[Mark]:
 
 
 def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None:
-    """The typst-py route of _typst_values: same query / eval fallback and root as the CLI calls."""
+    """The typst-py route of _typst_values: same query / eval fallback and root as the CLI calls. A wheel whose
+    `query` or `eval` lacks the keyword (`typst_route().caps`) skips that call instead of failing it."""
     mod = typst_py()
     if mod is None:
         return None
+    caps = typst_route().caps
     try:
         comp = mod.Compiler(typ, root=root, **typst_font_kw()) if root else mod.Compiler(typ, **typst_font_kw())
-        fn: Callable[[], object]
-        for fn in (lambda: comp.query(selector, field="value", one=False),
-                   lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json")):
+        calls: list[Callable[[], object]] = []
+        if caps.query_field:
+            calls.append(lambda: comp.query(selector, field="value", one=False))
+        if caps.eval_format:
+            calls.append(lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json"))
+        for fn in calls:
             try:
                 out = fn()
                 if isinstance(out, str) and out.strip().startswith("["):
                     vals = _json_list(out)
                     if vals is not None:
                         return vals
-            except (RuntimeError, TypeError, ValueError, OSError):
-                continue   # this typst-py route failed (typst error, signature of an older wheel, bad JSON): try the next
+            except (RuntimeError, ValueError, OSError):
+                continue   # this typst-py route failed (typst error, bad JSON): try the next
     except (RuntimeError, TypeError, OSError):   # Compiler() refusing the source or the keywords: marks not readable
         pass
     return None
@@ -83,7 +88,7 @@ def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None
 def _typst_values(typ: str, selector: str, root: str | None = None) -> list[object] | None:
     """JSON list of the values of every element labelled `selector`, or None."""
     root = root or auto_root(typ)
-    if not _typst_cli_for_queries():
+    if typst_route().query != "cli":
         return _values_py(typ, selector, root)
     rootargs = ["--root", root] if root else []
     for cmd in (["typst", "query", typ, selector, "--field", "value"] + rootargs,

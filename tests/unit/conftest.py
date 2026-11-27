@@ -3,6 +3,7 @@
 Importing these modules has no side effect: main() is behind __main__. Shared path constants live in `_paths`.
 """
 import sys
+from types import ModuleType
 
 import pytest
 from _paths import SCRIPTS
@@ -28,18 +29,41 @@ def template_fonts():
 
 
 @pytest.fixture
+def fresh_typst_probes():
+    """Opt-in for the tests that fake `typst` on PATH (`shutil.which`, `subprocess.run`, an executable shim): the typst
+    route and the CLI version are probed once per process, so these tests start and leave with no cached probe."""
+    from vitae.core import env
+    env._cli_probe.cache_clear()
+    env.typst_route.cache_clear()
+    yield
+    env._cli_probe.cache_clear()
+    env.typst_route.cache_clear()
+
+
+@pytest.fixture
+def fake_typst(fresh_typst_probes, monkeypatch):
+    """Opt-in: fake the two probes the typst route is decided from. `install(cli=None, api=None, full=True)`: `cli` is the
+    CLI's version ("0.15.0", "?" when it prints none; None = no CLI on PATH), `api` the typst-py module (None = no
+    working package; its version is 0.15.2) and `full` whether it also queries and lists fonts."""
+    from vitae.core import env
+
+    def install(cli: str | None = None, api: ModuleType | None = None, full: bool = True) -> None:
+        monkeypatch.setattr(env, "_cli_probe", lambda: cli)
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: (api, "0.15.2" if api else "", "", full and api is not None))
+        env.typst_route.cache_clear()
+    return install
+
+
+@pytest.fixture
+def typst_api_only(fake_typst):
+    """Opt-in: every typst call goes through the real typst-py package, as with no CLI on PATH (skips without it)."""
+    fake_typst(api=pytest.importorskip("typst"))
+
+
+@pytest.fixture
 def tuner_original_compiles(monkeypatch):
     """The tuner compiles the CV once before fitting it. The tune tests inject their probes and use placeholder sources
     that Typst would refuse (no title), so that one compile is a success unless a test sets its own. Opt in with
     `pytestmark = pytest.mark.usefixtures("tuner_original_compiles")`."""
     from vitae.verify import tune
-    monkeypatch.setattr(tune, "compile_pdf", lambda typ, pdf, use_cli: (True, ""))
-
-
-@pytest.fixture(autouse=True)
-def _fresh_typst_cli_decision():
-    """`env.typst_cli_usable` is probed once per process; tests that fake `typst` on PATH need their own probe."""
-    from vitae.core import env
-    env.typst_cli_usable.cache_clear()
-    yield
-    env.typst_cli_usable.cache_clear()
+    monkeypatch.setattr(tune, "compile_or_messages", lambda typ, pdf: ("", []))

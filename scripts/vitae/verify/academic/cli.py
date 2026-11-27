@@ -79,7 +79,7 @@ def main() -> None:
     args = ap.parse_args(argv)
 
     if args.doctor:
-        ok, _, _ = preflight()
+        ok, _ = preflight()
         if not shutil.which("pdftotext"):
             print("MISSING  pdftotext (poppler-utils) -- required for the "
                   "-layout extraction these checks depend on")

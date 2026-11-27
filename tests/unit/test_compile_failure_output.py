@@ -29,9 +29,9 @@ def test_a_compile_failure_without_advice_is_one_message() -> None:
 
 
 def test_letter_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPatch, tmp_path, capsys) -> None:
-    monkeypatch.setattr(letter, "preflight", lambda: (True, True, "x"))
+    monkeypatch.setattr(letter, "preflight", lambda: (True, "x"))
     monkeypatch.setattr(letter, "ensure_icons", lambda typ: None)
-    monkeypatch.setattr(letter, "compile_pdf", lambda typ, out, cli: (False, REFUSED))
+    monkeypatch.setattr(pdf, "compile_pdf", lambda typ, out: (False, REFUSED))
     typ = tmp_path / "letter.typ"
     typ.write_text("x", encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["verify_letter.py", str(typ), "Acme", "Dev"])
@@ -44,9 +44,9 @@ def test_letter_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPatc
 
 
 def test_academic_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPatch, tmp_path, capsys) -> None:
-    monkeypatch.setattr(academic_gate, "preflight", lambda: (True, True, "pdfium"))
+    monkeypatch.setattr(academic_gate, "preflight", lambda: (True, "pdfium"))
     monkeypatch.setattr(academic_gate.shutil, "which", lambda name: "/usr/bin/pdftotext")
-    monkeypatch.setattr(academic_gate, "compile_pdf", lambda typ, out, cli: (False, REFUSED))
+    monkeypatch.setattr(pdf, "compile_pdf", lambda typ, out: (False, REFUSED))
     typ = tmp_path / "cv.typ"
     typ.write_text("x", encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["verify_academic.py", str(typ), str(ROOT / "templates/academic/faits-academique.example.toml")])
@@ -55,3 +55,4 @@ def test_academic_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPa
     out = capsys.readouterr().out
     assert exit_info.value.code == 1
     assert len(_advice_lines(out)) == 1 and "compile failed: FAIL" not in out
+

@@ -87,7 +87,13 @@ class TestQueryValuesPy:
         monkeypatch.setattr(query, "typst_py", lambda: types.SimpleNamespace(Compiler=Compiler))
 
     def test_failing_first_route_falls_back_to_eval(self, monkeypatch):
-        self._mod(monkeypatch, query_exc=TypeError("unexpected keyword 'field'"))
+        self._mod(monkeypatch, query_exc=RuntimeError("selector matched nothing"))
+        assert query._values_py("a.typ", "<x>", None) == [1, 2]
+
+    def test_a_wheel_whose_query_lacks_field_goes_straight_to_eval(self, monkeypatch):
+        """The signature fallback is a recorded capability, not a swallowed TypeError: a TypeError would be a bug."""
+        self._mod(monkeypatch, query_exc=TypeError("would be a bug if called"))
+        monkeypatch.setattr(query, "typst_route", lambda: env.TypstRoute("api", "api", None, env.TypstPyCaps(query_field=False)))
         assert query._values_py("a.typ", "<x>", None) == [1, 2]
 
     def test_compiler_refusing_the_source_is_not_readable(self, monkeypatch):
@@ -105,6 +111,7 @@ class TestQueryValuesPy:
             query._values_py("a.typ", "<x>", None)
 
 
+@pytest.mark.usefixtures("fresh_typst_probes")
 class TestEnv:
     def test_platform_tag_falls_back_when_packaging_is_absent(self, monkeypatch):
         monkeypatch.setattr(env.importlib, "import_module", _raiser(ImportError("no packaging")))
@@ -169,7 +176,7 @@ class TestEnv:
         assert mod is not None and problem == "" and full is False and ver == "9.9"
         monkeypatch.setattr(env.shutil, "which", lambda n, *a, **k: None)
         monkeypatch.setattr(env, "_typst_py_probe", lambda: (mod, ver, problem, full))
-        assert env.check_typst() == (True, False)
+        assert env.check_typst() is True
         out = capsys.readouterr().out
         assert out.startswith("DEGRADED") and "BROKEN" not in out
 

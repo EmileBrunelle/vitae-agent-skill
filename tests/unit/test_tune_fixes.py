@@ -17,10 +17,10 @@ BASE = "#let rhythm = 1.000\n" + BODY
 
 
 def install(monkeypatch, *, breakat=1000.0, raise_at=None, log=None, raise_if=None):
-    monkeypatch.setattr(T, "preflight", lambda: (True, True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
     n = [0]
 
-    def probe(typ, candidate, expected, use_cli, backend):
+    def probe(typ, candidate, expected, backend):
         T._write(typ, candidate)
         n[0] += 1
         if log is not None:
@@ -90,9 +90,9 @@ def test_current_rhythm_below_floor_is_the_lower_bound(tmp_path, monkeypatch):
 
 def test_floor_failure_keeps_original_as_candidate(tmp_path, monkeypatch):
     # pages hold only for rhythm >= 0.88 (a too-short floor): the original at 0.9 is the fallback
-    monkeypatch.setattr(T, "preflight", lambda: (True, True, "pypdf"))
+    monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
 
-    def probe(typ, candidate, expected, use_cli, backend):
+    def probe(typ, candidate, expected, backend):
         T._write(typ, candidate)
         r = _read_rhythm(candidate) or 1.0
         return (r >= 0.88, round(50 * r + 25) if r >= 0.88 else None)
@@ -185,7 +185,8 @@ def test_a_cv_that_does_not_compile_is_reported_and_never_probed(tmp_path, monke
     log = []
     install(monkeypatch, log=log)
     refusal = pdf_module.standard_failure_advice("error: PDF/UA-1 error: missing document title\n")
-    monkeypatch.setattr(T, "compile_pdf", lambda typ, out, use_cli: (False, f"{refusal}\nerror: PDF/UA-1 error: missing document title\n"))
+    monkeypatch.setattr(T, "compile_or_messages", lambda typ, out: ("", pdf_module.compile_failure_messages(
+        f"{refusal}\nerror: PDF/UA-1 error: missing document title\n")))
 
     code, footer = T.tune(str(p), 1, 74, 76)
 
@@ -207,9 +208,9 @@ def test_a_cv_that_compiles_is_tuned(tmp_path, monkeypatch, capsys):
 def test_a_real_cv_without_a_title_never_prints_page_count_off(tmp_path, monkeypatch, capsys):
     """End to end (real Typst, real probes): the refusal comes from the first compile and names the title."""
     from vitae.core import env
-    if not env.check_typst()[0] or not env.preflight()[0]:
+    if not env.check_typst() or not env.preflight()[0]:
         pytest.skip("no Typst or no PDF reader available")
-    monkeypatch.setattr(T, "compile_pdf", pdf_module.compile_pdf)     # the real one, not the conftest stub
+    monkeypatch.setattr(T, "compile_or_messages", pdf_module.compile_or_messages)     # the real one, not the conftest stub
     p = put(tmp_path, '#set page(width: 200pt, height: 100pt)\n' + BODY)
     code, _ = T.tune(str(p), 1, 74, 76)
     out = capsys.readouterr().out

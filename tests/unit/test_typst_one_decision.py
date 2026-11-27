@@ -1,7 +1,8 @@
-"""Every typst call (compile, query, fonts) follows `env.typst_cli_usable`: an old CLI on PATH never compiles when the
-Python API can, and neither does it answer query / fonts when a full Python API is there."""
+"""Every typst call (compile, PNG render, query, fonts) follows `env.typst_route`, decided once per process: an old CLI on
+PATH never compiles when the Python API can, and neither does it answer query / fonts when a full Python API is there."""
 import os
 import stat
+import subprocess
 import types
 from pathlib import Path
 
@@ -45,7 +46,7 @@ API.Fonts = FakeFonts         # type: ignore[attr-defined]
 
 
 @pytest.fixture
-def fake_cli(tmp_path, monkeypatch):
+def fake_cli(fresh_typst_probes, tmp_path, monkeypatch):
     """Install an executable `typst` first on PATH printing `version`; every other call appends its arguments to a log.
     Returns install(version) -> list of the CLI's invocations (read from the log)."""
     def install(version: str) -> Path:
@@ -82,9 +83,10 @@ def _calls(log: Path) -> list[str]:
 
 
 class TestOldCliWithPythonApi:
-    def test_decision_is_false_for_an_old_cli(self, fake_cli):
+    def test_the_route_is_the_api_for_an_old_cli(self, fake_cli, monkeypatch):
         fake_cli("0.13.1")
-        assert env.typst_cli_usable() is False
+        _api(monkeypatch)
+        assert env.typst_route().compile == "api"
 
     def test_compile_goes_through_the_api(self, fake_cli, tmp_path, monkeypatch):
         log = fake_cli("0.13.1")
@@ -116,17 +118,81 @@ class TestUsableCli:
     def test_new_cli_is_used_for_everything(self, fake_cli, tmp_path, monkeypatch):
         log = fake_cli("0.15.0")
         _api(monkeypatch)
-        assert env.typst_cli_usable() is True
+        assert env.typst_route().compile == "cli"
         ok, _ = pdf.typst_compile(_typ(tmp_path), str(tmp_path / "a.pdf"))
         assert ok and env.typst_fonts() == ["CliFont"]
         assert [c.split()[0] for c in _calls(log)] == ["compile", "fonts"] and FakeCompiler.calls == []
 
-    def test_no_cli_is_not_usable(self, monkeypatch):
-        monkeypatch.setenv("PATH", "")
-        assert env.typst_cli_usable() is False
+    def test_png_render_follows_the_same_route(self, fake_cli, tmp_path, monkeypatch):
+        log = fake_cli("0.13.1")
+        _api(monkeypatch)
+        pdf.render_pngs(_typ(tmp_path), str(tmp_path))
+        assert _calls(log) == [] and FakeCompiler.calls == [f"compile {tmp_path / 'a.typ'}"]
 
-    def test_version_is_probed_once_per_process(self, fake_cli):
-        fake_cli("0.15.0")
-        assert env.typst_cli_usable() is True
-        fake_cli("0.13.1")   # the CLI changed under us: the decision stays the one taken first
-        assert env.typst_cli_usable() is True
+    def test_no_route_is_a_failed_compile_not_a_crash(self, tmp_path, fake_typst):
+        fake_typst()
+        ok, err = pdf.compile_pdf(_typ(tmp_path), str(tmp_path / "a.pdf"))
+        assert ok is False and "no usable typst" in err
+        assert pdf.render_pngs(_typ(tmp_path), str(tmp_path)) == []
+
+
+ALL_PROBES = {
+    # id: (cli version, api module, api full) -> (compile route, query route)
+    "old-cli+api": (("0.13.1", API, True), ("api", "api")),
+    "new-cli+api": (("0.15.0", API, True), ("cli", "cli")),
+    "new-cli, no-api": (("0.15.0", None, True), ("cli", "cli")),
+    "cli-version-unreadable": (("?", None, True), ("cli", "cli")),
+    "no-cli+api": ((None, API, True), ("api", "api")),
+    "no-cli+compile-only-api": ((None, API, False), ("api", None)),
+    "old-cli+compile-only-api": (("0.13.1", API, False), ("api", "cli")),
+    "old-cli, no-api": (("0.13.1", None, True), (None, "cli")),
+    "nothing": ((None, None, True), (None, None)),
+}
+
+
+@pytest.mark.parametrize("probes, routes", ALL_PROBES.values(), ids=ALL_PROBES.keys())
+def test_the_route_decision(fake_typst, probes, routes):
+    """One table for the whole decision: where a compile goes, where query / eval / fonts go, and whether they can."""
+    cli, api, full = probes
+    fake_typst(cli=cli, api=api, full=full)
+    route = env.typst_route()
+    assert (route.compile, route.query) == routes
+    assert env.typst_can_query() is (routes[1] is not None)
+
+
+def test_the_route_is_decided_once(fake_typst):
+    fake_typst(cli="0.15.0")
+    first = env.typst_route()
+    fake_typst(cli="0.13.1")   # install() clears the cache; without it the first decision would stay
+    assert env.typst_route() is not first
+    assert env.typst_route() is env.typst_route()
+
+
+class TestProbedOncePerProcess:
+    """`which typst` and `typst --version` each run once, whoever asks and in whatever order (doctor included)."""
+
+    @pytest.fixture
+    def counts(self, fresh_typst_probes, monkeypatch):
+        seen: dict[str, int] = {"which": 0, "version": 0}
+
+        def which(name: str, *_a: object, **_k: object) -> str:
+            seen["which"] += 1
+            return "/usr/bin/typst"
+
+        def run(argv: list[str], *_a: object, **_k: object) -> subprocess.CompletedProcess[str]:
+            seen["version"] += argv[1:] == ["--version"]
+            return subprocess.CompletedProcess(argv, 0, stdout="typst 0.15.0 (x)\n" if argv[1:] == ["--version"] else "Font\n", stderr="")
+
+        monkeypatch.setattr(env.shutil, "which", which)
+        monkeypatch.setattr(env.subprocess, "run", run)
+        monkeypatch.setattr(env, "_typst_py_probe", lambda: (None, "", "", False))
+        return seen
+
+    def test_route_queries_fonts_and_doctor_share_one_probe(self, counts, capsys):
+        for _ in range(3):
+            env.typst_route()
+            env.typst_can_query()
+            env.typst_fonts()
+            env.check_typst()
+        assert counts == {"which": 1, "version": 1}
+        assert "OK    typst 0.15.0 (CLI)" in capsys.readouterr().out

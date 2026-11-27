@@ -3,9 +3,9 @@ import vitae.verify.letter as vl
 
 
 def _letter(monkeypatch, tmp_path, text, employer, title):
-    monkeypatch.setattr(vl, "preflight", lambda: (True, True, "x"))
+    monkeypatch.setattr(vl, "preflight", lambda: (True, "x"))
     monkeypatch.setattr(vl, "ensure_icons", lambda typ: None)
-    monkeypatch.setattr(vl, "compile_pdf", lambda typ, pdf, cli: (True, ""))
+    monkeypatch.setattr(vl, "compile_or_messages", lambda typ, pdf: ("", []))
     monkeypatch.setattr(vl, "count_pages", lambda pdf, backend: "1")
     monkeypatch.setattr(vl, "extract_text", lambda pdf, backend: text)
     monkeypatch.setattr(vl, "check_hidden_text", lambda pdf: [])

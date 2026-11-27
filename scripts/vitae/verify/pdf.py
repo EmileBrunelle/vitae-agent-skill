@@ -23,7 +23,7 @@ from typing import Literal, overload
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, Box, WordBox
-from vitae.core.env import PdfBackend, _importable, pdf_backend, typst_cli_usable, typst_font_kw, typst_py
+from vitae.core.env import PDF_STANDARDS, PdfBackend, importable, pdf_backend, typst_font_kw, typst_route
 from vitae.core.pdfium import PdfiumDoc, PdfiumPage, PdfiumTextPage
 from vitae.verify.hexstrings import hexify_pdf
 from vitae.verify.page import CROP_CAP, CROP_PAD_IN, CROP_PPI, CROP_SCAN_PPI, crop_candidates
@@ -48,27 +48,6 @@ def auto_root(typ: str) -> str | None:
     for _ in range(ups):
         root = os.path.dirname(root)
     return root if ups else None
-
-
-# auto_root as a typst-py keyword and as CLI flags; empty when the default root (the file's own folder) is right.
-def _root_kw(typ: str) -> dict[str, str]:
-    r = auto_root(typ)
-    return {"root": r} if r else {}
-
-
-def _root_cli(typ: str) -> list[str]:
-    r = auto_root(typ)
-    return ["--root", r] if r else []
-
-
-# The PDF standards every compile asks Typst to enforce: PDF/UA-1 (accessible tagged PDF) and PDF/A-2a, the archival
-# level that is itself tagged and accepts the UA-1 PDF version range (A-1 caps the PDF version at 1.4, A-4 needs 2.0).
-# Typst refuses to write the file when the document breaks one (no title, an image with no description, ...).
-PDF_STANDARDS = ("a-2a", "ua-1")
-
-
-def _standard_cli() -> list[str]:
-    return ["--pdf-standard", ",".join(PDF_STANDARDS)]
 
 
 # Typst words a refusal caused by a standard `PDF/UA-1 error: <what>` (one or several standards before `error:`), the same
@@ -104,9 +83,47 @@ def standard_failure_advice(err: str) -> str:
             f"To fix: {fix}. Typst's own error follows.")
 
 
-def compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
-    """Returns (ok, stderr_text); on a refusal by the PDF standard the text starts with the FAIL line saying what to add."""
-    ok, err = _compile_pdf(typ, pdf, use_cli)
+def _typst_compile(src: str, out: str, *, fmt: Literal["pdf", "png"], standards: bool,
+                   ppi: int | None = None) -> tuple[bool, str]:
+    """(ok, text) for compiling `src` to `out`: the one place that picks the CLI or the Python API (`typst_route`) and
+    builds the root, font and standards arguments. `out` may be a `{p}` pattern for png. The text is the CLI's output,
+    or the API's warnings (an error text on failure). No usable route is a failure that says so."""
+    root = auto_root(src)
+    route = typst_route()
+    if route.compile == "cli":
+        argv = ["typst", "compile", os.path.abspath(src), os.path.abspath(out), "--format", fmt]
+        argv += ["--pdf-standard", ",".join(PDF_STANDARDS)] if standards else []
+        argv += ["--ppi", str(ppi)] if ppi is not None else []
+        argv += ["--root", root] if root else []
+        r = subprocess.run(argv, capture_output=True, text=True)
+        return r.returncode == 0, r.stdout + r.stderr
+    mod = route.api
+    if route.compile != "api" or mod is None:
+        return False, _NO_TYPST
+    options: dict[str, object] = {"output": out, "format": fmt}
+    if standards:
+        options["pdf_standards"] = list(PDF_STANDARDS)
+    if ppi is not None and route.caps.ppi:
+        options["ppi"] = ppi
+    try:
+        comp = mod.Compiler(src, **({"root": root} if root else {}), **typst_font_kw())
+        res = comp.compile_with_warnings(**options)
+    except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
+        return False, str(e)
+    warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
+    return True, "\n".join(str(w) for w in warns or [])
+
+
+_NO_TYPST = ("no usable typst: no `typst` CLI of 0.14 or newer on PATH and no working `typst` Python package "
+             "(run scripts/verify.py --doctor)")
+
+
+def compile_pdf(typ: str, pdf: str) -> tuple[bool, str]:
+    """Returns (ok, stderr_text); on a refusal by the PDF standard the text starts with the FAIL line saying what to add.
+    A success is hexified (optional, pikepdf): the PDF the gates measure is the one the user gets."""
+    ok, err = _typst_compile(typ, pdf, fmt="pdf", standards=True)
+    if ok:
+        hexify_pdf(pdf)
     advice = "" if ok else standard_failure_advice(err)
     return ok, f"{advice}\n{err}" if advice else err
 
@@ -120,34 +137,17 @@ def compile_failure_messages(err: str) -> list[str]:
     return [f"compile failed: {err}"]
 
 
-def _compile_pdf(typ: str, pdf: str, use_cli: bool) -> tuple[bool, str]:
-    if use_cli:
-        r = subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pdf)] + _standard_cli() + _root_cli(typ), capture_output=True, text=True)
-        if r.returncode == 0:
-            hexify_pdf(pdf)      # optional (pikepdf): the PDF the gates measure is the one the user gets
-        return r.returncode == 0, (r.stdout + r.stderr)
-    try:
-        typst = importlib.import_module("typst")
-        typst.compile(typ, output=pdf, pdf_standards=list(PDF_STANDARDS), **_root_kw(typ), **typst_font_kw())
-    except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
-        return False, str(e)
-    hexify_pdf(pdf)
-    return True, ""
+def compile_or_messages(typ: str, pdf: str) -> tuple[str, list[str]]:
+    """Compile `typ` to `pdf` with `compile_pdf`: (the compile's text, no messages) on success, ("", the gate messages
+    of `compile_failure_messages`) on failure. The one place a gate turns a failed compile into its FAIL lines."""
+    ok, err = compile_pdf(typ, pdf)
+    return ("", compile_failure_messages(err)) if not ok else (err, [])
 
 
-def render_pngs(typ: str, tmp_dir: str, use_cli: bool) -> list[str]:
+def render_pngs(typ: str, tmp_dir: str) -> list[str]:
     """One 90 ppi PNG per page, the raster the fill scan reads (the hidden-text gate renders its own, at HIDDEN_PPI).
-    The second typst-py call is for a version whose compile() does not take `ppi`."""
-    pattern = os.path.join(tmp_dir, "p{p}.png")
-    if use_cli:
-        subprocess.run(["typst", "compile", os.path.abspath(typ), os.path.abspath(pattern), "--format", "png", "--ppi", "90"] + _root_cli(typ),
-                        capture_output=True, text=True)
-    else:
-        typst = importlib.import_module("typst")
-        try:
-            typst.compile(typ, output=pattern, format="png", ppi=90, **_root_kw(typ), **typst_font_kw())
-        except TypeError:
-            typst.compile(typ, output=pattern, format="png", **_root_kw(typ), **typst_font_kw())
+    A failed render leaves no page: the caller reports the missing raster."""
+    _typst_compile(typ, os.path.join(tmp_dir, "p{p}.png"), fmt="png", standards=False, ppi=90)
     return sorted(glob.glob(os.path.join(tmp_dir, "p*.png")))
 
 
@@ -216,22 +216,10 @@ def ensure_icons(typ: str) -> None:
 
 
 def typst_compile(src: str, pdf: str | None = None, standards: bool = False) -> tuple[bool, str]:
-    """(ok, stderr) for `typst compile src [pdf]` via the CLI, else typst-py
-    (the tests' compile step; the CLI only when `typst_cli_usable`; warnings are included in the text). Intentionally bypasses the
-    pikepdf post-step of `compile_pdf`: it is the raw Typst output. `standards` asks for PDF_STANDARDS as
+    """(ok, stderr) for compiling `src` (the tests' compile step; warnings are included in the text). Intentionally
+    bypasses the pikepdf post-step of `compile_pdf`: it is the raw Typst output. `standards` asks for PDF_STANDARDS as
     `compile_pdf` does (off by default: a test snippet needs no document title)."""
-    if typst_cli_usable():
-        r = subprocess.run(["typst", "compile", src] + ([pdf] if pdf else []) + (_standard_cli() if standards else []) + _root_cli(src),
-                           capture_output=True, text=True)
-        return r.returncode == 0, r.stderr
-    mod = typst_py() or importlib.import_module("typst")
-    try:
-        res = mod.Compiler(src, **_root_kw(src), **typst_font_kw()).compile_with_warnings(
-            output=pdf or os.path.splitext(src)[0] + ".pdf", **({"pdf_standards": list(PDF_STANDARDS)} if standards else {}))
-        warns = res[1] if isinstance(res, tuple) and len(res) > 1 else []
-        return True, "\n".join(str(w) for w in warns or [])
-    except Exception as e:   # kept broad: any failure is a compile FAIL carrying its message, never a pass
-        return False, str(e)
+    return _typst_compile(src, pdf or os.path.splitext(src)[0] + ".pdf", fmt="pdf", standards=standards)
 
 
 LINE_GAP = 1.0
@@ -633,7 +621,7 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
         for f in os.listdir(out_dir):
             if stale.fullmatch(f):
                 os.remove(os.path.join(out_dir, f))
-    if _importable("pypdfium2"):
+    if importable("pypdfium2"):
         paths = []
         ims = _pdfium_render(pdf, ppi)
         drop_stale()
@@ -658,7 +646,7 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
 
 def _page_rasters(pdf: str, ppi: int) -> list[Image.Image]:
     """One RGB PIL image per page, the way render_pages picks its backend; [] when neither is there."""
-    if _importable("pypdfium2"):
+    if importable("pypdfium2"):
         return _pdfium_render(pdf, ppi)
     if not shutil.which("pdftoppm"):
         return []

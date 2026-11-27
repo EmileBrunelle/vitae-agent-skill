@@ -410,7 +410,6 @@ class Env:
     ws = ()
     lib = ()
     layout = None
-    use_cli = False
     can_query = False
     boxes = [[]]
     # set by the `env` fixture
@@ -432,10 +431,11 @@ def env(monkeypatch, tmp_path):
             return ret() if callable(ret) else ret
         return f
 
-    monkeypatch.setattr(cv, "preflight", lambda: (e.preflight_ok, e.use_cli, e.backend))
+    monkeypatch.setattr(cv, "preflight", lambda: (e.preflight_ok, e.backend))
     monkeypatch.setattr(cv, "check_lib_integrity", lambda t: list(e.lib))
     monkeypatch.setattr(cv, "ensure_icons", lambda t: None)
-    monkeypatch.setattr(cv, "compile_pdf", lambda t, p, use_cli: (e.compile_ok, e.err))
+    monkeypatch.setattr(cv, "compile_or_messages",
+                        lambda t, p: (e.err, []) if e.compile_ok else ("", real_pdf.compile_failure_messages(e.err)))
     monkeypatch.setattr(cv, "count_pages", rec("count_pages", lambda: e.pages))
     monkeypatch.setattr(cv, "word_boxes", rec("word_boxes", lambda: e.boxes))
     monkeypatch.setattr(cv, "render_pngs", rec("render_pngs", lambda: list(e.pngs)))
@@ -594,7 +594,16 @@ def test_compile_failure_prints_the_error_and_stops(env):
     env.compile_ok, env.err = False, "error: boom"
     rc, footer, out = env.run(fmin="90", fmax="99")
     assert rc == 1 and footer
-    assert out.splitlines()[:2] == ["FAIL  compile", "error: boom"] and "pages:" not in out
+    assert out.splitlines()[:1] == ["FAIL  compile failed: error: boom"] and "pages:" not in out
+
+
+def test_a_refusal_by_the_pdf_standard_leads_with_the_advice_line(env):
+    """Same lines as the letter and academic gates: the line saying what to add first, then Typst's own error."""
+    advice = real_pdf.standard_failure_advice("error: PDF/UA-1 error: missing document title\n")
+    env.compile_ok, env.err = False, f"{advice}\nerror: PDF/UA-1 error: missing document title\n"
+    rc, _, out = env.run(fmin="90", fmax="99")
+    lines = out.splitlines()
+    assert rc == 1 and lines[0] == advice and lines[1].startswith("FAIL  compile failed: error: PDF/UA-1")
 
 
 def test_non_convergence_is_a_fail_with_the_reason(env):
@@ -811,13 +820,11 @@ def test_backend_facts_and_query_flag_reach_the_collaborators(env):
     assert ctx["txt"] == "EXTRACTED TEXT"
 
 
-@pytest.mark.parametrize("use_cli,tq,expected", [(False, False, False), (True, False, True),
-                                                  (False, True, True), (True, True, True)])
-def test_gates_may_query_when_the_cli_or_the_python_binding_can(env, use_cli, tq, expected):
-    env.use_cli, env.can_query = use_cli, tq
+@pytest.mark.parametrize("can_query", [False, True])
+def test_gates_may_query_when_typst_can(env, can_query):
+    env.can_query = can_query
     env.run(fmin="90", fmax="99")
-    assert _bound(env, "make_context", real_gates.make_context)["can_query"] is expected
-    assert _bound(env, "render_pngs", real_pdf.render_pngs)["use_cli"] is use_cli
+    assert _bound(env, "make_context", real_gates.make_context)["can_query"] is can_query
 
 
 def test_whitespace_gate_gets_boxes_family_and_degraded_flag(env):
@@ -1180,17 +1187,6 @@ def test_lowering_below_the_drawn_minimum_but_above_the_floor_only_checks_agains
     rc, _, out = env.run(src=src, fmin=str(drawn_lo - 1), fmax="80")
     assert rc == 1 and (f"FAIL  fill target lowered to {drawn_lo - 1}-80% is below the lowered-target floor "
                         f"({LOWERED_FILL_FLOOR}%, drawn target {drawn_lo}-80)") in out
-
-
-def test_the_compile_step_gets_the_cli_choice(env, monkeypatch):
-    seen = []
-    monkeypatch.setattr(cv, "compile_pdf", lambda t, p, use_cli: seen.append((t, p, use_cli)) or (True, ""))
-    env.use_cli = True
-    env.run()
-    env.use_cli = False
-    env.run()
-    assert [s[2] for s in seen] == [True, False]
-    assert seen[0][1] == seen[0][0][:-4] + ".pdf"
 
 
 def test_non_convergence_message_gives_the_whole_remedy(env):

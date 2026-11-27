@@ -21,9 +21,9 @@ def _write(path, text):
 
 def _check_cv_output(cv, typ):
     stubs = dict(
-        preflight=lambda: (True, False, "pdftotext"), check_lib_integrity=lambda t: [], ensure_icons=lambda t: None,
-        compile_pdf=lambda t, p, use_cli: (True, ""), count_pages=lambda pdf, backend: "1",
-        word_boxes=lambda pdf, with_text=False: None, render_pngs=lambda t, tmp, use_cli: [],
+        preflight=lambda: (True, "pdftotext"), check_lib_integrity=lambda t: [], ensure_icons=lambda t: None,
+        compile_or_messages=lambda t, p: ("", []), count_pages=lambda pdf, backend: "1",
+        word_boxes=lambda pdf, with_text=False: None, render_pngs=lambda t, tmp: [],
         extract_text=lambda pdf, backend: "", make_context=lambda *a, **k: object(), GATES=(),
         run_gates=lambda gates, ctx: 0, check_review_record=lambda t: [], layout_report_line=lambda t: None,
         typst_can_query=lambda: False)

@@ -15,11 +15,11 @@ def typ(tmp_path):
     return p
 
 
-def install(monkeypatch, *, lstar, fill_of=lambda l: round(l * 100), preflight=(True, True, "pypdf"), log=None):
+def install(monkeypatch, *, lstar, fill_of=lambda l: round(l * 100), preflight=(True, "pypdf"), log=None):
     """Pages hold iff leading <= lstar; fill grows with leading."""
     monkeypatch.setattr(T, "preflight", lambda: preflight)
 
-    def probe(typ_path, text, leading, spacing, expected, use_cli, backend):
+    def probe(typ_path, text, leading, spacing, expected, backend):
         if log is not None:
             log.append(leading)
         open(typ_path, "w", encoding="utf-8").write("PROBE-JUNK")   # like the real probe: rewrites in place
@@ -124,7 +124,7 @@ class TestFailures:
         assert code == 2 and footer and p.read_text(encoding="utf-8") == "no rhythm here\n"
 
     def test_failed_preflight_exits_1_with_no_footer(self, typ, monkeypatch):
-        install(monkeypatch, lstar=1.0, preflight=(False, False, None))
+        install(monkeypatch, lstar=1.0, preflight=(False, None))
         assert T.tune(str(typ), 1, 80, 99) == (1, None)
         assert typ.read_text(encoding="utf-8") == PAR
 
@@ -145,7 +145,7 @@ class TestFailures:
         assert code == 1 and footer != T._FOOTER_TUNE_UNDER and typ.read_text(encoding="utf-8") == PAR
 
     def test_interrupt_mid_probe_restores_file_and_propagates(self, typ, monkeypatch):
-        monkeypatch.setattr(T, "preflight", lambda: (True, True, "pypdf"))
+        monkeypatch.setattr(T, "preflight", lambda: (True, "pypdf"))
         calls = []
 
         def probe(typ_path, *a):
