@@ -342,10 +342,12 @@ def located_bullets(marks: list[Mark], pages: list[list[WordBox]],
     arguments, remembered for the last ones (maxsize 1): check_runts and check_rhythm of one run call it with the same
     marks and words, and the second call is a lookup. Equal arguments, equal result, whatever ran before; the lists
     returned are the caller's own."""
+    args = _Args(marks, pages, heights)
     try:
-        got = _located(_Args(marks, pages, heights))
+        hash(args)
     except TypeError:          # a mark value that cannot be hashed: not a lib mark, nothing to remember
         return _locate(marks, pages, heights)
+    got = _located(args)
     return [(pos, list(lines)) for pos, lines in got]
 
 

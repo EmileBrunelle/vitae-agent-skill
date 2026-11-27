@@ -260,3 +260,19 @@ def test_located_bullets_bound_time_at_the_declared_size_with_a_new_column_per_b
     runts.located_bullets(marks, [page], None)
 
     assert time.perf_counter() - start < 1.5     # a column per bullet, the page at the limit: measured ~0.3 s
+
+
+def test_a_type_error_raised_by_the_locator_is_not_swallowed_and_retried(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[int] = []
+
+    def boom(marks: object, pages: object, heights: object) -> list[object]:
+        calls.append(1)
+        raise TypeError("bug inside _locate")
+
+    monkeypatch.setattr(runts, "_locate", boom)
+    runts._located.cache_clear()
+
+    with pytest.raises(TypeError, match="bug inside _locate"):
+        runts.located_bullets([], [[]], None)
+    assert len(calls) == 1                      # the old catch ran the locator a second time on the fallback path
+
