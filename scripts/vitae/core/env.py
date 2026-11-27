@@ -367,7 +367,7 @@ def check_fonts() -> None:
     from vitae.design.tables import FONTS, MIN_POOL
     have = design_fonts.fonts_available()
     if have is None:
-        print("WARN  fonts not checked (`typst fonts` failed or timed out)")
+        print("WARN  fonts not checked (`typst fonts` unavailable or failed)")
         return
     pools = FONTS
     usable = sum(1 for f in pools if design_fonts.family_usable(f, have))
@@ -581,7 +581,7 @@ def typst_fonts() -> list[str] | None:
     if typst_route().query == "cli":
         try:
             r = proc.run(["typst", "fonts"], proc.PROBE_S, name="typst fonts")
-        except (OSError, subprocess.SubprocessError):
+        except OSError:   # typst missing; a ToolTimeout propagates to `proc.guarded` (a hung tool is a FAIL, not "unverified")
             return None
         return [l.strip() for l in r.stdout.splitlines() if l.strip()] if r.returncode == 0 else None
     mod = typst_py()

@@ -89,6 +89,7 @@ import argparse
 import re
 import sys
 
+from vitae.core import proc
 from vitae.design.args import add_audacity_arg
 from vitae.design.emit import emit_typ
 from vitae.design.init import init_folder
@@ -98,6 +99,11 @@ from vitae.design.tables import CAREER, FAMILIES, FONTS, band_ok, is_audacity
 
 
 def main() -> None:
+    """Entry point: a tool timeout (typst fonts) is `FAIL  ...` exit 1, never an \"unverified\" draw."""
+    proc.guarded(_main)
+
+
+def _main() -> None:
     ap = argparse.ArgumentParser(add_help=True, description=(__doc__ or "").split("\n")[0])
     ap.add_argument("--name")
     ap.add_argument("--field")

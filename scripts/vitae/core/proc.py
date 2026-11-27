@@ -36,6 +36,9 @@ class ToolTimeout(subprocess.SubprocessError):
         self.tool, self.limit = name, limit
 
 
+_DRAIN_S = 5.0   # after the kill: how long to wait for the pipes to close before abandoning them
+
+
 def run(argv: Sequence[str], limit: float, *, name: str | None = None,
         capture: bool = True) -> subprocess.CompletedProcess[str]:
     """`subprocess.run(argv)` with text output, never raising on a non-zero exit, killed after `limit` seconds.
@@ -50,7 +53,10 @@ def run(argv: Sequence[str], limit: float, *, name: str | None = None,
             stdout, stderr = child.communicate(timeout=limit)
         except subprocess.TimeoutExpired:
             _kill_tree(child)
-            child.communicate()
+            try:
+                child.communicate(timeout=_DRAIN_S)
+            except subprocess.TimeoutExpired:
+                pass   # a grandchild that left the group (setsid) still holds the pipe open: give up on its output, the limit is still a ToolTimeout
             raise ToolTimeout(name or os.path.basename(argv[0]), limit) from None
         except BaseException:
             _kill_tree(child)

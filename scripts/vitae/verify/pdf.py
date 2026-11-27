@@ -673,6 +673,8 @@ def pdf_unreadable(pdf: str) -> bool:
                 return True
         backend = pdf_backend()
         return backend is not None and not count_pages(pdf, backend)
+    except proc.ToolTimeout:   # a hung pdfinfo is a FAIL naming the tool, never "corrupt PDF"
+        raise
     except Exception:   # noqa: BLE001 - kept broad: a corrupt file can make any backend raise anything; fails closed (unreadable), never a pass
         return True
 

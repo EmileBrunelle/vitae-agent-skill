@@ -209,3 +209,49 @@ def test_gates_refuses_an_academic_cv(tmp_path, monkeypatch, capsys):
         verify_cli._dispatch(["--gates", str(typ), str(pdf_path)])
     assert ei.value.code == 2
     assert "academic CV" in capsys.readouterr().err
+
+
+# ---- 10. no swallowing between the tool and the entry point
+def test_hung_typst_fonts_propagates_and_missing_typst_stays_none(tmp_path, monkeypatch, fresh_typst_probes):
+    monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(None, "", "", False))
+    _tool(tmp_path, monkeypatch, "typst", _VERSION)
+    monkeypatch.setattr(proc, "PROBE_S", LIMIT)
+    with pytest.raises(proc.ToolTimeout, match="typst fonts timed out after 1 s"):
+        env.typst_fonts()
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    assert env.typst_fonts() is None                     # missing tool: unchanged
+
+
+def test_hung_pdfinfo_is_not_a_corrupt_pdf(tmp_path, monkeypatch):
+    _tool(tmp_path, monkeypatch, "pdfinfo")
+    monkeypatch.setattr(proc, "POPPLER_S", LIMIT)
+    monkeypatch.setattr(pdf, "pdf_backend", lambda: "poppler")
+    f = tmp_path / "x.pdf"
+    f.write_bytes(b"%PDF-1.4\n")
+    with pytest.raises(proc.ToolTimeout, match="pdfinfo timed out after 1 s"):
+        pdf.pdf_unreadable(str(f))
+    f.write_bytes(b"not a pdf")
+    assert pdf.pdf_unreadable(str(f)) is True            # genuinely unreadable stays True
+
+
+@pytest.mark.skipif(os.name == "nt", reason="setsid: POSIX only")
+def test_a_grandchild_holding_the_pipe_does_not_block_the_timeout(tmp_path, monkeypatch):
+    pidfile = tmp_path / "gc.pid"
+    d = tmp_path / "bin"
+    d.mkdir()
+    exe = d / "leaker"
+    exe.write_text(f"#!/bin/sh\nsetsid sh -c 'echo $$ > {pidfile}; exec sleep 30' &\nexec sleep 30\n", encoding="utf-8")
+    exe.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{d}:/usr/bin:/bin")
+    monkeypatch.setattr(proc, "_DRAIN_S", 1.0)
+    t0 = time.monotonic()
+    try:
+        with pytest.raises(proc.ToolTimeout):
+            proc.run(["leaker"], LIMIT)
+        assert time.monotonic() - t0 < 10, "the drain after the kill is unbounded"
+    finally:
+        if pidfile.exists():
+            try:
+                os.kill(int(pidfile.read_text(encoding="utf-8")), 9)
+            except (OSError, ValueError):
+                pass
