@@ -211,7 +211,7 @@ def measure_groups(heads: list[Mark], secs: list[Mark], pages_words: list[list[W
     # one index per page, built once for every head and title on it
     pages = [PageIndex(words) for words in pages_words]
     for h in sorted(placed, key=lambda h: (h["page"], h["y"])):
-        row, skip = _measure_head(h, by_page[h["page"]], pages[h["page"] - 1] if h["page"] - 1 < len(pages) else None,
+        row, skip = _measure_head(h, by_page[h["page"]], pages[h["page"] - 1] if 1 <= h["page"] <= len(pages) else None,
                                   gap_fn)
         skipped += skip
         if row is not None:

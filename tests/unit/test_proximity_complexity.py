@@ -14,7 +14,7 @@ from _proximity_ref import (
 )
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from vitae.core.base import HeadMark, Mark, SecMark, Word
+from vitae.core.base import HeadMark, Mark, SecMark, Word, is_placed
 from vitae.core.level import Level
 from vitae.verify.bounds import MAX_PAGE_WORK
 from vitae.verify.groups import proximity
@@ -154,3 +154,14 @@ def test_check_group_proximity_measures_a_page_at_the_declared_size() -> None:
     out = proximity.check_group_proximity("", "x.pdf", heads=heads, secs=[], pages=pages)
 
     assert all("not measured: page" not in msg for _, msg in out)
+
+
+@pytest.mark.parametrize("page", [0, -1, 2], ids=["page-0", "negative-page", "beyond-last"])
+def test_a_head_on_a_page_outside_the_document_is_skipped_not_read_from_the_last_page(page: int) -> None:
+    heads, pages = _cv_words(3)
+    assert proximity.measure_groups(heads, [], pages)[0]         # the same heads on page 1 do measure (not vacuous)
+    moved: list[Mark] = [HeadMark(text=h["text"], page=page, x=h["x"], y=h["y"], kind="entry") for h in heads if is_placed(h)]
+
+    rows, skipped = proximity.measure_groups(moved, [], pages)
+
+    assert rows == [] and skipped == len(moved)

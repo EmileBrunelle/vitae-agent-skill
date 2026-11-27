@@ -131,7 +131,7 @@ def measure_head_rebuilding(h: HeadMark, marks: list[_KMark], pages_words: list[
                   gap_fn: GapFn) -> tuple[GroupRow | None, bool]:
     """(row, skipped) for one head: a row when its group is measurable; skipped when its text or its next
     block could not be located; neither for a last block on its page or a single-line group."""
-    if h["page"] - 1 >= len(pages_words):
+    if not 1 <= h["page"] <= len(pages_words):
         return None, True
     words = pages_words[h["page"] - 1]
     run = find_run_scanning(words, h["text"], h["y"])
