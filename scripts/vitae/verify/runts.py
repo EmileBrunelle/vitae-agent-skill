@@ -13,17 +13,25 @@ off at the first clear vertical channel), and a bullet that breaks across a page
 next page in the same column. A line the extractor returns as one "word" works the same."""
 from __future__ import annotations
 
-import functools
 from bisect import bisect_left
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from itertools import chain, islice
 
-from vitae.core.base import HeadMark, Mark, Word, WordBox, _Line, is_placed
+from vitae.core.base import (
+    BulletLayout,
+    BulletLine,
+    Extent,
+    HeadMark,
+    Mark,
+    Pos,
+    Word,
+    WordBox,
+    _Line,
+    is_placed,
+)
 from vitae.core.level import Finding, Level
-from vitae.verify.bounds import too_dense
-from vitae.verify.groups.query import _cluster
-from vitae.verify.pdf import _bbox_pages
+from vitae.verify.bounds import density_guard, page_at, too_dense
+from vitae.verify.groups.query import cluster
 
 # A last line is a runt when it is at most RUNT_EM line heights wide AND at most RUNT_FRAC of the bullet's
 # widest line. Both: the first keeps a short line of a narrow column from being judged by the column alone,
@@ -37,31 +45,8 @@ _HEAD_REACH = 40.0     # pt: an entry head this near the bullet's column (its ro
 _BOTTOM_LINES = 2.3    # line heights: a bullet's last line this close to the content bottom may go on at the next page
 
 
-@dataclass(frozen=True)
-class Extent:
-    x0: float
-    x1: float
-
-
 def _extent(words: list[Word]) -> Extent:
     return Extent(min(w[0] for w in words), max(w[2] for w in words))
-
-
-@dataclass(frozen=True)
-class Pos:
-    """Where a bullet starts: its marker's page, x and y."""
-    page: int
-    x: float
-    y: float
-
-
-@dataclass(frozen=True)
-class BulletLine:
-    page: int
-    extent: Extent
-    height: float
-    text: str
-    y1: float = 0.0
 
 
 def _positions(marks: list[Mark]) -> list[Pos]:
@@ -144,12 +129,9 @@ def _next_head(heads: Sequence[HeadMark], page: int, after: float, col: tuple[fl
                 and col[0] - _HEAD_REACH <= h["x"] <= col[1] + _HEAD_REACH), default=float("inf"))
 
 
-def bullet_lines(marks: list[Mark], pages: list[list[WordBox]],
-                 heights: list[float] | None = None) -> list[tuple[int, list[BulletLine]]]:
-    """Per bullet mark (page, lines top to bottom); a bullet whose first line cannot be located is dropped.
-    Only the words of the marker's own column count, and a bullet runs on across a page break when its last
-    line is at the bottom of the content (`heights`: the page heights)."""
-    return [(pos.page, got) for pos, got in located_bullets(marks, pages, heights)]
+def _in_col(x0: float, x1: float, col: tuple[float, float]) -> bool:
+    """True when a word spanning x0..x1 lies inside the column's x range (half a point of slack each side)."""
+    return x0 >= col[0] - 0.5 and x1 <= col[1] + 0.5
 
 
 class _Page:
@@ -211,8 +193,8 @@ class _Page:
         got = self.windows.get(col)
         if got is None:
             raw = self.raw
-            got = self.windows[col] = _Window(_cluster([raw[i] for i in self.by_centre
-                                                       if raw[i][0] >= col[0] - 0.5 and raw[i][2] <= col[1] + 0.5]))
+            got = self.windows[col] = _Window(cluster([raw[i] for i in self.by_centre
+                                                       if _in_col(raw[i][0], raw[i][2], col)]))
         return got
 
 
@@ -232,15 +214,19 @@ class _Document:
         for b in bullets:
             self.bullets_on.setdefault(b.page, []).append(b)
 
-    def page(self, pg: int) -> _Page:
+    def page(self, pg: int) -> _Page | None:
+        """The prepared page `pg` (1-based), None when the document has no such page."""
+        words = page_at(self.pages, pg)
+        if words is None:
+            return None
         got = self._prepared.get(pg)
         if got is None:
-            got = self._prepared[pg] = _Page(self.pages[pg - 1])
+            got = self._prepared[pg] = _Page(words)
         return got
 
     def _lowest_per_page(self, col: tuple[float, float]) -> list[float]:
         """The bottom of the text inside the column's x band, on each page."""
-        return [max((b[3] for b, _ in page if b[0] >= col[0] - 0.5 and b[2] <= col[1] + 0.5), default=float("-inf"))
+        return [max((b[3] for b, _ in page if _in_col(b[0], b[2], col)), default=float("-inf"))
                 for page in self.pages]
 
     def at_bottom(self, pg: int, col: tuple[float, float], last: BulletLine, page_h: float | None) -> bool:
@@ -278,17 +264,21 @@ def _next_marker(bullets: list[Pos], i: int, m: Pos) -> float:
     return float("inf")
 
 
-def _locate(marks: list[Mark], pages: list[list[WordBox]],
-            heights: list[float] | None) -> list[tuple[Pos, list[BulletLine]]]:
+def located_bullets(marks: list[Mark], pages: list[list[WordBox]],
+                    heights: list[float] | None = None) -> list[tuple[Pos, list[BulletLine]]]:
+    """Per bullet mark its position (page, x, y) and its lines top to bottom; a bullet whose first line cannot be
+    located, or whose page is not one of `pages`, is dropped. Only the words of the marker's own column count, and a
+    bullet runs on across a page break when its last line is at the bottom of the content (`heights`: the page
+    heights)."""
     bullets = sorted(_positions(marks), key=lambda p: (p.page, p.y))
     heads: list[HeadMark] = [h for h in marks if is_placed(h) and h.get("kind") != "bullet"]
     doc = _Document(pages, bullets, heads)
     out: list[tuple[Pos, list[BulletLine]]] = []
     for i, m in enumerate(bullets):
         pg = m.page
-        if not 1 <= pg <= len(pages):
-            continue
         page = doc.page(pg)
+        if page is None:
+            continue
         ltr = page.text_side(m)
         if ltr is None:
             continue
@@ -304,51 +294,24 @@ def _locate(marks: list[Mark], pages: list[list[WordBox]],
                             lines[j]["y1"])]
         nxt = min(_next_marker(bullets, i, m), _next_head(doc.heads_on.get(pg, ()), pg, m.y + 1, col))
         at_end = _follow(win, j + 1, edge, ltr, nxt, pg, got, lines[j])
-        if at_end and pg < len(pages) and doc.at_bottom(pg, col, got[-1], heights[pg - 1] if heights else None):
+        following = doc.page(pg + 1) if at_end else None
+        if following is not None and doc.at_bottom(pg, col, got[-1], heights[pg - 1] if heights else None):
             # ran to the bottom of the column: the bullet may go on at the top of the next page, same column
             nxt = min((b.y for b in doc.bullets_on.get(pg + 1, ()) if abs(b.x - m.x) <= _EDGE_SLACK),
                       default=float("inf"))
             nxt = min(nxt, _next_head(doc.heads_on.get(pg + 1, ()), pg + 1, float("-inf"), col))
-            _follow(doc.page(pg + 1).window(col), 0, edge, ltr, nxt, pg + 1, got, None)
+            _follow(following.window(col), 0, edge, ltr, nxt, pg + 1, got, None)
         out.append((m, got))
     return out
 
 
-class _Args:
-    """The arguments of one `located_bullets` call, hashed and compared by value (the marks, the words and the page
-    heights), so that the memo below holds for equal arguments and never for a stale object."""
-    __slots__ = ("heights", "key", "marks", "pages")
-
-    def __init__(self, marks: list[Mark], pages: list[list[WordBox]], heights: list[float] | None) -> None:
-        self.marks, self.pages, self.heights = marks, pages, heights
-        self.key = (tuple(tuple(sorted(m.items())) for m in marks), tuple(tuple(p) for p in pages),
-                    None if heights is None else tuple(heights))
-
-    def __hash__(self) -> int:
-        return hash(self.key)
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, _Args) and self.key == other.key
-
-
-@functools.lru_cache(maxsize=1)
-def _located(args: _Args) -> tuple[tuple[Pos, tuple[BulletLine, ...]], ...]:
-    return tuple((pos, tuple(got)) for pos, got in _locate(args.marks, args.pages, args.heights))
-
-
-def located_bullets(marks: list[Mark], pages: list[list[WordBox]],
-                    heights: list[float] | None = None) -> list[tuple[Pos, list[BulletLine]]]:
-    """bullet_lines with the bullet's marker position (page, x, y) instead of its page. A pure function of its
-    arguments, remembered for the last ones (maxsize 1): check_runts and check_rhythm of one run call it with the same
-    marks and words, and the second call is a lookup. Equal arguments, equal result, whatever ran before; the lists
-    returned are the caller's own."""
-    args = _Args(marks, pages, heights)
-    try:
-        hash(args)
-    except TypeError:          # a mark value that cannot be hashed: not a lib mark, nothing to remember
-        return _locate(marks, pages, heights)
-    got = _located(args)
-    return [(pos, list(lines)) for pos, lines in got]
+def bullet_layout(marks: list[Mark], sized: list[tuple[float, float, list[WordBox]]]) -> BulletLayout:
+    """The words and the located bullets of one run, for the runts and rhythm gates to share: the bullets are
+    located once, and not at all on a page denser than the declared size (the gates refuse that page)."""
+    pages = [items for _, _, items in sized]
+    heights = [h for _, h, _ in sized]
+    located = [] if too_dense("", pages, marks) is not None else located_bullets(marks, pages, heights)
+    return BulletLayout(pages, heights, located)
 
 
 def is_runt(lines: list[BulletLine], runt_em: float = RUNT_EM, runt_frac: float = RUNT_FRAC) -> bool:
@@ -361,23 +324,21 @@ def is_runt(lines: list[BulletLine], runt_em: float = RUNT_EM, runt_frac: float 
     return width <= runt_em * last.height and width <= runt_frac * widest
 
 
-def check_runts(marks: list[Mark] | None, pdf: str, *, fail: Callable[[str], Finding],
+def check_runts(marks: list[Mark] | None, layout: BulletLayout | None, *, fail: Callable[[str], Finding],
                 runt_em: float = RUNT_EM, runt_frac: float = RUNT_FRAC) -> list[Finding]:
     """FAIL per wrapped bullet whose last line is a runt; a WARN when the bullets could not be measured
-    (no bullet marks: a CV that does not draw its list through the lib marker)."""
+    (no bullet marks: a CV that does not draw its list through the lib marker; `layout` None: no word positions)."""
     if marks is None:
         return [(Level.WARN, "bullet runt lines not measured: typst query unavailable")]
     if not any(m.get("kind") == "bullet" for m in marks):
         return [(Level.WARN, "bullet runt lines not measured: no lib bullet marks "
                              "(draw the list through lib list-marker or bullet-marked; drawn-marker is the untagged inline separator)")]
-    sized = _bbox_pages(pdf)
-    if sized is None:
+    if layout is None:
         return [(Level.WARN, "bullet runt lines not measured: word positions unavailable")]
-    pages = [items for _, _, items in sized]
-    if (dense := too_dense("bullet runts", pages, marks)) is not None:
-        return [fail(dense)]
+    if (dense := density_guard("bullet runts", layout.pages, marks, fail)) is not None:
+        return dense
     out: list[Finding] = []
-    for _, lines in bullet_lines(marks, pages, [h for _, h, _ in sized]):
+    for _, lines in layout.located:
         pg = lines[-1].page
         if is_runt(lines, runt_em, runt_frac):
             out.append(fail(f'bullet runt line on page {pg}: last line of a {len(lines)}-line bullet is '

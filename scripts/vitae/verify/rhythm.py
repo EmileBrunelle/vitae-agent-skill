@@ -1,7 +1,7 @@
 """vitae.verify.rhythm: a bullet's wrapped second line must sit closer than the next bullet.
 
 Positions only, no wording and no script assumption. From the same <vitae-bullet> marks as the runts gate
-(runts.located_bullets), per list column (markers sharing an x): the wrapped pitch is the median
+(core.base.BulletLayout, built by runts.bullet_layout), per list column (markers sharing an x): the wrapped pitch is the median
 baseline-to-baseline distance between consecutive lines of one bullet, the bullet pitch the median distance
 from a bullet's last line to the next bullet's first line. The next bullet is the following marker of the
 same column; a pair is left out when an entry head or part mark lies between the two markers, when the
@@ -16,11 +16,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from statistics import median
 
-from vitae.core.base import HeadMark, Mark, WordBox, is_placed
+from vitae.core.base import BulletLayout, BulletLine, HeadMark, Mark, Pos, is_placed
 from vitae.core.level import Finding, Level
-from vitae.verify.bounds import too_dense
-from vitae.verify.pdf import _bbox_pages
-from vitae.verify.runts import BulletLine, Pos, located_bullets
+from vitae.verify.bounds import density_guard
 
 MIN_STEP = 0.5          # pt: the bullet pitch must exceed the wrapped pitch by at least this
 _MAX_GAP = 3.0          # line heights: a farther next bullet has something between it and this one
@@ -77,9 +75,10 @@ def _own_lines(lines: list[BulletLine]) -> list[BulletLine]:
     return lines
 
 
-def measure_columns(marks: list[Mark], pages: list[list[WordBox]], heights: list[float] | None = None) -> list[Column]:
-    """One Column per list column of the document (markers clustered on their x)."""
-    placed = [(pos, _own_lines(ls)) for pos, ls in located_bullets(marks, pages, heights)]
+def measure_columns(marks: list[Mark], located: list[tuple[Pos, list[BulletLine]]]) -> list[Column]:
+    """One Column per list column of the document (markers clustered on their x); `located`: the document's bullets
+    (BulletLayout.located), `marks`: its head and part marks."""
+    placed = [(pos, _own_lines(ls)) for pos, ls in located]
     placed.sort(key=lambda b: b[0].x)
     clusters: list[list[tuple[Pos, list[BulletLine]]]] = []
     for item in placed:
@@ -108,7 +107,7 @@ def measure_columns(marks: list[Mark], pages: list[list[WordBox]], heights: list
     return cols
 
 
-def check_rhythm(marks: list[Mark] | None, pdf: str, *, fail: Callable[[str], Finding],
+def check_rhythm(marks: list[Mark] | None, layout: BulletLayout | None, *, fail: Callable[[str], Finding],
                  min_step: float = MIN_STEP) -> list[Finding]:
     """FAIL per list column whose bullet pitch does not exceed its wrapped-line pitch by `min_step` pt; an INFO
     when no column could be measured (no wrapped bullet, or fewer than two bullet pairs); a WARN when the
@@ -118,13 +117,11 @@ def check_rhythm(marks: list[Mark] | None, pdf: str, *, fail: Callable[[str], Fi
     if not any(m.get("kind") == "bullet" for m in marks):
         return [(Level.WARN, "spacing rhythm not measured: no lib bullet marks "
                              "(draw the list through lib list-marker or bullet-marked)")]
-    sized = _bbox_pages(pdf)
-    if sized is None:
+    if layout is None:
         return [(Level.WARN, "spacing rhythm not measured: word positions unavailable")]
-    pages = [items for _, _, items in sized]
-    if (dense := too_dense("spacing rhythm", pages, marks)) is not None:
-        return [fail(dense)]
-    cols = measure_columns(marks, pages, [h for _, h, _ in sized])
+    if (dense := density_guard("spacing rhythm", layout.pages, marks, fail)) is not None:
+        return dense
+    cols = measure_columns(marks, layout.located)
     out: list[Finding] = []
     measured = 0
     for c in cols:

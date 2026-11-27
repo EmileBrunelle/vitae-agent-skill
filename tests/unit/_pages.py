@@ -5,6 +5,16 @@ from vitae.core.base import HeadMark, Mark, WordBox
 PITCH = 12.0
 
 
+def bullet(y: float, x: float = 22.0, page: int = 1) -> Mark:
+    """The <vitae-bullet> mark of a list marker at (x, y) on `page`."""
+    return Mark(text="•", page=page, x=x, y=y, kind="bullet")
+
+
+def head_mark(y: float, x: float = 10.0, page: int = 1, text: str = "h", kind: str = "entry") -> Mark:
+    """The mark of an entry head (or another `kind`: "skill", "part") at (x, y) on `page`."""
+    return Mark(text=text, page=page, x=x, y=y, kind=kind)
+
+
 def cv_page(entries: int, bullets: int = 3, words_per_line: int = 12, page: int = 1, y0: float = 40.0,
             x0: float = 10.0) -> tuple[list[Mark], list[Mark], list[WordBox]]:
     """(head marks, bullet marks, words) of one page of `entries` entries: a head line, an org line, then `bullets`
@@ -25,7 +35,7 @@ def cv_page(entries: int, bullets: int = 3, words_per_line: int = 12, page: int 
         line(x0, y, [f"Org{e}", "Montreal", "2020"])
         y += PITCH
         for b in range(bullets):
-            bullet_marks.append(Mark(text="•", page=page, x=x0 + 8, y=y, kind="bullet"))
+            bullet_marks.append(bullet(y, x0 + 8, page))
             line(x0 + 20, y, [f"w{e}x{b}x{k}" for k in range(words_per_line)])
             y += PITCH
             line(x0 + 20, y, [f"end{e}x{b}"])

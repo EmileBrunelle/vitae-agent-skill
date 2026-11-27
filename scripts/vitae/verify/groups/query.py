@@ -172,7 +172,7 @@ def _gnorm(t: str) -> str:
     return "".join(ch for ch in t.casefold() if ch.isalnum())
 
 
-def _cluster(ws: Sequence[Word]) -> list[_Line]:
+def cluster(ws: Sequence[Word]) -> list[_Line]:
     """Words already sorted by y-centre, clustered into text lines -> list of dicts {y0, y1, c, x0, words}."""
     out: list[_Line] = []
     for w in ws:
@@ -189,10 +189,22 @@ def _cluster(ws: Sequence[Word]) -> list[_Line]:
     return out
 
 
-def _lines(words: Sequence[Word], x_min: float) -> list[_Line]:
-    """Words (x0, y0, x1, y1, text) at or right of x_min, clustered into text
-    lines by y-centre -> sorted list of dicts {y0, y1, c, x0, words}."""
-    return _cluster(sorted((w for w in words if w[0] >= x_min), key=lambda w: (w[1] + w[3]) / 2))
+class LineSet:
+    """The text lines of one set of words (see PageIndex.lines) and the line holding each of its words."""
+
+    def __init__(self, lines: list[_Line]) -> None:
+        self.lines = lines
+        # keyed by the identity of the word tuple, not its value: two equal words are two words (the page's words
+        # outlive this object, so an id is never reused)
+        self._first: dict[int, int] = {}
+        for i, ln in enumerate(lines):
+            for w in ln["words"]:
+                self._first.setdefault(id(w), i)
+
+    def line_index(self, run: list[Word]) -> int | None:
+        """The index of the line holding the first word of `run` (matched by identity), None when it is not a word
+        of these lines."""
+        return self._first.get(id(run[0]))
 
 
 _TOKENS = 4          # up to 4 tokens is enough to identify an entry head uniquely without crossing a line wrap
@@ -202,7 +214,7 @@ _NEAR = 30.0         # a match farther than this (~2 lines) from the <vitae-head
 class PageIndex:
     """One page's words, indexed once for every head or title measured on it: the normalised text of each word and the
     positions of each normal form, the words in y-centre order and the text lines of each distinct left edge.
-    `_find_run`, `_lines` and `_line_index` rebuilt all of that for every call (O(words) each, so a page of heads was
+    These were rebuilt for every call (O(words) each, so a page of heads was
     O(heads x words) with a heavy constant); here a call costs O(the page's words of its first token) for `find_run`,
     and the lines of a left edge are clustered once, whatever the number of heads at it. The coordinates are finite
     numbers, as pdftotext and pdfium give them."""
@@ -217,8 +229,7 @@ class PageIndex:
         self._centre = centre
         self._by_centre = sorted(range(len(words)), key=centre.__getitem__)          # stable: ties keep word order
         self._x0 = sorted(w[0] for w in words)
-        self._lines_at: dict[int, list[_Line]] = {}
-        self._first_line_of: dict[int, dict[int, int]] = {}
+        self._lines_at: dict[int, LineSet] = {}
 
     def find_run(self, text: str, ytyp: float) -> list[Word] | None:
         """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of word tuples, or None."""
@@ -247,37 +258,12 @@ class PageIndex:
                 best = (d, run)
         return None if best is None else [words[k] for k in best[1]]
 
-    def lines(self, x_min: float) -> list[_Line]:
-        """`_lines(words, x_min)`, computed once per distinct set of words at or right of x_min."""
+    def lines(self, x_min: float) -> LineSet:
+        """The text lines of the words at or right of x_min, computed once per distinct set of such words."""
+        # two x_min with as many words left of them select the same words: that count is the memo key
         k = bisect_left(self._x0, x_min)
         got = self._lines_at.get(k)
         if got is None:
             words = self.words
-            got = self._lines_at[k] = _cluster([words[i] for i in self._by_centre if words[i][0] >= x_min])
-            first: dict[int, int] = {}
-            for i, ln in enumerate(got):
-                for w in ln["words"]:
-                    first.setdefault(id(w), i)
-            self._first_line_of[id(got)] = first
+            got = self._lines_at[k] = LineSet(cluster([words[i] for i in self._by_centre if words[i][0] >= x_min]))
         return got
-
-    def line_index(self, lines: list[_Line], run: list[Word]) -> int | None:
-        """`_line_index(lines, run)`: the line holding the first word of `run` (by identity), by one dict lookup
-        when `lines` is a list this index returned (a list of another origin is searched as `_line_index` does)."""
-        first = self._first_line_of.get(id(lines))
-        return _line_index(lines, run) if first is None else first.get(id(run[0]))
-
-
-def _find_run(words: Sequence[Word], text: str, ytyp: float) -> list[Word] | None:
-    """The words of `text` (first 4 tokens) nearest typst y `ytyp` -> list of
-    word tuples, or None."""
-    return PageIndex(words).find_run(text, ytyp)
-
-
-def _line_index(lines: list[_Line], run: list[Word]) -> int | None:
-    """Index in `lines` of the line holding the first word of `run` (matched by identity)."""
-    w = run[0]
-    for i, ln in enumerate(lines):
-        if any(x is w for x in ln["words"]):
-            return i
-    return None

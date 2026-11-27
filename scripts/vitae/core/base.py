@@ -6,6 +6,7 @@ run prints last is returned by the mode that computes it (see `_run` in vitae/ve
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, NotRequired, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
@@ -173,3 +174,38 @@ LEADING_ABS_RATIO_WARN = 1.95
 
 # Shared by verify_pdf (render default) and verify_text (hidden-text raster).
 HIDDEN_PPI = 150          # own raster: tiny legit text needs more than the 90 ppi fill scan
+
+
+# ---------- the bullets of one run (read by the runts and rhythm gates; built once, see runts.bullet_layout) ----------
+@dataclass(frozen=True)
+class Extent:
+    x0: float
+    x1: float
+
+
+@dataclass(frozen=True)
+class Pos:
+    """Where a bullet starts: its marker's page, x and y."""
+    page: int
+    x: float
+    y: float
+
+
+@dataclass(frozen=True)
+class BulletLine:
+    page: int
+    extent: Extent
+    height: float
+    text: str
+    y1: float = 0.0
+
+
+@dataclass(frozen=True)
+class BulletLayout:
+    """The words of the PDF and the bullets located in them, computed once per run: the words of each page and its
+    height, and per bullet mark its position and its lines top to bottom (a bullet whose first line cannot be found
+    is absent). `located` is empty when a page is denser than bounds.MAX_PAGE_WORK: the gates refuse such a page
+    (bounds.density_guard) before they read it."""
+    pages: list[list[WordBox]]
+    heights: list[float]
+    located: list[tuple[Pos, list[BulletLine]]]

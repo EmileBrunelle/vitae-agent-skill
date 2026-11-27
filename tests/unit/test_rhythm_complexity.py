@@ -7,9 +7,8 @@ import pytest
 from _rhythm_ref import separated_filtering
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from vitae.core.base import Mark
+from vitae.core.base import Mark, Pos
 from vitae.verify.rhythm import _HeadIndex
-from vitae.verify.runts import Pos
 
 _coord = st.integers(0, 12).map(float)
 

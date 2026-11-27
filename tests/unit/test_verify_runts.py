@@ -3,6 +3,7 @@
 The CVs are tiny Typst documents that draw their list through lib.typ's marker, compiled with the `typst` package."""
 import shutil
 
+import pypdfium2
 import pytest
 import typst
 from _paths import ROOT
@@ -10,6 +11,8 @@ from vitae.core.level import Level
 from vitae.verify import pdf
 from vitae.verify.gates import LAYOUT_GATES, _bullet_runts, make_context
 from vitae.verify.runts import BulletLine, Extent, check_runts, is_runt
+
+PAGE_330 = "width: 330pt, height: 200pt, margin: 20pt"
 
 # (script, font, full filler line, long closing text, runt, rtl)
 SCRIPTS = {
@@ -67,13 +70,12 @@ def test_runt_fails_full_last_line_and_one_line_pass(tmp_path, script):
 
 def test_runt_after_natural_wrap_fails(tmp_path):
     """No forced break: the text itself wraps and leaves one short word on the second line."""
-    font, first, _, _, _ = SCRIPTS["latin"]
+    first = SCRIPTS["latin"][1]
     for n in range(1, 60):   # widen the body one letter at a time until the wrap leaves a lone word
-        ctx = _compile(tmp_path, "nat", font, f"- {first} {'x' * n} ms.\n", False)
-        out = _bullet_runts(ctx)
-        if out:
-            assert out[0][0] == Level.FAIL
-            assert "ms." in out[0][1]
+        typ, out_pdf, src = _write_doc(tmp_path, "nat", PAGE_330, f"- {first} {'x' * n} ms.\n")
+        if "ms." in pdf.extract_text(out_pdf, "pdfium").splitlines():     # the lone last word: the gate is run on this one
+            out = _bullet_runts(_context(typ, out_pdf, src))
+            assert [lvl for lvl, _ in out] == [Level.FAIL] and "ms." in out[0][1]
             return
     pytest.fail("no width produced a lone last word")
 
@@ -123,7 +125,7 @@ def test_single_line_is_never_a_runt():
 
 
 def test_check_runts_without_query_warns():
-    assert check_runts(None, "x.pdf", fail=lambda m: (Level.FAIL, m))[0][0] == Level.WARN
+    assert check_runts(None, None, fail=lambda m: (Level.FAIL, m))[0][0] == Level.WARN
 
 
 # ---- layouts: small type, columns, edge side, page breaks
@@ -131,8 +133,8 @@ LATIN_FIRST = SCRIPTS["latin"][1]
 LATIN_FULL = SCRIPTS["latin"][2]
 
 
-def _compile_doc(tmp_path, name, page, body):
-    """A CV drawn through lib.typ's marker with a free page setup and body."""
+def _write_doc(tmp_path, name, page, body):
+    """Compile a CV drawn through lib.typ's marker with a free page setup and body: (typ path, pdf path, source)."""
     for f in ("lib.typ", "icons.typ"):
         shutil.copy(ROOT / "templates" / f, tmp_path / f)
     src = (f'#import "lib.typ": list-marker\n#set page({page})\n'
@@ -143,7 +145,16 @@ def _compile_doc(tmp_path, name, page, body):
     typ.write_text(src, encoding="utf-8")
     out = tmp_path / f"{name}.pdf"
     typst.compile(str(typ), output=str(out))
-    return make_context(str(typ), str(out), pdf.extract_text(str(out), "pdfium"), src, "pdfium", can_query=True)
+    return str(typ), str(out), src
+
+
+def _context(typ, out, src):
+    """The gates' context of a compiled document (reads its marks and words: the costly part of a test)."""
+    return make_context(typ, out, pdf.extract_text(out, "pdfium"), src, "pdfium", can_query=True)
+
+
+def _compile_doc(tmp_path, name, page, body):
+    return _context(*_write_doc(tmp_path, name, page, body))
 
 
 def test_small_type_measures_each_bullet_from_its_own_line(tmp_path):
@@ -181,20 +192,31 @@ def test_right_flushed_line_after_a_ltr_bullet_is_not_its_continuation(tmp_path)
     assert _bullet_runts(ctx) == []
 
 
+def _ms_on_page(out_pdf, count, page):
+    """True when the PDF has `count` pages and "ms." is on the 1-based `page`."""
+    doc = pypdfium2.PdfDocument(out_pdf)
+    return len(doc) == count and "ms." in doc[page - 1].get_textpage().get_text_range()
+
+
 def _split_across_pages(tmp_path, body_for):
-    """Scan the room left on page 1 until the bullet's last line lands alone at the top of page 2."""
-    import pypdfium2
+    """Scan the room left on page 1 until the bullet's last line lands alone at the top of page 2; the gates' context
+    is read for that one document only."""
     for room in range(20, 90):
-        ctx = _compile_doc(tmp_path, f"pb{room}", "width: 330pt, height: 100pt, margin: 20pt", body_for(room))
-        doc = pypdfium2.PdfDocument(str(tmp_path / f"pb{room}.pdf"))
-        if len(doc) == 2 and "ms." in doc[1].get_textpage().get_text_range():
-            return ctx
+        typ, out_pdf, src = _write_doc(tmp_path, f"pb{room}", "width: 330pt, height: 100pt, margin: 20pt", body_for(room))
+        if _ms_on_page(out_pdf, 2, 2):
+            return _context(typ, out_pdf, src)
     pytest.fail("no room made the bullet break across pages")
 
 
-def test_runt_at_the_top_of_the_next_page_is_found(tmp_path):
-    ctx = _split_across_pages(tmp_path, lambda room: f"#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
-    out = _bullet_runts(ctx)
+@pytest.fixture(scope="module")
+def split_ctx(tmp_path_factory):
+    """The bullet whose last line ("ms.") is alone at the top of page 2: built once for the tests that read it."""
+    return _split_across_pages(tmp_path_factory.mktemp("split"),
+                               lambda room: f"#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
+
+
+def test_runt_at_the_top_of_the_next_page_is_found(split_ctx):
+    out = _bullet_runts(split_ctx)
     assert [lvl for lvl, _ in out] == [Level.FAIL], out
     assert "ms." in out[0][1]
 
@@ -211,9 +233,8 @@ def test_inline_separator_is_not_a_bullet(tmp_path):
     assert vals is not None and len(vals) == 2
 
 
-def test_next_page_runt_is_reported_on_its_own_page(tmp_path):
-    ctx = _split_across_pages(tmp_path, lambda room: f"#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
-    assert "page 2" in _bullet_runts(ctx)[0][1]
+def test_next_page_runt_is_reported_on_its_own_page(split_ctx):
+    assert "page 2" in _bullet_runts(split_ctx)[0][1]
 
 
 def test_complete_bullet_then_aligned_line_on_next_page_is_not_a_runt(tmp_path):
@@ -225,23 +246,17 @@ def test_complete_bullet_then_aligned_line_on_next_page_is_not_a_runt(tmp_path):
         assert _bullet_runts(ctx) == [], room
 
 
-def _pages(tmp_path, name):
-    import pypdfium2
-    return pypdfium2.PdfDocument(str(tmp_path / f"{name}.pdf"))
-
-
 def test_runt_is_found_whatever_the_room_left_widow_orphan_control(tmp_path):
     """Typst moves the last two lines together, so page 1 can end two line pitches above the content bottom:
     every split of a 5-line bullet whose last word lands alone on page 2 is found."""
     body_for = f"#v({{room}}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n"
     split = 0
     for room in range(40):
-        ctx = _compile_doc(tmp_path, f"wo{room}", "width: 330pt, height: 160pt, margin: 20pt",
-                           body_for.format(room=room))
-        pdf_doc = _pages(tmp_path, f"wo{room}")
-        if len(pdf_doc) == 2 and "ms." in pdf_doc[1].get_textpage().get_text_range():
+        typ, out_pdf, src = _write_doc(tmp_path, f"wo{room}", "width: 330pt, height: 160pt, margin: 20pt",
+                                       body_for.format(room=room))
+        if _ms_on_page(out_pdf, 2, 2):
             split += 1
-            out = _bullet_runts(ctx)
+            out = _bullet_runts(_context(typ, out_pdf, src))
             assert [lvl for lvl, _ in out] == [Level.FAIL], (room, out)
     assert split >= 3   # the sweep must reach splits, widow/orphan ones included
 
@@ -252,10 +267,10 @@ def test_runt_is_found_with_unequal_margins(tmp_path, top, bottom):
     # a full first page tells the document where its content ends
     fill = "#block(height: 100%, align(bottom)[Filled.])\n#pagebreak()\n"
     for room in range(90):
-        ctx = _compile_doc(tmp_path, f"um{room}", page, f"{fill}#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
-        pdf_doc = _pages(tmp_path, f"um{room}")
-        if len(pdf_doc) == 3 and "ms." in pdf_doc[2].get_textpage().get_text_range():
-            out = _bullet_runts(ctx)
+        typ, out_pdf, src = _write_doc(tmp_path, f"um{room}", page,
+                                       f"{fill}#v({room}pt)\n- {LATIN_FIRST} \\ {LATIN_FIRST} \\ ms.\n")
+        if _ms_on_page(out_pdf, 3, 3):
+            out = _bullet_runts(_context(typ, out_pdf, src))
             assert [lvl for lvl, _ in out] == [Level.FAIL], (room, out)
             return
     pytest.fail("no room made the bullet break across pages")
@@ -296,5 +311,5 @@ def test_runt_next_to_a_justified_sidebar_with_a_narrow_gutter_is_found(tmp_path
 
 
 def test_not_measured_notice_names_the_tagging_markers():
-    out = check_runts([], "x.pdf", fail=lambda m: (Level.FAIL, m))
+    out = check_runts([], None, fail=lambda m: (Level.FAIL, m))
     assert "list-marker" in out[0][1] and "bullet-marked" in out[0][1]

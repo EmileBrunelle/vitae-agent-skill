@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from vitae.core.base import DetailRow, Mark
+from vitae.core.base import BulletLayout, DetailRow, Mark
 
 
 @dataclass(frozen=True)
@@ -28,3 +28,4 @@ class VerifyContext:
     contact_items: list[object] | None = None   # <vitae-contact> values, read with the marks (None: query unavailable)
     contact_rows: list[object] | None = None    # <vitae-contact-rows> values, same query
     mark_notes: tuple[str, ...] = ()   # what the marks query dropped (malformed lib marks): a WARN, never silent
+    bullets: BulletLayout | None = None   # the words and the located bullets (None: no marks, or no word positions)

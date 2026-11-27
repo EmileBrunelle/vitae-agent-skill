@@ -5,6 +5,7 @@ import shutil
 import pytest
 import typst
 from vitae.verify import groups, pdf
+from vitae.verify.groups.query import PageIndex
 
 
 @pytest.fixture(params=["cli", "typst-py"])
@@ -81,7 +82,7 @@ def _line_boxes(path):
     """[x0, x1, y0, y1] per text line, the way measure_groups hands them to the gap function."""
     wb = pdf.word_boxes(path, with_text=True)
     assert wb is not None
-    lines = groups._lines([(b[0], b[1], b[2], b[3], t) for b, t in wb[0]], 0)
+    lines = PageIndex([(b[0], b[1], b[2], b[3], t) for b, t in wb[0]]).lines(0).lines
     return [[ln["x0"], max(w[2] for w in ln["words"]), ln["y0"], ln["y1"]] for ln in lines]
 
 

@@ -23,10 +23,11 @@ from vitae.verify.groups import (
     check_group_proximity,
 )
 from vitae.verify.layout import check_font_fallback
+from vitae.verify.pdf import _bbox_pages
 from vitae.verify.placeholders import check_placeholders
 from vitae.verify.registry import FnGate, Gate
 from vitae.verify.rhythm import check_rhythm
-from vitae.verify.runts import check_runts
+from vitae.verify.runts import bullet_layout, check_runts
 from vitae.verify.source import check_forced_linebreak, check_literal_tilde, check_no_split
 from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
 
@@ -37,11 +38,14 @@ CONTEXT_MARKS = ENTRY_MARKS + ".or(<vitae-contact>).or(<vitae-contact-rows>)"
 def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *, root: str | None = None,
                  facts: str | None = None, can_query: bool = True,
                  detail: list[DetailRow] | None = None) -> VerifyContext:
-    """Build the gates' inputs; the lib markers are queried here, once, when `typst query` is usable."""
+    """Build the gates' inputs; the lib markers are queried here, once, when `typst query` is usable, and the
+    bullets they mark are located once (the runts and rhythm gates read the same ones)."""
     marks, note, contact = _typst_marks_and_contact(typ, CONTEXT_MARKS, root) if can_query else (None, None, None)
     heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
+    sized = _bbox_pages(pdf) if marks and any(m.get("kind") == "bullet" for m in marks) else None
     return VerifyContext(typ=typ, pdf=pdf, txt=txt, src=src, backend=backend, root=root, facts=facts,
                          can_query=can_query, marks=marks, heads=heads, detail=detail,
+                         bullets=None if marks is None or sized is None else bullet_layout(marks, sized),
                          contact_items=None if contact is None else contact.items,
                          contact_rows=None if contact is None else contact.rows,
                          mark_notes=(note,) if note else ())
@@ -160,11 +164,11 @@ def _date_adjacency(ctx: VerifyContext) -> list[Finding]:
 
 
 def _bullet_runts(ctx: VerifyContext) -> list[Finding]:
-    return check_runts(ctx.marks, ctx.pdf, fail=lambda msg: _bad(ctx, msg))
+    return check_runts(ctx.marks, ctx.bullets, fail=lambda msg: _bad(ctx, msg))
 
 
 def _spacing_rhythm(ctx: VerifyContext) -> list[Finding]:
-    return check_rhythm(ctx.marks, ctx.pdf, fail=lambda msg: _bad(ctx, msg))
+    return check_rhythm(ctx.marks, ctx.bullets, fail=lambda msg: _bad(ctx, msg))
 
 
 def _contact_line(ctx: VerifyContext) -> list[Finding]:

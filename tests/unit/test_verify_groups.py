@@ -11,6 +11,7 @@ from vitae.core.base import DetailRow, GroupRow, Mark, SecRow, _Line
 from vitae.core.level import Level
 from vitae.verify import groups
 from vitae.verify.groups import dates, proximity, query
+from vitae.verify.groups.query import LineSet, PageIndex
 
 PROX_THRESHOLDS = (groups.PROX_FAIL, groups.PROX_WARN)
 
@@ -40,30 +41,34 @@ class TestGnorm:
         assert groups._gnorm(raw) == key
 
 
-# ---------------------------------------------------------------- _lines
+# ---------------------------------------------------------------- PageIndex.lines
+
+def _lines(words, x_min):
+    return PageIndex(words).lines(x_min).lines
+
 
 class TestLines:
     def test_empty(self):
-        assert groups._lines([], 0) == []
+        assert _lines([], 0) == []
 
     def test_words_left_of_x_min_are_dropped_and_x_min_is_inclusive(self):
-        ls = groups._lines([W(5, 0, 9, 10, "a"), W(10, 0, 20, 10, "b")], 10)
+        ls = _lines([W(5, 0, 9, 10, "a"), W(10, 0, 20, 10, "b")], 10)
         assert [[w[4] for w in ln["words"]] for ln in ls] == [["b"]]
 
     def test_same_line_tolerance_is_three_points_of_centre(self):
         # centres 5 and 8 (3.0 apart): one line; 5 and 8.1: two
-        assert len(groups._lines([W(0, 0, 5, 10, "a"), W(6, 3, 9, 13, "b")], 0)) == 1
-        assert len(groups._lines([W(0, 0, 5, 10, "a"), W(6, 3.1, 9, 13.1, "b")], 0)) == 2
+        assert len(_lines([W(0, 0, 5, 10, "a"), W(6, 3, 9, 13, "b")], 0)) == 1
+        assert len(_lines([W(0, 0, 5, 10, "a"), W(6, 3.1, 9, 13.1, "b")], 0)) == 2
 
     def test_line_geometry_and_order(self):
-        ls = groups._lines([W(30, 21, 40, 31, "c"), W(10, 0, 20, 10, "a"), W(22, 1, 28, 12, "b")], 0)
+        ls = _lines([W(30, 21, 40, 31, "c"), W(10, 0, 20, 10, "a"), W(22, 1, 28, 12, "b")], 0)
         assert [ln["x0"] for ln in ls] == [10, 30]
         first = ls[0]
         assert (first["y0"], first["y1"], first["c"]) == (0, 12, 6.0)
         assert [w[4] for w in first["words"]] == ["a", "b"]
 
 
-# ---------------------------------------------------------------- _find_run / _line_index
+# ---------------------------------------------------------------- PageIndex.find_run / LineSet.line_index
 
 class TestFindRun:
     def _words(self, *texts, y=0.0):
@@ -71,60 +76,60 @@ class TestFindRun:
 
     def test_run_of_the_first_four_tokens(self):
         words = self._words("Senior", "Software", "Engineer", "Acme", "Corp", "2020")
-        run = groups._find_run(words, "Senior Software Engineer Acme Corp Ltd", 5)
+        run = PageIndex(words).find_run("Senior Software Engineer Acme Corp Ltd", 5)
         assert run is not None
         assert [w[4] for w in run] == ["Senior", "Software", "Engineer", "Acme"]
 
     def test_tokens_after_the_fourth_are_not_compared(self):
         words = self._words("a", "b", "c", "d", "zzz")
-        assert groups._find_run(words, "a b c d e f", 5) is not None
+        assert PageIndex(words).find_run("a b c d e f", 5) is not None
 
     def test_matching_ignores_case_and_punctuation(self):
         words = self._words("Dev,", "Ops")
-        run = groups._find_run(words, "DEV OPS", 5)
+        run = PageIndex(words).find_run("DEV OPS", 5)
         assert run is not None
         assert [w[4] for w in run] == ["Dev,", "Ops"]
 
     def test_pure_punctuation_words_are_skipped_inside_the_run(self):
         words = self._words("Dev", "|", "Ops")
-        run = groups._find_run(words, "Dev Ops", 5)
+        run = PageIndex(words).find_run("Dev Ops", 5)
         assert run is not None
         assert [w[4] for w in run] == ["Dev", "Ops"]
 
     def test_a_mismatch_in_the_run_is_not_a_match(self):
-        assert groups._find_run(self._words("Dev", "Lead"), "Dev Ops", 5) is None
+        assert PageIndex(self._words("Dev", "Lead")).find_run("Dev Ops", 5) is None
 
     def test_single_token_text_matches(self):
-        assert groups._find_run(self._words("Dev"), "Dev", 5) is not None
+        assert PageIndex(self._words("Dev")).find_run("Dev", 5) is not None
 
     @pytest.mark.parametrize("text", ["", "   ", "--- ..."])
     def test_text_without_tokens_is_none(self, text):
-        assert groups._find_run(self._words("Dev"), text, 0) is None
+        assert PageIndex(self._words("Dev")).find_run(text, 0) is None
 
     def test_nearest_occurrence_to_the_marker_wins(self):
         words = self._words("Dev", y=0) + self._words("Dev", y=100)
-        run = groups._find_run(words, "Dev", 98)
+        run = PageIndex(words).find_run("Dev", 98)
         assert run is not None
         assert run[0][1] == 100
 
     def test_thirty_points_from_the_marker_is_still_found_beyond_is_not(self):
         words = self._words("Dev", y=0)          # centre y = 5
-        assert groups._find_run(words, "Dev", 35) is not None     # 30.0 away
-        assert groups._find_run(words, "Dev", 35.5) is None       # 30.5 away
+        assert PageIndex(words).find_run("Dev", 35) is not None     # 30.0 away
+        assert PageIndex(words).find_run("Dev", 35.5) is None       # 30.5 away
 
     def test_no_words(self):
-        assert groups._find_run([], "Dev", 0) is None
+        assert PageIndex([]).find_run("Dev", 0) is None
 
 
 class TestLineIndex:
     def test_matches_by_identity_not_equality(self):
         a, b = W(0, 0, 5, 5, "x"), W(0, 0, 5, 5, "x")           # equal values, distinct objects
         lines = [text_line(a), text_line(b)]
-        assert groups._line_index(lines, [b]) == 1
-        assert groups._line_index(lines, [a]) == 0
+        assert LineSet(lines).line_index([b]) == 1
+        assert LineSet(lines).line_index([a]) == 0
 
     def test_absent_word_is_none(self):
-        assert groups._line_index([text_line(W(0, 0, 1, 1, "x"))], [W(0, 0, 1, 1, "x")]) is None
+        assert LineSet([text_line(W(0, 0, 1, 1, "x"))]).line_index([W(0, 0, 1, 1, "x")]) is None
 
 
 # ---------------------------------------------------------------- measure_groups
