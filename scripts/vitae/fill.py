@@ -27,6 +27,8 @@ from typing import NoReturn
 
 from PIL import Image
 
+from vitae.core.pixels import threshold_lut
+
 
 def measure(path: str) -> str:
     """Return 'ink from X% to Y%' (or 'blank page') for one page image."""
@@ -34,7 +36,7 @@ def measure(path: str) -> str:
     w, h = im.size
     # ink = any pixel < 245 among every 3rd column (x = 0, 3, 6...): NEAREST at scale 3 with offset -1 samples exactly those
     sampled = im.transform(((w + 2) // 3, h), Image.Transform.AFFINE, (3, 0, -1, 0, 1, 0), Image.Resampling.NEAREST)
-    box = sampled.point([255 if v < 245 else 0 for v in range(256)]).getbbox()
+    box = sampled.point(threshold_lut(245)).getbbox()
     lo, hi = (None, 0) if box is None else (box[1], box[3] - 1)
     if lo is None:
         return "blank page"
@@ -101,8 +103,8 @@ def bands(path: str, thr: int = 150, rule: float = RULE_FLOOR,
     # modal luma is the paper — it is the most common pixel on any CV page.
     paper = max(range(256), key=im.histogram().__getitem__)
     # Pillow's row projection (1 where a row holds a non-zero pixel) is "has a dark pixel", counted in C
-    has_dark = im.point([255 if v < thr else 0 for v in range(256)]).getprojection()[1]
-    dev = im.point([255 if v < paper - contrast else 0 for v in range(256)]).tobytes()
+    has_dark = im.point(threshold_lut(thr)).getprojection()[1]
+    dev = im.point(threshold_lut(paper - contrast)).tobytes()
     # a row's longest dark run reaches `rule` of the page width when it holds `need` consecutive dark pixels
     need = math.ceil(rule * w)
     # bytes.find is a C-level substring scan, linear in the row: a regex `\xff{need}` is cw x need on adversarial rows

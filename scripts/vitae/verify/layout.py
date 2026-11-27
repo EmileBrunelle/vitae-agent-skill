@@ -7,13 +7,13 @@ from __future__ import annotations
 import importlib.util
 from collections.abc import Iterator, Sequence
 
-from PIL import Image, ImageChops
+from PIL import Image
 
 import vitae.fill as measure_fill
 from vitae.core.base import Band, Box, WordBox
 from vitae.core.env import _importable
 from vitae.core.level import Finding, Level
-from vitae.core.pixels import colour_counts, gray_pixels
+from vitae.core.pixels import colour_counts, far_in_any_channel, gray_pixels
 from vitae.verify.fonts import _font_sources, classify_font_fallback, requested_families
 from vitae.verify.page import BOUNDARY_RATIO, FURNITURE_SCALE, boundary_ink, furniture_ink, near_boundary
 from vitae.verify.pdf import _pdfium_doc
@@ -74,15 +74,13 @@ DEVICELESS = {
 
 
 _FLAT_DELTA = 40   # RGB delta under which a glyph does not show against the box's modal colour
-_FAR_FROM_BASE = [255 if v >= _FLAT_DELTA else 0 for v in range(256)]
 
 
 def _flat_box(box: Image.Image) -> bool:
     """True when no pixel of the RGB `box` differs from its modal colour by `_FLAT_DELTA` or more on any channel.
     Pillow does the counting, the difference and the threshold in C: the same test as scanning every pixel in Python."""
     base = max(colour_counts(box, box.width * box.height))[1]
-    far = ImageChops.difference(box, Image.new("RGB", box.size, base)).point(_FAR_FROM_BASE * 3)
-    return far.getbbox() is None
+    return far_in_any_channel(box, base, _FLAT_DELTA).getbbox() is None
 
 
 def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:

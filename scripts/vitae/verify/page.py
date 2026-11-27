@@ -13,10 +13,10 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 from vitae.core.base import Band, Box
-from vitae.core.pixels import colour_counts
+from vitae.core.pixels import colour_counts, far_in_luma, threshold_lut
 
 # BOUNDARY_RATIO is a LOCATOR, not a grade. It answers "is this white run tall
 # enough to be a section boundary rather than a line gap", which is all that
@@ -80,7 +80,7 @@ def furniture_ink(png: str, boxes: Sequence[Box] | None) -> list[Band]:
     im = Image.open(png).convert("L")
     w, h = im.size
     # <200 luma on 0..255: catches pale `soft` hairlines (luma ~180) while ignoring paper (255)
-    mask = im.point([255 if v < 200 else 0 for v in range(256)])
+    mask = im.point(threshold_lut(200))
     draw = ImageDraw.Draw(mask)
     sc = FURNITURE_SCALE
     for x0, y0, x1, y1 in boxes:
@@ -276,13 +276,12 @@ def crop_candidates(im: Image.Image, words: Sequence[Box] | None) -> list[tuple[
             bg = (255, 255, 255)        # a >50% sidebar must not become the 'paper'
         else:
             bg = max(colours)[1]
-    ink = ImageChops.difference(im, Image.new("RGB", im.size, bg)).convert("L").point(
-        [255 if v >= CROP_DELTA else 0 for v in range(256)])
+    ink = far_in_luma(im, bg, CROP_DELTA)
     k = CROP_SCAN_PPI
     e = CROP_ERODE // 2
     fills: list[tuple[str, tuple[int, int, int, int], int]] = []
     solid = ink.filter(ImageFilter.MinFilter(CROP_ERODE))
-    for x0, y0, x1, y1 in _components(solid.reduce(3).point([255 if v > 64 else 0 for v in range(256)])):
+    for x0, y0, x1, y1 in _components(solid.reduce(3).point(threshold_lut(65, below=False))):
         box = (max(0, x0 * 3 - e), max(0, y0 * 3 - e), min(w, x1 * 3 + 3 + e), min(h, y1 * 3 + 3 + e))
         if box[2] - box[0] >= CROP_FILL_MIN_IN[0] * k and box[3] - box[1] >= CROP_FILL_MIN_IN[1] * k:
             area = (box[2] - box[0]) * (box[3] - box[1])

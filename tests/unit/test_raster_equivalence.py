@@ -6,9 +6,11 @@ a per-pixel loop does)."""
 import math
 import random
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from _growth import GROWTH_BOUND, growth_ratio
 from _paths import ROOT
 from _raster_ref import bands_per_row, check_text_clip_per_pixel
 from PIL import Image
@@ -183,46 +185,47 @@ def test_bands_rule_width_is_inclusive_at_the_threshold(tmp_path: Path) -> None:
 # ------------------------------------------------------------------ time bounds
 
 
-def _full_page(rng: random.Random, n_words: int = 2500) -> tuple[Image.Image, list[WordBox]]:
-    """Worst case: a 1275x1650 page (150 ppi letter) with n_words glyph-dense word boxes on a grey band and on paper."""
-    im = Image.new("RGB", (int(8.5 * 150), 11 * 150), WHITE)
-    im.paste((60, 60, 60), (0, 0, im.width, 200))
+def _wide_words_page(width: int, n_words: int = 20) -> tuple[Image.Image, list[WordBox]]:
+    """Worst case for a flat-box test: `n_words` boxes `width` px wide and 14 px tall, each filled with random RGB noise
+    (about one distinct colour per pixel), so a box's modal colour costs O(pixels) at best and O(pixels^2) when each
+    colour is counted by a scan of the box."""
+    rng = random.Random(1)
+    per_row = 8000 // width
+    im = Image.new("RGB", (per_row * width, (n_words // per_row + 1) * 20), WHITE)
     boxes: list[WordBox] = []
     for i in range(n_words):
-        x, y = 40 + (i % 25) * 48, 10 + (i // 25) * 15
-        for gx in range(x, x + 40, 4):
-            im.paste((rng.randint(0, 255),) * 3, (gx, y + 3, gx + 2, y + 11))
-        boxes.append(((x / S, y / S, (x + 44) / S, (y + 14) / S), "word"))
+        x, y = (i % per_row) * width, (i // per_row) * 20 + 3
+        im.paste(Image.frombytes("RGB", (width, 14), rng.randbytes(3 * width * 14)), (x, y))
+        boxes.append(((x / S, y / S, (x + width) / S, (y + 14) / S), "word"))
     return im, boxes
 
 
 @pytest.mark.slow
-def test_text_clip_bounds_time_on_a_full_page(tmp_path: Path) -> None:
-    im, boxes = _full_page(random.Random(1))
-    png = tmp_path / "p.png"
-    im.save(png)
-    start = time.perf_counter()
+def test_text_clip_time_grows_linearly_with_the_word_box_area(tmp_path: Path) -> None:
+    def prepare(width: int) -> Callable[[], object]:
+        im, boxes = _wide_words_page(width)
+        png = tmp_path / f"w{width}.png"
+        im.save(png)
+        return lambda: check_text_clip(str(png), boxes)
 
-    check_text_clip(str(png), boxes)
-
-    assert time.perf_counter() - start < 0.8     # measured ~0.15 s; the per-pixel version takes ~1.5 s
+    assert growth_ratio(prepare, 100) < GROWTH_BOUND
 
 
 @pytest.mark.slow
-def test_bands_bound_time_on_a_tall_page(tmp_path: Path) -> None:
-    # worst case: every row of a 4000x6000 page is chopped into 667 short dark runs (text-dense), none long enough
+def test_bands_time_grows_linearly_with_the_page_height(tmp_path: Path) -> None:
+    # worst case: every row of a 4000-wide page is chopped into 667 short dark runs (text-dense), none long enough
     # to be a rule, so each row is scanned whole for a run
     row = Image.new("L", (4000, 1), 255)
     for x in range(0, 4000, 6):
         row.paste(0, (x, 0, x + 3, 1))
-    png = tmp_path / "p.png"
-    row.resize((4000, 6000), Image.Resampling.NEAREST).save(png)
-    start = time.perf_counter()
 
-    got = fill.bands(str(png))
+    def prepare(height: int) -> Callable[[], object]:
+        png = tmp_path / f"h{height}.png"
+        row.resize((4000, height), Image.Resampling.NEAREST).save(png)
+        return lambda: fill.bands(str(png))
 
-    assert time.perf_counter() - start < 0.6     # measured ~0.25 s; the per-row version takes ~0.95 s
-    assert got[2] == []
+    assert growth_ratio(prepare, 3000) < GROWTH_BOUND
+    assert fill.bands(str(tmp_path / "h6000.png"))[2] == []
 
 
 def _dark_runs_page(tmp_path: Path, width: int, run: int, rows: int) -> str:

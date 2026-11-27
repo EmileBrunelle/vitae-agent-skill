@@ -47,6 +47,7 @@ import hashlib
 import sys
 from typing import TYPE_CHECKING, TypeAlias, TypedDict
 
+from vitae.core.colour import contrast_from_lum
 from vitae.core.colour import rel_luminance as _lum
 from vitae.design.tables import AUDACITIES, Audacity, is_audacity
 
@@ -165,9 +166,7 @@ INK_BASE, DARK_BASE = 95, 25          # the skill's muted / body-ink grays
 
 def contrast(a: RGB, b: RGB) -> float:
     """General formula: (L1+0.05)/(L2+0.05), L1 the lighter of the two."""
-    la, lb = _lum(a), _lum(b)
-    hi, lo = max(la, lb), min(la, lb)
-    return (hi + 0.05) / (lo + 0.05)
+    return contrast_from_lum(_lum(a), _lum(b))
 
 
 def _mix(a: RGB, b: RGB, wa: float) -> RGB:

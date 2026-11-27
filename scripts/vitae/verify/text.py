@@ -11,17 +11,20 @@ import shutil
 import subprocess
 import tempfile
 import unicodedata
+import warnings
 from collections import Counter
 from collections.abc import Callable, Sequence
+from functools import partial
 
 from PIL import Image
 
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
+from vitae.core.colour import contrast_from_lum
 from vitae.core.colour import rel_luminance as _lum
 from vitae.core.env import pdf_backend
 from vitae.core.level import Finding, Level
 from vitae.core.pdfium import PdfiumDoc
-from vitae.core.pixels import colour_counts, gray_profile
+from vitae.core.pixels import colour_counts
 from vitae.verify.lang import _is_latin, _strip_latin_marks
 from vitae.verify.pdf import _bbox_pages, _boxes_unavailable, _pdfium_doc, _render_pages_png, pdf_unreadable
 
@@ -212,43 +215,36 @@ KEYWORD_MAX_TERMS = 15
 META_MAX_CHARS = 200
 
 
-# A page with more distinct colours than this skips the luminance table (a noise or photo page): each word then
-# computes its colours' luminances itself, same results, bounded memory (the table is at most ~6 MB).
-HIDDEN_LUM_TABLE_MAX = 1 << 16
-
-
-def _lum_table(im: Image.Image) -> dict[tuple[int, ...], float] | None:
-    """WCAG luminance of every distinct colour of a page raster, computed once per page (a text page has a few hundred
-    colours: black, white, their antialiasing blends); None past HIDDEN_LUM_TABLE_MAX colours (or an empty page)."""
-    cols = colour_counts(im, HIDDEN_LUM_TABLE_MAX)
-    return {c: _lum(c) for _, c in cols} if cols else None
-
-
-_GRAY_LUM = [_lum((v, v, v)) for v in range(256)]   # luminance of each gray level (an "L" pixel v is the colour (v, v, v))
-
-
-def _gray_contrast_in_box(crop: Image.Image) -> float:
-    """`_contrast_in_box` on an "L" crop: the extremes are the lowest and highest levels, luminance rising with level."""
-    low, high, background = gray_profile(crop)
-    lb = _GRAY_LUM[background]
-    ratio = 1.0
-    for lc in (_GRAY_LUM[low], _GRAY_LUM[high]):
-        ratio = max(ratio, (max(lc, lb) + 0.05) / (min(lc, lb) + 0.05))
-    return ratio
-
-
-def _contrast_in_box(crop: Image.Image, area: int, table: dict[tuple[int, ...], float] | None) -> float:
+def _contrast_in_box(crop: Image.Image, lums: dict[tuple[int, ...], float]) -> float:
     """Contrast ratio of a crop: its background (most common colour; a tie goes to the larger colour) against the
     strongest colour in it. Contrast against a fixed background rises with the distance of a luminance from it, so
-    the strongest colour is the darkest or the lightest one: two luminances, not one per colour."""
-    cols = colour_counts(crop, area)
-    lum = _lum if table is None else table.__getitem__
-    lums = [lum(c) for _, c in cols]
-    lb = lum(max(cols)[1])
-    ratio = 1.0
-    for lc in (min(lums), max(lums)):
-        ratio = max(ratio, (max(lc, lb) + 0.05) / (min(lc, lb) + 0.05))
-    return ratio
+    the strongest colour is the darkest or the lightest one: two luminances, not one per colour. `lums` memoises the
+    luminance of each colour met so far (a text page has a few hundred: black, white, their antialiasing blends)."""
+    cols = colour_counts(crop, crop.width * crop.height)
+    values = []
+    for _, c in cols:
+        lum = lums.get(c)
+        if lum is None:
+            lum = lums[c] = _lum(c)
+        values.append(lum)
+    lb = lums[max(cols)[1]]
+    return max(1.0, contrast_from_lum(min(values), lb), contrast_from_lum(max(values), lb))
+
+
+def _page_raster(pngs: list[str] | None, pno: int) -> Image.Image | None:
+    """The RGB raster of page `pno` (1-based), or None when no raster was given for it."""
+    if pngs and pno - 1 < len(pngs):
+        return Image.open(pngs[pno - 1]).convert("RGB")
+    return None
+
+
+def _word_pixels(box: tuple[float, float, float, float], im: Image.Image) -> tuple[int, int, int, int]:
+    """The word's box at HIDDEN_PPI, padded by HIDDEN_PAD_PX and clipped to the raster: (xa, ya, xb, yb), empty
+    (xb <= xa or yb <= ya) when the box rounds to nothing."""
+    sc = HIDDEN_PPI / 72.0
+    x0, y0, x1, y1 = box
+    return (max(int(x0 * sc) - HIDDEN_PAD_PX, 0), max(int(y0 * sc) - HIDDEN_PAD_PX, 0),
+            min(int(x1 * sc) + 1 + HIDDEN_PAD_PX, im.width), min(int(y1 * sc) + 1 + HIDDEN_PAD_PX, im.height))
 
 
 def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] | None = None,
@@ -263,32 +259,24 @@ def hidden_word_stats(pdf: str, pages: list[tuple[float, float, list[WordBox]]] 
     raster is available."""
     pages = _bbox_pages(pdf) if pages is None else pages
     out: list[HiddenStat] = []
-    sc = HIDDEN_PPI / 72.0
+    lums: dict[tuple[int, ...], float] = {}
     for pno, (pw, ph, items) in enumerate(pages or [], 1):
-        im: Image.Image | None = None
-        table: dict[tuple[int, ...], float] | None = None
-        if pngs and pno - 1 < len(pngs):
-            im = Image.open(pngs[pno - 1]).convert("RGB")
-            table = _lum_table(im)
-            if table is not None and all(r == g == b for r, g, b in table):
-                im, table = im.convert("L"), None   # black text on white: every pixel is a gray level, one band is enough
-        for (x0, y0, x1, y1), word in items:
+        im = _page_raster(pngs, pno)
+        for box, word in items:
             if not re.search(r"[^\W_]", word):
                 continue   # separators, bullets, rule glyphs: visible or meaningless either way
+            x0, y0, x1, y1 = box
             # poppler drops chars past the page edge, so a word that crosses it is cut
             # short, and its box then ends just past the edge: any overshoot is off-page
             off = bool(x0 < -0.01 or y0 < -0.01 or (pw and x1 > pw + 0.01) or (ph and y1 > ph + 0.01))
             ratio = None
             if im is not None:
-                xa, ya = int(x0 * sc) - HIDDEN_PAD_PX, int(y0 * sc) - HIDDEN_PAD_PX
-                xb, yb = int(x1 * sc) + 1 + HIDDEN_PAD_PX, int(y1 * sc) + 1 + HIDDEN_PAD_PX
-                xa, ya, xb, yb = max(xa, 0), max(ya, 0), min(xb, im.width), min(yb, im.height)
+                xa, ya, xb, yb = _word_pixels(box, im)
                 if xb > xa and yb > ya:
-                    crop, area = im.crop((xa, ya, xb, yb)), (xb - xa) * (yb - ya)
-                    ratio = _gray_contrast_in_box(crop) if im.mode == "L" else _contrast_in_box(crop, area, table)
+                    ratio = _contrast_in_box(im.crop((xa, ya, xb, yb)), lums)
                 elif not off:
                     ratio = 1.0   # the whole box rounds to nothing: no ink can be there
-            out.append((pno, word, (x0, y0, x1, y1), y1 - y0, ratio, off))
+            out.append((pno, word, box, y1 - y0, ratio, off))
     return out
 
 
@@ -337,7 +325,6 @@ def check_pdf_metadata(pdf: str) -> list[str]:
         except ImportError:
             pypdf = None
         if pypdf is not None:
-            import warnings
             try:
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
@@ -382,37 +369,42 @@ TINY_TEXT_PT = 5.0   # real font size under which a run is "tiny" (WARN): nobody
 Run = tuple[str, float, float, float]   # (text, x, y, real size) of one text run of a page
 
 
+# (size, lowest y, highest y) of a run no comparison holds for (NaN size or y): no node containing it is ever skipped.
+_NEVER_SKIP = (math.inf, -math.inf, math.inf)
+
+
 class _ScriptIndex:
     """Which run is a super/subscript of a larger neighbour, in O(log k) per run instead of a walk over the neighbours
     (k tiny runs on one baseline walked O(k^2) before). From run i the walk skips neighbours that are no larger than
     1.15 x its size and on its baseline (|dy| < 0.5), and stops at the first one that is larger or off the baseline.
     A segment tree over the runs keeps, per node, the largest size and the lowest and highest y, so a whole node is
-    skipped when every run in it would be: the same float comparisons as run by run, since each is monotone."""
-    __slots__ = ("_runs", "_n", "_size", "_ymin", "_ymax")
+    skipped when every run in it would be: the same float comparisons as run by run, since each is monotone.
+    Node 1 covers runs [0, k); node v covers [lo, hi) and its children cover [lo, mid) and [mid, hi)."""
+    __slots__ = ("_runs", "_size", "_ymin", "_ymax")
 
     def __init__(self, runs: Sequence[Run]) -> None:
         self._runs = runs
-        n = 1
-        while n < max(len(runs), 1):
-            n *= 2
-        self._n = n
-        self._size = [-1.0] * (2 * n)    # unused leaves: never a stop, always skipped
-        self._ymin = [math.inf] * (2 * n)
-        self._ymax = [-math.inf] * (2 * n)
-        for i, (_, _, y, sz) in enumerate(runs):
-            if math.isnan(y) or math.isnan(sz):   # no comparison holds for NaN: the walk always stops there
-                self._size[n + i], self._ymin[n + i], self._ymax[n + i] = math.inf, -math.inf, math.inf
-            else:
-                self._size[n + i], self._ymin[n + i], self._ymax[n + i] = sz, y, y
-        for k in range(n - 1, 0, -1):
-            self._size[k] = max(self._size[2 * k], self._size[2 * k + 1])
-            self._ymin[k] = min(self._ymin[2 * k], self._ymin[2 * k + 1])
-            self._ymax[k] = max(self._ymax[2 * k], self._ymax[2 * k + 1])
+        self._size = [0.0] * (4 * len(runs))
+        self._ymin = [0.0] * (4 * len(runs))
+        self._ymax = [0.0] * (4 * len(runs))
+        if runs:
+            self._build(1, 0, len(runs))
+
+    def _build(self, node: int, lo: int, hi: int) -> None:
+        if hi - lo == 1:
+            _, _, y, sz = self._runs[lo]
+            leaf = _NEVER_SKIP if math.isnan(y) or math.isnan(sz) else (sz, y, y)
+            self._size[node], self._ymin[node], self._ymax[node] = leaf
+            return
+        mid = (lo + hi) // 2
+        self._build(2 * node, lo, mid)
+        self._build(2 * node + 1, mid, hi)
+        self._size[node] = max(self._size[2 * node], self._size[2 * node + 1])
+        self._ymin[node] = min(self._ymin[2 * node], self._ymin[2 * node + 1])
+        self._ymax[node] = max(self._ymax[2 * node], self._ymax[2 * node + 1])
 
     def _skipped(self, node: int, limit: float, y: float) -> bool:
         """True if every run under `node` is no larger than `limit` and on the baseline `y`."""
-        if self._ymin[node] == math.inf and self._ymax[node] == -math.inf:
-            return True   # no run under this node (the padding up to a power of two)
         return (self._size[node] < limit and abs(self._ymin[node] - y) < 0.5 and abs(self._ymax[node] - y) < 0.5)
 
     def _stop(self, node: int, lo: int, hi: int, start: int, step: int, limit: float, y: float) -> int:
@@ -430,7 +422,7 @@ class _ScriptIndex:
         _, x, y, sz = self._runs[i]
         limit = 1.15 * sz
         for step in (-1, 1):
-            j = self._stop(1, 0, self._n, i + step, step, limit, y)
+            j = self._stop(1, 0, len(self._runs), i + step, step, limit, y)
             if j >= 0:
                 _, xn, yn, szn = self._runs[j]
                 if szn >= limit and 0.05 * szn < abs(yn - y) < 0.6 * szn and (x >= xn if step < 0 else xn >= x):
@@ -443,7 +435,8 @@ def _classify_runs(runs: Sequence[Run], box: tuple[float, float, float, float]) 
     that are no super/subscript]) for one page: the geometry half of `_text_runs`."""
     x0, y0, x1, y1 = box
     off: list[str] = []
-    blocks: list[tuple[list[str], float]] = []   # (texts, smallest size) per block, one join each at the end
+    block_texts: list[list[str]] = []   # one block per entry, joined once at the end
+    block_sizes: list[float] = []       # the smallest size of the same block
     index: _ScriptIndex | None = None
     last_tiny = -2
     for i, (t, x, y, sz) in enumerate(runs):
@@ -456,12 +449,24 @@ def _classify_runs(runs: Sequence[Run], box: tuple[float, float, float, float]) 
                 continue
             # consecutive tiny runs are one block: report it once, at its smallest size
             if last_tiny == i - 1:
-                blocks[-1][0].append(t)
-                blocks[-1] = (blocks[-1][0], min(blocks[-1][1], sz))
+                block_texts[-1].append(t)
+                block_sizes[-1] = min(block_sizes[-1], sz)
             else:
-                blocks.append(([t], sz))
+                block_texts.append([t])
+                block_sizes.append(sz)
             last_tiny = i
-    return off, [(" ".join(texts), sz) for texts, sz in blocks]
+    return off, [(" ".join(texts), sz) for texts, sz in zip(block_texts, block_sizes)]
+
+
+def _append_run(runs: list[Run], text: str, cm: Sequence[float] | None, tm: Sequence[float] | None, fd: object,
+                fs: float | None) -> None:
+    """pypdf text visitor: records the run's text, origin and real size (Tf size times the matrices' scale)."""
+    if not text.strip() or not cm or not tm:
+        return
+    x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
+    y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
+    det = abs((tm[0] * tm[3] - tm[1] * tm[2]) * (cm[0] * cm[3] - cm[1] * cm[2]))
+    runs.append((" ".join(text.split()), x, y, (fs or 0) * det ** 0.5))
 
 
 def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, float]], bool, str]:
@@ -482,7 +487,6 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
     except ImportError:
         return [], [], False, ""   # pypdf absent: the caller reports "not run"
     try:
-        import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             reader = pypdf.PdfReader(pdf)
@@ -492,16 +496,7 @@ def _text_runs(pdf: str) -> tuple[list[tuple[int, str]], list[tuple[int, str, fl
                 box = pg.cropbox
                 x0, y0, x1, y1 = float(box.left), float(box.bottom), float(box.right), float(box.top)
                 runs: list[Run] = []
-
-                def visit(text: str, cm: Sequence[float] | None, tm: Sequence[float] | None, fd: object, fs: float | None,
-                          runs: list[Run] = runs) -> None:
-                    if not text.strip() or not cm or not tm:
-                        return
-                    x = tm[4] * cm[0] + tm[5] * cm[2] + cm[4]
-                    y = tm[4] * cm[1] + tm[5] * cm[3] + cm[5]
-                    det = abs((tm[0] * tm[3] - tm[1] * tm[2]) * (cm[0] * cm[3] - cm[1] * cm[2]))
-                    runs.append((" ".join(text.split()), x, y, (fs or 0) * det ** 0.5))
-                pg.extract_text(visitor_text=visit)
+                pg.extract_text(visitor_text=partial(_append_run, runs))
                 page_off, page_tiny = _classify_runs(runs, (x0, y0, x1, y1))
                 off += [(pno, t) for t in page_off]
                 tiny += [(pno, t, sz) for t, sz in page_tiny]

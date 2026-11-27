@@ -1,5 +1,5 @@
-"""verify.text hot spots: `hidden_word_stats` (a luminance table per page, two luminances per word box instead of one
-per colour, one gray band for a black-on-white page), `_classify_runs` (a segment tree instead of a neighbour walk per
+"""verify.text hot spots: `hidden_word_stats` (a luminance memo per call, two luminances per word box instead of one
+per colour), `_classify_runs` (a segment tree instead of a neighbour walk per
 tiny run) and `_merged_runs` (one join per run instead of a growing string). Each keeps its behaviour (equivalence with
 the replaced code, kept in `_hidden_ref`, on realistic and worst-case inputs) and stays fast on a worst-case input
 (`slow`: wall time bounded far above the measured time and far below the old one)."""
@@ -19,7 +19,6 @@ from hypothesis import strategies as st
 from PIL import Image
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
 from vitae.core.colour import rel_luminance
-from vitae.core.pixels import gray_profile
 from vitae.verify import text
 
 SC = HIDDEN_PPI / 72.0
@@ -30,7 +29,7 @@ Page = tuple[float, float, list[WordBox]]
 
 def _raster(kind: str, seed: int, w: int, h: int) -> Image.Image:
     """A page raster: `gray` (black text on white, antialiasing levels), `colour` (a few inks and grounds, some one
-    level apart so luminance ties and near ties occur), `noise` (more colours than the table holds), `ramp` (every
+    level apart so luminance ties and near ties occur), `noise` (thousands of colours), `ramp` (every
     gray level)."""
     rng = random.Random(seed)
     if kind == "ramp":
@@ -62,15 +61,12 @@ def _pages(draw: st.DrawFn) -> tuple[Image.Image, Page]:
     return im, (w / SC, h / SC, items)
 
 
-def _both(im: Image.Image, page: Page, table_max: int | None = None) -> tuple[list[HiddenStat], list[HiddenStat]]:
+def _both(im: Image.Image, page: Page) -> tuple[list[HiddenStat], list[HiddenStat]]:
     with tempfile.TemporaryDirectory() as tmp:
         png = str(Path(tmp) / "p.png")
         im.save(png)
         expected = hidden_word_stats_per_colour("x.pdf", pages=[page], pngs=[png])
-        if table_max is None:
-            return text.hidden_word_stats("x.pdf", pages=[page], pngs=[png]), expected
-        with mock.patch.object(text, "HIDDEN_LUM_TABLE_MAX", table_max):
-            return text.hidden_word_stats("x.pdf", pages=[page], pngs=[png]), expected
+        return text.hidden_word_stats("x.pdf", pages=[page], pngs=[png]), expected
 
 
 @settings(deadline=None, max_examples=300)
@@ -81,16 +77,8 @@ def test_word_stats_match_the_per_colour_version(case: tuple[Image.Image, Page])
     assert got == expected
 
 
-@settings(deadline=None, max_examples=150)
-@given(_pages())
-def test_word_stats_match_when_the_table_is_skipped(case: tuple[Image.Image, Page]) -> None:
-    got, expected = _both(*case, table_max=4)   # every page with more than 4 colours takes the no-table path
-
-    assert got == expected
-
-
 def test_word_stats_equivalence_is_not_vacuous() -> None:
-    # control: ratios span all three bands (FAIL under 1.5, WARN under 3, clean) and the gray, table and no-table paths all run
+    # control: ratios span all three bands (FAIL under 1.5, WARN under 3, clean) on gray, colour, noise and ramp pages
     ratios: set[str] = set()
     for kind in ("gray", "colour", "noise", "ramp"):
         for seed in range(6):
@@ -118,16 +106,6 @@ def test_background_tie_goes_to_the_larger_colour() -> None:
 
     assert got == expected
     assert got[0][4] == pytest.approx(21.0)
-
-
-def test_gray_profile_every_level_and_tie() -> None:
-    for v in range(256):
-        assert gray_profile(Image.new("L", (3, 2), v)) == (v, v, v)
-    two = Image.new("L", (4, 1), 10)
-    two.paste(200, (2, 0, 4, 1))
-    assert gray_profile(two) == (10, 200, 200)   # equal counts: the higher level
-    with pytest.raises(ValueError, match="needs an"):
-        gray_profile(Image.new("RGB", (2, 2)))
 
 
 def _text_like_page(w: int, h: int, words: int, kind: str) -> tuple[Image.Image, Page]:

@@ -3,7 +3,7 @@ or a tuple depending on the image mode, so each mode gets its own view over the 
 validates `getcolors()` at the Pillow boundary."""
 from __future__ import annotations
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 
 class GrayPixels:
@@ -38,13 +38,19 @@ def colour_counts(im: Image.Image, maxcolors: int) -> list[tuple[int, tuple[int,
     return out
 
 
-def gray_profile(im: Image.Image) -> tuple[int, int, int]:
-    """(lowest level, highest level, most common level) of a non-empty "L" image, all in Pillow's C code (no colour
-    list): a tie for most common goes to the higher level. Any other mode is a ValueError."""
-    if im.mode != "L":
-        raise ValueError(f'gray_profile needs an "L" image, got {im.mode!r}')
-    low, high = im.getextrema()
-    if not (isinstance(low, int) and isinstance(high, int)):
-        raise ValueError("gray_profile needs a non-empty image")
-    counts = im.histogram()
-    return low, high, 255 - counts[::-1].index(max(counts))
+def threshold_lut(n: int, *, below: bool = True) -> list[int]:
+    """Lookup table for `Image.point` on an 8-bit band: 255 where the value is under `n` (`below`) or at least `n`
+    (not `below`), else 0."""
+    return [255 if (v < n) == below else 0 for v in range(256)]
+
+
+def far_in_luma(im: Image.Image, base: tuple[int, ...], threshold: int) -> Image.Image:
+    """"L" mask of the pixels of the RGB `im` whose difference from the colour `base`, taken as luma, is at least
+    `threshold` (255 there, else 0). A tint far from `base` in one channel only can fall under it: see `far_in_any_channel`."""
+    return ImageChops.difference(im, Image.new("RGB", im.size, base)).convert("L").point(threshold_lut(threshold, below=False))
+
+
+def far_in_any_channel(im: Image.Image, base: tuple[int, ...], threshold: int) -> Image.Image:
+    """RGB mask of the RGB `im`: each channel is 255 where it differs from the same channel of `base` by at least
+    `threshold`, else 0, so the mask is blank (`getbbox()` is None) exactly when no pixel is that far on any channel."""
+    return ImageChops.difference(im, Image.new("RGB", im.size, base)).point(threshold_lut(threshold, below=False) * 3)

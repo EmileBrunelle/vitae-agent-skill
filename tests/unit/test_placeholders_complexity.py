@@ -3,8 +3,10 @@ what the replaced code gave (the old code is kept verbatim in _placeholders_ref.
 fragments the scans react to: address characters, `@example.`, backslashes, brackets and the templates' own
 placeholders), and stay fast on the worst case (`slow`)."""
 import time
+from collections.abc import Callable
 
 import pytest
+from _growth import GROWTH_BOUND, growth_ratio
 from _placeholders_ref import check_placeholders_squashing, placeholders_in_scanning
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -70,11 +72,12 @@ def test_email_samples_bound_time_on_long_runs_without_an_at_sign() -> None:
 
 
 @pytest.mark.slow
-def test_check_placeholders_bounds_time_with_many_bracketed_spans() -> None:
-    txt = " ".join(placeholders.placeholders_from(placeholders.TEMPLATES)) + " " + "[abc def] " * 30000    # ~65 hits
-    start = time.perf_counter()
+def test_check_placeholders_time_grows_linearly_with_the_bracketed_spans() -> None:
+    known = " ".join(placeholders.placeholders_from(placeholders.TEMPLATES))   # ~65 hits whatever the size
 
-    out = placeholders.check_placeholders(_ctx(txt))
+    def prepare(spans: int) -> Callable[[], object]:
+        ctx = _ctx(known + " " + "[abc def] " * spans)
+        return lambda: placeholders.check_placeholders(ctx)
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.2 s; squashing the span once per placeholder took ~2.3 s
-    assert [lvl.name for lvl, _ in out] == ["FAIL", "WARN"]
+    assert growth_ratio(prepare, 15000) < GROWTH_BOUND
+    assert [lvl.name for lvl, _ in placeholders.check_placeholders(_ctx(known + " [abc def]"))] == ["FAIL", "WARN"]

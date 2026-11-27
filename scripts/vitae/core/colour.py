@@ -12,3 +12,8 @@ _LIN = [((c / 255) / 12.92 if c / 255 <= 0.04045 else (((c / 255) + 0.055) / 1.0
 def rel_luminance(rgb: Sequence[int]) -> float:
     """WCAG relative luminance of an 8-bit sRGB colour: 0 for black, 1 for white."""
     return 0.2126 * _LIN[rgb[0]] + 0.7152 * _LIN[rgb[1]] + 0.0722 * _LIN[rgb[2]]
+
+
+def contrast_from_lum(la: float, lb: float) -> float:
+    """WCAG contrast ratio (1..21) of two relative luminances, in either order."""
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
