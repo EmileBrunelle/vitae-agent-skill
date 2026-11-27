@@ -56,7 +56,8 @@ BOUNDARY_CEILING = 0.05  # …unless it is a section boundary, which may run thi
 # nature, not a tuning miss:
 DEVICELESS = {
     "humanist-quiet",   # no ink at all, by doctrine (core.md: pure gap)
-    "clause-index",     # the device is a numeral — text, not furniture
+    "clause-index",     # the device is a numeral — text, not furniture; stays exempt although the default
+                        # section-rule="inline" now draws a hairline, because section-rule="none" is still valid
     "gutter-rail",      # the bar is VERTICAL: never forms a row band
     "mono-technical",   # 6pt inline squares, ~1% of width, under any floor
     # Same instrument limit as mono-technical, NOT a missing device. Its

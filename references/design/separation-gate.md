@@ -40,7 +40,7 @@ Two measurement traps, both walked into while building this, both worth not repe
 | `mono-technical` | 3.54 | 2.3% | 0 |
 | `editorial-serif` | 3.75 | 1.5% | 8 |
 | `keyline-corporate` | 4.17 | 2.5% | 7 |
-| `clause-index` | 4.17 | 2.5% | 0 |
+| `clause-index` | 4.17 | 2.5% | 6 |
 | `hard-edge` | 4.33 | 2.6% | 11 |
 | `gutter-rail` | 4.43 | 3.1% | 1 |
 | `quiet-luxury` | 4.60 | 2.3% | 0 |
