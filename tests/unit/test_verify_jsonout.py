@@ -311,3 +311,18 @@ def test_run_gates_fails_when_any_line_fails_even_if_later_lines_pass(capsys):
     assert registry.run_gates(gates, ctx) == 1  # type: ignore[arg-type]  # a bare object() stands in for the context: these gates never read it
     assert registry.run_gates(gates[:1] + gates[2:], ctx) == 0  # type: ignore[arg-type]  # same stand-in context
     assert "FAIL  bad" in capsys.readouterr().out
+
+
+def test_recording_state_does_not_leak_between_two_runs_in_one_process(capsys):
+    """Mutation: keeping the sink or the noted dump length after the block ends (a module global) fails here."""
+    _run(capsys, ["x.typ"], _dumping(["a", "b", "c"], after=()))
+    with registry.recording([]) as rec:
+        assert rec.dump_lines is None
+    with registry.recording([]) as kept:
+        pass
+    registry.note_extraction("outside\nany block")          # no active recording: must be a no-op
+    assert kept.dump_lines is None
+    stale: list[tuple[str, Level, str]] = []
+    with registry.recording(stale) as rec2:
+        assert rec2.dump_lines is None
+    assert stale == []

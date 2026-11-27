@@ -19,7 +19,6 @@ import sys
 from types import ModuleType
 
 MIN_VERSION = (10, 8, 0)
-_warned = False
 
 
 def version_tuple(v: str) -> tuple[int, ...]:
@@ -48,10 +47,22 @@ def _pikepdf() -> ModuleType | None:
     return mod
 
 
+class _WarnState:
+    """The warn-once flag, an attribute of one explicit object (tests reset it with `reset()`)."""
+    def __init__(self) -> None:
+        self.warned = False
+
+    def reset(self) -> None:
+        self.warned = False
+
+
+_STATE = _WarnState()
+
+
 def _warn_once(exc: Exception) -> None:
-    global _warned
-    if not _warned:
-        _warned = True
+    """Print the warning for the first failure of the process run only."""
+    if not _STATE.warned:
+        _STATE.warned = True
         print(f"WARN  hexstrings: PDF left as compiled ({type(exc).__name__})", file=sys.stderr)
 
 

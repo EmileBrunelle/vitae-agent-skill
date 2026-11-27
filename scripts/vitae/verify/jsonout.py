@@ -116,7 +116,7 @@ def run_json(argv: list[str], dispatch: Dispatch) -> tuple[int, None]:
     out, err = io.StringIO(), io.StringIO()
     sink: list[tuple[str, Level, str]] = []
     rc, footer, bad, crash = 0, None, False, None
-    with redirect_stdout(out), redirect_stderr(err), registry.recording(sink):
+    with redirect_stdout(out), redirect_stderr(err), registry.recording(sink) as rec:
         try:
             rc, footer = dispatch(argv)
         except SystemExit as e:
@@ -138,7 +138,7 @@ def run_json(argv: list[str], dispatch: Dispatch) -> tuple[int, None]:
                "error": (err.getvalue().strip() or "usage error")})
         return 2, None
     sys.stderr.write(err.getvalue())
-    checks, banner = _checks(out.getvalue(), sink, registry.extraction_lines())
+    checks, banner = _checks(out.getvalue(), sink, rec.dump_lines)
     obj: dict[str, object] = {"tool": "doctor" if mode == "--doctor" else "verify"}
     if (v := skill_version()) is not None:
         obj["version"] = v

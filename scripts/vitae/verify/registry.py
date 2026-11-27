@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -43,32 +44,34 @@ class FnGate:
         return self.run(ctx)
 
 
-_sink: list[tuple[str, Level, str]] | None = None
-_dump_lines: int | None = None
+@dataclass
+class Recorder:
+    """What one `recording` block collects: the (gate name, level, message) lines and the extraction dump length."""
+    sink: list[tuple[str, Level, str]]
+    dump_lines: int | None = None
+
+
+_recorder: ContextVar[Recorder | None] = ContextVar("vitae_verify_recorder", default=None)
 
 
 @contextmanager
-def recording(sink: list[tuple[str, Level, str]]) -> Generator[None, None, None]:
-    """While active, `run_gates` also appends (gate name, level, message) to `sink`: what `--json` reads."""
-    global _sink, _dump_lines
-    _sink, _dump_lines = sink, None
+def recording(sink: list[tuple[str, Level, str]]) -> Generator[Recorder, None, None]:
+    """While active, `run_gates` also appends (gate name, level, message) to `sink`: what `--json` reads.
+    Yields the Recorder, whose `dump_lines` is the count noted by `note_extraction` (None if there was none)."""
+    rec = Recorder(sink)
+    token = _recorder.set(rec)
     try:
-        yield
+        yield rec
     finally:
-        _sink = None
+        _recorder.reset(token)
 
 
 def note_extraction(text: str) -> None:
     """The caller is about to print `text` (the PDF extraction): remember how many lines it takes, so `--json` can
     tell where the dump ends (it has no end marker) and read the report lines after it."""
-    global _dump_lines
-    if _sink is not None:
-        _dump_lines = len(text.split("\n"))
-
-
-def extraction_lines() -> int | None:
-    """Line count noted by `note_extraction` in the last `recording` block, None if there was none."""
-    return _dump_lines
+    rec = _recorder.get()
+    if rec is not None:
+        rec.dump_lines = len(text.split("\n"))
 
 
 def run_gates(gates: Sequence[Gate], ctx: VerifyContext) -> int:
@@ -79,7 +82,8 @@ def run_gates(gates: Sequence[Gate], ctx: VerifyContext) -> int:
             continue
         for lvl, msg in gate.check(ctx):
             print(f"{lvl:<5} {msg}")
-            if _sink is not None:
-                _sink.append((gate.name, lvl, msg))
+            rec = _recorder.get()
+            if rec is not None:
+                rec.sink.append((gate.name, lvl, msg))
             fail |= lvl == Level.FAIL
     return fail

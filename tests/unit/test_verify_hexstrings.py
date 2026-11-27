@@ -153,7 +153,7 @@ def test_an_unexpected_failure_leaves_the_file_and_warns_once(paren_pdf, monkeyp
     def boom(pk, doc):
         raise RuntimeError("x")
     monkeypatch.setattr(hexstrings, "_rewrite", boom)
-    monkeypatch.setattr(hexstrings, "_warned", False)
+    hexstrings._STATE.reset()
     before = paren_pdf.read_bytes()
     assert hexstrings.hexify_pdf(str(paren_pdf)) is False and hexstrings.hexify_pdf(str(paren_pdf)) is False
     assert paren_pdf.read_bytes() == before
@@ -175,3 +175,13 @@ def test_tiling_pattern_streams_are_rewritten_too(tmp_path):
     assert any(nested_parens(b) for b in patterns())
     assert hexstrings.hexify_pdf(str(out)) is True
     assert patterns() and not any(nested_parens(b) for b in patterns())
+
+
+def test_warn_once_is_per_process_run_and_resets_with_its_state(capsys):
+    """Mutation: ignoring the state prints twice; a flag that never resets hides the second run."""
+    hexstrings._STATE.reset()
+    hexstrings._warn_once(ValueError("a")); hexstrings._warn_once(KeyError("b"))
+    assert capsys.readouterr().err.count("WARN") == 1
+    hexstrings._STATE.reset()
+    hexstrings._warn_once(ValueError("a"))
+    assert capsys.readouterr().err.count("WARN") == 1
