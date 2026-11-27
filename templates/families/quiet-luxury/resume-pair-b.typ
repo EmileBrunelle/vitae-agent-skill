@@ -5,7 +5,7 @@
 // mark+value box, platform marks, generic icon sets).
 #import "../../lib.typ": *
 // vertical rhythm: 1.000 as designed; a tuner stretches every pt gap through it
-#let rhythm = 1.000
+#let rhythm = 0.938
 #let accent = rgb("#5c4632")
 #let pal = derive(accent)
 #let soft = pal.soft
@@ -30,18 +30,18 @@
 #let band = false
 #set page(background: accent-band(accent)) if band
 #set text(font: bodyf, size: 10.5pt, lang: "en", fill: dark, hyphenate: false)
-#set par(justify: false, leading: 0.536em, spacing: 0.636em)
+#set par(justify: false, leading: 0.536em, spacing: 0.597em)
 
 // device: the title, then a SHORT hairline tick on its own baseline-centre —
 // inline punctuation, not furniture. Never under the heading, never full width
 // (a rule spanning the measure beside every title reads as word-processor
 // furniture; measured and rejected).
 #let section(t, body, airy: false) = block(breakable: false,
-  above: if airy { 27pt * rhythm } else { 20pt * rhythm }, below: 0pt)[
-  #text(font: dispf, size: 12pt, weight: "semibold", fill: dark)[#t]
+  above: if airy { 33pt * rhythm } else { 26pt * rhythm }, below: 0pt)[
+  #text(font: dispf, size: 12.5pt, weight: "bold", fill: dark)[#t]
   #h(7pt)
   #box(baseline: -3pt, line(length: 34pt, stroke: 2pt + accent))
-  #v(13.5pt * rhythm)
+  #v(11pt * rhythm)
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
@@ -56,7 +56,7 @@
 // glyph, does the separating. No colon, no dash, no bullet.
 #let skill(cat, items) = srow(text(fill: ink, weight: "semibold")[#cat], items)
 
-#set list(marker: list-marker("mid", dark), indent: 10pt, spacing: 0.825em, body-indent: 6pt)
+#set list(marker: list-marker("mid", dark), indent: 10pt, spacing: 0.774em, body-indent: 6pt)
 
 // header: CONTACTS FIRST (a letterhead line), then the name, then the role —
 // the reverse of every other family's header order.
