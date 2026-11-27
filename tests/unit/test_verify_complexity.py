@@ -7,9 +7,10 @@ import re
 import time
 
 import pytest
+from _comments_ref import strip_comments_regex
 from _reading_order_ref import reading_order_quadratic
 from vitae.core.base import WordBox
-from vitae.verify import fonts, pdf, text
+from vitae.verify import fonts, pdf, placeholders, text
 
 # ------------------------------------------------------------------ _reading_order
 
@@ -222,3 +223,52 @@ def test_font_style_bounds_time_on_a_pathological_name(s: str) -> None:
 
     assert time.perf_counter() - start < 0.5      # linear; the old pattern backtracks exponentially (26 digits: ~6 s; sized so the old pattern fails the bound instead of hanging the run)
     assert out is None
+
+
+# ------------------------------------------------------------------ placeholders.strip_comments
+
+@pytest.mark.parametrize("seed", range(600))
+def test_strip_comments_matches_the_regex_on_random_text(seed: int) -> None:
+    rng = random.Random(seed)
+    alphabet = ["/", "/", "*", "*", ":", "a", "Z", "_", "é", " ", "\n", "//", "/*", "*/", "[x]", "http://"]
+    src = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
+
+    assert placeholders.strip_comments(src) == strip_comments_regex(src)
+
+
+@pytest.mark.parametrize("src, want", [
+    ("a /* b */ c", "a  c"),
+    ("a // b\nc", "a \nc"),
+    ("a /* unclosed [x]", "a /* unclosed [x]"),                    # an unclosed block comment is text
+    ("/* unclosed\n// line\nrest", "/* unclosed\n\nrest"),         # ... and a line comment after it still goes
+    ("http://x.org // y", "http://x.org "),                       # `//` after `:` or a word character is not a comment
+    ("a/*b*/c", "ac"),
+    ("/*/ x */y", "y"),                                           # `/*/` does not close itself
+    ("// a /* b\nc */", "\nc */"),                                 # a line comment hides the `/*`
+    ("/* a // b */ c", " c"),                                      # a block comment hides the `//`
+    ("x///y", "x/"),                                              # the first `/` follows `x` (no comment); the second starts one
+    ("", ""),
+])
+def test_strip_comments_cases(src: str, want: str) -> None:
+    assert placeholders.strip_comments(src) == want == strip_comments_regex(src)
+
+
+def test_strip_comments_equivalence_is_not_vacuous() -> None:
+    # control: the random texts do contain comments to strip, so equality is not the identity on both sides
+    rng = random.Random(1)
+    alphabet = ["/", "*", ":", "a", "\n", "//", "/*", "*/"]
+    srcs = ["".join(rng.choice(alphabet) for _ in range(40)) for _ in range(200)]
+
+    assert sum(placeholders.strip_comments(s) != s for s in srcs) > 100
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("unit", ["/* ", "/*", "/* // ", "/*\n// x\n"])
+def test_strip_comments_bounds_time_on_unclosed_block_comments(unit: str) -> None:
+    src = unit * (100_000 // len(unit))
+    start = time.perf_counter()
+
+    out = placeholders.strip_comments(src)
+
+    assert time.perf_counter() - start < 0.5      # measured ~0.01 s; the regex takes ~12 s on the first case
+    assert isinstance(out, str)
