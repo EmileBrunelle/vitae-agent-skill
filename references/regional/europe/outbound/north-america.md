@@ -15,7 +15,7 @@ Loaded on demand when the target market is the USA, English Canada or Québec an
 
 ## Regulated titles
 - "Engineer" and « ingénieur » are reserved in Canada: only people licensed by one of the 12 regulators may use the title, "regardless of where they completed their engineering degree" (Engineers Canada, « Immigration and Recognition of Foreign Qualifications: The Role of Engineering Regulators in Canada », 2023, consulted 2026-11-07, S123). Write the degree on the education line and a neutral job title until licensure. Protected-title detail, including software roles: [`north-america/canada/market.md`](../../north-america/canada/market.md#protected-titles).
-- Applying with the degree but no licence: describe the degree, not the title. An engineer-in-training (EIT) status exists; list it only if the candidate is enrolled with a regulator (Engineers Canada, « Who can use the title "engineer"? », 2022-03-24, consulted 2026-11-07, S124).
+- Applying with the degree but no licence: describe the degree, not the title. Several Canadian regulators grant an engineer-in-training title (EIT, or Member-in-Training) to enrolled members (Engineers Canada, « Licences issued by the engineering regulators in Canada », undated, consulted 2026-11-26, S665); list it only if the candidate is enrolled with a regulator.
 - USA: "PE" needs a state licence; for the bare word "engineer" see [`north-america/us/market.md`](../../north-america/us/market.md#protected-titles).
 
 ## CV shape

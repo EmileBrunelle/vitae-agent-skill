@@ -6,7 +6,7 @@ Loaded on demand when the candidate targets site-based trade work (construction,
 
 Protected professional titles: the target market file's Protected titles section (step 2).
 
-Every fact in the trades files is what the issuing body's own page says (consulted 2026-11-07). None of the pages read prescribes a CV format; Job Bank's general advice is that a résumé "should generally include details such as your contact information, objective, work experience, education and credentials" (Job Bank (Government of Canada), « How do I apply for a job? », consulted 2026-11-07, S334).
+Every fact in the trades files is what the issuing body's own page says (consulted 2026-11-07). None of the pages read prescribes a CV format (a government job-board's general advice, where one was read, is in the market trades file).
 
 ## The entry is the job site, the proof is the hours
 

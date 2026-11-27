@@ -16,3 +16,7 @@ Loaded on demand when the trades CV targets a Canadian province or territory oth
 ## Interprovincial mobility
 
 - Hours in a recognised Canadian apprenticeship scheme outside Québec fall under the interprovincial apprentice mobility agreement, which allows the combined work and training hours to be recognised at 100 %; keep the home authority's progress document (CCQ, « Reconnaissance de la formation et de l'expérience de travail », consulted 2026-11-07, S318).
+
+## CV format
+
+- No page read prescribes a CV format; Job Bank's general advice is that a résumé "should generally include details such as your contact information, objective, work experience, education and credentials" (Job Bank (Government of Canada), « How do I apply for a job? », consulted 2026-11-07, S334).

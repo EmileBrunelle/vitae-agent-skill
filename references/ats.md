@@ -66,6 +66,17 @@ Measured on 4 profile extractions (extractions 3-6, 2026-10-28, FR and EN CVs). 
 - **French month abbreviations**: `juill.` is not recognised (the range collapsed to "aoû 2019") while `sept.`, `janv.`, `févr.`, `déc.` are. Do NOT change the abbreviation: `juill.` is the correct French abbreviation.
 - **Any manual profile edit is wiped by a re-upload**: edit last.
 
+## Tagged PDF: PDF/UA-1 and PDF/A-2a
+
+Every compile asks Typst for `a-2a,ua-1` (`PDF_STANDARDS` in `scripts/vitae/verify/pdf.py`; the CLI flag is `--pdf-standard a-2a,ua-1`, typst-py takes `pdf_standards=["a-2a", "ua-1"]`). The PDF then carries a structure tree, `/MarkInfo`, `/Lang` and XMP declarations that screen readers, accessibility checkers and archives read, and a screen reader hears the same order the extraction shows. Typst refuses to write the file when the document breaks the standard:
+
+- **Document title:** the person's name, from `#set document(title: .., author: ..)` (templates: the `doc-name` token, reused by the header; letter: `name`; academic: `m.name`). Missing, the compile FAILs with "missing document title".
+- **Language:** the `lang:` of `#set text(..)` is the PDF's `/Lang`.
+- **Images:** described (`alt:`) or marked decorative with `pdf.artifact(kind: "layout", ..)`. `pmark` (contact and platform marks) and `photo` are artifacts by default; pass `photo(.., alt: [..])` to have a photo read out. Shapes (rules, ticks, bands, drawn markers) need nothing.
+- PDF/A-2a is the archival level that accepts UA-1's PDF version; A-1 caps at PDF 1.4 and A-4 needs 2.0, so neither combines with it.
+
+The pikepdf hex-string rewrite that runs after Typst keeps all of it (checked on structure tree, MCIDs, `/MarkInfo`, `/Lang`, XMP); an independent check is veraPDF: `verapdf --flavour ua1 cv.pdf` and `verapdf --flavour 2a cv.pdf`.
+
 ## Workday (myworkdayjobs)
 
 Measured 2026-10-28 on one tenant: the parser loses the employer on one-line `Title — Employer · dates` entries, pastes the Profile into job 1 and picks no degree. Fix = a parse-only copy for "Autofill", never a change to the real CV. Protocol, results and recipe: [`references/workday.md`](workday.md).
@@ -82,7 +93,7 @@ python3 scripts/verify.py --text cv.pdf | grep -n "20[0-9][0-9]"   # every date 
 
 Red flags in the extraction: a lone year floating at the end (grid entry without bullets — see trap above), skill labels grouped apart from their values, spaced-out headings ("S O F T WA R E"), fragments of one line interleaved into the next section (wrapped separator line).
 
-Without a typst binary at all: `pip install typst` ships no CLI but the Python API compiles both formats (verified): `python3 -c "import typst; typst.compile('cv.typ', output='cv.pdf')"` and `typst.compile('cv.typ', output='p.png', format='png')` for the fill check.
+Without a typst binary at all: `pip install typst` ships no CLI but the Python API compiles both formats (verified): `python3 -c "import typst; typst.compile('cv.typ', output='cv.pdf', pdf_standards=['a-2a', 'ua-1'])"` and `typst.compile('cv.typ', output='p.png', format='png')` for the fill check.
 
 ## Human-scan rules (the other 30 seconds)
 

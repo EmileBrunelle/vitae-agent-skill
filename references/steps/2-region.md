@@ -16,10 +16,15 @@
 | Australia / New Zealand | `oceania/australia.md` or `oceania/new-zealand.md` (never one for the other) |
 | India | `asia/india/market.md` |
 | Japan / Korea | `asia/east-asia/japan.md` or `korea.md` |
+| China (mainland, domestic employers) | `asia/east-asia/china.md` |
+| Hong Kong (HKSAR) | `asia/east-asia/hong-kong.md` |
 | Taiwan, only when the candidate is a foreign professional (work permit, Gold Card) | `asia/east-asia/taiwan.md` |
 | Southeast Asia | `asia/southeast-asia/<country>.md` (one file per country; `southeast-asia/overview.md` only for a cross-country comparison) |
+| Pakistan / Bangladesh / Sri Lanka (employer in the country) | `asia/south-asia/pakistan.md`, `bangladesh.md` or `sri-lanka.md`; a candidate leaving the country: `asia/outbound/south-asia.md` instead |
 | UAE / Saudi Arabia / Qatar, candidate an expatriate (Kuwait, Oman, Bahrain: no file) | `middle-east/gulf/market.md` |
 | Brazil / Mexico / Argentina / Chile / Colombia | `latin-america/<country>.md` |
+| South Africa (`--lang en --region za`) | `africa/south-africa/market.md` |
+| Nigeria (`--region ng`) | `africa/nigeria/market.md` |
 | Morocco / Algeria / Tunisia | `africa/maghreb-common.md` + `africa/<country>/market.md` |
 | Anything else | look for it in [`regional.md`](../regional.md) § Market files; if the market has no file, do not infer from training data — verify with a current source or ask, and label the assumption in the deliverable |
 
@@ -30,6 +35,8 @@
 - European credentials or CV habits targeting USA/Canada/Québec → `europe/outbound/north-america.md`.
 - Indian credentials targeting USA, Canada, UK, Australia or NZ → `asia/india/outbound/anglosphere.md`; targeting Germany, Ireland, the Netherlands or France → `asia/india/outbound/europe-common.md` plus that country's file.
 - Pakistani, Bangladeshi, Nepali, Philippine or Chinese credentials targeting a market outside their home country → `asia/outbound/common.md` plus the origin country's file.
+- Education section with exchange, credits, grade, dual study or MBA (per `education-cases.md`): the target's education file: `north-america/quebec/education.md`, `north-america/us/education.md`, `europe/uk-education.md`, `europe/germany-education.md`, `europe/france-education.md`, `oceania/australia-education.md`.
+- Academic CV (`fields/academic.md`): the target's academic file: `north-america/quebec/academic.md` (+ `canada/academic.md` for the federal agencies), `north-america/canada/academic.md`, `north-america/us/academic.md`, `europe/france-academic.md`, or the Maghreb country's `academic.md`.
 - Government job, trades, health, law, teaching, financial licensing, aviation, driving, workplace safety, Gulf nationalisation or credential verification, Maghreb or Near-East outbound, non-local foreign-worker files: [`regional.md`](../regional.md) § Market files — `grep -n` the market and read only the lines whose condition holds.
 
 Also read [`regional.md`](../regional.md) § Universal rules (every market; it ends with the cautions the market files compress: us-letter firm only in North America, Mexico/Chile/Colombia LOW confidence, ID numbers, Thai B.E. years, photo mechanics) and § Section names per language (find them with `grep -n '^## ' references/regional.md`); do not read the rest of regional.md unless a row above sends you there.

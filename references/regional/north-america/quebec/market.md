@@ -13,6 +13,8 @@ Loaded on demand when the target market is Québec. Québec-specific rules only;
 
 ## Length and verbs
 - Québec French: infinitive action verbs (« Concevoir… », « Livrer… ») — a convention taught by university career services, not a provincial norm; noun-phrase style is equally accepted — don't present it to the user as "the Québec convention". Months lowercase (janv., août); « Juin 2026 – présent », never « Depuis juin 2026 » (not ATS-parseable).
+- Verb-first: Québec.ca's CV page says « Privilégiez les verbes d'action comme administrer, analyser, compiler, diriger, informer » (its examples are infinitives; it states no tense rule) (Gouvernement du Québec, « Rédiger son curriculum vitæ », updated 2024-11-28, consulted 2026-11-26, S664); the OQLF's list of CV verbs suggests an action verb as the first word of each task (OQLF, Banque de dépannage linguistique, « Verbes utiles à la rédaction d’un curriculum vitæ », 2014, consulted 2026-11-26, S663).
+- Amounts (salary figures): number, space, then « $ », decimal comma: « 12 000 000 $ », « 25,50 $ » (OQLF, Banque de dépannage linguistique, « Écriture des sommes d’argent », updated 2019, consulted 2026-11-26, S662; its example groups thousands with a space, but the page states no grouping rule and shows « 1000 $ CA » without one).
 - Québec academic calendars (for bounding year-only education dates, with user confirmation): fall session — cégep starts late August, university early September; winter session — university starts early January; the winter term ends late April or early May depending on faculty (UQAM 2027: 23 April, 30 April or 2 May, S391); cégep starts late January and ends in May.
 
 ## Protected titles

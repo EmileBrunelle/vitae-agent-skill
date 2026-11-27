@@ -6,7 +6,8 @@ Loaded on demand when the target market is Australia. Points not confirmed by an
 - Typst flags: `--lang en --region au` for `pick_design.py` (written into `#set text(lang:, region:)`).
 - Paper: a4.
 - Photo: omit (LOW, unsourced: absence from official guidance).
-- CV language: English (en-AU spelling, LOW, unsourced); « resume » in Australia.
+- CV language: English; « resume » in Australia.
+- Spelling: Australian English; the Style Manual tells government organisations to choose one dictionary of Australian English (it recommends the Australian concise Oxford dictionary or the Macquarie dictionary) and says Australian spellings generally follow British ones, with exceptions (Australian Government, « Style Manual », « Spelling », updated 2023-07-07, consulted 2026-11-26, S660; a government-writing guide, no CV-specific rule).
 - Languages section: only if the facts list a language beyond English or the posting asks; « English (native) » alone is filler on an English CV (LOW, unsourced).
 - Personal data: no need to include age, gender or marital status (ask the candidate): « There’s no need to include your age, gender, or marital status » (Australian Public Service Commission, « 3. Applying for an APS job: cracking the code », consulted 2026-11-07, S545); name, phone and a professional email are « all you need to provide in the first instance » (DEWR, What's Next, « Applying for a job », consulted 2026-11-07, S544). Religion, nationality and date of birth unless the application asks, and bank details never: SEEK only, not official (SEEK, « How to write a resume in Australia: A step-by-step guide with examples », 2026-10-29, consulted 2026-11-07, S83).
 - Formality / verb style: plain professional English; no market-specific verb rule found.

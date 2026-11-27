@@ -33,6 +33,9 @@ Generic principles: [`references/education-cases.md`](../../../education-cases.m
 - An AEC is a college credential « décernée pour un programme d'études offert à la formation continue » (Gouvernement du Québec, « Attestation d’études collégiales (AEC) », consulted 2026-11-07, S11): an AEC is written as an AEC, never as a DEC; name it with the cégep.
 - The OQLF advises against « bootcamp » only in the sport sense (OQLF, Grand dictionnaire terminologique, fiche « camp d'entraînement », consulted 2026-11-07, S13); no French term for coding bootcamps is confirmed yet, so keep the provider's program name.
 
+### Credits
+- Print the count with unit and system: « 30 crédits (Québec) ». A whole-bachelor total such as « 90 crédits » is read as a shorter degree outside Québec: omit it and state the length in words ([`outbound/canada.md`](outbound/canada.md#degree-length-identify-the-path-first)). Convention, LOW, unsourced.
+
 ### GPA (moyenne cumulative)
 - Always print the scale with the number; the decimal separator follows the CV's language: « 3,82/4,3 » in a French CV, `3.82/4.3` in an English one. Maxima differ: UdeM, UQAM, Sherbrooke and Concordia use 4,3 (A+ 4,3); Laval uses 4,33; McGill uses 4.0 (A = 4.0, no A+; CGPA is McGill's term) and truncates rather than rounds — print the transcript figure, 3.59 not 3.60 (S214). [S128–S132]
 - Do not convert between scales on the CV (4,33 to 4,3, 4,3 to 4,0, or to a US 4.0): print the institution's own number and maximum; the reader converts with its own method.

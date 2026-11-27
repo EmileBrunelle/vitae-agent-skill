@@ -15,6 +15,10 @@ North America
 - [`regional/north-america/canada/francophone.md`](regional/north-america/canada/francophone.md) — read IN ADDITION to `common.md` and `canada/market.md` when the target market is NB, NS, PEI, Ontario or Manitoba AND (the CV is in French OR the employer is francophone); never for a Québec target. Sources loaded for NB, Ontario, PEI, Manitoba and federal jobs; for NS only the posting practice (French as requirement or asset), no level scale
 - [`regional/north-america/quebec/market.md`](regional/north-america/quebec/market.md) — read IN ADDITION to `common.md` and `canada/market.md` only when the TARGET market is Québec (a Québec employer or posting; a Québec address alone does not make it the target): length and verbs, protected titles, ATS, OQLF diploma names
 - [`regional/north-america/quebec/education.md`](regional/north-america/quebec/education.md) — Québec target AND the education section needs it: foreign diplomas (MIFI evaluation), degree in progress, stopped studies, transfers, DEC-BAC, AEC and bootcamps, GPA
+- [`regional/north-america/quebec/academic.md`](regional/north-america/quebec/academic.md) — Québec target AND the document is an academic CV: bilingual CV, FRQ CV-FRQ format (with `fields/academic.md`)
+- [`regional/north-america/canada/academic.md`](regional/north-america/canada/academic.md) — Canadian target AND an academic CV: funding and supervision sections, CAD, tri-agency CV (with `fields/academic.md`)
+- [`regional/north-america/us/academic.md`](regional/north-america/us/academic.md) — US target AND an academic CV: section order by institution type, references, non-refereed publications (with `fields/academic.md`)
+- [`regional/north-america/us/education.md`](regional/north-america/us/education.md) — US target AND the education section has credits, a part-time job beside studies or an MBA (GMAT/GPA, résumé-book length)
 - [`regional/north-america/quebec/trades.md`](regional/north-america/quebec/trades.md) — read IN ADDITION when the CV is for a construction/skilled trade in Québec (CCQ, ASP Construction, SIMDUT, RBQ, SAAQ, French trade names); loaded with `fields/trades.md`
 - [`regional/north-america/canada/trades.md`](regional/north-america/canada/trades.md) — read IN ADDITION when the CV is for a construction/skilled trade in another Canadian province or under Red Seal; loaded with `fields/trades.md`
 - [`regional/north-america/us/trades.md`](regional/north-america/us/trades.md) — read IN ADDITION when the CV is for a construction/skilled trade in the US; loaded with `fields/trades.md`
@@ -42,11 +46,15 @@ North America
 
 Europe
 - [`regional/europe/france.md`](regional/europe/france.md) — France (a4; FR; photo declining; 1 p.)
+- [`regional/europe/france-education.md`](regional/europe/france-education.md) — France target AND the education section has an alternance programme or a grade
+- [`regional/europe/france-academic.md`](regional/europe/france-academic.md) — France target AND an academic CV or CNU qualification dossier (with `fields/academic.md`)
 - [`regional/europe/uk-ireland-common.md`](regional/europe/uk-ireland-common.md) — read IN ADDITION to `uk.md` or `ireland.md` for a UK or Ireland target (CV format; British spelling; no photo)
 - [`regional/europe/uk.md`](regional/europe/uk.md) — United Kingdom; read with `uk-ireland-common.md`
+- [`regional/europe/uk-education.md`](regional/europe/uk-education.md) — UK target AND the education section has an exchange, a predicted grade or credits
 - [`regional/europe/ireland.md`](regional/europe/ireland.md) — Ireland; read with `uk-ireland-common.md`
 - [`regional/europe/dach-common.md`](regional/europe/dach-common.md) — read IN ADDITION to the country file for a Germany, Austria or Switzerland target (Lebenslauf, photo and Zeugnisse customs)
 - [`regional/europe/germany.md`](regional/europe/germany.md) — Germany; read with `dach-common.md`
+- [`regional/europe/germany-education.md`](regional/europe/germany-education.md) — Germany/Austria/Switzerland target AND the education section has an exchange, dual study, a grade or an MBA (ELIAS, FIBAA)
 - [`regional/europe/austria.md`](regional/europe/austria.md) — Austria; read with `dach-common.md`
 - [`regional/europe/switzerland.md`](regional/europe/switzerland.md) — Switzerland; read with `dach-common.md`
 - [`regional/europe/spain.md`](regional/europe/spain.md) — Spain only, never Latin America (a4; no consent clause, títulos oficiales vs propios, convocatorias)
@@ -69,6 +77,9 @@ Target markets
 - [`regional/asia/east-asia/japan.md`](regional/asia/east-asia/japan.md) — read when the CV goes to a Japanese employer (including a foreign applicant moving to Japan: status-of-residence evidence, HSP points, JLPT wording) or the candidate has Japanese home habits (rirekisho vs shokumu keirekisho); official-source facts only, no full market file
 - [`regional/asia/east-asia/korea.md`](regional/asia/east-asia/korea.md) — read when the CV goes to a Korean employer (including a foreign applicant moving to Korea: E-7 wage floors, apostille, TOPIK) or the candidate has Korean home habits (hiring-law personal-data ban); official-source facts only, no full market file
 - [`regional/asia/east-asia/taiwan.md`](regional/asia/east-asia/taiwan.md) — read only when the target is Taiwan AND the candidate is a foreign professional (work permit or Gold Card, TOCFL, Employment Service Act discrimination list); official-source facts only, no full market file
+- [`regional/asia/east-asia/china.md`](regional/asia/east-asia/china.md) — read when the CV goes to an employer in the PRC (domestic employers; Chinese or foreign candidate) or the candidate has mainland-Chinese home habits (PIPL, hiring-ban rules, photo and personal-data fields, work permit classes); sourced facts and career-guide conventions, no full market file
+- [`regional/asia/east-asia/hong-kong.md`](regional/asia/east-asia/hong-kong.md) — read when the CV goes to a Hong Kong employer (HKSAR; never the mainland file for it) or the candidate has Hong Kong home habits (Labour Department guidelines, PCPD code, English or Chinese résumé); official-source facts, no full market file
+- [`regional/asia/south-asia/pakistan.md`](regional/asia/south-asia/pakistan.md), [`bangladesh.md`](regional/asia/south-asia/bangladesh.md), [`sri-lanka.md`](regional/asia/south-asia/sri-lanka.md) — read ONLY the target country's file when the CV goes to an employer in that country (thinly sourced; data protection regimes, degree attestation, professional registration); a candidate leaving the country reads [`regional/asia/outbound/south-asia.md`](regional/asia/outbound/south-asia.md) instead
 - [`regional/asia/southeast-asia/`](regional/asia/southeast-asia/overview.md) — six *non-interchangeable* markets, one file each: read ONLY the target country's file, never the file average ([`overview.md`](regional/asia/southeast-asia/overview.md) only for the cross-country comparison):
   - [`regional/asia/southeast-asia/indonesia.md`](regional/asia/southeast-asia/indonesia.md) — Indonesia
   - [`regional/asia/southeast-asia/malaysia.md`](regional/asia/southeast-asia/malaysia.md) — Malaysia
@@ -94,6 +105,7 @@ Middle East
 
 Oceania, Latin America, Africa
 - [`regional/oceania/australia.md`](regional/oceania/australia.md) — Australia (a4; no photo; work rights, APS, engineer registration); *non-interchangeable* with New Zealand
+- [`regional/oceania/australia-education.md`](regional/oceania/australia-education.md) — Australia target AND the education section has an exchange abroad
 - [`regional/oceania/new-zealand.md`](regional/oceania/new-zealand.md) — New Zealand (a4; no photo; work rights); *non-interchangeable* with Australia
 - [`regional/latin-america/brazil.md`](regional/latin-america/brazil.md) — Brazil (*non-interchangeable* market; Gupy ATS, CREA/CRC titles)
 - [`regional/latin-america/mexico.md`](regional/latin-america/mexico.md) — Mexico (*non-interchangeable* market)
@@ -119,12 +131,14 @@ Oceania, Latin America, Africa
   - [`regional/africa/tunisia/regulated.md`](regional/africa/tunisia/regulated.md) — protected titles: architect, avocat, engineer (registration, penalties)
   - [`regional/africa/tunisia/health.md`](regional/africa/tunisia/health.md) — physician and dentist titles
   - [`regional/africa/tunisia/academic.md`](regional/africa/tunisia/academic.md) — university and school-teaching ranks, exact official names
+- [`regional/africa/south-africa/market.md`](regional/africa/south-africa/market.md) — South Africa (`--lang en --region za`): Employment Equity Act, no race/gender line by default, SAQA and NQF wording; official-source facts only
+- [`regional/africa/nigeria/market.md`](regional/africa/nigeria/market.md) — Nigeria (`--region ng`): Data Protection Act 2023, NYSC certificate and exemption; official-source facts only
 - [`regional/africa/outbound/common.md`](regional/africa/outbound/common.md) — read IN ADDITION to the target market's file when the candidate holds Moroccan, Algerian or Tunisian credentials (alone or mixed with other countries') and targets Québec/Canada or Europe, plus ONE of:
   - [`regional/africa/outbound/quebec-canada.md`](regional/africa/outbound/quebec-canada.md) — target Québec or English Canada (MIFI, IRCC ECA, OIQ)
   - [`regional/africa/outbound/europe.md`](regional/africa/outbound/europe.md) — target France; Belgium, Spain and Germany not covered
   - [`regional/africa/outbound/transnational.md`](regional/africa/outbound/transnational.md) — read IN ADDITION when a credential was earned on a campus abroad of a foreign school, delivered under a foreign partnership, or is a double/joint diploma (LaSalle Maroc/Tunis, delocalised Québec AEC, Dauphine Tunis)
 
-**If the target market has no file, do not infer from training data** — markets outside this set (China, Kuwait, Oman, Bahrain, other Middle East and Asian markets…) do not form a bloc: conventions vary more inside that group than between Europe and North America (China, which has no file, expects photos for domestic employers but not multinationals; Japan, Korea and Taiwan have only official-source facts, in the three [`regional/asia/east-asia/`](regional/asia/east-asia/japan.md) files: the rirekisho has an MHLW sample form with photo and age fields, but MHLW says employers may use other forms; the Gulf and Near East files cover foreign workers, not a CV-custom source). Verify with a current local source or ask, label the assumption in the deliverable — and consider contributing the file. The same warning applies *inside* a multi-market file: Singapore and Thailand are neighbouring markets and disagree on nearly every axis (photo, personal data, formality).
+**If the target market has no file, do not infer from training data** — markets outside this set (Kuwait, Oman, Bahrain, other Middle East and Asian markets…) do not form a bloc: conventions vary more inside that group than between Europe and North America (Japan, Korea, Taiwan and China have only official-source or career-guide facts, in the [`regional/asia/east-asia/`](regional/asia/east-asia/japan.md) files, the Chinese photo and field conventions being in [`china.md`](regional/asia/east-asia/china.md) rather than summarised here; the rirekisho has an MHLW sample form with photo and age fields, but MHLW says employers may use other forms; the Gulf and Near East files cover foreign workers, not a CV-custom source). Verify with a current local source or ask, label the assumption in the deliverable — and consider contributing the file. The same warning applies *inside* a multi-market file: Singapore and Thailand are neighbouring markets and disagree on nearly every axis (photo, personal data, formality).
 
 ## Universal rules (every market)
 

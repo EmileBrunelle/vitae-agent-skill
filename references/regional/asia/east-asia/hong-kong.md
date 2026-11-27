@@ -1,0 +1,32 @@
+# Market: Hong Kong (HKSAR)
+
+Loaded on demand when the CV goes to a Hong Kong employer, or when the candidate's home habits are Hong Kong's and the target is elsewhere; read in addition to the target market's file. Mainland China is a separate file ([`china.md`](china.md)); nothing below is borrowed from it. There is no full market file: only what an official source supports is below; the rest is not checked: ask the user or a current local posting, and label the assumption.
+
+## At a glance
+- Paper: A4, one to two pages; the Labour Department's job-hunting guide says to print on clean white paper (HK Labour Department, « A Guide to Job Hunting », PDF dated 2026-03, consulted 2026-11-26, S821). A guide for job seekers, not a rule.
+- Photo: the guide's résumé samples carry none, and « passport photos » appear only in the list of items to bring to an interview (S821). The Labour Department's age guidelines say requests for photographs should not be made until the interview stage (S820). Leave it off unless the posting asks.
+- CV language: not covered here (not checked) as a rule. The Labour Department's samples include an English résumé and a Chinese one (履歷表); the guide does not say which to choose (S821): ask the user which language the posting uses. Typst flags: `--lang en --region hk` for English, `--lang zh --region hk` for Chinese; which script (traditional is the Hong Kong norm) is not covered by a source read, confirm with the user.
+- Personal data: the Privacy Commissioner's Code of Practice on Human Resource Management limits what an employer collects at recruitment (S824, excerpt only); the Labour Department tells applicants not to give identity card, credit card or bank account numbers until hired and then only as needed (S821). Not a CV field.
+- Length: one to two A4 pages (S821).
+- Spelling: not covered here (not checked); no source read says British or American. Follow the posting.
+
+## Names, dates, layout in the Labour Department samples
+- Order and English name. The sample résumé gives « Ho Siu Ling (何小羚) » and the sample email signs « Yung Chi Kit, Stephen »: family name first, then given names, a Chinese-character form in brackets, and an English first name after a comma (S821). Two samples, not a rule: use the name the candidate uses on their ID and degree, and keep one form across the CV.
+- Dates. Employment lines read « 12/2022 – Present » and « 7/2021 – 12/2022 »; education uses year ranges (« 2019-2021 ») (S821). Reverse-chronological: the guide says to start usually with the most recent item (S821).
+- Sections in the English sample, for an administrative post: contact (name, address, phone, email), position applied for, academic and professional qualifications, employment history with duty bullets, languages and skills, availability (« Immediate »), references (« Provided upon request ») (S821). The Chinese sample adds extra-curricular activities and typing speed in Chinese and English. These are model résumés for entry-level posts; a senior or professional CV is not covered.
+- Local qualifications. The samples list Hong Kong Diploma of Secondary Education (HKDSE) subjects with grades (S821). Whether to list them for a graduate is not covered here (not checked).
+- The guide also says to list qualifications relevant to the post, keep one to two pages, and give only the personal information the application needs (S821).
+
+## What an employer should not ask
+- Age. The Labour Department's guidelines (voluntary, « not backed by legislation ») advise employers to avoid age ranges and limits in advertisements, to ask for photographs only at interview stage and to review whether « Date of birth » is needed on an application form (HK Labour Department, « Practical Guidelines for Employers on Eliminating Age Discrimination in Employment », January 2006, consulted 2026-11-26, S820). For the CV: leave date of birth off unless the posting asks (LOW, unsourced: inference from the guidelines).
+- Discrimination law. The Labour Department lists four ordinances as employment-related: Sex Discrimination (Cap. 480), Disability Discrimination (Cap. 487), Family Status Discrimination (Cap. 527) and Race Discrimination (Cap. 602) (HK Labour Department, « Other Relevant Legislation », consulted 2026-11-26, S822). It describes the first as unlawful on grounds of sex, marital status or pregnancy (HK Labour Department, « Equal opportunities in employment fully supported », 18 March, year not shown, consulted 2026-11-26, S823). The Equal Opportunities Commission's codes of practice on what an application form may ask were not readable (its site failed the certificate check): not checked.
+- Identity card. The Privacy Commissioner's Code, para 2.2.4, as quoted in a search excerpt: an employer should not collect a copy of an applicant's identity card until the applicant has accepted an offer (PCPD, « Code of Practice on Human Resource Management », S824; the page itself did not load, so wording and current revision are not checked). A community legal guide summarises two more points: recruitment advertisements that ask for personal data state the purpose, and unsuccessful applicants' data may be kept up to two years (CLIC, « Process of employment », consulted 2026-11-26, S826; secondary summary). So no ID number, address proof or bank detail on the CV.
+
+## Regulated professions
+- Law: barristers are registered through the Bar Council of the Hong Kong Bar Association, solicitors through the Law Society of Hong Kong (US Commercial Service, « Licensing Requirements for Professional Services: Hong Kong & Macau », last published 2026-06-05, consulted 2026-11-26, S825; a US government summary, not HKSAR). Do not write « barrister » or « solicitor » for a title not held there.
+- Accountancy: the Hong Kong Institute of Certified Public Accountants is described as the only statutory licensing body of accountants, and statutory audit work is limited to its practising members or firms (S825). Say « CPA (HK) » only if registered.
+- Medicine, nursing, architecture, engineering and other trades: not covered here (not checked); the government hosts listing statutory registers did not load.
+
+## Not covered here (not checked)
+- Differences from the mainland: no source read compares them.
+- Employer-type conventions (local, multinational, civil service), Chinese-language CV layout beyond the Labour Department sample, spelling, work visas, Mandarin and Cantonese level wording.

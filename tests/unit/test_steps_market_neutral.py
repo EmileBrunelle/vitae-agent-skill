@@ -1,4 +1,4 @@
-"""SKILL.md and references/steps/ carry general rules only: market names live in references/regional/.
+"""SKILL.md and references/ outside the exclusions below carry general rules only: market names live in references/regional/.
 
 The market names come from the regional/ tree (folder and file names), never from a hard-coded list.
 """
@@ -9,8 +9,19 @@ import pytest
 from _paths import ROOT
 
 REGIONAL = ROOT / "references" / "regional"
-SCANNED = [ROOT / "SKILL.md", *sorted((ROOT / "references" / "steps").rglob("*.md"))]
-ROUTING = ROOT / "references" / "steps" / "2-region.md"
+REFERENCES = ROOT / "references"
+# Each exclusion is a file or tree whose job is to name markets or bodies, not a general rule.
+EXCLUDED = (
+    REGIONAL,  # the market files themselves
+    REFERENCES / "steps" / "2-region.md",  # the routing table: step 2 routes to the market files by name
+    REFERENCES / "regional.md",  # the index of the regional/ files, with their load conditions
+    REFERENCES / "certifications",  # keyed by certifying body (CPA, FINRA, NEBOSH...), split by profession
+    REFERENCES / "fonts.md",  # font provenance table: the origin of a typeface is not a market convention
+)
+SCANNED = [
+    ROOT / "SKILL.md",
+    *sorted(p for p in REFERENCES.rglob("*.md") if not any(p == x or x in p.parents for x in EXCLUDED)),
+]
 
 # Words in a regional/ file or folder name that name a topic or a role, not a place.
 TOPIC_WORDS = {
@@ -40,9 +51,12 @@ def market_names(root=REGIONAL):
 
 
 def strip_paths(text):
-    """Drop link targets and code spans that are file paths: the path of a market file is not a market claim."""
+    """Drop link targets and every backticked literal.
+
+    A backticked entry is a literal (a file path, or measured test data quoted as logged), not an instruction.
+    """
     text = re.sub(r"\]\([^)\s]*\)", "]", text)
-    return re.sub(r"`[^`\n]*(?:/|\.md)[^`\n]*`", "", text)
+    return re.sub(r"`[^`\n]*`", "", text)
 
 
 def find_market_names(text, names):
@@ -73,11 +87,19 @@ def test_detector_finds_a_name_and_ignores_paths():
     assert find_market_names("Margins on US Letter.", names) == []
     assert find_market_names("The US market.", names) == ["us"]
     assert find_market_names("See [x](regional/asia/east-asia/japan.md) and `asia/japan.md`.", names) == []
+    assert find_market_names("Measured on `Tokyo (Japan)` input.", names) == []  # a backticked literal is data
+    assert find_market_names("Measured on Tokyo (Japan) input.", names) == ["japan"]  # the same text in prose is not
+
+
+def test_scan_covers_references_and_skips_exclusions():
+    scanned = {p.relative_to(ROOT).as_posix() for p in SCANNED}
+    assert {"SKILL.md", "references/education-cases.md", "references/fields/academic.md"} <= scanned
+    assert not any(x.startswith(("references/regional/", "references/certifications/")) for x in scanned)
+    assert not scanned & {"references/regional.md", "references/steps/2-region.md", "references/fonts.md"}
+    assert all(x.exists() for x in EXCLUDED)
 
 
 @pytest.mark.parametrize("path", SCANNED, ids=lambda p: str(p.relative_to(ROOT)))
-def test_no_market_name_outside_routing(path):
-    if path == ROUTING:
-        pytest.skip("step 2 routes to the market files by name")
+def test_no_market_name_outside_market_files(path):
     hits = find_market_names(path.read_text(encoding="utf-8"), market_names())
     assert not hits, f"market names in a general-rules file (move them to references/regional/): {hits}"

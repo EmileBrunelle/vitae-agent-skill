@@ -726,3 +726,61 @@ Snapshot of the URLs behind the citations in `references/`, verified around 2026
 - S655 — Tunisia, JORT n° 68, 22 August 2008, pp. 2776-2804 (arrêté of 18 August 2008 on ministry services, hosted by sicad.gov.tn, URL lost), quoting décret n° 93-1825 du 6 septembre 1993 (enseignants chercheurs) as amended by 97-1802 and 2000-2583 and décret 93-1824 (habilitation universitaire): a 2008 snapshot, not the decree text; décret 2023-749 and 2008-2877 not read; consulted 2026-11-08
 - S656 — Hello Work (MHLW, Japan) — « 応募書類 » pamphlet, ref. PL060531首03 (file name dated 2024-06, consulted 2026-11-26) — https://www.hellowork.mhlw.go.jp/doc/oubosyorui_pamphlet_202406.pdf
 - S657 — CIHR — « CIHR English Style Guide » (June 2021, consulted 2026-11-26) — https://cihr-irsc.gc.ca/e/documents/cihr_english_style_guide.pdf
+- S658 — Translation Bureau, Public Services and Procurement Canada (Language Portal of Canada) — « Writing Tips Plus: spelling: international variations » (page dated 2020-02-28, consulted 2026-11-26; the live site answered 403, text read from a web.archive.org snapshot; « The Canadian Style » itself is catalogued at publications.gc.ca but its PDF was not retrievable) — https://our-languages.canada.ca/en/writing-tips-plus/spelling-international-variations
+- S659 — U.S. Government Publishing Office — « Style Manual » (2016), chapter 5 « Spelling » (consulted 2026-11-26) — https://www.govinfo.gov/content/pkg/GPO-STYLEMANUAL-2016/pdf/GPO-STYLEMANUAL-2016-7.pdf
+- S660 — Australian Government — « Style Manual », « Spelling » (updated 2023-07-07, consulted 2026-11-26; read from a web.archive.org snapshot) — https://www.stylemanual.gov.au/grammar-punctuation-and-conventions/spelling
+- S661 — Stats NZ (data.govt.nz) — « How we write - our voice » (undated, consulted 2026-11-26; read from a web.archive.org snapshot) — https://data.govt.nz/about/about-data-govt-nz/our-style-guide/how-we-write-our-voice
+- S662 — OQLF, Banque de dépannage linguistique — « Écriture des sommes d’argent » (updated 2019, consulted 2026-11-26) — https://vitrinelinguistique.oqlf.gouv.qc.ca/21584/la-typographie/nombres/ecriture-des-sommes-dargent
+- S663 — OQLF, Banque de dépannage linguistique — « Verbes utiles à la rédaction d’un curriculum vitæ » (2014, consulted 2026-11-26) — https://vitrinelinguistique.oqlf.gouv.qc.ca/24847/la-redaction-et-la-communication/redaction-administrative-et-commerciale/curriculum-vitae/liste-de-verbes-utiles-a-la-redaction-du-curriculum-vitae
+- S664 — Gouvernement du Québec — « Rédiger son curriculum vitæ » (updated 2024-11-28, consulted 2026-11-26) — https://www.quebec.ca/emploi/trouver-emploi-stage/conseils/preparer-candidature/rediger-curriculum-vitae
+- S665 — Engineers Canada — « Licences issued by the engineering regulators in Canada » (undated, consulted 2026-11-26) — https://engineerscanada.ca/become-an-engineer/overview-of-licensing-process/licences-issued-by-the-engineering-regulators-in-canada
+- S666 — Texas Board of Professional Engineers and Land Surveyors — « Certification of Engineer in Training (EIT) » (undated, consulted 2026-11-26) — https://pels.texas.gov/lic_eit_exinfo.htm
+
+## Added 2026-11-26 (China (mainland))
+
+- S800 — NPC Standing Committee (text via CECC) — « 中华人民共和国劳动合同法 » (2007-06-29, amended 2012-12-28, consulted 2026-11-26) — https://www.cecc.gov/resources/legal-provisions/labor-contract-law-of-the-peoples-republic-of-china-0
+- S801 — NPC Standing Committee (text via gov.cn) — « 中华人民共和国就业促进法 » (2007-08-30, amended 2015-04-24, consulted 2026-11-26) — https://www.gov.cn/guoqing/2021-10/29/content_5647636.htm
+- S802 — NPC Standing Committee (text via China Law Translate) — « 中华人民共和国个人信息保护法 » (2021-08-20, in force 2021-11-01, consulted 2026-11-26) — https://www.chinalawtranslate.com/个人信息保护法/
+- S803 — State Council, PRC — « 人力资源市场暂行条例 », 国务院令第700号 (2018-06-29, consulted 2026-11-26) — https://www.gov.cn/zhengce/content/2018-07/17/content_5306967.htm
+- S804 — MOHRSS and Cyberspace Administration of China — « 人力资源社会保障部 中央网信办关于进一步加强人力资源市场规范管理的通知 », 人社部发〔2024〕62号 (2024-08-23, consulted 2026-11-26) — https://www.gov.cn/zhengce/zhengceku/202408/content_6971235.htm
+- S805 — Beijing Daily via Xinhua — « 北京九部门联合印发通知：招聘时禁问妇女婚育情况 » (2019-06-28, consulted 2026-11-26) — https://www.xinhuanet.com/politics/2019-06/28/c_1124681322.htm
+- S806 — NPC Standing Committee (text via 12371.cn) — « 中华人民共和国医师法 » (2021-08-20, in force 2022-03-01, consulted 2026-11-26) — https://www.12371.cn/2021/08/21/ARTI1629515037664395.shtml
+- S807 — NPC Standing Committee (text via 12371.cn) — « 中华人民共和国律师法 » (2007-10-28, third amendment 2017-09-01, consulted 2026-11-26) — https://www.12371.cn/2020/06/11/ARTI1591829325020697.shtml
+- S808 — State Administration of Foreign Experts Affairs — « 外国人来华工作许可服务指南（暂行） », 编号 D 50001 (2017-03-29, consulted 2026-11-26) — https://fuwu.most.gov.cn/r/cms/zwpt/web/pdf/wgrlhzq/20170418182639_469.pdf
+- S809 — Johns Hopkins Carey Business School career guide — « Resume Guide for China » (PDF created 2019-03-19, consulted 2026-11-26) — https://carey.jhu.edu/sites/default/files/2019-09/Resume%20Guide%20for%20China.pdf
+- S810 — Southwestern University of Finance and Economics, career centre (西南财经大学学生职业规划与就业指导中心) — « 【简历】简历制作教程（2015版） » (updated 2016-03-29, consulted 2026-11-26) — https://job.swufe.edu.cn/info/1084/1221.htm
+- S811 — Zhengzhou Intelligent Science and Technology Vocational College, admissions and employment office (credits the national student employment platform) — « 8个方面入手，教你做一份求职简历! » (2023-11-21, consulted 2026-11-26) — https://www.zzcit.edu.cn/jyc/jyzd/jyzdn/2023/11/adbb81b6c5544ab981499ba59e1ab6e2.htm
+
+## Added 2026-11-26 (Hong Kong)
+
+- S820 — HK Labour Department — « Practical Guidelines for Employers on Eliminating Age Discrimination in Employment » (January 2006; PDF metadata modified 2012-12; consulted 2026-11-26) — https://www.labour.gov.hk/text_alternative/pdf/eng/PracticalGuidelines.pdf
+- S821 — HK Labour Department (Employment Information and Promotion Programme Office) — « A Guide to Job Hunting » (求職一本通; PDF created 2026-03-25, file ref. 16144_LD__11E_GuideToJobHunting_ENG_V1_2603; consulted 2026-11-26) — https://www.labour.gov.hk/eng/public/eip/JobHunting_Eng.pdf
+- S822 — HK Labour Department — « Other Relevant Legislation » (undated, consulted 2026-11-26) — https://www.labour.gov.hk/eng/legislat/contentB4.htm
+- S823 — HK Labour Department — « Equal opportunities in employment fully supported » (18 March, year not shown; consulted 2026-11-26) — https://www.labour.gov.hk/eng/major/1803002.htm
+- S824 — PCPD (Hong Kong Privacy Commissioner for Personal Data) — « Code of Practice on Human Resource Management », para 2.2.4 quoted from a search excerpt only; every PCPD page and PDF returned empty in the fetch tool, so the text and current revision were not read (consulted 2026-11-26) — https://www.pcpd.org.hk/english/data_privacy_law/code_of_practices/files/hrdesp_e.pdf
+- S825 — US Commercial Service (trade.gov) — « Licensing Requirements for Professional Services: Hong Kong & Macau » (last published 2026-06-05, consulted 2026-11-26) — https://www.trade.gov/country-commercial-guides/licensing-requirements-professional-services-hong-kong-macau
+- S826 — CLIC (Community Legal Information Centre) — « Process of employment » (personal data privacy ordinance, secondary summary of the PCPD Code; undated, consulted 2026-11-26) — https://www.clic.org.hk/en/topics/employmentDisputes/otherMajorEmploymentAndLabourLegislation/other_related_legislation/personal_data_privacy_ordinance/process_of_employment
+
+## Added 2026-11-26 (South Africa, Nigeria)
+
+- S840 — South Africa, Government Gazette No. 19370, 19 October 1998, Employment Equity Act No. 55 of 1998 (as enacted; amendments not read; consulted 2026-11-26) — https://www.gov.za/sites/default/files/gcis_document/201409/a55-98ocr.pdf
+- S841 — Government of South Africa (gov.za), « Evaluate foreign qualifications » (undated, © 2026, consulted 2026-11-26) — https://www.gov.za/services/tertiary-education/evaluate-foreign-qualifications
+- S842 — Nigeria Data Protection Act, 2023 (DataGuidance copy, ss. 24, 30, 65; assent date not read; consulted 2026-11-26) — https://www.dataguidance.com/sites/default/files/data_protection_act_2023.pdf
+- S843 — Nigeria, National Youth Service Corps Act, ss. 12, 13, 17 (reproduction on djetlawyer.com blog post of 2025-01-31, not an official copy; consulted 2026-11-26) — https://djetlawyer.com/?p=2879
+- S844 — The Sun (Nigeria), « Request for NYSC exception, service certificate before employment, DG tells employers of labour » (18 October 2023, consulted 2026-11-26) — https://thesun.ng/request-for-nysc-exception-service-certificate-before-employment-dg-tells-employers-of-labour/
+
+## Added 2026-11-26 (Pakistan, Bangladesh, Sri Lanka)
+
+- S870 — Chambers and Partners — « Data Protection & Privacy 2026, Pakistan: Law and Practice » (practice guide, latest date mentioned January 2026, consulted 2026-11-26) — https://chambers.com/practice-guides/guides/data-protection-privacy-2026/pakistan/law-and-practice
+- S871 — The Daily Star (Bangladesh) — « Bangladesh's Personal Data Protection Ordinance 2025: key takeaways » (2025-10-21, consulted 2026-11-26) — https://www.thedailystar.net/tech-startup/news/bangladeshs-personal-data-protection-ordinance-2025-key-takeaways-4015401
+- S872 — TBS News — « Govt issues gazettes of 2 landmark ordinances on data protection, governance » (2025-11-09, consulted 2026-11-26) — https://www.tbsnews.net/node/1281356
+- S873 — Data Protection Authority of Sri Lanka — « Personal Data Protection Circular No. 01/2026 » (2026-08-07, consulted 2026-11-26) — https://dpa.gov.lk/media/DPA_Circular_012026_E.pdf
+- S874 — Financial Times (Sri Lanka) — « Data protection compliance regime takes effect on 1 Jan. 2027 » (2026-08-10, consulted 2026-11-26) — https://www.ft.lk/front-page/Data-protection-compliance-regime-takes-effect-on-1-Jan-2027/44-795776
+- S875 — HEC Pakistan — « Attestation of Degrees/Diplomas/Certificates » (undated, consulted 2026-11-26) — https://www.hec.gov.pk/english/services/students/DAS/Pages/Degree-Attestation.aspx
+- S876 — Pakistan Engineering Council Act 1976 (Act V of 1976), Gazette of Pakistan Extraordinary, 1976-01-14 (copy hosted by the Government of Gilgit-Baltistan; later amendments not read; consulted 2026-11-26) — https://gilgitbaltistan.gov.pk/storage/downloads/ObiDzVabXhYwxd73iNJaIYKRNi7UOC-metaUEVDLUFjdC0xOTc2LnBkZg==-.pdf
+- S877 — Pakistan Medical and Dental Council — « Frequently Asked Questions » (undated, consulted 2026-11-26) — https://pmdc.pk/Home/FAQs
+- S878 — Sri Lanka Medical Council — « About SLMC » (undated, consulted 2026-11-26) — https://slmc.gov.lk/en/about/slmc
+- S879 — Sri Lanka Medical Council — « Overseas Graduates » (undated, consulted 2026-11-26) — https://slmc.gov.lk/en/services/overseas-graduates
+- S880 — LUMS Career Services Office — « Academic Resumes » (undated, consulted 2026-11-26) — https://csod10.lums.edu.pk/academic-resumes
+- S881 — LUMS Career Services Office — « Resume & CV Writing » (undated, consulted 2026-11-26) — https://csod10.lums.edu.pk/resume-cv-writing
+- S882 — AIUB, OPA career portal — « Brush up your CV » (undated, consulted 2026-11-26) — https://www.aiub.edu/offices/opa/career-portal/brush-up-your-cv
