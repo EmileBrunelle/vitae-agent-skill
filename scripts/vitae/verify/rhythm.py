@@ -11,11 +11,12 @@ a wrapped line sits as far as (or farther than) the next bullet and the eye cann
 from the next bullet: that is the FAIL."""
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from collections.abc import Callable
 from dataclasses import dataclass
 from statistics import median
 
-from vitae.core.base import HeadMark, Mark, WordBox, is_placed
+from vitae.core.base import Mark, WordBox, is_placed
 from vitae.core.level import Finding, Level
 from vitae.verify.pdf import _bbox_pages
 from vitae.verify.runts import BulletLine, Pos, located_bullets
@@ -39,12 +40,31 @@ class Column:
     page: int                  # the first page the column's bullets are on
 
 
-def _separated(marks: list[Mark], a: Pos, b: Pos, lo: float, hi: float) -> bool:
-    """An entry head or part mark between the two bullet markers, on the markers' page and near the bullet's
-    column (a head in a sidebar beside the list does not separate two of its bullets). A section title always
-    has an entry head or skill label after it, so its own mark (not queried) is not needed."""
-    heads: list[HeadMark] = [m for m in marks if is_placed(m) and m.get("kind") != "bullet"]
-    return any(m["page"] == a.page and a.y < m["y"] < b.y and lo - _MARK_REACH <= m["x"] <= hi for m in heads)
+class _HeadIndex:
+    """The entry head and part marks of each page as (y, x) sorted by y, so that the heads between two bullet
+    markers are found by bisection instead of by filtering every mark for every pair of bullets."""
+
+    def __init__(self, marks: list[Mark]) -> None:
+        by_page: dict[int, list[tuple[float, float]]] = {}
+        for m in marks:
+            if is_placed(m) and m.get("kind") != "bullet":
+                by_page.setdefault(m["page"], []).append((m["y"], m["x"]))
+        self._ys: dict[int, list[float]] = {}
+        self._xs: dict[int, list[float]] = {}
+        for page, pts in by_page.items():
+            pts.sort()
+            self._ys[page] = [y for y, _ in pts]
+            self._xs[page] = [x for _, x in pts]
+
+    def separated(self, a: Pos, b: Pos, lo: float, hi: float) -> bool:
+        """An entry head or part mark between the two bullet markers, on the markers' page and near the bullet's
+        column (a head in a sidebar beside the list does not separate two of its bullets). A section title always
+        has an entry head or skill label after it, so its own mark (not queried) is not needed."""
+        ys = self._ys.get(a.page)
+        if ys is None:
+            return False
+        xs = self._xs[a.page]
+        return any(lo - _MARK_REACH <= xs[k] <= hi for k in range(bisect_right(ys, a.y), bisect_left(ys, b.y)))
 
 
 def _own_lines(lines: list[BulletLine]) -> list[BulletLine]:
@@ -67,6 +87,7 @@ def measure_columns(marks: list[Mark], pages: list[list[WordBox]], heights: list
         else:
             clusters.append([item])
     cols: list[Column] = []
+    heads = _HeadIndex(marks)
     for cl in clusters:
         cl.sort(key=lambda b: (b[0].page, b[0].y))
         wrapped = [b.y1 - a.y1 for _, ls in cl for a, b in zip(ls, ls[1:]) if a.page == b.page]
@@ -78,7 +99,7 @@ def measure_columns(marks: list[Mark], pages: list[list[WordBox]], heights: list
             gap = lb[0].y1 - la[-1].y1
             lo = min(ln.extent.x0 for ln in la)
             hi = max(ln.extent.x1 for ln in la)
-            if gap <= 0 or gap > _MAX_GAP * la[-1].height or _separated(marks, pa, pb, lo, hi):
+            if gap <= 0 or gap > _MAX_GAP * la[-1].height or heads.separated(pa, pb, lo, hi):
                 continue
             gaps.append(gap)
         cols.append(Column(cl[0][0].x, median(wrapped) if wrapped else None,
