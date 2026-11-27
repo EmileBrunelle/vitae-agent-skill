@@ -21,6 +21,8 @@ that want them in-process instead of via CLI.
 from __future__ import annotations
 
 import argparse
+import math
+import re
 import sys
 from collections.abc import Callable
 from typing import NoReturn
@@ -100,15 +102,14 @@ def bands(path: str, thr: int = 150, rule: float = RULE_FLOOR,
     # ground, and a device is whatever sits CONTRASTED against that ground. The
     # modal luma is the paper — it is the most common pixel on any CV page.
     paper = max(range(256), key=im.histogram().__getitem__)
-    body = im.point([255 if v < thr else 0 for v in range(256)]).tobytes()
+    # Pillow's row projection (1 where a row holds a non-zero pixel) is "has a dark pixel", counted in C
+    has_dark = im.point([255 if v < thr else 0 for v in range(256)]).getprojection()[1]
     dev = im.point([255 if v < paper - contrast else 0 for v in range(256)]).tobytes()
-    floor = rule * w
-    dark, longest = [], []
-    for y in range(ch):
-        dark.append(cw - body[y * cw:(y + 1) * cw].count(0))
-        longest.append(max(len(r) for r in
-                           dev[y * cw:(y + 1) * cw].split(b"\x00")))
-    rows = [i for i, d in enumerate(dark) if d]
+    # a row's longest dark run reaches `rule` of the page width when it holds `need` consecutive dark pixels
+    need = math.ceil(rule * w)
+    run = re.compile(b"\xff{%d}" % need).search if need > 0 else None
+    wide = [run is None or run(dev, y * cw, (y + 1) * cw) is not None for y in range(ch)]
+    rows = [i for i, d in enumerate(has_dark) if d]
     if not rows:
         return h, [], []
     lo, hi = rows[0], rows[-1]
@@ -126,8 +127,8 @@ def bands(path: str, thr: int = 150, rule: float = RULE_FLOOR,
             out.append((start, hi + 1))
         return out
 
-    return (h, runs_of(lambda i: dark[i] == 0),
-            runs_of(lambda i: longest[i] >= floor))
+    return (h, runs_of(lambda i: not has_dark[i]),
+            runs_of(lambda i: wide[i]))
 
 
 def gaps(path: str, thr: int = 150) -> tuple[int, list[int]]:

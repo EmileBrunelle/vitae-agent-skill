@@ -7,13 +7,13 @@ from __future__ import annotations
 import importlib.util
 from collections.abc import Iterator, Sequence
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 import vitae.fill as measure_fill
 from vitae.core.base import Band, Box, WordBox
 from vitae.core.env import _importable
 from vitae.core.level import Finding, Level
-from vitae.core.pixels import gray_pixels, rgb_pixels
+from vitae.core.pixels import colour_counts, gray_pixels
 from vitae.verify.fonts import _font_sources, classify_font_fallback, requested_families
 from vitae.verify.page import BOUNDARY_RATIO, FURNITURE_SCALE, boundary_ink, furniture_ink, near_boundary
 from vitae.verify.pdf import _pdfium_doc
@@ -73,6 +73,18 @@ DEVICELESS = {
 }
 
 
+_FLAT_DELTA = 40   # RGB delta under which a glyph does not show against the box's modal colour
+_FAR_FROM_BASE = [255 if v >= _FLAT_DELTA else 0 for v in range(256)]
+
+
+def _flat_box(box: Image.Image) -> bool:
+    """True when no pixel of the RGB `box` differs from its modal colour by `_FLAT_DELTA` or more on any channel.
+    Pillow does the counting, the difference and the threshold in C: the same test as scanning every pixel in Python."""
+    base = max(colour_counts(box, box.width * box.height))[1]
+    far = ImageChops.difference(box, Image.new("RGB", box.size, base)).point(_FAR_FROM_BASE * 3)
+    return far.getbbox() is None
+
+
 def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
     """List of FAIL messages for text a filled region hides or cuts (a header
     band shorter than its own text; white-on-colour text that runs past the
@@ -94,7 +106,6 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
     lum = im.convert("L")
     w, h = im.size
     px = gray_pixels(lum)
-    rgb = rgb_pixels(im)
     s = FURNITURE_SCALE
     found: list[tuple[str, int, str]] = []   # (kind, line-row, word) — folded into one FAIL per line below
 
@@ -117,10 +128,8 @@ def check_text_clip(png: str, boxes: Sequence[WordBox] | None) -> list[str]:
         xa, xb = max(int(x0 * s), 0), min(int(x1 * s), w - 1)
         if yb - ya < 6 or xb - xa < 3 or len(word) < 2:
             continue   # lone punctuation sits between neighbours' glyph edges: noise
-        region = [rgb[x, y] for y in range(ya, yb + 1) for x in range(xa, xb + 1)]
-        base = max(set(region), key=region.count)
         # <40 RGB delta across the whole word box: no visible glyph contrast against the box modal colour
-        if max(max(abs(c - b) for c, b in zip(p, base)) for p in region) < 40:
+        if _flat_box(im.crop((xa, ya, xb + 1, yb + 1))):
             found.append(("hidden", ya, word))
             continue
         lo, hi = ya + (yb - ya) * 0.25, yb - (yb - ya) * 0.25
