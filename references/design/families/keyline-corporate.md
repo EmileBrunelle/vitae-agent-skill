@@ -6,7 +6,7 @@
 - **Skills block**: the **label itself carries the accent** (bold accent label, then the items in `dark`) — no colon, no separator glyph, no rule. Nobody else colours the skills label.
 - **Accent role**: the heading keylines, the skills labels, and the dates. Headings, roles and organizations stay `dark`.
 - **Icons**: **line** style, accent, in the contact column; platform marks in the accent too.
-- **Header**: one grid ROW — name 24pt bold + role line left, contact column right (photo slot = right cell), closed by a `soft` hairline.
+- **Header**: name 24pt bold on its own row, then one grid ROW: role line left, 2-line contact block right-aligned (column = natural width, max 55% of the measure; no photo is wired — a photo would sit at the right end of the name row), closed by a `soft` hairline. The contact lines start below the name, never beside it.
 - **Type**: a clean grotesque; weight and size do the contrast, no second typeface needed. Pool: `pick_design.py` FONTS `keyline-corporate`.
 - **Accents** (analogous harmony): `#33475b` slate · `#1f3a5f` navy · `#0f4c5c` petrol · `#5b2a5e` plum (bronze `#6e4a1f` dropped — muddy-hue veto).
 - **Verified**: leading `0.544em`, spacing `0.624em`, list spacing `0.698em`, section `above` 16.5pt (20.5pt airy), 5pt after the title (4.6:1) → 1 page, fill 96%, white-run ratio 4.17 (resume.typ) / 9.33 (resume-pair-b.typ: the median intra-section run is only 3px, so the boundary rule carries it and the ratio reads high).

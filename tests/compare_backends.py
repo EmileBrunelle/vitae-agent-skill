@@ -25,9 +25,9 @@ from vitae.verify.pdf import extract_text  # noqa: E402
 MAX_DELTA = 6      # lines apart
 # Ratchet: fixtures whose line sequence is identical today. Losing that is a FAIL.
 IDENTICAL = {"avant-poster", "color-band", "engraved-card", "hard-edge", "humanist-quiet", "mono-technical"}
-# Fixtures whose header (name, then title pulled up by a negative space) has line boxes that overlap: poppler then
-# cuts the two name words on one baseline into two lines, pdfium keeps them as one. The word stream must stay identical.
-SAME_WORDS = {"editorial-serif", "keyline-corporate"}
+# Fixtures whose word stream must stay identical: none. editorial-serif and keyline-corporate were here while their name and
+# title line boxes overlapped; with the contact block below the name they follow the neighbour-pair rule like the rest.
+SAME_WORDS: set[str] = set()
 MIN_MATCH = 0.85   # share of poppler's lines that pdfium has verbatim (measured 0.89 to 1.00)
 
 

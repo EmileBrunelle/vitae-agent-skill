@@ -23,12 +23,24 @@
 
 // ---------------------------------------------------------------- geometry
 // hrow — the single-ROW alignment grid. Safe for extraction (references/ats.md:
-// the ban is on multi-ROW data grids); the right cell is also the photo slot in
-// every family whose header has one. Used by `entry` and by header blocks.
+// the ban is on multi-ROW data grids). Used by `entry` and by single-row header blocks. The
+// swiss-grid / editorial-serif / keyline-corporate headers are NOT hrow: a name row (one spanning cell),
+// then one title | contact row, so that no contact line shares a y-band with the name.
 #let hrow(a, b, cols: (1fr, auto), gutter: 14pt,
           align-cells: (left + bottom, right + bottom),
           above: auto, below: auto) = block(above: above, below: below,
   grid(columns: cols, column-gutter: gutter, align: align-cells, a, b))
+
+// header-two-row — the two-zone header of swiss-grid / editorial-serif / keyline-corporate: the name on its OWN
+// row (spanning both columns), then title left | contact block right. The contact block never shares a y-band with
+// the name (OCR, y-sorting and grid extractors merge lines that do). Its column takes the block's natural width up
+// to `cap` of the measure, so a long contact list wraps inside its column and never crushes the title; the block
+// declares its rows with `contact-rows(n)`, and the contact-line gate FAILs when it wraps past them.
+#let header-two-row(name, title, contact, row-gutter: 6pt, cap: 55%, gutter: 14pt) = layout(size => {
+  let w = calc.min(measure(contact).width, size.width * cap)
+  grid(columns: (1fr, w), column-gutter: gutter, row-gutter: row-gutter, align: (left + top, right + top),
+    grid.cell(colspan: 2, name), title, contact)
+})
 
 // photo — a header photo, cropped to a box. Vector/raster image, emits no
 // text. Only families whose header has a right-hand cell take one, and only

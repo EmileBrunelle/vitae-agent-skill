@@ -54,17 +54,14 @@
 #set list(marker: list-marker("square", dark, bold: true), indent: 10pt,
   spacing: 0.660em, body-indent: 6pt)
 
-// header: ONE grid row — name/role left, contact column right (photo slot = right cell)
+// header: name row, then a grid row — role left, 2-line contact block right (column = natural width, max 55%); contact never shares a y-range with the name. No photo is wired: a photo would take the right end of the name row
 #block(above: 0pt, below: 11pt * rhythm)[
-  #grid(columns: (1fr, auto), column-gutter: 14pt, align: (left + bottom, right + bottom),
-    [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname] \
-     #v(-3pt)
-     #text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
-    text(size: 9pt, fill: muted)[#contact-rows(5)#contact(mk.pin)[\[City, Region\]] \
-      #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] \
-      #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
-      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] \
-      #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+  #header-two-row(
+    [#text(font: dispf, size: 24pt, weight: "bold")[Firstname Lastname]],
+    [#text(size: 10.5pt, weight: "medium")[[Target title, as in the facts or posting] — [Degree, if the facts state it]]],
+    text(size: 9pt, fill: muted)[#contact-rows(2)#contact(mk.pin)[\[City, Region\]] #h(10pt) #contact(mk.phone)[#link("tel:+15555550100")[(555) 555-0100]] #h(10pt) #contact(mk.mail)[#link("mailto:me@example.com")[me\@example.com]] \
+      #contact(mk.li)[#link("https://www.linkedin.com/in/handle/")[linkedin.com/in/handle]] #h(18pt) #contact(mk.gh)[#link("https://github.com/handle")[github.com/handle]]],
+    row-gutter: 10pt * rhythm,
   )
 ]
 
