@@ -52,7 +52,7 @@ def test_cjk_is_not_told_to_add_latin_ext():
 
 def test_baseline_and_named_other_script_face_are_quiet():
     assert classify_font_fallback(OK, REQ) == []
-    assert classify_font_fallback(OK + _run("Sora-Regular", "Привет"), REQ | {"sora"}) == []
+    assert classify_font_fallback(OK + _run("Sora-Regular", "Привіт їжак єнот ґанок"), REQ | {"sora"}) == []
 
 
 @pytest.mark.parametrize("src, face, text, quiet", [

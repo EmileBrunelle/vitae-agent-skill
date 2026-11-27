@@ -147,9 +147,9 @@ def test_facts_years_and_dates() -> None:
         assert len(w) == 1 and f'"{token}"' in w[0], f"{bad!r} not flagged: {w}"
 
 
-@pytest.mark.parametrize("lang", ["de", "ru"])
+@pytest.mark.parametrize("lang", ["de", "uk"])
 def test_language_facts(lang: str, check: Check, py: str, scratch: Path) -> None:
-    """A CV and its facts file in German and Russian: `--facts` reads digits only, so no `not in facts file` WARN when the
+    """A CV and its facts file in German and Ukrainian: `--facts` reads digits only, so no `not in facts file` WARN when the
     numbers agree. tests/language/*.typ are bare Typst without lib.typ, so verify.py legitimately prints `FAIL boundaries carry
     no ink` and a `not measured` WARN on them; this test deliberately rejects only the no-split|hidden|font fallback FAILs."""
     d = scratch / "tests" / "language"

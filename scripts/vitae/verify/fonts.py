@@ -215,7 +215,7 @@ def classify_font_fallback(chars: Sequence[tuple[str, str]], req: set[str],
         out.append((Level.WARN, f"font fallback: {len(other)} character(s) \"{sample(other)}\" (another script or punctuation) "
                             f"drawn in {fam_of(other)}, not in the requested families ({pretty}); add a face for that "
                             "script to the font tuple (e.g. Noto Sans CJK JP for Japanese, a Cyrillic-capable face "
-                            "for Russian) so the choice is yours, not Typst's"))
+                            "for Russian or Ukrainian) so the choice is yours, not Typst's"))
     if firsts and not latin:
         late = [(c, f, k) for c, f, k in kinds if f and k == CharKind.LATIN and _family_requested(f, req)
                 and _fam_key(re.sub(r"^[A-Z]{6}\+", "", f)).startswith(BUNDLED_KEYS)

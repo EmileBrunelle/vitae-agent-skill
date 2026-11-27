@@ -2,7 +2,7 @@
 import pytest
 from vitae.verify.source import _norm_heading, check_no_split
 
-HEADINGS = {"cyrillic": "Опыт работы", "greek": "Επαγγελματική εμπειρία", "cjk": "工作经历", "devanagari": "कार्य अनुभव",
+HEADINGS = {"cyrillic": "Досвід роботи", "greek": "Επαγγελματική εμπειρία", "cjk": "工作经历", "devanagari": "कार्य अनुभव",
             "thai": "ประสบการณ์ทำงาน", "arabic": "الخبرة المهنية", "german": "Berufserfahrung"}
 
 
@@ -35,7 +35,7 @@ def test_norm_heading_drops_punctuation():
 
 
 def test_norm_heading_case_folds_cyrillic():
-    assert _norm_heading("Опыт работы") == _norm_heading("ОПЫТ РАБОТЫ")
+    assert _norm_heading("Досвід роботи") == _norm_heading("ДОСВІД РОБОТИ")
 
 
 def test_norm_heading_keeps_greek_accents_in_the_exact_key():
@@ -52,14 +52,14 @@ def test_no_split_accepts_greek_uppercase_page_opening_without_accents():
 
 
 def test_no_split_accepts_a_page_opening_on_a_non_latin_heading():
-    src = '#section("Опыт работы")[x]\n#section("Образование")[y]'
-    assert check_no_split(src, ["a", "ОБРАЗОВАНИЕ\nx"]) == [(False, 'no-split: page 2 opens on "ОБРАЗОВАНИЕ"')]
+    src = '#section("Досвід роботи")[x]\n#section("Освіта")[y]'
+    assert check_no_split(src, ["a", "ОСВІТА\nx"]) == [(False, 'no-split: page 2 opens on "ОСВІТА"')]
 
 
 def test_no_split_fails_a_page_opening_mid_section():
     """Positive control of the two tests above: the check can fail."""
-    src = '#section("Опыт работы")[x]\n#section("Образование")[y]'
-    assert is_fail(src, "и тогда\nx")
+    src = '#section("Досвід роботи")[x]\n#section("Освіта")[y]'
+    assert is_fail(src, "і тоді\nx")
 
 
 @pytest.mark.parametrize("src, page2", [
