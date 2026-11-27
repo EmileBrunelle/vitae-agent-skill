@@ -520,8 +520,21 @@ HIDDEN_TAIL = ("text a reader cannot see is still read by ATS and recruiters' to
                "and disqualifies the CV.")
 
 
-HIDDEN_TAIL = ("text a reader cannot see is still read by ATS and recruiters' tools, "
-               "and disqualifies the CV.")
+def _merged_runs(stats: Sequence[HiddenStat], pick: Callable[[HiddenStat], object]) -> list[tuple[int, str]]:
+    """[(page_no, text)]: adjacent selected words of one page merged into one run, so a hidden sentence is one finding.
+    Words are collected in a list and joined once per run (repeated `+` on a growing string is quadratic)."""
+    pages: list[int] = []
+    words: list[list[str]] = []
+    prev: int | None = None
+    for i, st in enumerate(stats):
+        if pick(st):
+            if prev is not None and i == prev + 1 and pages[-1] == st[0]:
+                words[-1].append(st[1])
+            else:
+                pages.append(st[0])
+                words.append([st[1]])
+            prev = i
+    return [(pno, " ".join(ws)) for pno, ws in zip(pages, words, strict=True)]
 
 
 def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[Finding]:
@@ -550,20 +563,7 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
     if detail is not None:
         detail.extend(stats)
 
-    def runs(pick: Callable[[HiddenStat], object]) -> list[tuple[int, str]]:
-        # merge adjacent selected words of one page into one run, so a hidden sentence is one finding
-        found: list[tuple[int, str]] = []
-        prev: int | None = None
-        for i, st in enumerate(stats):
-            if pick(st):
-                if prev is not None and i == prev + 1 and found[-1][0] == st[0]:
-                    found[-1] = (st[0], found[-1][1] + " " + st[1])
-                else:
-                    found.append((st[0], st[1]))
-                prev = i
-        return found
-
-    found = runs(lambda st: st[5] or st[3] < HIDDEN_MIN_BOX_PT
+    found = _merged_runs(stats, lambda st: st[5] or st[3] < HIDDEN_MIN_BOX_PT
                  or (st[4] is not None and st[4] < HIDDEN_FAIL_RATIO))
     outside, tiny, ran, failure = _text_runs(pdf)
     if pdf_backend() == "pdfium":
@@ -588,7 +588,7 @@ def check_hidden_text(pdf: str, detail: list[HiddenStat] | None = None) -> list[
             msgs.append((Level.FAIL, f"hidden text: remove all {len(found) - 5} other hidden run(s) too — " + HIDDEN_TAIL))
             break
         msgs.append((Level.FAIL, f'hidden text: remove "{text[:60]}" (p.{pno}) — ' + HIDDEN_TAIL))
-    for n, (pno, text) in enumerate(runs(lambda st: st[4] is not None and HIDDEN_FAIL_RATIO <= st[4] < HIDDEN_WARN_RATIO
+    for n, (pno, text) in enumerate(_merged_runs(stats, lambda st: st[4] is not None and HIDDEN_FAIL_RATIO <= st[4] < HIDDEN_WARN_RATIO
                                          and not st[5] and st[3] >= HIDDEN_MIN_BOX_PT)):
         if n == 3:
             break

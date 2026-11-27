@@ -1,6 +1,8 @@
-"""verify.text `hidden_word_stats` (a luminance table per page, two luminances per word box, one gray band for a gray page) and
-`_classify_runs` (a segment tree instead of a neighbour walk per tiny run). Each keeps its behaviour (equivalence with the replaced code, kept in `_hidden_ref`, on
-realistic and worst-case rasters) and stays bounded on a full page (`slow`)."""
+"""verify.text hot spots: `hidden_word_stats` (a luminance table per page, two luminances per word box instead of one
+per colour, one gray band for a black-on-white page), `_classify_runs` (a segment tree instead of a neighbour walk per
+tiny run) and `_merged_runs` (one join per run instead of a growing string). Each keeps its behaviour (equivalence with
+the replaced code, kept in `_hidden_ref`, on realistic and worst-case inputs) and stays fast on a worst-case input
+(`slow`: wall time bounded far above the measured time and far below the old one)."""
 from __future__ import annotations
 
 import math
@@ -11,7 +13,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from _hidden_ref import classify_runs_quadratic, hidden_word_stats_per_colour
+from _hidden_ref import classify_runs_quadratic, hidden_word_stats_per_colour, merged_runs_concat
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from PIL import Image
@@ -224,3 +226,38 @@ def test_classify_runs_bounds_time_on_one_baseline() -> None:
 
     assert time.perf_counter() - start < 1.0     # measured ~0.05 s; the neighbour walk and the string `+` took ~5 s
     assert off == [] and len(tiny) == 1 and tiny[0][1] == 3.0 and tiny[0][0].count(" ") == 7999
+
+# ------------------------------------------------------------------ _merged_runs
+
+
+def _stats(picks: list[tuple[int, bool]]) -> list[HiddenStat]:
+    return [(pno, f"w{i}", (0.0, 0.0, 1.0, 1.0), 1.0, 1.0 if sel else 9.0, False) for i, (pno, sel) in enumerate(picks)]
+
+
+@settings(deadline=None, max_examples=500)
+@given(st.lists(st.tuples(st.integers(1, 3), st.booleans()), max_size=30))
+def test_merged_runs_match_the_concatenation(picks: list[tuple[int, bool]]) -> None:
+    stats = _stats(picks)
+
+    def pick(st_: HiddenStat) -> bool:
+        return st_[4] is not None and st_[4] < 2.0
+
+    assert text._merged_runs(stats, pick) == merged_runs_concat(stats, pick)
+
+
+def test_merged_runs_equivalence_is_not_vacuous() -> None:
+    # control: adjacent words merge, a gap or a page change splits
+    stats = _stats([(1, True), (1, True), (1, False), (1, True), (2, True), (2, True)])
+
+    assert text._merged_runs(stats, lambda s: s[4] is not None and s[4] < 2.0) == [(1, "w0 w1"), (1, "w3"), (2, "w4 w5")]
+
+
+@pytest.mark.slow
+def test_merged_runs_bound_time_on_one_long_run() -> None:
+    stats = _stats([(1, True)] * 40000)
+    start = time.perf_counter()
+
+    out = text._merged_runs(stats, lambda s: True)
+
+    assert time.perf_counter() - start < 1.0     # measured ~0.02 s; growing the string took ~1 s at 40000 words
+    assert len(out) == 1 and out[0][1].count(" ") == 39999
