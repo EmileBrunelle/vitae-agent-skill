@@ -67,7 +67,7 @@ def _running_script() -> str:
 
 
 def requirement(name: str) -> str:
-    """The requirement string for dependency `name` as the running script's header declares it (e.g. `typst==X`,
+    """The requirement string for dependency `name` as the running script's header declares it (e.g. `typst>=X,<Y`,
     `pikepdf>=Y; sys_platform != ...`); the bare name when the header has none."""
     for req in script_requirements(_running_script()):
         if re.split(r"[=<>!~;\s\[]", req, maxsplit=1)[0].lower() == name.lower():
@@ -108,7 +108,7 @@ def check_pillow() -> bool:
 
 
 # Oldest typst the fill targets were calibrated on; an older one still works and is reported DEGRADED, not refused.
-TYPST_MIN = (0, 15)   # tests/unit/test_env_requirements.py: equals the major.minor of the `typst==X` pin in the script headers
+TYPST_MIN = (0, 15)   # tests/unit/test_env_requirements.py: equals the major.minor of the lower bound of the `typst>=X,<Y` range in the script headers
 # Oldest typst that can write the PDFs vitae asks for: `--pdf-standard ua-1` (typst-py `pdf_standards`) and `pdf.artifact`
 # both arrived in Typst 0.14.0 (Typst changelog 0.14.0, "PDF export"). Older is BROKEN: every compile would be refused.
 TYPST_STANDARDS_MIN = (0, 14)
@@ -120,7 +120,7 @@ PDF_STANDARDS = ("a-2a", "ua-1")
 _NO_STANDARDS = "PDF/UA-1 + PDF/A-2a output (`--pdf-standard`, `pdf.artifact`) needs Typst 0.14 or newer"
 def _new_typst() -> str:
     return ("fill targets are calibrated on typst 0.15; newer versions may measure differently "
-            f"-- pin with {_pip('typst')} if fills drift")
+            "-- if fills drift, pin the calibrated minor with `pip install \"typst==0.15.*\"`")
 
 _OLD_TYPST = ("fill targets are calibrated on typst 0.15; older versions measure lower "
               "(0.13/0.14 miss 2 templates at 91% against 93-96%)")

@@ -93,7 +93,7 @@ python3 scripts/verify.py --text cv.pdf | grep -n "20[0-9][0-9]"   # every date 
 
 Red flags in the extraction: a lone year floating at the end (grid entry without bullets — see trap above), skill labels grouped apart from their values, spaced-out headings ("S O F T WA R E"), fragments of one line interleaved into the next section (wrapped separator line).
 
-Without a typst binary at all: `pip install typst` ships no CLI but the Python API compiles both formats (verified): `python3 -c "import typst; typst.compile('cv.typ', output='cv.pdf', pdf_standards=['a-2a', 'ua-1'])"` and `typst.compile('cv.typ', output='p.png', format='png')` for the fill check.
+Without a typst binary at all: `pip install "typst>=0.15.2,<0.16"` ships no CLI but the Python API compiles both formats (verified): `python3 -c "import typst; typst.compile('cv.typ', output='cv.pdf', pdf_standards=['a-2a', 'ua-1'])"` and `typst.compile('cv.typ', output='p.png', format='png')` for the fill check.
 
 ## Human-scan rules (the other 30 seconds)
 

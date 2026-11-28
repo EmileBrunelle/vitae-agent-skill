@@ -1,5 +1,6 @@
 """The doctor reads its install advice from the PEP 723 header of the script being run: one place declares the dependencies."""
 import pathlib
+import re
 
 from vitae.core import env
 
@@ -11,6 +12,7 @@ SAMPLE = '''#!/usr/bin/env python3
 """Docstring."""
 '''
 SCRIPTS = pathlib.Path(env.__file__).resolve().parents[2]
+ROOT = SCRIPTS.parent
 
 
 def test_parses_the_dependencies_markers_included():
@@ -34,11 +36,61 @@ def test_the_three_verify_facades_declare_the_same_dependencies():
     assert deps["verify.py"] and len(set(deps.values())) == 1
 
 
-def test_typst_min_is_the_pinned_major_minor():
-    (pin,) = [r for r in env.script_requirements("verify.py") if r.startswith("typst==")]
-    major, minor = pin.removeprefix("typst==").split(".")[:2]
-    assert env.TYPST_MIN == (int(major), int(minor))
-    assert env.script_requirements("pick_design.py") == (pin,)
+def _typst_range() -> tuple[str, str]:
+    """(lower, upper) bounds of the `typst>=X,<Y` range declared in verify.py's header."""
+    (req,) = [r for r in env.script_requirements("verify.py") if r.startswith("typst")]
+    m = re.fullmatch(r"typst>=(\d+\.\d+\.\d+),<(\d+\.\d+)", req)
+    assert m, f"typst must be a compatible range `typst>=X.Y.Z,<X.(Y+1)`, got {req!r}"
+    return m.group(1), m.group(2)
+
+
+def test_typst_min_is_the_range_lower_bound_and_the_upper_is_the_next_minor():
+    lower, upper = _typst_range()
+    major, minor = (int(x) for x in lower.split(".")[:2])
+    assert env.TYPST_MIN == (major, minor)
+    assert upper == f"{major}.{minor + 1}"
+    (req,) = [r for r in env.script_requirements("verify.py") if r.startswith("typst")]
+    assert env.script_requirements("pick_design.py") == (req,)
+
+
+def test_doctor_advice_quotes_the_typst_range(monkeypatch):
+    monkeypatch.setattr(env, "_running_script", lambda: "verify.py")
+    lower, upper = _typst_range()
+    assert env._pip("typst") == f'pip install "typst>={lower},<{upper}"'
+
+
+_DOC_FILES = [ROOT / "README.md", ROOT / "README.fr.md", *sorted((ROOT / "references").rglob("*.md"))]
+_PIP_TYPST = re.compile(r"pip (install|download)\b([^`\n]*)")
+
+
+def _typst_pip_specs() -> list[tuple[str, str, str]]:
+    """(file, verb, typst specifier) for every `pip install|download ... typst...` command in the docs."""
+    found = []
+    for path in _DOC_FILES:
+        for m in _PIP_TYPST.finditer(path.read_text(encoding="utf-8")):
+            found.extend((path.name, m.group(1), tok) for tok in re.findall(r"\"?(typst[^\s\"]*)\"?", m.group(2)))
+    return found
+
+
+def test_documented_pip_commands_use_the_header_typst_range():
+    lower, upper = _typst_range()
+    specs = _typst_pip_specs()
+    assert specs, "no `pip install typst` command found in the docs: the regex is stale"
+    bad = []
+    for name, verb, spec in specs:
+        if verb == "download":
+            ok = spec.startswith("typst==") and _in_range(spec.removeprefix("typst=="), lower, upper)
+        else:
+            ok = spec == f"typst>={lower},<{upper}"
+        if not ok:
+            bad.append(f"{name}: pip {verb} {spec}")
+    assert not bad, "docs disagree with the verify.py header range:\n" + "\n".join(bad)
+
+
+def _in_range(version: str, lower: str, upper: str) -> bool:
+    def key(v: str) -> tuple[int, ...]:
+        return tuple(int(x) for x in v.split("."))
+    return key(lower) <= key(version) < key(upper)
 
 
 def test_uv_line_names_the_script_by_absolute_path(monkeypatch):

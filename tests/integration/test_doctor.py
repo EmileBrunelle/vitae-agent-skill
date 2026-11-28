@@ -53,7 +53,7 @@ def test_doctor_pip_too_old(scratch: Path, out_dir: Path, log_dir: Path) -> None
     r = run_doctor("doctor-pip-too-old", d, scratch, log_dir, stub=True)
     assert r.rc == 1, f"doctor exit {r.rc}, expected 1\n{r.output}"
     assert grep(r.output, r"^BROKEN  typst.*too old"), f"no too-old line\n{r.output}"
-    assert 'pip install --upgrade "typst==' in r.output, "no upgrade advice"
+    assert 'pip install --upgrade "typst>=' in r.output, "no upgrade advice"
     assert "force-reinstall" not in r.output, "advises reinstall for an old wheel"
 
 
