@@ -79,7 +79,7 @@ def _measured() -> Generator[None]:
         tracemalloc.stop()
 
 
-ACADEMIC_TOML = "templates/academic/faits-academique.example.toml"
+ACADEMIC_TOML = "templates/academic/academic.example.toml"
 
 
 def _gate_academic(copy: Path, rel: str) -> Run:

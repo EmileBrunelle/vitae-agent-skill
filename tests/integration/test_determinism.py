@@ -43,7 +43,7 @@ CVS: list[tuple[str, int, int | None, int | None]] = [
     (f"{FAM}/resume-2page.typ", 2, 94, 96),
 ]
 IDS = ["resume-1page", "resume-2page"]
-ACADEMIC = ["scripts/verify_academic.py", "templates/academic/cv.typ", "templates/academic/faits-academique.example.toml"]
+ACADEMIC = ["scripts/verify_academic.py", "templates/academic/cv.typ", "templates/academic/academic.example.toml"]
 LETTER = "templates/letter.typ"
 LETTER_RUN = ("import json, sys; sys.path.insert(0, 'scripts')\n"
               "from vitae.verify.letter import check_letter\n"

@@ -117,7 +117,7 @@ def test_list_ignores_comments_and_code(tmp_path):
 
 def test_academic_template_content_is_not_flagged():
     """The academic CV's data is fictional but real-looking: only its own bracketed placeholders may match."""
-    toml = (TEMPLATES / "academic" / "faits-academique.example.toml").read_text(encoding="utf-8")
+    toml = (TEMPLATES / "academic" / "academic.example.toml").read_text(encoding="utf-8")
     flat = placeholders._squash(toml)
     for p in placeholders.placeholders_from(TEMPLATES):
         assert placeholders._squash(p) not in flat, p

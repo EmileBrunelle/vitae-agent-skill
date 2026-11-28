@@ -30,7 +30,7 @@ MIB = 1024 * 1024
 MAX_TYP_BYTES = 4 * MIB
 # Largest shipped PDF: templates/resume.pdf, 44 569 B. 16 MiB is ~376x that.
 MAX_PDF_BYTES = 16 * MIB
-# Largest shipped TOML: templates/academic/faits-academique.example.toml, 15 225 B. 1 MiB is ~69x that.
+# Largest shipped TOML: templates/academic/academic.example.toml, 15 225 B. 1 MiB is ~69x that.
 MAX_TOML_BYTES = 1 * MIB
 # facts.md: a hand-written facts sheet, a few KB; no shipped example, so the TOML cap is reused (1 MiB).
 MAX_FACTS_BYTES = 1 * MIB

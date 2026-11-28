@@ -70,11 +70,11 @@
       ],
       "assertions": [
         "`python scripts/verify_academic.py cv.typ data.toml` (the delivered .typ and its TOML data file, in that order) exits 0 and its last line starts with PASS.",
-        "The CV is built from `templates/academic/` (cv.typ importing lib-academic.typ, with its data read by `toml(...)`) and a TOML data file following the schema of `templates/academic/faits-academique.example.toml` (the file name is free; it is the 2nd argument of verify_academic.py), not from the one-page industry template (`templates/resume.typ`); no 1-page or 2-page fill target is applied.",
+        "The CV is built from `templates/academic/` (cv.typ importing lib-academic.typ, with its data read by `toml(...)`) and a TOML data file following the schema of `templates/academic/academic.example.toml` (the file name is free; it is the 2nd argument of verify_academic.py), not from the one-page industry template (`templates/resume.typ`); no 1-page or 2-page fill target is applied.",
         "Counts round-trip: the rendered CV shows 5 articles, 2 conference presentations, 2 grants and the 2 service items, matching the entries in publications.md (the verify_academic count table agrees with the TOML data file).",
         "Each section is in non-increasing year order (the 2024 article first, the 2018 article last; the 2023-2028 grant before the 2022-2024 grant).",
         "No entry is invented: no publication, DOI, citation count, impact factor, co-author or grant amount appears that is absent from publications.md; a missing DOI is left out, not made up.",
-        "Every entry table in the TOML data file carries `date` and `src` (provenance, as in faits-academique.example.toml); the supervision line 'supervising 2 MSc students (in progress)' is not turned into completed theses.",
+        "Every entry table in the TOML data file carries `date` and `src` (provenance, as in academic.example.toml); the supervision line 'supervising 2 MSc students (in progress)' is not turned into completed theses.",
         "If the CV exceeds 1 page, every page carries the surname in the running header and the page number as 'n / N' in the footer (the template's `arunning-header` / `arunning-footer`; verify_academic check E).",
         "review.md exists beside the .typ and the TOML data file, is newer than both, has the step-7 fields, with academic personas in `personas:` (committee member, an extraction-and-counts auditor whose name starts with 'extraction', department head), and every finding ends in '→ applied' or '→ rejected: <reason>'."
       ]

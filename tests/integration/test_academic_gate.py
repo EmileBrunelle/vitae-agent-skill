@@ -97,7 +97,7 @@ def test_shipped_academic_template_passes_the_mechanical_gate(tmp_path: Path) ->
     shutil.copytree(ROOT / "templates", tmp_path / "templates", ignore=shutil.ignore_patterns("*.pdf", "*.png", "__pycache__"))
     a = tmp_path / "templates" / "academic"
     r = run_check("academic-template", [sys.executable, "-I", ROOT / "scripts" / "verify_academic.py",
-                                        a / "cv.typ", a / "faits-academique.example.toml"], tmp_path)
+                                        a / "cv.typ", a / "academic.example.toml"], tmp_path)
     fails = [ln for ln in r.output.splitlines() if ln.startswith("FAIL")]
 
     assert "mechanical gates: PASS  all five checks hold" in r.output, r.tail(30)

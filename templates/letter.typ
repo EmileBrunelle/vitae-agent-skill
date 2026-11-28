@@ -62,7 +62,7 @@ mission or team drawn from the posting or public sources, tied to what draws
 the candidate to apply here and not to a generic opening elsewhere.\]
 
 \[Paragraph 2 — two or three proofs, each one a fact already on the CV /
-FAITS.md, matched explicitly to a requirement named in the posting. Never a
+facts.md, matched explicitly to a requirement named in the posting. Never a
 claim that is not already verified for the CV.\]
 
 \[Paragraph 3 — availability and a closing line inviting next steps, no

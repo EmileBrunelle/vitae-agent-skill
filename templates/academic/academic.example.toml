@@ -10,7 +10,7 @@
 #
 # GENERAL CONVENTIONS
 # - Every entry table carries `date` and `src`. `src` is the same
-#   provenance-per-fact convention as FAITS.md (e.g. "faits.md#pub-3"): a
+#   provenance-per-fact convention as facts.md (e.g. "facts.md#pub-3"): a
 #   fabricated entry with no traceable source is a research-conduct problem
 #   in this genre, not mere embellishment (design note §4.1).
 # - `date` is normally a 4-digit year (string, e.g. "2022") or a range
@@ -141,7 +141,7 @@ poster = 0
 # ---------------------------------------------------------------- education
 [[education]]
 date = "2018"
-src = "faits.md#education-1"
+src = "facts.md#education-1"
 degree = "Ph.D. in Mathematics"
 institution = "Université de Montréal"
 thesis = "Spectral Gaps in Random Combinatorial Structures"
@@ -149,28 +149,28 @@ supervisor = "R. Fontaine"
 
 [[education]]
 date = "2013"
-src = "faits.md#education-2"
+src = "facts.md#education-2"
 degree = "M.Sc. in Mathematics"
 institution = "Université Laval"
 
 # ------------------------------------------------------------- appointments
 [[appointments]]
 date = "2024"
-src = "faits.md#appt-1"
+src = "facts.md#appt-1"
 role = "Visiting Researcher"
 institution = "Max Planck Institute for Mathematics, Bonn"
 kind = "visiting"
 
 [[appointments]]
 date = "2019-2024"
-src = "faits.md#appt-2"
+src = "facts.md#appt-2"
 role = "Assistant Professor"
 institution = "Université de l'Estrie"
 kind = "regular"
 
 [[appointments]]
 date = "2017-2019"
-src = "faits.md#appt-3"
+src = "facts.md#appt-3"
 role = "Postdoctoral Fellow"
 institution = "University of Waterloo"
 kind = "postdoc"
@@ -178,20 +178,20 @@ kind = "postdoc"
 # ------------------------------------------------------------------ honours
 [[honours]]
 date = "2022"
-src = "faits.md#honour-1"
+src = "facts.md#honour-1"
 title = "Early Career Research Award"
 awarding_body = "Canadian Mathematical Society"
 
 [[honours]]
 date = "2015"
-src = "faits.md#honour-2"
+src = "facts.md#honour-2"
 title = "Best Student Paper Award"
 awarding_body = "CanaDAM"
 
 # ------------------------------------------------------------- publications
 [[publications.journal]]
 date = "forthcoming"
-src = "faits.md#pub-j1"
+src = "facts.md#pub-j1"
 authors = "Bernard-Tremblay, A., Okafor, T."
 title = "Expansion Rates of Random Cayley Graphs Revisited"
 venue = "Journal of Combinatorial Theory, Series B"
@@ -199,7 +199,7 @@ status = "forthcoming"
 
 [[publications.journal]]
 date = "2023"
-src = "faits.md#pub-j2"
+src = "facts.md#pub-j2"
 authors = "Bernard-Tremblay, A."
 title = "A Spectral Bound for Sparse Random Hypergraphs"
 venue = "Combinatorica"
@@ -207,7 +207,7 @@ doi = "10.1000/example.j2"
 
 [[publications.journal]]
 date = "2020"
-src = "faits.md#pub-j3"
+src = "facts.md#pub-j3"
 authors = "Bernard-Tremblay, A., Singh, P."
 title = "Gap Distributions in Small-World Networks"
 venue = "SIAM Journal on Discrete Mathematics"
@@ -215,7 +215,7 @@ doi = "10.1000/example.j3"
 
 [[publications.conference]]
 date = "2022"
-src = "faits.md#pub-c1"
+src = "facts.md#pub-c1"
 authors = "Bernard-Tremblay, A., Leclerc, M."
 title = "Approximate Counting via Spectral Sparsification"
 venue = "Proceedings of STACS 2022"
@@ -223,28 +223,28 @@ doi = "10.1000/example.c1"
 
 [[publications.conference]]
 date = "2021"
-src = "faits.md#pub-c2"
+src = "facts.md#pub-c2"
 authors = "Bernard-Tremblay, A."
 title = "Fast Sampling for Sparse Combinatorial Designs"
 venue = "Proceedings of ICALP 2021"
 
 [[publications.conference]]
 date = "2016"
-src = "faits.md#pub-c3"
+src = "facts.md#pub-c3"
 authors = "Bernard-Tremblay, A., Fontaine, R."
 title = "On the Complexity of Random Graph Colouring"
 venue = "Proceedings of SODA 2016"
 
 [[publications.preprint]]
 date = "2025"
-src = "faits.md#pub-p1"
+src = "facts.md#pub-p1"
 authors = "Bernard-Tremblay, A."
 title = "Towards a Unified Bound for Random Regular Graphs"
 venue = "arXiv:2501.00000"
 
 [[publications.preprint]]
 date = "2019"
-src = "faits.md#pub-p2"
+src = "facts.md#pub-p2"
 authors = "Bernard-Tremblay, A., Okafor, T."
 title = "A Note on Sparse Cuts in Expander Families"
 venue = "arXiv:1901.00000"
@@ -252,77 +252,77 @@ venue = "arXiv:1901.00000"
 # ------------------------------------------------------------------- talks
 [[talks.plenary]]
 date = "2024"
-src = "faits.md#talk-pl1"
+src = "facts.md#talk-pl1"
 title = "Expansion, Sparsity, and Randomness"
 event = "Canadian Mathematical Society Winter Meeting"
 location = "Ottawa, ON"
 
 [[talks.invited]]
 date = "2023"
-src = "faits.md#talk-in1"
+src = "facts.md#talk-in1"
 title = "Spectral Bounds for Sparse Hypergraphs"
 event = "Combinatorics Seminar"
 location = "University of Waterloo"
 
 [[talks.invited]]
 date = "2021"
-src = "faits.md#talk-in2"
+src = "facts.md#talk-in2"
 title = "Random Structures and Sampling"
 event = "AMS Special Session on Random Graphs"
 location = "Washington, DC"
 
 [[talks.conference]]
 date = "2022"
-src = "faits.md#talk-c1"
+src = "facts.md#talk-c1"
 title = "Approximate Counting via Spectral Sparsification"
 event = "STACS 2022"
 location = "Marseille, France"
 
 [[talks.conference]]
 date = "2021"
-src = "faits.md#talk-c2"
+src = "facts.md#talk-c2"
 title = "Fast Sampling for Sparse Combinatorial Designs"
 event = "ICALP 2021"
 location = "Glasgow, UK (virtual)"
 
 [[talks.conference]]
 date = "2016"
-src = "faits.md#talk-c3"
+src = "facts.md#talk-c3"
 title = "On the Complexity of Random Graph Colouring"
 event = "SODA 2016"
 location = "Arlington, VA"
 
 [[talks.seminar]]
 date = "2023"
-src = "faits.md#talk-s1"
+src = "facts.md#talk-s1"
 title = "Sparse Cuts and Expansion"
 event = "Discrete Math Seminar, Université de Montréal"
 location = "Montréal, QC"
 
 [[talks.seminar]]
 date = "2020"
-src = "faits.md#talk-s2"
+src = "facts.md#talk-s2"
 title = "Random Regular Graphs: An Overview"
 event = "Combinatorics Seminar, Université Laval"
 location = "Québec, QC"
 
 [[talks.seminar]]
 date = "2018"
-src = "faits.md#talk-s3"
+src = "facts.md#talk-s3"
 title = "Spectral Gaps in Random Structures"
 event = "Waterloo Combinatorics and Optimization Seminar"
 location = "Waterloo, ON"
 
 [[talks.poster]]
 date = "2017"
-src = "faits.md#talk-po1"
+src = "facts.md#talk-po1"
 title = "Sampling Sparse Designs"
 event = "CanaDAM 2017"
 location = "Toronto, ON"
 
 [[talks.poster]]
 date = "2014"
-src = "faits.md#talk-po2"
+src = "facts.md#talk-po2"
 title = "Gap Distributions in Small-World Networks"
 event = "Canadian Discrete and Algorithmic Mathematics Conference"
 location = "Vancouver, BC"
@@ -330,7 +330,7 @@ location = "Vancouver, BC"
 # ------------------------------------------------------------------ funding
 [[funding]]
 date = "2023-2027"
-src = "faits.md#fund-1"
+src = "facts.md#fund-1"
 agency = "NSERC"
 program = "Discovery Grant"
 role = "PI"
@@ -340,7 +340,7 @@ period = "2023-2027"
 
 [[funding]]
 date = "2021-2023"
-src = "faits.md#fund-2"
+src = "facts.md#fund-2"
 agency = "FRQNT"
 program = "Établissement de nouveaux chercheurs"
 role = "PI"
@@ -350,7 +350,7 @@ period = "2021-2023"
 
 [[funding]]
 date = "2019-2021"
-src = "faits.md#fund-3"
+src = "facts.md#fund-3"
 agency = "NSERC"
 program = "Discovery Grant"
 role = "co-I"
@@ -361,14 +361,14 @@ period = "2019-2021"
 # -------------------------------------------------------------- supervision
 [[supervision]]
 date = "2024"
-src = "faits.md#sup-1"
+src = "facts.md#sup-1"
 student = "J. Ferreira"
 level = "PhD"
 thesis_title = "Sparsification Methods for Random Hypergraphs (in progress)"
 
 [[supervision]]
 date = "2022"
-src = "faits.md#sup-2"
+src = "facts.md#sup-2"
 student = "M. Chartrand"
 level = "MSc"
 thesis_title = "Sampling Algorithms for Sparse Designs"
@@ -377,7 +377,7 @@ end_date = "2022"
 
 [[supervision]]
 date = "2020"
-src = "faits.md#sup-3"
+src = "facts.md#sup-3"
 student = "K. Nadeau"
 level = "postdoc"
 thesis_title = "Spectral Methods in Combinatorics (postdoctoral project)"
@@ -387,7 +387,7 @@ end_date = "2020"
 # ----------------------------------------------------------------- teaching
 [[teaching]]
 date = "2025"
-src = "faits.md#teach-1"
+src = "facts.md#teach-1"
 code = "MAT-501"
 title = "Graduate Topics in Combinatorics"
 level = "graduate"
@@ -396,7 +396,7 @@ enrolment = "12"
 
 [[teaching]]
 date = "2020-2025"
-src = "faits.md#teach-2"
+src = "facts.md#teach-2"
 code = "MAT-210"
 title = "Discrete Mathematics"
 level = "undergraduate"
@@ -405,7 +405,7 @@ enrolment = "80"
 
 [[teaching]]
 date = "2021"
-src = "faits.md#teach-3"
+src = "facts.md#teach-3"
 code = "MAT-330"
 title = "Probability and Random Structures"
 level = "undergraduate"
@@ -415,32 +415,32 @@ enrolment = "35"
 # ------------------------------------------------------------------ service
 [[service]]
 date = "2020-2026"
-src = "faits.md#svc-1"
+src = "facts.md#svc-1"
 category = "referee"
 description = "Referee for Combinatorica, SIAM Journal on Discrete Mathematics, Journal of Combinatorial Theory Series B (2020-2026, approx. 3-5 reports/year)"
 
 [[service]]
 date = "2023"
-src = "faits.md#svc-2"
+src = "facts.md#svc-2"
 category = "jury"
 description = "PhD thesis examiner, Université de Montréal (candidate: S. Bouchard)"
 
 [[service]]
 date = "2021-2024"
-src = "faits.md#svc-3"
+src = "facts.md#svc-3"
 category = "committee"
 description = "Member, NSERC Discovery Grants Evaluation Group 1508 (Mathematics)"
 
 [[service]]
 date = "2022"
-src = "faits.md#svc-4"
+src = "facts.md#svc-4"
 category = "organizing"
 description = "Co-organizer, CanaDAM 2022 Special Session on Random Structures"
 
 # ---------------------------------------------------- knowledge mobilization
 [[knowledge_mobilization]]
 date = "2023"
-src = "faits.md#km-1"
+src = "facts.md#km-1"
 description = "Public lecture, \"What Makes a Network Random?\", Sherbrooke Science Festival"
 
 # -------------------------------------------------- affiliations/languages

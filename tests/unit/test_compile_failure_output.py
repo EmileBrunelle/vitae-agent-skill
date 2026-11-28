@@ -50,7 +50,7 @@ def test_academic_prints_the_advice_on_its_own_line(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(pdf, "compile_pdf", lambda typ, out: (False, REFUSED))
     typ = tmp_path / "cv.typ"
     typ.write_text("x", encoding="utf-8")
-    monkeypatch.setattr(sys, "argv", ["verify_academic.py", str(typ), str(ROOT / "templates/academic/faits-academique.example.toml")])
+    monkeypatch.setattr(sys, "argv", ["verify_academic.py", str(typ), str(ROOT / "templates/academic/academic.example.toml")])
     with pytest.raises(SystemExit) as exit_info:
         academic_cli.main()
     out = capsys.readouterr().out
