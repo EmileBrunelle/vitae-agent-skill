@@ -105,7 +105,7 @@ def typst_str(s: str) -> str:
         elif ch == '"':
             out.append('\\"')
         elif ord(ch) < 32 or ord(ch) in (0x7f, 0x2028, 0x2029, 0x85):
-            out.append("\\u{%x}" % ord(ch))
+            out.append("\\u{{{:x}}}".format(ord(ch)))
         else:
             out.append(ch)
     return '"' + "".join(out) + '"'

@@ -684,7 +684,7 @@ def render_pages(pdf: str, out_dir: str, ppi: int) -> list[str]:
     Returns the paths, or [] when neither is there."""
     os.makedirs(out_dir, exist_ok=True)
     stem = os.path.splitext(os.path.basename(pdf))[0]
-    stale = re.compile(r"%s-p\d+(?:-(?:fill|icon)\d+)?\.png" % re.escape(stem))
+    stale = re.compile(r"{}-p\d+(?:-(?:fill|icon)\d+)?\.png".format(re.escape(stem)))
 
     def drop_stale() -> None:        # a longer previous render, or one with --crops, must not leave its pages or crops behind
         for f in os.listdir(out_dir):
@@ -740,7 +740,7 @@ def render_crops(pdf: str, out_dir: str) -> tuple[list[str], list[str]]:
         return [], []
     boxes = word_boxes(pdf)
     big = _page_rasters(pdf, CROP_PPI)
-    old_crops = re.compile(r"%s-p\d+-(?:fill|icon)\d+\.png" % re.escape(stem))
+    old_crops = re.compile(r"{}-p\d+-(?:fill|icon)\d+\.png".format(re.escape(stem)))
     if os.path.isdir(out_dir):
         for f in os.listdir(out_dir):        # a run with fewer bands must not leave the old ones beside it
             if old_crops.fullmatch(f):

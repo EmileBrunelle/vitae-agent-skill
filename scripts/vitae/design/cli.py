@@ -145,33 +145,30 @@ def _main() -> None:
     a = ap.parse_args()
     if not re.fullmatch(r"[a-z]{2,3}", a.lang):
         ap.error("--lang must be a lowercase ISO 639 language code (2-3 letters) like fr, en, de "
-                 "(got %r)" % a.lang)
+                 "(got {!r})".format(a.lang))
     if a.region is not None:
         if not re.fullmatch(r"[A-Za-z]{2}", a.region):
-            ap.error("--region must be two letters like CA (got %r)" % a.region)
+            ap.error("--region must be two letters like CA (got {!r})".format(a.region))
         a.region = a.region.lower()
     if a.list:
         for f in sorted(FAMILIES):
             d = FAMILIES[f]
-            print("%-18s %-8s photo=%-5s cons=%-5s duotone=%-5s spec=%-5s "
-                  "icons=%s"
-                  % (f, d["register"], d["photo_ok"], d["conservative_ok"],
-                     "accents2" in d, d["spec"], d["icons"]))
-            print("%18s   gabarit margin (%s), body %s, fill %s%%"
-                  % ("", d["page"]["margin"], d["page"]["body"],
-                     d["page"]["fill"]))
-            print("%18s   order   %s" % ("", " → ".join(d["order"])))
-            print("%18s   accents %s" % ("", " ".join(d["accents"])))
+            print("{:<18} {:<8} photo={!s:<5} cons={!s:<5} duotone={!s:<5} spec={!s:<5} "
+                  "icons={}".format(f, d["register"], d["photo_ok"], d["conservative_ok"],
+                                    "accents2" in d, d["spec"], d["icons"]))
+            print("{:>18}   gabarit margin ({}), body {}, fill {}%".format(
+                "", d["page"]["margin"], d["page"]["body"], d["page"]["fill"]))
+            print("{:>18}   order   {}".format("", " → ".join(d["order"])))
+            print("{:>18}   accents {}".format("", " ".join(d["accents"])))
             if "accents2" in d:
-                print("%18s   hue B   %s  (paired by index)"
-                      % ("", " ".join(d["accents2"])))
-            print("%18s   labels  %s" % ("", d["labels"]))
-            print("%18s   type    %s" % ("", FONTS[f]["register"]))
+                print("{:>18}   hue B   {}  (paired by index)".format("", " ".join(d["accents2"])))
+            print("{:>18}   labels  {}".format("", d["labels"]))
+            print("{:>18}   type    {}".format("", FONTS[f]["register"]))
             for role, pool in (("display", FONTS[f]["display"]), ("mono", FONTS[f].get("mono")),
                                ("body", FONTS[f]["body"])):
                 if pool is not None:
-                    print("%18s   %-8s%s" % ("", role, ", ".join(
-                        "%s [%s]" % nv for nv in pool)))
+                    print("{:>18}   {:<8}{}".format("", role, ", ".join(
+                        "{} [{}]".format(*nv) for nv in pool)))
     elif a.name and a.field:
         audacity: str = a.audacity
         if not is_audacity(audacity):
@@ -183,9 +180,8 @@ def _main() -> None:
         band = a.band
         if band and not band_ok(p.family):
             band = False
-            sys.stderr.write("note: --band ignored: %s has its own band/rail/"
-                             "margin furniture or is creative-register\n"
-                             % p.family)
+            sys.stderr.write("note: --band ignored: {} has its own band/rail/"
+                             "margin furniture or is creative-register\n".format(p.family))
         if a.init:
             print(report(p, a.market))
             print()

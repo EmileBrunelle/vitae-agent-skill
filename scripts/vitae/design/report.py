@@ -7,42 +7,36 @@ from vitae.design.pick import Pick
 def report(p: Pick, market: str) -> str:
     d = p.recipe
     lines = [
-        "design family   : %s   [register: %s]" % (p.family, d["register"]),
-        "  current       : %s" % d["current"],
-        "accent          : %s   (from that family's gamut %s)"
-        % (p.accent, " ".join(d["accents"])),
+        "design family   : {}   [register: {}]".format(p.family, d["register"]),
+        "  current       : {}".format(d["current"]),
+        "accent          : {}   (from that family's gamut {})".format(p.accent, " ".join(d["accents"])),
     ]
     if p.accent2:
-        lines.append("accent2 (duotone): %s   hue B, validated as a PAIR with "
-                     "the accent above — never mix indexes" % p.accent2)
+        lines.append("accent2 (duotone): {}   hue B, validated as a PAIR with "
+                     "the accent above — never mix indexes".format(p.accent2))
     # right after the colour block, duotone or not: an insert(4) landed before
     # the hue B line on monochrome families and after it on duotone ones.
     if p.audacity != "sober":
         lines.append("  palette       : python3 scripts/gen_palette.py "
-                     "--family %s --seed %r --audacity %s --typst"
-                     % (p.family, p.key, p.audacity))
+                     "--family {} --seed {!r} --audacity {} --typst".format(p.family, p.key, p.audacity))
     lines += [
-        "audacity        : %s" % p.audacity,
-        "list marker     : %s" % p.marker,
-        *(["family variant  : %s   (this family's own variant axis — apply it "
-           "as drawn)" % p.variant] if p.variant else []),
-        "contact icons   : %s" % d["icons"],
+        "audacity        : {}".format(p.audacity),
+        "list marker     : {}".format(p.marker),
+        *(["family variant  : {}   (this family's own variant axis — apply it "
+           "as drawn)".format(p.variant)] if p.variant else []),
+        "contact icons   : {}".format(d["icons"]),
         "platform marks  : email · LinkedIn · GitHub · site — in EVERY family; "
-        "mail/web/phone/pin glyphs from the drawn mark set: %s (%s); "
-        "LinkedIn/GitHub always Simple Icons, CC0" % p.markset,
-        "section labels  : profile=%r  skills=%r"
-        % (p.labels["profile"], p.labels["skills"]),
+        "mail/web/phone/pin glyphs from the drawn mark set: {} ({}); "
+        "LinkedIn/GitHub always Simple Icons, CC0".format(*p.markset),
+        "section labels  : profile={!r}  skills={!r}".format(p.labels["profile"], p.labels["skills"]),
         "                  (Education / Languages / the experience sections keep"
         " their conventional stems — regional.md)",
-        "type register    : %s" % p.font_register,
-        "display font    : %s   [%s]  — %s"
-        % (p.display[0], p.display[1], p.display_note),
-        "body font       : %s   [%s]  — %s"
-        % (p.body[0], p.body[1], p.body_note),
+        "type register    : {}".format(p.font_register),
+        "display font    : {}   [{}]  — {}".format(p.display[0], p.display[1], p.display_note),
+        "body font       : {}   [{}]  — {}".format(p.body[0], p.body[1], p.body_note),
     ]
     if p.mono:
-        lines.append("mono font       : %s   [%s]  — %s   (ALL metadata)"
-                     % (p.mono[0], p.mono[1], p.mono_note))
+        lines.append("mono font       : {}   [{}]  — {}   (ALL metadata)".format(p.mono[0], p.mono[1], p.mono_note))
     # A GF-only face is in no distro and has to be fetched; a "GF · Linux:
     # <pkg>" face has two routes. Say so once, and only when this draw needs it.
     roles = [p.display, p.body] + ([p.mono] if p.mono else [])
@@ -76,19 +70,17 @@ def report(p: Pick, market: str) -> str:
             "families only.")
     pg = d["page"]
     lines += [
-        "par leading     : %s      spacing: %s" % (d["leading"], d["spacing"]),
-        "section spacing : %s" % d["above"],
-        "gabarit         : margin (%s), body %s" % (pg["margin"], pg["body"]),
-        "fill target     : %s%%   → scripts/verify.py cv.typ 1 %s %s"
-        % (pg["fill"], *pg["fill"].split("-")),
-        "section order   : %s" % " → ".join(d["order"]),
+        "par leading     : {}      spacing: {}".format(d["leading"], d["spacing"]),
+        "section spacing : {}".format(d["above"]),
+        "gabarit         : margin ({}), body {}".format(pg["margin"], pg["body"]),
+        "fill target     : {}%   → scripts/verify.py cv.typ 1 {} {}".format(pg["fill"], *pg["fill"].split("-")),
+        "section order   : {}".format(" → ".join(d["order"])),
         "                  (the family DEFAULT — a target market's own "
         "convention overrides it: regional.md)",
-        "header order    : %s" % d["header"],
-        "career / market : %s / %s (field register: %s)"
-        % (p.career, market, p.domain),
-        "eligible were   : %s" % ", ".join(p.eligible),
-        "hash key        : %r" % p.key,
+        "header order    : {}".format(d["header"]),
+        "career / market : {} / {} (field register: {})".format(p.career, market, p.domain),
+        "eligible were   : {}".format(", ".join(p.eligible)),
+        "hash key        : {!r}".format(p.key),
     ]
     if d["spec"]:
         lines += [
@@ -100,7 +92,7 @@ def report(p: Pick, market: str) -> str:
         ]
     lines += [
         "",
-        "Apply the family's recipe: read references/design/families/%s.md whole" % p.family,
+        "Apply the family's recipe: read references/design/families/{}.md whole".format(p.family),
         "(plus references/design/core.md, the shared rules), then re-run",
         "scripts/verify.py — the leading/spacing above were verified",
         "on the template's own filler content, not on this candidate's, and a",

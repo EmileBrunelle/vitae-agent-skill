@@ -17,13 +17,13 @@ GENRES = (
     "Market", "Education", "Regulated professions", "Health professions", "Academic", "Outbound",
     "Law", "Field pack", "Certifications", "Foreign workers", "Gulf nationalisation", "Gulf credentials",
 )
-H1 = re.compile(r"^# (?:%s): \S" % "|".join(GENRES))
+H1 = re.compile(r"^# (?:{}): \S".format("|".join(GENRES)))
 URL = re.compile(r"https?://|\bwww\.")
 QUOTED = re.compile(r"«[^»]*»")
 # A banned date verb only counts in citation context: the verb followed by a date.
 _DATE = r"(?:\d{4}\b|\d{1,2}\s+\w+\s+\d{4}|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4})"
 DATE_VERB = re.compile(
-    r"\b(?:accessed|retrieved|consulté)\s+(?:(?:le|on)\s+)?%s|\bread\s+\d{4}-\d{2}" % _DATE, re.IGNORECASE
+    r"\b(?:accessed|retrieved|consulté)\s+(?:(?:le|on)\s+)?{}|\bread\s+\d{{4}}-\d{{2}}".format(_DATE), re.IGNORECASE
 )
 CONFIDENCE = re.compile(
     r"\b(?:HIGH|MEDIUM)\b|\bunverified\b|\bnot sourced\b|\bLOW confidence\b|\bLOW\b(?!, unsourced)", re.IGNORECASE

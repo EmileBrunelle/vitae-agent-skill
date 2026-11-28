@@ -20,9 +20,9 @@ def _sub1(src: str, pat: str, repl: str | Callable[[re.Match[str]], str],
     if n != 1:
         if n == 0 and not required:
             return src
-        raise SystemExit("--init: %s: %d match(es) for %s (need exactly 1) — "
+        raise SystemExit("--init: {}: {} match(es) for {} (need exactly 1) — "
                          "the family file changed shape; fall back to the "
-                         "manual route (cp + --emit-typ)" % (family, n, what))
+                         "manual route (cp + --emit-typ)".format(family, n, what))
     return new
 
 
@@ -32,7 +32,7 @@ def _write_nofollow(path: str, data: bytes) -> None:
     try:
         fd = os.open(path, flags, 0o644)
     except OSError as e:
-        raise SystemExit("--init: cannot write %s (%s)" % (path, e.strerror)) from e
+        raise SystemExit("--init: cannot write {} ({})".format(path, e.strerror)) from e
     with os.fdopen(fd, "wb") as fh:
         fh.write(data)
 
@@ -48,9 +48,9 @@ def _apply_labels(src: str, default: Mapping[str, object],
         label: str = new
 
         def _rename(mm: re.Match[str], label: str = label) -> str:
-            return mm.group(1) + '"%s"' % label
-        src = _sub1(src, r'^(#section\()"%s"' % re.escape(old),
-                    _rename, "#section(%r)" % old, family)
+            return mm.group(1) + '"{}"'.format(label)
+        src = _sub1(src, r'^(#section\()"{}"'.format(re.escape(old)),
+                    _rename, "#section({!r})".format(old), family)
     return src
 
 
@@ -70,19 +70,19 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     for _n in ("cv.typ", "lib.typ", "icons.typ"):
         _d = os.path.join(folder, _n)
         if os.path.islink(_d):
-            raise SystemExit("--init: %s is a symlink — refusing to write "
+            raise SystemExit("--init: {} is a symlink — refusing to write "
                              "through it (replace it with a regular file or "
-                             "remove it first)" % _d)
+                             "remove it first)".format(_d))
     if os.path.exists(out) and not force:
-        raise SystemExit("--init: %s exists — refusing to overwrite (re-run "
-                         "with --force to replace it)" % out)
+        raise SystemExit("--init: {} exists — refusing to overwrite (re-run "
+                         "with --force to replace it)".format(out))
     import shlex
     q = shlex.quote
     body_c = font_chain(fp["body"], p.body, "body", p.have)
     disp_c = font_chain(fp["display"], p.display, "display", p.have)
 
     def head_names(src: str) -> tuple[re.Match[str] | None, re.Match[str] | None]:
-        g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let %s = \("([^"]+)"' % k, src, re.MULTILINE)
+        g: Callable[[str], re.Match[str] | None] = lambda k: re.search(r'^#let {} = \("([^"]+)"'.format(k), src, re.MULTILINE)
         return g("bodyf"), g("dispf")
     # pair B iff the drawn faces are the second pair's lead faces
     pick_file, best = "resume.typ", -1
@@ -101,19 +101,19 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     src = src.replace('#import "../../lib.typ"', '#import "lib.typ"')
 
     def lead(name: str) -> str:                       # keep `#let name = ` + trailing // note
-        return r'^(#let %s = )[^\n]*?(\s*//[^\n]*)?$' % name
+        return r'^(#let {} = )[^\n]*?(\s*//[^\n]*)?$'.format(name)
 
     def accent_line(name: str, val: str) -> tuple[str, Callable[[re.Match[str]], str]]:
         # gutter-rail: `if screen { rgb(A) } else { rgb(B) }` — drawn value is
         # the print branch; keep the screen branch as shipped.
-        m = re.search(r'^#let %s = if screen \{ (rgb\("[^"]+"\)) \} else '
-                      r'\{ rgb\("[^"]+"\) \}' % name, src, re.MULTILINE)
+        m = re.search(r'^#let {} = if screen \{{ (rgb\("[^"]+"\)) \}} else '
+                      r'\{{ rgb\("[^"]+"\) \}}'.format(name), src, re.MULTILINE)
         if m:
-            return (r'^(#let %s = if screen \{ rgb\("[^"]+"\) \} else \{ )'
-                    r'rgb\("[^"]+"\)( \}.*)$' % name,
-                    lambda mm: mm.group(1) + 'rgb("%s")' % val + mm.group(2))
+            return (r'^(#let {} = if screen \{{ rgb\("[^"]+"\) \}} else \{{ )'
+                    r'rgb\("[^"]+"\)( \}}.*)$'.format(name),
+                    lambda mm: mm.group(1) + 'rgb("{}")'.format(val) + mm.group(2))
         return (lead(name),
-                lambda mm: mm.group(1) + 'rgb("%s")' % val + (mm.group(2) or ""))
+                lambda mm: mm.group(1) + 'rgb("{}")'.format(val) + (mm.group(2) or ""))
     pat, afn = accent_line("accent", p.accent)
     src = _sub1(src, pat, afn, "#let accent", fam)
     if p.accent2:
@@ -136,16 +136,16 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
                      lambda mm: mm.group(1) + lang_arg(lang, region), src,
                      count=1)
         if n_lang != 1:
-            raise SystemExit("--init: %s: no `lang: \"en\"` in its `#set text(` line to rewrite "
+            raise SystemExit("--init: {}: no `lang: \"en\"` in its `#set text(` line to rewrite "
                              "— the family file changed shape; fall back to the manual route "
-                             "(cp + --emit-typ)" % fam)
+                             "(cp + --emit-typ)".format(fam))
     src = _sub1(src, r'^(#set par\(justify: false, )leading: [^,]+, spacing: '
                 r'[^)]+(\).*)$',
-                lambda mm: mm.group(1) + "leading: %s, spacing: %s" % (
+                lambda mm: mm.group(1) + "leading: {}, spacing: {}".format(
                     d["leading"], d["spacing"]) + mm.group(2),
                 "#set par", fam)
     src = _sub1(src, r'^(#let mk = marks\(ic-col)(\).*)$',
-                lambda mm: mm.group(1) + ', kit: "%s"' % p.markset[0]
+                lambda mm: mm.group(1) + ', kit: "{}"'.format(p.markset[0])
                 + mm.group(2), "#let mk", fam)
     if p.variant:                      # gutter-rail's square/pill axis
         r = "2.5pt" if "pill" in p.variant else "0pt"
@@ -157,24 +157,22 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     src = _apply_labels(src, d["labels"], p.labels, fam)
     pg = d["page"]
     for k, v in (("margin", pg["margin"]), ("body", pg["body"])):
-        if k == "margin" and "(%s)" % v not in src and v not in src:
-            sys.stderr.write("note: %s's own page margin differs from the "
-                             "recipe's (%s) — kept the family file's\n"
-                             % (fam, v))
+        if k == "margin" and "({})".format(v) not in src and v not in src:
+            sys.stderr.write("note: {}'s own page margin differs from the "
+                             "recipe's ({}) — kept the family file's\n".format(fam, v))
     os.makedirs(folder, exist_ok=True)
     kept: list[str] = []
     for f in ("lib.typ", "icons.typ"):
         srcf, dst = os.path.join(root, "templates", f), os.path.join(folder, f)
         if os.path.exists(dst):
             if f == "lib.typ" and Path(dst).read_bytes() != Path(srcf).read_bytes():
-                kept.append("kept existing %s (differs from the skill's) — a lib "
-                            "update is deliberate: cp %s %s"
-                            % (q(dst), q(srcf), q(dst)))
+                kept.append("kept existing {} (differs from the skill's) — a lib "
+                            "update is deliberate: cp {} {}".format(q(dst), q(srcf), q(dst)))
                 if is_old_lib(Path(dst).read_text(encoding="utf-8", errors="replace")):
-                    kept.append("WARN %s is %s: update it with the cp above" % (q(dst), OLD_LIB_NOTE))
+                    kept.append("WARN {} is {}: update it with the cp above".format(q(dst), OLD_LIB_NOTE))
                 continue
             if f == "icons.typ" and os.path.getsize(dst) > 0:
-                kept.append("kept existing %s (harvested icons)" % q(dst))
+                kept.append("kept existing {} (harvested icons)".format(q(dst)))
                 continue
         _write_nofollow(dst, Path(srcf).read_bytes())
     # one comment line: the full call form of the family's entry wrapper
@@ -184,21 +182,20 @@ def init_folder(p: Pick, folder: str, force: bool = False, lang: str = "en",
     lo, hi = pg["fill"].split("-")
     if any((note or "").startswith("NO pool member")
            for note in (p.display_note, p.body_note, p.mono_note)):
-        kept.append("at least one font role of %s has NO pool member installed "
-                    "locally — install the face above before verifying%s"
-                    % (fam, "" if p.offline else
+        kept.append("at least one font role of {} has NO pool member installed "
+                    "locally — install the face above before verifying{}".format(fam, "" if p.offline else
                        ", or in an offline sandbox re-run pick_design.py "
                        "with --offline --force"))
-    print("wrote %s  (%s from families/%s/%s; lib.typ + icons.typ copied "
-          "byte-for-byte)" % (out, fam, fam, pick_file))
+    print("wrote {}  ({} from families/{}/{}; lib.typ + icons.typ copied "
+          "byte-for-byte)".format(out, fam, fam, pick_file))
     for k in kept:
         print(k if k.startswith("WARN") else "note: " + k)
     print("lib.typ API, call these as written; do not open lib.typ (positional; named): " + api_line(Path(folder) / "lib.typ"))
     vf = q(os.path.join(root, "scripts", "verify.py"))
     print("next, run these (do not read the scripts, their output is the "
           "instruction):")
-    print("  python3 %s %s" % (q(os.path.join(root, "scripts", "harvest_icons.py")), q(folder)))
-    print("  python3 %s --tune %s 1 %s %s" % (vf, q(out), lo, hi))
-    print("  python3 %s %s 1 %s %s" % (vf, q(out), lo, hi))
+    print("  python3 {} {}".format(q(os.path.join(root, "scripts", "harvest_icons.py")), q(folder)))
+    print("  python3 {} --tune {} 1 {} {}".format(vf, q(out), lo, hi))
+    print("  python3 {} {} 1 {} {}".format(vf, q(out), lo, hi))
     print("The filler starter may overflow/underfill with the drawn fonts: expected. "
           "Replace the filler with the candidate's facts first, then --tune, then verify.")

@@ -82,7 +82,7 @@ def signatures(lib_src: str, failed: list[str] | None = None) -> dict[str, str]:
             continue
         pos = [p for p in params if ":" not in p.split("(")[0].split("[")[0]]
         named = [p.split(":")[0].strip() for p in params if p not in pos]
-        sigs[name] = "%s(%s%s)" % (name, ", ".join(pos),
+        sigs[name] = "{}({}{})".format(name, ", ".join(pos),
                                    ("; " + ", ".join(named)) if named else "")
     return sigs
 
@@ -93,6 +93,6 @@ def api_line(lib_path: Path) -> str:
     sigs = signatures(lib_path.read_text(encoding="utf-8"), failed)
     line = "  ".join(sigs.values())
     if failed:
-        line += "\nWARN: parameters of %s not parsed: grep -n '^#let NAME' %s" % (
+        line += "\nWARN: parameters of {} not parsed: grep -n '^#let NAME' {}".format(
             ", ".join(failed), lib_path)
     return line

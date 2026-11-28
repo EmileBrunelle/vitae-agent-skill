@@ -182,7 +182,7 @@ def _hsl(h: float, s: float, l: float) -> RGB:
 
 
 def _hex(rgb: RGB) -> str:
-    return "#%02x%02x%02x" % rgb
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
 
 
 def _bits(key: str, salt: str, n: int) -> int:
@@ -226,14 +226,14 @@ def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
     """Deterministic per (family, seed, audacity). Rejects and re-draws until
     every role clears its threshold — the returned palette is always valid."""
     if family not in HARMONY:
-        raise SystemExit("unknown family %r (see references/design/families/)" % family)
+        raise SystemExit("unknown family {!r} (see references/design/families/)".format(family))
     if audacity not in DIAL:
-        raise SystemExit("audacity must be one of %s" % ", ".join(DIAL))
+        raise SystemExit("audacity must be one of {}".format(", ".join(DIAL)))
     (smin, smax), (lmin, lmax) = DIAL[audacity]
     harmony = HARMONY[family]
     white = (255, 255, 255)
     for attempt in range(64):                 # bounded: ranges always contain hits
-        salt = "%s|%s|%d|" % (family, audacity, attempt)
+        salt = "{}|{}|{}|".format(family, audacity, attempt)
         hue = _bits(seed, salt + "h", 360)
         sat = smin + _bits(seed, salt + "s", smax - smin + 1)
         lig = lmin + _bits(seed, salt + "l", lmax - lmin + 1)
@@ -321,40 +321,36 @@ def typst(p: Palette) -> str:
     two = []
     second = _second(p)
     if second is not None:
-        two = ['#let accent2 = rgb("%s")  // H%d S%d%% L%d%% — duotone hue B, %s'
-               % (_hex(second[0]), *second[1], second[2][1]),
-               '// hue A role — %s. Each hue keeps 1-2 jobs, never more.'
-               % second[2][0]]
+        two = ['#let accent2 = rgb("{}")  // H{} S{}% L{}% — duotone hue B, {}'
+               .format(_hex(second[0]), *second[1], second[2][1]),
+               '// hue A role — {}. Each hue keeps 1-2 jobs, never more.'.format(second[2][0])]
     return "\n".join([
-        '#let accent = rgb("%s")   // H%d S%d%% L%d%% — %s harmony, %s'
-        % (_hex(p["accent"]), *p["hsl"], p["harmony"], p["audacity"]),
+        '#let accent = rgb("{}")   // H{} S{}% L{}% — {} harmony, {}'
+        .format(_hex(p["accent"]), *p["hsl"], p["harmony"], p["audacity"]),
         *two,
-        '#let soft = rgb("%s")     // decorative hairlines only, never text'
-        % _hex(p["soft"]),
-        '#let ink = rgb("%s")      // metadata gray, biased to the accent hue'
-        % _hex(p["ink"]),
+        '#let soft = rgb("{}")     // decorative hairlines only, never text'.format(_hex(p["soft"])),
+        '#let ink = rgb("{}")      // metadata gray, biased to the accent hue'.format(_hex(p["ink"])),
         '#let muted = ink',
-        '#let dark = rgb("%s")     // body ink, barely biased' % _hex(p["dark"]),
+        '#let dark = rgb("{}")     // body ink, barely biased'.format(_hex(p["dark"])),
     ])
 
 
 def report(p: Palette) -> str:
     second = _second(p)
-    out = ["family    : %s   (harmony: %s)" % (p["family"], p["harmony"]),
-           "audacity  : %s" % p["audacity"],
-           "seed      : %r   (draw %d)" % (p["seed"], p["attempts"]),
-           "accent    : %s   H%d S%d%% L%d%%" % (_hex(p["accent"]), *p["hsl"]),
-           *(["accent2   : %s   H%d S%d%% L%d%%   (duotone — %s; hue A: %s)"
-              % (_hex(second[0]), *second[1], second[2][1], second[2][0])]
+    out = ["family    : {}   (harmony: {})".format(p["family"], p["harmony"]),
+           "audacity  : {}".format(p["audacity"]),
+           "seed      : {!r}   (draw {})".format(p["seed"], p["attempts"]),
+           "accent    : {}   H{} S{}% L{}%".format(_hex(p["accent"]), *p["hsl"]),
+           *(["accent2   : {}   H{} S{}% L{}%   (duotone — {}; hue A: {})"
+              .format(_hex(second[0]), *second[1], second[2][1], second[2][0])]
              if second is not None else []),
-           "soft      : %s   (hairlines only)" % _hex(p["soft"]),
-           "ink       : %s   (metadata)" % _hex(p["ink"]),
-           "dark      : %s   (body)" % _hex(p["dark"]), "contrast  :"]
+           "soft      : {}   (hairlines only)".format(_hex(p["soft"])),
+           "ink       : {}   (metadata)".format(_hex(p["ink"])),
+           "dark      : {}   (body)".format(_hex(p["dark"])), "contrast  :"]
     for k, (v, t) in p["checks"].items():
-        out.append("  %-20s %5.2f  (min %.1f) %s"
-                   % (k, v, t, "OK" if v >= t else "FAIL"))
-    out.append("  hue %d is outside the muddy zone %s (yellow-olive: excluded "
-               "for text roles)" % (p["hsl"][0], EXCLUDE_HUE))
+        out.append("  {:<20} {:5.2f}  (min {:.1f}) {}".format(k, v, t, "OK" if v >= t else "FAIL"))
+    out.append("  hue {} is outside the muddy zone {} (yellow-olive: excluded "
+               "for text roles)".format(p["hsl"][0], EXCLUDE_HUE))
     return "\n".join(out)
 
 

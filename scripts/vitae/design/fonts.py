@@ -41,9 +41,8 @@ def pick_font(pool: list[Font], key: str, salt: str,
     for cand in pool:
         got = installed_face(cand[0], have)
         if got:
-            return (got, cand[1]), drawn, ("SUBSTITUTED: drawn %s (%s) not installed, using the "
-                                 "installed face shown — install %s for the exact design"
-                                 % (drawn[0], drawn[1], drawn[0]))
+            return (got, cand[1]), drawn, ("SUBSTITUTED: drawn {} ({}) not installed, using the "
+                                 "installed face shown — install {} for the exact design".format(drawn[0], drawn[1], drawn[0]))
     return drawn, None, "NO pool member installed — install one before drafting"
 
 

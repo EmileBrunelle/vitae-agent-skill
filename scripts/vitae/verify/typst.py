@@ -128,7 +128,7 @@ def write_par(text: str, leading: float, spacing: float) -> str:
     m = _tuned_par(text)
     if not m:
         return text
-    return "%s%.3f%s%.3f%s" % (text[:m.start(2)], leading, text[m.end(2):m.start(4)], spacing,
+    return "{}{:.3f}{}{:.3f}{}".format(text[:m.start(2)], leading, text[m.end(2):m.start(4)], spacing,
                                text[m.end(4):])
 
 
@@ -172,7 +172,7 @@ def write_rhythm(text: str, rhythm: float) -> str:
     if not m or found is None:
         return text
     a, b = found[0] + m.start(2), found[0] + m.end(2)
-    return "%s%.3f%s" % (text[:a], rhythm, text[b:])
+    return "{}{:.3f}{}".format(text[:a], rhythm, text[b:])
 
 
 def par_scope(text: str) -> int:

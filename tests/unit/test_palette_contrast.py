@@ -95,7 +95,7 @@ class TestBuild:
         a second hue only where the family declares one (inside the same dial, far in hue, subordinate)."""
         (smin, smax), (lmin, lmax) = P.DIAL[level]
         for i in range(50):
-            p = P.build(family, "Candidate %02d+x" % i, level)
+            p = P.build(family, "Candidate {:02d}+x".format(i), level)
             assert {k: v for k, v in p["checks"].items() if v[0] < v[1]} == {}
             h, s, l = p["hsl"]
             assert not P.EXCLUDE_HUE[0] <= h <= P.EXCLUDE_HUE[1] and smin <= s <= smax and lmin <= l <= lmax
