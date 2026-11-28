@@ -9,12 +9,14 @@ they stay in vitae/verify/cv.py.
 from __future__ import annotations
 
 import re
+from datetime import date
 from pathlib import Path
 
 from vitae.core.base import DetailRow, HiddenStat, Mark
 from vitae.core.context import VerifyContext
 from vitae.core.level import Finding, Level
 from vitae.verify.contact import check_contact_line
+from vitae.verify.declared import bullets_outside, check_expected_past, check_summary_figures, section_text
 from vitae.verify.groups import (
     ENTRY_MARKS,
     check_date_adjacency,
@@ -117,6 +119,22 @@ def _facts_coverage(ctx: VerifyContext) -> list[Finding]:
     return [(Level.WARN, w.removeprefix("WARN  ")) for w in check_facts_coverage(ctx.txt, facts_text)]
 
 
+def _summary_figures(ctx: VerifyContext) -> list[Finding]:
+    assert ctx.secs is not None and ctx.bullets is not None   # `applies` guards both
+    titles = [s["text"] for s in ctx.secs]
+    out: list[str] = []
+    for i, sec in enumerate(ctx.secs):
+        if sec.get("summary") and (text := section_text(ctx.txt, titles, i)) is not None:
+            out += check_summary_figures(text, bullets_outside(text, [[ln.text for ln in lines] for _, lines in ctx.bullets.located]))
+    return [(Level.WARN, m) for m in out]
+
+
+def _expected_past(ctx: VerifyContext, today: date | None = None) -> list[Finding]:
+    """`today` is a seam for tests; the gate itself reads the clock here, at the edge."""
+    assert ctx.heads is not None   # `applies` guards it
+    return [(Level.WARN, m) for m in check_expected_past(ctx.heads, today or date.today())]
+
+
 def _bullet_chars(ctx: VerifyContext) -> list[Finding]:
     bullets = check_bullet_chars(ctx.txt)
     if not bullets:
@@ -206,12 +224,22 @@ def _has_facts(ctx: VerifyContext) -> bool:
     return bool(ctx.facts)
 
 
+def _has_summary(ctx: VerifyContext) -> bool:
+    return ctx.bullets is not None and any(s.get("summary") for s in ctx.secs or ())
+
+
+def _has_expected(ctx: VerifyContext) -> bool:
+    return any(h.get("expected") for h in ctx.heads or ())
+
+
 EXTRACTION_GATES: tuple[FnGate, ...] = (
     FnGate("extraction-empty", _extraction_empty),
     FnGate("letterspacing", _letterspaced),
     FnGate("orphaned-date", _orphaned_dates),
     FnGate("no-split", _no_split),
     FnGate("facts-coverage", _facts_coverage, _has_facts),
+    FnGate("summary-figures", _summary_figures, _has_summary),
+    FnGate("expected-past", _expected_past, _has_expected),
     FnGate("bullet-chars", _bullet_chars),
     FnGate("placeholders", placeholder_gate),
 )

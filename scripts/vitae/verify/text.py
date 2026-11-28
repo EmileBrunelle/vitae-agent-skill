@@ -140,6 +140,77 @@ def _readings(raw: str) -> list[float]:
         return []
 
 
+def _figures_in(line: str, blank: list[tuple[int, int]]) -> list[tuple[str, set[float]]]:
+    """The numbers of one line, as (token, values), once the `blank` spans (dates are not numbers) are blanked.
+    "75%", "75 percent" and "75 pour cent" all compare as the value 75; a bare digit 0-9 is no signal
+    ("3 teams" vs "three"), unless it carries a unit."""
+    chars = list(line)
+    for i, j in blank:
+        chars[i:j] = " " * (j - i)
+    rest = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", "".join(chars))
+    out: list[tuple[str, set[float]]] = []
+    for m in _NUM_RE.finditer(rest):
+        if not m.group(2) and len(m.group(1)) == 1:
+            continue
+        vals = _num_values(m.group(0))
+        if vals:
+            out.append((m.group(0).strip(), vals))
+    return out
+
+
+def years_in(text: str) -> list[int]:
+    """The 4-digit years (1900-2099) of `text`, in reading order."""
+    return [int(y) for y in _YEAR_RE.findall(text)]
+
+
+@dataclass(frozen=True)
+class Figure:
+    """One figure of the CV text, as the summary-repeat check compares them: `lo` (and `hi` for a range a-b) are the
+    values it can mean ("1.500" reads both ways), `unit` the symbols stuck to it (% + and currency symbols)."""
+    token: str
+    unit: str
+    lo: frozenset[float]
+    hi: frozenset[float] = frozenset()
+
+    def same(self, other: Figure) -> bool:
+        if self.unit != other.unit or bool(self.hi) != bool(other.hi):
+            return False
+        return bool(self.lo & other.lo) and (not self.hi or bool(self.hi & other.hi))
+
+
+_FIG_RE = re.compile(r"(\d+(?:[.,]\d+)*)(?:\s?[-\u2013]\s?(\d+(?:[.,]\d+)*))?\s?(%|[kKmM](?![^\W\d_])|)(\+?)")
+
+
+def _scaled(raw: str, mult: int) -> frozenset[float]:
+    return frozenset(v * mult for v in _readings(raw))
+
+
+def figures_in(text: str) -> list[Figure]:
+    """Every figure of `text` that is not a year, a numeric month+year or a phone number, in reading order. Unlike
+    check_facts_coverage it keeps what makes two figures different things: an adjacent unit symbol (40% is not 40,
+    $5 is not 5) and a range (10-20 is one figure, not 10 and 20). Same patterns and readings otherwise."""
+    out: list[Figure] = []
+    for raw in text.split("\n"):
+        line = _blank_phones(raw.strip())
+        fl = _fold1(line)
+        chars = list(line)
+        for i, j in [m.span() for m in _NUM_MY_RE.finditer(fl)] + [m.span() for m in _YEAR_RE.finditer(fl)]:
+            chars[i:j] = " " * (j - i)
+        rest = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", "".join(chars))
+        for m in _FIG_RE.finditer(rest):
+            pre = rest[m.start() - 1] if m.start() > 0 and unicodedata.category(rest[m.start() - 1]) == "Sc" else ""
+            tail = rest[m.end():].lstrip(" ")[:1]
+            post = tail if tail and unicodedata.category(tail) == "Sc" else ""
+            unit = pre + ("%" if m.group(3) == "%" else "") + m.group(4) + post
+            if not m.group(2) and not unit and not m.group(3) and len(m.group(1)) == 1:
+                continue                    # bare 0-9: "3 teams" vs "three" is not a signal
+            mult = 1000 if m.group(3).lower() == "k" else 1_000_000 if m.group(3).lower() == "m" else 1
+            lo = _scaled(m.group(1), mult)
+            if lo:
+                out.append(Figure(m.group(0).strip(), unit, lo, _scaled(m.group(2), mult) if m.group(2) else frozenset()))
+    return out
+
+
 def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
     """Rule 1, mechanically, on digits only. WARN, never FAIL: a figure absent from the facts file is a prompt to
     confirm it with the candidate, and the facts file may be written in prose the patterns cannot read.
@@ -173,18 +244,9 @@ def check_facts_coverage(pdf_text: str, facts_text: str) -> list[str]:
             blank.append(m.span())
             if m.group(0) not in facts_years:
                 found[m.group(0)] = None
-        # dates are not numbers: blank them before the number scan
-        chars = list(line)
-        for i, j in blank:
-            chars[i:j] = " " * (j - i)
-        rest = "".join(chars)
-        # "75%", "75 percent" and "75 pour cent" all compare as the value 75
-        for m in _NUM_RE.finditer(re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}(?!\d))", "", rest)):
-            if not m.group(2) and len(m.group(1)) == 1:
-                continue                    # bare 0-9: "3 teams" vs "three" is not a signal
-            vals = _num_values(m.group(0))
-            if vals and not vals & facts_nums:
-                found[m.group(0).strip()] = None
+        for tok, vals in _figures_in(line, blank):
+            if not vals & facts_nums:
+                found[tok] = None
     return [f'WARN  not in facts file: "{t}" — remove it or confirm it with the candidate (rule 1)'
             for t in found]
 

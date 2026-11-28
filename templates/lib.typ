@@ -203,10 +203,13 @@
 // the entry was given no date, so "no date marker" is told apart from "a lib
 // without part markers".
 #let head-plain(c) = if type(c) == str { c } else if c == [ ] { " " } else if c.has("text") { c.text } else if c.has("body") { head-plain(c.body) } else if c.has("child") { head-plain(c.child) } else if c.has("children") { c.children.map(head-plain).join("") } else { "" }
-#let head-mark(kind, label, org: none, dated: none) = context [#metadata((
+// `expected: true` (entry only) declares a date that is an expected / planned one (a degree not yet earned): the
+// mark then carries `expected` and the date text as `dates`, which verify.py compares with today's year.
+#let head-mark(kind, label, org: none, dated: none, expected: false, dates: none) = context [#metadata((
   kind: kind, text: head-plain(label), org: if org == none { "" } else { head-plain(org) },
   page: here().position().page, x: here().position().x.pt(), y: here().position().y.pt())
-  + if dated == none { (:) } else { (dated: dated, anchor: true) }) <vitae-head>]
+  + if dated == none { (:) } else { (dated: dated, anchor: true) }
+  + if expected { (expected: true, dates: if dates == none { "" } else { head-plain(dates) }) } else { (:) }) <vitae-head>]
 #let part-mark(kind, c, extra: (:)) = context {
   let p = here().position()
   let m = measure(c)
@@ -232,17 +235,21 @@
 // `drawn-marker` itself is untagged: it is also the inline separator dot of contact and Languages lines.
 #let bullet-marked(c) = [#context [#metadata((text: "", kind: "bullet",
   page: here().position().page, x: here().position().x.pt(), y: here().position().y.pt())) <vitae-bullet>]#c]
-#let sec-mark(t) = context [#metadata((
-  text: head-plain(t), page: here().position().page, y: here().position().y.pt())) <vitae-sec>]
+// `summary: true` (a `section` argument, see wd-section) declares the section as the summary / profile: the mark
+// then carries `summary`, and verify.py WARNs a figure of it repeated in a bullet.
+#let sec-mark(t, summary: false) = context [#metadata((
+  text: head-plain(t), page: here().position().page, y: here().position().y.pt())
+  + if summary { (summary: true) } else { (:) }) <vitae-sec>]
 
 // Wrap a family's own `section` so workday mode drops the Profile/Summary and
 // records the section name. Call once, right after the family defines `section`:
 //     #let section = wd-section(section)
 // Identity when the flag is absent.
+// `summary: true` is read here, so no family's `section` needs to know it.
 #let wd-section(f) = if not workday {
-  (t, body, ..args) => { sec-mark(t); f(t, body, ..args) }
+  (t, body, summary: false, ..args) => { sec-mark(t, summary: summary); f(t, body, ..args) }
 } else {
-  (t, body, ..args) => if wd-norm(t) in wd-omit or (wd-norm(t) in wd-projects and wd-norm(t) not in wd-keep-names) { none } else {
+  (t, body, summary: false, ..args) => if wd-norm(t) in wd-omit or (wd-norm(t) in wd-projects and wd-norm(t) not in wd-keep-names) { none } else {
     wd-section-name.update(t)
     block(width: 100% + wd-extra, f(t, body, ..args))
   }
@@ -284,7 +291,7 @@
            org-st: it => text(weight: "semibold", it),
            note-st: it => it,
            sep: [ — ], meta-size: 9pt, gap: 1.5pt,
-           above: auto, lift: 0.1em, below: 5.5pt, rhythm: 1.0) = context {
+           above: auto, lift: 0.1em, below: 5.5pt, rhythm: 1.0, expected: false) = context {
   // `rhythm` (the family's `#let rhythm`) stretches the inter-block gaps of the entry (`above`,
   // `below`); `gap` and `lift` are font clearances inside it and stay as given.
   let below = below * rhythm
@@ -338,9 +345,9 @@
   // role alone: their line box is cut to the role's own height above baseline
   let ascent = measure(role-st(text(bottom-edge: "baseline")[H])).height
   let head(inline) = grid(columns: (1fr, auto), align: (left + bottom, right + bottom),
-    if inline [#head-mark("entry", role, org: org, dated: dated)#role-st(role)#text(top-edge: ascent,
+    if inline [#head-mark("entry", role, org: org, dated: dated, expected: expected, dates: dates)#role-st(role)#text(top-edge: ascent,
       bottom-edge: "baseline")[#if sc != none [~#sc] #box[#date-mark(true)#date-st(dates)]]]
-    else [#head-mark("entry", role, org: org, dated: dated)#role-st(role)],
+    else [#head-mark("entry", role, org: org, dated: dated, expected: expected, dates: dates)#role-st(role)],
     if inline { [] } else if dated [#date-mark(false)#date-st(dates)] else { date-st(dates) })
   let plain = block(above: ab, below: below, sticky: true)[
     #block(spacing: 0pt, if not anchored { head(false) } else { layout(size => context {

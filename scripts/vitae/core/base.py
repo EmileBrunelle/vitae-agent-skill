@@ -35,6 +35,9 @@ class _MarkExtras(TypedDict, total=False):
     dated: ReadOnly[bool]         # entry heads of a lib that tags them: given a date?
     anchor: ReadOnly[bool]        # entry heads of a lib that tags them: date anchor present
     inline: ReadOnly[bool]        # date parts: set inline after the role
+    expected: ReadOnly[bool]      # entry heads declared `expected: true`: the date is a planned one
+    dates: ReadOnly[str]          # ... and then its date text
+    summary: ReadOnly[bool]       # section titles declared `summary: true`: the summary / profile section
 
 
 class Mark(_MarkExtras):

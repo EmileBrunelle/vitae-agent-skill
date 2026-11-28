@@ -73,7 +73,7 @@
 // Dates and the employer descriptor in the MONO face — the metadata register.
 // The descriptor line under the entry is what keeps the date anchored in the
 // extraction (ats.md, orphaned-date trap).
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   role-st: it => text(font: dispf, size: 11pt, weight: "bold", it),
   date-st: it => text(font: monof, size: 8.5pt, fill: accent2, weight: "medium", it),
   note-st: it => text(font: monof, size: 8pt, fill: muted, it),
@@ -159,7 +159,7 @@
 // the facts; no trait sentence.
 
 // Tip: #box[*[term]*] keeps a fragile token unbroken.
-#section("Professional Summary")[
+#section("Professional Summary", summary: true)[
 [Role and field, as the facts state them.] [Strongest verifiable fact from the
 facts, with its number if the facts give one.] [One sentence the facts support,
 with the field's key terms in *bold*.]

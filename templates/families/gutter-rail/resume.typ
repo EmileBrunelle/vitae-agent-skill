@@ -155,7 +155,7 @@
 // ("Sep 2015 – Jun 2019" still floated) — it is the FOLLOWING line's horizontal
 // reach that anchors the date, which is also what makes the trap look
 // position-dependent.
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   role-st: it => text(font: dispf, size: 11pt, weight: "bold", it),
   date-st: it => text(font: monof, size: 8.5pt, fill: accent2, weight: "medium", it),
   note-st: it => text(font: monof, size: 8pt, fill: muted, it),
@@ -238,7 +238,7 @@
 // the facts; no trait sentence.
 
 // Tip: #box[*[term]*] keeps a fragile token unbroken.
-#section("Profile")[
+#section("Profile", summary: true)[
 [Role and field, as the facts state them.] [Strongest verifiable fact from the
 facts, with its number if the facts give one.] [One sentence the facts support,
 with the field's key terms in *bold*.]

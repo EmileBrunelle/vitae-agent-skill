@@ -51,7 +51,7 @@
   #block(above: 0pt, below: 0pt, width: 100%, body)
 ]
 
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it), rhythm: rhythm)
 

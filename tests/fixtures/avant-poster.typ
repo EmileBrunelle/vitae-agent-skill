@@ -67,7 +67,7 @@
 
 // dates right-flush in hue B; the organization line under the entry anchors the
 // date in the extraction (ats.md, orphaned-date trap)
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   role-st: it => text(font: dispf, size: 11.5pt, weight: "bold", it),
   date-st: it => text(size: 9pt, fill: accent2, weight: "bold", it),
   note-st: it => text(fill: muted, it), rhythm: rhythm)

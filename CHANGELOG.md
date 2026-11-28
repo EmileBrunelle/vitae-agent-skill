@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Verify: two WARN checks driven by explicit declarations. `section(.., summary: true)` marks the Summary; a figure it states (with its unit; ranges as one figure; years and month/year dates excluded) that a bullet outside it repeats is a WARN. `entry`/`job(.., expected: true)` marks an anticipated date; a latest year before the current year is a WARN. Every template passes `summary: true` on its Summary/Profile section. No word of any language is read: an undeclared or unbounded Summary gives no finding.
 - Fonts: installation advice is OS-portable. Provenance is `upstream: <source>` or `GF (...)`; the distro package names (`local:`, `GF · Linux: <package>`, the Debian/Fedora table) are gone, `references/fonts.md` lists each upstream source and points to Route 1 (per-OS user font folder), and the pick report says to check `typst fonts` first.
 - Dependencies: `typst` is a compatible range `typst>=0.15.2,<0.16` in every PEP 723 header instead of the exact `typst==0.15.2` (the gates measure the real PDF on each run; a Typst minor is the breaking boundary); the doctor and the docs print the quoted range, and a unit test checks that every documented `pip install typst` uses the header's specifier.
 

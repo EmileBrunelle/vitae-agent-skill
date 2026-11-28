@@ -67,7 +67,7 @@
 // lib.typ's `entry`; the styling passed in is what a family owns. Whether the
 // organization, the dates or neither carries the accent is the family's call.
 // EDUCATION USES THIS SAME HELPER — one date convention per document.
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   org-st: it => text(fill: accent, weight: "semibold", it),
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it),
@@ -107,7 +107,7 @@
 // the facts; no trait sentence.
 
 // Tip: #box[*[term]*] keeps a fragile token unbroken.
-#section("Profile")[
+#section("Profile", summary: true)[
 [Role and field, as the facts state them.] [Strongest verifiable fact from the
 facts, with its number if the facts give one.] [One sentence the facts support,
 with the field's key terms in *bold*.]

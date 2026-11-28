@@ -51,7 +51,7 @@
 
 // dates right-flush; the organization line under the entry anchors the date in
 // the extraction (ats.md, orphaned-date trap). Organizations carry the accent.
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   org-st: it => text(weight: "semibold", fill: accent, it),
   note-st: it => text(fill: muted, it), rhythm: rhythm)

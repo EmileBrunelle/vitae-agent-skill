@@ -59,7 +59,7 @@
 
 // lib.typ's `entry` sets the head (role, date, org line) — its measured
 // in-head spacing is what keeps the org line grouped with its own role.
-#let job(role, org, dates, note) = wd-entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = wd-entry(role, org, dates, note, expected: expected,
   date-st: it => text(size: 9pt, fill: accent2, weight: "bold", it),
   note-st: it => text(fill: muted, it), rhythm: rhythm)
 
@@ -92,7 +92,7 @@
 // Profile: only what the facts state (role, field, level, outcome); length follows
 // the facts; no trait sentence.
 // Tip: #box[*[term]*] keeps a fragile token unbroken.
-#section("Profile")[
+#section("Profile", summary: true)[
 [Role and field, as the facts state them.] [Strongest verifiable fact from the
 facts, with its number if the facts give one.] [One sentence the facts support,
 with the field's key terms in *bold*.]

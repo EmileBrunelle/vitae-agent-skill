@@ -53,7 +53,7 @@
 
 // dates right-flush; the institution/descriptor line under the entry is what
 // keeps the date anchored in the extraction (ats.md, orphaned-date trap)
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it), rhythm: rhythm)
 

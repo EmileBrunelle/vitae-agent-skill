@@ -49,7 +49,7 @@
 ]
 
 // role in the display serif: the serif/sans jump does the hierarchy
-#let job(role, org, dates, note) = entry(role, org, dates, note,
+#let job(role, org, dates, note, expected: false) = entry(role, org, dates, note, expected: expected,
   date-st: it => text(size: 9pt, fill: muted, weight: "bold", it),
   note-st: it => text(fill: muted, it),
   role-st: it => text(font: dispf, size: 11.5pt, weight: "bold", it), rhythm: rhythm)
@@ -77,7 +77,7 @@
 // the facts; no trait sentence.
 
 // Tip: #box[*[term]*] keeps a fragile token unbroken.
-#section("Summary")[
+#section("Summary", summary: true)[
 [Role and field, as the facts state them.] [Strongest verifiable fact from the
 facts, with its number if the facts give one.] [One sentence the facts support,
 with the field's key terms in *bold*.]
