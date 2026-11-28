@@ -5,7 +5,7 @@ license: MIT
 compatibility: Python 3.11+, dependencies are in each script's PEP 723 header (typst, pypdfium2, Pillow, pypdf; pikepdf optional, fixes PDF parentheses for PHP parsers), and `uv run scripts/verify.py` installs them, else pip install what it pins. The Claude API code-execution sandbox has no network and no typst package (Pillow, pypdf, pypdfium2 are there), so only the offline wheel route applies there. typst CLI optional (typst-py is the fallback), 0.14 minimum (PDF/UA-1 + PDF/A-2a), 0.15 calibrated. poppler-utils (pdftotext, pdfinfo) optional, text extraction and the text-clip gate run on pypdfium2; only academic mode needs it. LibreOffice/soffice optional, only for .docx/.odt copies. `scripts/verify.py --doctor` diagnoses.
 metadata:
   author: EmileBrunelle
-  version: "0.12.1"
+  version: "0.13.0"
   repository: https://github.com/EmileBrunelle/vitae-agent-skill
 allowed-tools: Bash(python3:*) Bash(uv:*) Bash(typst:*) Bash(pdfinfo:*) Bash(pdftotext:*) Bash(cp:*) Bash(pdftoppm:*)
 ---
