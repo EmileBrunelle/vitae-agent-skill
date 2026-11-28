@@ -2,6 +2,13 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
+## 0.12.1 - 2026-11-28
+
+- `verify.py` runs one `typst query` per run instead of three: entry heads and sections come from the context query. A malformed section mark is now reported once in the `lib marks:` warning instead of also in a separate duplicate-names warning.
+- `verify_academic.py` calls `pdfinfo` once per run instead of twice (it opens the run memo).
+- Lint: ruff UP031 and UP032 (printf-style formatting becomes `str.format` / f-strings) and PLR0913 (at most 5 arguments) are enabled.
+- Tests: the complexity tests count work deterministically (line events, characters scanned or copied, calls into C, structural regex checks) instead of timing it; no wall-clock assertion is left in `tests/unit`.
+
 ## 0.12.0 - 2026-11-27
 
 - **Breaking:** invalid CLI values now exit 2 with a usage message instead of running on a nonsense value: `--ppi` outside 10..600, a page count outside 1..100, `--fill` outside 0..100, `--leading` outside 0.1..5.0. Input files past a size cap are refused before any work (`.typ` 4 MiB, PDF 16 MiB, TOML and facts files 1 MiB, PNG 32 MiB).
