@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Docs: both READMEs match the current repo (uv-first requirements pointing to the PEP 723 headers, review-record gate, PDF/UA + PDF/A, declared WARNs, upstream fonts, models and extractors links).
 - Docs: the fact sheet is `facts.md` everywhere (README, academic mode, letter template, reviews); the academic example data is `templates/academic/academic.example.toml` and cites `facts.md#…`.
 - Verify: two WARN checks driven by explicit declarations. `section(.., summary: true)` marks the Summary; a figure it states (with its unit; ranges as one figure; years and month/year dates excluded) that a bullet outside it repeats is a WARN. `entry`/`job(.., expected: true)` marks an anticipated date; a latest year before the current year is a WARN. Every template passes `summary: true` on its Summary/Profile section. No word of any language is read: an undeclared or unbounded Summary gives no finding.
 - Fonts: installation advice is OS-portable. Provenance is `upstream: <source>` or `GF (...)`; the distro package names (`local:`, `GF · Linux: <package>`, the Debian/Fedora table) are gone, `references/fonts.md` lists each upstream source and points to Route 1 (per-OS user font folder), and the pick report says to check `typst fonts` first.
