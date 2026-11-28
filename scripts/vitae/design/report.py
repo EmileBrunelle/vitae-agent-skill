@@ -12,18 +12,18 @@ def report(p: Pick, market: str) -> str:
         "accent          : {}   (from that family's gamut {})".format(p.accent, " ".join(d["accents"])),
     ]
     if p.accent2:
-        lines.append("accent2 (duotone): {}   hue B, validated as a PAIR with "
-                     "the accent above — never mix indexes".format(p.accent2))
+        lines.append(f"accent2 (duotone): {p.accent2}   hue B, validated as a PAIR with "
+                     "the accent above — never mix indexes")
     # right after the colour block, duotone or not: an insert(4) landed before
     # the hue B line on monochrome families and after it on duotone ones.
     if p.audacity != "sober":
         lines.append("  palette       : python3 scripts/gen_palette.py "
-                     "--family {} --seed {!r} --audacity {} --typst".format(p.family, p.key, p.audacity))
+                     f"--family {p.family} --seed {p.key!r} --audacity {p.audacity} --typst")
     lines += [
-        "audacity        : {}".format(p.audacity),
-        "list marker     : {}".format(p.marker),
-        *(["family variant  : {}   (this family's own variant axis — apply it "
-           "as drawn)".format(p.variant)] if p.variant else []),
+        f"audacity        : {p.audacity}",
+        f"list marker     : {p.marker}",
+        *([f"family variant  : {p.variant}   (this family's own variant axis — apply it "
+           "as drawn)"] if p.variant else []),
         "contact icons   : {}".format(d["icons"]),
         "platform marks  : email · LinkedIn · GitHub · site — in EVERY family; "
         "mail/web/phone/pin glyphs from the drawn mark set: {} ({}); "
@@ -31,12 +31,12 @@ def report(p: Pick, market: str) -> str:
         "section labels  : profile={!r}  skills={!r}".format(p.labels["profile"], p.labels["skills"]),
         "                  (Education / Languages / the experience sections keep"
         " their conventional stems — regional.md)",
-        "type register    : {}".format(p.font_register),
-        "display font    : {}   [{}]  — {}".format(p.display[0], p.display[1], p.display_note),
-        "body font       : {}   [{}]  — {}".format(p.body[0], p.body[1], p.body_note),
+        f"type register    : {p.font_register}",
+        f"display font    : {p.display[0]}   [{p.display[1]}]  — {p.display_note}",
+        f"body font       : {p.body[0]}   [{p.body[1]}]  — {p.body_note}",
     ]
     if p.mono:
-        lines.append("mono font       : {}   [{}]  — {}   (ALL metadata)".format(p.mono[0], p.mono[1], p.mono_note))
+        lines.append(f"mono font       : {p.mono[0]}   [{p.mono[1]}]  — {p.mono_note}   (ALL metadata)")
     # A GF-only face is in no distro and has to be fetched; a "GF · Linux:
     # <pkg>" face has two routes. Say so once, and only when this draw needs it.
     roles = [p.display, p.body] + ([p.mono] if p.mono else [])
@@ -78,9 +78,9 @@ def report(p: Pick, market: str) -> str:
         "                  (the family DEFAULT — a target market's own "
         "convention overrides it: regional.md)",
         "header order    : {}".format(d["header"]),
-        "career / market : {} / {} (field register: {})".format(p.career, market, p.domain),
+        f"career / market : {p.career} / {market} (field register: {p.domain})",
         "eligible were   : {}".format(", ".join(p.eligible)),
-        "hash key        : {!r}".format(p.key),
+        f"hash key        : {p.key!r}",
     ]
     if d["spec"]:
         lines += [
@@ -92,7 +92,7 @@ def report(p: Pick, market: str) -> str:
         ]
     lines += [
         "",
-        "Apply the family's recipe: read references/design/families/{}.md whole".format(p.family),
+        f"Apply the family's recipe: read references/design/families/{p.family}.md whole",
         "(plus references/design/core.md, the shared rules), then re-run",
         "scripts/verify.py — the leading/spacing above were verified",
         "on the template's own filler content, not on this candidate's, and a",

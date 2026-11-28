@@ -23,7 +23,7 @@ QUOTED = re.compile(r"«[^»]*»")
 # A banned date verb only counts in citation context: the verb followed by a date.
 _DATE = r"(?:\d{4}\b|\d{1,2}\s+\w+\s+\d{4}|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4})"
 DATE_VERB = re.compile(
-    r"\b(?:accessed|retrieved|consulté)\s+(?:(?:le|on)\s+)?{}|\bread\s+\d{{4}}-\d{{2}}".format(_DATE), re.IGNORECASE
+    rf"\b(?:accessed|retrieved|consulté)\s+(?:(?:le|on)\s+)?{_DATE}|\bread\s+\d{{4}}-\d{{2}}", re.IGNORECASE
 )
 CONFIDENCE = re.compile(
     r"\b(?:HIGH|MEDIUM)\b|\bunverified\b|\bnot sourced\b|\bLOW confidence\b|\bLOW\b(?!, unsourced)", re.IGNORECASE

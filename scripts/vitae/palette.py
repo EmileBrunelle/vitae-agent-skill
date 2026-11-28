@@ -226,14 +226,14 @@ def build(family: str, seed: str, audacity: Audacity = "sober") -> Palette:
     """Deterministic per (family, seed, audacity). Rejects and re-draws until
     every role clears its threshold — the returned palette is always valid."""
     if family not in HARMONY:
-        raise SystemExit("unknown family {!r} (see references/design/families/)".format(family))
+        raise SystemExit(f"unknown family {family!r} (see references/design/families/)")
     if audacity not in DIAL:
         raise SystemExit("audacity must be one of {}".format(", ".join(DIAL)))
     (smin, smax), (lmin, lmax) = DIAL[audacity]
     harmony = HARMONY[family]
     white = (255, 255, 255)
     for attempt in range(64):                 # bounded: ranges always contain hits
-        salt = "{}|{}|{}|".format(family, audacity, attempt)
+        salt = f"{family}|{audacity}|{attempt}|"
         hue = _bits(seed, salt + "h", 360)
         sat = smin + _bits(seed, salt + "s", smax - smin + 1)
         lig = lmin + _bits(seed, salt + "l", lmax - lmin + 1)
@@ -323,7 +323,7 @@ def typst(p: Palette) -> str:
     if second is not None:
         two = ['#let accent2 = rgb("{}")  // H{} S{}% L{}% — duotone hue B, {}'
                .format(_hex(second[0]), *second[1], second[2][1]),
-               '// hue A role — {}. Each hue keeps 1-2 jobs, never more.'.format(second[2][0])]
+               f'// hue A role — {second[2][0]}. Each hue keeps 1-2 jobs, never more.']
     return "\n".join([
         '#let accent = rgb("{}")   // H{} S{}% L{}% — {} harmony, {}'
         .format(_hex(p["accent"]), *p["hsl"], p["harmony"], p["audacity"]),

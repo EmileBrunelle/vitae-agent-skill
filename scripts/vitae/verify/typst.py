@@ -128,8 +128,7 @@ def write_par(text: str, leading: float, spacing: float) -> str:
     m = _tuned_par(text)
     if not m:
         return text
-    return "{}{:.3f}{}{:.3f}{}".format(text[:m.start(2)], leading, text[m.end(2):m.start(4)], spacing,
-                               text[m.end(4):])
+    return f"{text[:m.start(2)]}{leading:.3f}{text[m.end(2):m.start(4)]}{spacing:.3f}{text[m.end(4):]}"
 
 
 _RHYTHM_LINE = re.compile(r"^#let\s+rhythm(?![\w-]).*$", re.MULTILINE)
@@ -172,7 +171,7 @@ def write_rhythm(text: str, rhythm: float) -> str:
     if not m or found is None:
         return text
     a, b = found[0] + m.start(2), found[0] + m.end(2)
-    return "{}{:.3f}{}".format(text[:a], rhythm, text[b:])
+    return f"{text[:a]}{rhythm:.3f}{text[b:]}"
 
 
 def par_scope(text: str) -> int:

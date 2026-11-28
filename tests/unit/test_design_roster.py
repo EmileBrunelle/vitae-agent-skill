@@ -100,7 +100,7 @@ def test_field_lifts_or_caps_the_dial():
 
 def test_second_hue_and_variant_follow_the_family_declaration():
     for i in range(60):
-        p = draw("N{:02d}".format(i), creative=True)
+        p = draw(f"N{i:02d}", creative=True)
         d = FAMILIES[p.family]
         want2 = d["accents2"][d["accents"].index(p.accent)] if "accents2" in d else None
         assert p.accent2 == want2
@@ -110,7 +110,7 @@ def test_second_hue_and_variant_follow_the_family_declaration():
 def test_names_spread_over_the_pool_with_labels_from_the_variants():
     spread = set()
     for i in range(200):
-        p = draw("Person {:03d}".format(i), career="mid")
+        p = draw(f"Person {i:03d}", career="mid")
         spread.add(p.family)
         assert all(p.labels[r] in LABEL_VARIANTS[r] for r in ("profile", "skills"))
     assert len(spread) >= MIN_POOL

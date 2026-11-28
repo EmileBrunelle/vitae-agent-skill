@@ -13,7 +13,7 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "ANN401", "C901", "PLR0915", "PLW", "SIM115", "BLE001", "RUF012", "RUF100", "RUF059", "PT011", "RET", "PIE", "C4", "PERF", "FURB", "RUF", "UP031"]  # UP031: no printf-style % formatting (f-strings keep the output visible in the source). ANN401: no explicit Any; a third-party boundary that needs one carries `# noqa: ANN401` and a reason. C901/PLR0915: function complexity and length caps (see [tool.ruff.lint.mccabe] and per-file-ignores)
+select = ["E", "F", "I", "B", "ANN401", "C901", "PLR0915", "PLW", "SIM115", "BLE001", "RUF012", "RUF100", "RUF059", "PT011", "RET", "PIE", "C4", "PERF", "FURB", "RUF", "UP031", "UP032"]  # UP031/UP032: no printf-style % formatting (f-strings keep the output visible in the source). ANN401: no explicit Any; a third-party boundary that needs one carries `# noqa: ANN401` and a reason. C901/PLR0915: function complexity and length caps (see [tool.ruff.lint.mccabe] and per-file-ignores)
 ignore = [
     "E501",  # long lines: no reformatting of the codebase (code lines reach ~250 chars)
     "E702",  # several statements on one line with ';' is this repo's style

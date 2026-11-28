@@ -26,7 +26,7 @@ def font_chain(pool: list[Font], drawn: Font, role: str,
             names.append(tail)
         elif (inst_tail := installed_face(tail, have)):
             names.append(inst_tail)
-    return "(" + ", ".join('"{}"'.format(n) for n in names) + ")"
+    return "(" + ", ".join(f'"{n}"' for n in names) + ")"
 
 
 def _icon_colour(icons: str) -> str:
@@ -50,7 +50,7 @@ def vitae_header(pg: Page) -> str:
 
 def lang_arg(lang: str, region: str | None = None) -> str:
     """The Typst `lang: "xx"[, region: "yy"]` fragment (shape-validated upstream)."""
-    return 'lang: "{}"'.format(lang) + (', region: "{}"'.format(region) if region else "")
+    return f'lang: "{lang}"' + (f', region: "{region}"' if region else "")
 
 
 def emit_typ(p: Pick, market: str, lang: str = "en",
@@ -65,7 +65,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
     except ImportError:
         duotone = {}
     o = [vitae_header(pg),
-         "// {} — {} / {}, drawn for key {!r}".format(p.family, p.career, market, p.key),
+         f"// {p.family} — {p.career} / {market}, drawn for key {p.key!r}",
          "// PREAMBLE ONLY. The hand-off is TWO files: this .typ and lib.typ "
          "beside it.",
          "// Copy templates/icons.typ here too (the empty fallback lib.typ "
@@ -82,10 +82,10 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
          "contrast) ----------"]
     jobs = duotone.get(p.family)
     o.append('#let accent = rgb("{}"){}'.format(
-        p.accent, "        // hue A — {}".format(jobs[1]) if jobs else ""))
+        p.accent, f"        // hue A — {jobs[1]}" if jobs else ""))
     if p.accent2:
         o.append('#let accent2 = rgb("{}"){}'.format(
-            p.accent2, "       // hue B — {}".format(jobs[2]) if jobs else
+            p.accent2, f"       // hue B — {jobs[2]}" if jobs else
             "       // hue B, paired with hue A by index"))
         o.append("// Each hue keeps 1-2 jobs, never more (core.md § Tokens).")
     o += ["#let pal = derive(accent)",
@@ -94,7 +94,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "#let muted = ink",
           "#let dark = pal.dark        // body ink",
           "",
-          "// ---------- Type: {} ----------".format(p.font_register),
+          f"// ---------- Type: {p.font_register} ----------",
           "#let bodyf = {}".format(font_chain(fp["body"], p.body, "body", p.have)),
           "#let dispf = {}".format(font_chain(fp["display"], p.display, "display", p.have))]
     mono_pool = fp.get("mono")
@@ -104,7 +104,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
     o += ["",
           "// ---------- Contact icons + platform marks ----------",
           "// family icon style: {}".format(d["icons"]),
-          "#let ic-col = {}".format(col)]
+          f"#let ic-col = {col}"]
     if "no generic icon" in d["icons"]:
         o.append("// no `ic`: this family carries NO generic pin/phone icon — "
                  "see its `icons` line just above for why.")
@@ -135,7 +135,7 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "//                  Education / Languages / the experience sections "
           "keep their",
           "//                  conventional stems (regional.md, ats.md).",
-          *(["// family variant : {}".format(p.variant)] if p.variant else []),
+          *([f"// family variant : {p.variant}"] if p.variant else []),
           "// section order  : {}".format(" → ".join(d["order"])),
           "//                  the family DEFAULT — a target market's own "
           "convention overrides it.",
@@ -155,5 +155,5 @@ def emit_typ(p: Pick, market: str, lang: str = "en",
           "template.",
           "// header order   : {}".format(d["header"]),
           "",
-          "// Verify after EVERY edit:  scripts/verify.py cv.typ 1 {} {}".format(lo, hi)]
+          f"// Verify after EVERY edit:  scripts/verify.py cv.typ 1 {lo} {hi}"]
     return "\n".join(o)

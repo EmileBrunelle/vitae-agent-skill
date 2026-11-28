@@ -102,7 +102,7 @@ def test_every_printed_parameter_exists_in_lib(tmp_path):
         name, rest = sig.split("(", 1)
         for p in re.split(r"[;,]\s*", rest.rstrip(")")):
             if p:
-                assert p in lib.split("#let {}(".format(name), 1)[1].split("\n#let ", 1)[0], sig
+                assert p in lib.split(f"#let {name}(", 1)[1].split("\n#let ", 1)[0], sig
 
 
 def test_signature_of_every_value_and_function_is_listed_in_file_order(tmp_path):

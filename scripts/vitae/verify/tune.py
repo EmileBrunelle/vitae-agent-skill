@@ -103,7 +103,7 @@ def _hold_list_gap(before: str, after: str) -> str:
         # +0.0005 so the 3-decimal rounding cannot land under the floor
         target_em = a.leading + floor + 0.0005
         value = target_em * (a.size if a.unit == "pt" else 1.0)
-        out = "{}{:.3f}{}".format(out[:a.start], value, out[a.end:])
+        out = f"{out[:a.start]}{value:.3f}{out[a.end:]}"
     return out
 
 
@@ -183,7 +183,7 @@ def _rhythm_phase(typ: str, original: str, expected: int, fmax: int,
     unit = par[1] / cur                                  # par spacing at rhythm 1
     hi = max(min(RHYTHM_HI, max(SPACING_CAP, par[1]) / unit), cur)    # never below the current rhythm
     lo = min(RHYTHM_LO, cur, hi)                                      # nor the floor above it
-    print("rhythm phase: searching [{:.3f}, {:.3f}] with leading fixed at {:.3f}em".format(lo, hi, par[0]))
+    print(f"rhythm phase: searching [{lo:.3f}, {hi:.3f}] with leading fixed at {par[0]:.3f}em")
     ok, fill = _probe_text(typ, _with_gap_scale(original, lo), expected, backend)
     if not ok:
         if lo >= cur - 1e-9:
@@ -198,7 +198,7 @@ def _rhythm_phase(typ: str, original: str, expected: int, fmax: int,
     while hi - lo > RHYTHM_STEP:
         mid = round((lo + hi) / 2, 3)
         ok, fill = _probe_text(typ, _with_gap_scale(original, mid), expected, backend)
-        print("  rhythm {:.3f} -> {}".format(mid, ("fill {}%".format(fill)) if ok else "page count off"))
+        print("  rhythm {:.3f} -> {}".format(mid, (f"fill {fill}%") if ok else "page count off"))
         if ok and (fill is None or fill <= fmax):
             lo = mid
             if fill is not None:
@@ -252,7 +252,7 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
     rhy = read_rhythm(original)
     if rhy is not None and rhy <= 0:
         print("FAIL  `#let rhythm = {}` must be positive: the tuner scales every gap by it; "
-              "set the family's rhythm (1.000 as shipped) and run it again".format("{:g}".format(rhy)))
+              "set the family's rhythm (1.000 as shipped) and run it again".format(f"{rhy:g}"))
         return 2, footer
     if rhythm_unparsed(original):
         print("NOTE  the last `#let rhythm` line is not a plain `#let rhythm = <number>`: "
@@ -271,11 +271,11 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
             best_r, r_fill = _rhythm_phase(typ, original, expected, fmax, backend)
             if r_fill is not None and fmin <= r_fill <= fmax:
                 _write(typ, _with_gap_scale(original, best_r))
-                print("OK    wrote rhythm {:.3f} (leading {:.3f}em unchanged) -> fill {}% (target {}-{}%)".format(best_r, orig_l0, r_fill, fmin, fmax))
-                print("      now run the gate itself: verify.py {} {} {} {}{}".format(typ, expected, fmin, fmax, allow))
+                print(f"OK    wrote rhythm {best_r:.3f} (leading {orig_l0:.3f}em unchanged) -> fill {r_fill}% (target {fmin}-{fmax}%)")
+                print(f"      now run the gate itself: verify.py {typ} {expected} {fmin} {fmax}{allow}")
                 return 0, footer
             r_text = _with_gap_scale(original, best_r)
-            print("rhythm {:.3f} does not reach the target alone; bisecting leading at that rhythm".format(best_r))
+            print(f"rhythm {best_r:.3f} does not reach the target alone; bisecting leading at that rhythm")
             cur = read_par(r_text)
             if cur is None:
                 _write(typ, original)
@@ -296,21 +296,21 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
         if clamped:
             hi = cap
         lo = min(lo, hi)
-        print("tuning {}: leading {:.3f}em (spacing {:+.3f}em), searching [{:.3f}, {:.3f}], "
-              "target {} pages / fill {}-{}%".format(typ, l0, delta, lo, hi, expected, fmin, fmax))
+        print(f"tuning {typ}: leading {l0:.3f}em (spacing {delta:+.3f}em), searching [{lo:.3f}, {hi:.3f}], "
+              f"target {expected} pages / fill {fmin}-{fmax}%")
         if clamped:
-            print("NOTE  upper bound clamped to {:.3f}em: the lower of the gate's double-spacing WARN threshold "
-                  "({:.2f}em) and the spacing cap ({:.2f}em) less this family's spacing offset ({:+.3f}em), never below "
-                  "the current leading; an under-filled page needs a real fact, not more air".format(cap, LEADING_WARN, SPACING_CAP, delta))
+            print(f"NOTE  upper bound clamped to {cap:.3f}em: the lower of the gate's double-spacing WARN threshold "
+                  f"({LEADING_WARN:.2f}em) and the spacing cap ({SPACING_CAP:.2f}em) less this family's spacing offset ({delta:+.3f}em), never below "
+                  "the current leading; an under-filled page needs a real fact, not more air")
         ok_lo, fill_lo = _probe(typ, r_text, lo, lo + delta, expected,
                                 backend)
         if not ok_lo:
             _write(typ, original)   # undo the probe
             # the floor failed, so no larger leading can hold the page count either
-            print("FAIL  even the floor leading {:.3f}em does not give {} page(s) "
-                  "— either the content is too long for {} page(s), or the search range starts "
-                  "too high: try an explicit lower range, e.g. `--tune {} {} {} {} 0.45 1.0` "
-                  "(FILL_MIN FILL_MAX LEAD_LO LEAD_HI)".format(lo, expected, expected, typ, expected, fmin, fmax))
+            print(f"FAIL  even the floor leading {lo:.3f}em does not give {expected} page(s) "
+                  f"— either the content is too long for {expected} page(s), or the search range starts "
+                  f"too high: try an explicit lower range, e.g. `--tune {typ} {expected} {fmin} {fmax} 0.45 1.0` "
+                  "(FILL_MIN FILL_MAX LEAD_LO LEAD_HI)")
             return 1, footer
         best, best_fill = lo, fill_lo
         # Fill grows with leading while the page count holds, so the target band is a window
@@ -323,7 +323,7 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
             ok, fill = _probe(typ, r_text, mid, mid + delta, expected,
                               backend)
             print("  leading {:.3f}em -> {}".format(
-                mid, ("fill {}%".format(fill)) if ok else "page count off"))
+                mid, (f"fill {fill}%") if ok else "page count off"))
             if ok and (fill is None or fill <= fmax):
                 lo = mid                  # an unmeasured fill still moves the bound...
                 if fill is not None:      # ...but never replaces a measured best
@@ -336,38 +336,37 @@ def _tune(typ: str, target: FillTarget, bounds: LeadingBounds, *,
             # designed with. Put the original back and let the caller decide.
             _write(typ, original)
             under = best_fill is not None and best_fill < fmin
-            print("FAIL  best leading {:.3f}em / spacing {:.3f}em -> fill {}% "
-                  "(target {}-{}%); restored the original {:.3f}em/{:.3f}em".format(best, best + delta, best_fill, fmin, fmax, orig_l0, orig_s0))
+            print(f"FAIL  best leading {best:.3f}em / spacing {best + delta:.3f}em -> fill {best_fill}% "
+                  f"(target {fmin}-{fmax}%); restored the original {orig_l0:.3f}em/{orig_s0:.3f}em")
             if under:
                 footer = FOOTER_TUNE_UNDER
                 print("      the page is UNDER-FILLED: a fact is missing, not whitespace. "
-                      "Leading is capped at {:.2f}em (never widen the range). Add a real fact "
+                      f"Leading is capped at {cap:.2f}em (never widen the range). Add a real fact "
                       "from the candidate's facts (a bullet with a measurable result, a "
                       "project, a certification) — never pad. If the facts are not in "
                       "hand, ASK the user for them; never invent. Alternative, only if the "
                       "facts are exhausted: drop to fewer pages or pass a lowered target, "
-                      "`verify.py {} {} FILL_MIN {}{}` (FILL_MIN = the lowest fill the gate "
-                      "prints, not below {}; a page under {}% has no lowered-target exit: a fact "
+                      f"`verify.py {shlex.quote(typ)} {expected} FILL_MIN {fmax}{allow}` (FILL_MIN = the lowest fill the gate "
+                      f"prints, not below {LOWERED_FILL_FLOOR}; a page under {LOWERED_FILL_FLOOR}% has no lowered-target exit: a fact "
                       "is missing, or fewer pages), and say so to the user."
-                      .format(cap, shlex.quote(typ), expected, fmax, allow, LOWERED_FILL_FLOOR, LOWERED_FILL_FLOOR))
+                      )
             else:
                 if lo_arg is not None and lo_arg <= 0.40 and hi_arg >= 1.40:
                     footer = FOOTER_TUNE_WIDE
                 print("      no leading in the searched range reaches the target at "
-                      "{} page(s). Widen the range by passing the bounds "
+                      f"{expected} page(s). Widen the range by passing the bounds "
                       "positionally after FILL_MAX, e.g.\n"
-                      "        verify.py --tune {} {} {} {} {:.2f} {:.2f}{}\n"
+                      f"        verify.py --tune {typ} {expected} {fmin} {fmax} {max(0.40, l0 * 0.65):.2f} {max(1.40, l0 * 1.60):.2f}{allow}\n"
                       "      or take the space out of the section gap / add real "
                       "content / change the page count (anti-filler clause, "
-                      "SKILL.md rule 5).".format(expected, typ, expected, fmin, fmax,
-                         max(0.40, l0 * 0.65), max(1.40, l0 * 1.60), allow))
+                      "SKILL.md rule 5).")
             return 1, footer
         _write(typ, _with_rhythm(r_text, best, best + delta))
         print("OK    wrote leading {:.3f}em / spacing {:.3f}em{} -> fill {}% "
               "(target {}-{}%)".format(best, best + delta,
-                                    "" if best_r is None else " / rhythm {:.3f}".format(best_r),
+                                    "" if best_r is None else f" / rhythm {best_r:.3f}",
                                     best_fill, fmin, fmax))
-        print("      now run the gate itself: verify.py {} {} {} {}{}".format(typ, expected, fmin, fmax, allow))
+        print(f"      now run the gate itself: verify.py {typ} {expected} {fmin} {fmax}{allow}")
         return 0, footer
     except BaseException:
         # kept broad: restores the file then re-raises, nothing is swallowed (Ctrl-C anywhere after the

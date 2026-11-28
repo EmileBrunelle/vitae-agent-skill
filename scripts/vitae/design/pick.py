@@ -81,7 +81,7 @@ class PickRequest:
 
 def pick(req: PickRequest) -> Pick:
     conservative, audacity = req.conservative, req.audacity
-    key = "{}+{}".format(req.name, req.field)
+    key = f"{req.name}+{req.field}"
     dom = domain_register(req.field)
     conservative = conservative or dom == "conservative"
     if conservative and audacity != "sober":
@@ -172,7 +172,7 @@ def pick(req: PickRequest) -> Pick:
     for role, default in (("profile", d["labels"]["profile"]), ("skills", d["labels"]["skills"])):
         # the family's own default is in the pool, so it can be drawn back.
         opts = [default] + [v for v in LABEL_VARIANTS[role] if v != default]
-        lab[role] = opts[table_index(key, len(opts), "label|{}|".format(role))]
+        lab[role] = opts[table_index(key, len(opts), f"label|{role}|")]
     return Pick(key=key, family=fam, have=have, offline=req.offline, eligible=eligible, recipe=d,
                 mono=mono, mono_note=mono_note, variant=variant,
                 career=req.career, domain=dom or "none, full pool", audacity=audacity,

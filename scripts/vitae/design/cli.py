@@ -145,10 +145,10 @@ def _main() -> None:
     a = ap.parse_args()
     if not re.fullmatch(r"[a-z]{2,3}", a.lang):
         ap.error("--lang must be a lowercase ISO 639 language code (2-3 letters) like fr, en, de "
-                 "(got {!r})".format(a.lang))
+                 f"(got {a.lang!r})")
     if a.region is not None:
         if not re.fullmatch(r"[A-Za-z]{2}", a.region):
-            ap.error("--region must be two letters like CA (got {!r})".format(a.region))
+            ap.error(f"--region must be two letters like CA (got {a.region!r})")
         a.region = a.region.lower()
     if a.list:
         for f in sorted(FAMILIES):
@@ -180,8 +180,8 @@ def _main() -> None:
         band = a.band
         if band and not band_ok(p.family):
             band = False
-            sys.stderr.write("note: --band ignored: {} has its own band/rail/"
-                             "margin furniture or is creative-register\n".format(p.family))
+            sys.stderr.write(f"note: --band ignored: {p.family} has its own band/rail/"
+                             "margin furniture or is creative-register\n")
         if a.init:
             print(report(p, a.market))
             print()
