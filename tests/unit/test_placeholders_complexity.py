@@ -3,7 +3,7 @@ what the replaced code gave (the old code is kept verbatim in _placeholders_ref.
 fragments the scans react to: address characters, `@example.`, backslashes, brackets and the templates' own
 placeholders), and keep their work linear on the worst case (the bracketed spans are counted; the long unmatched
 run is regex work in C, so it is still timed, `slow`)."""
-import time
+import re
 from collections.abc import Callable
 
 import _placeholders_ref
@@ -63,15 +63,56 @@ def test_check_placeholders_equivalence_is_not_vacuous() -> None:
     assert "[abc def]" in got[1][1]
 
 
-@pytest.mark.slow
-def test_email_samples_bound_time_on_long_runs_without_an_at_sign() -> None:
+class _CountingSearch:
+    """`_EMAIL_RUN.search` seen at the Python boundary: the regex scan is C, which a line-event count cannot see."""
+
+    def __init__(self, real: re.Pattern[str]) -> None:
+        self.calls = 0
+        self.real = real
+
+    def search(self, string: str, pos: int = 0) -> re.Match[str] | None:
+        self.calls += 1
+        return self.real.search(string, pos)
+
+
+class _CountingMatch:
+    """`_SAMPLES[0].match` counted: the continuation attempt after a hit, which a text with no `@` never reaches."""
+
+    def __init__(self, real: re.Pattern[str]) -> None:
+        self.calls = 0
+        self.real = real
+
+    def match(self, string: str, pos: int = 0) -> re.Match[str] | None:
+        self.calls += 1
+        return self.real.match(string, pos)
+
+
+def test_email_run_is_anchored_so_a_long_run_is_scanned_once() -> None:
+    # `_EMAIL_RUN` refuses to start inside a run of address characters (the lookbehind class is the sample's leading
+    # class), so a search over a long run without `@` fails at each position in O(1) instead of rescanning the run
+    lookbehind = r"(?<![\w.+-])"
+    leading = r"[\w.+-]+"
+    assert placeholders._EMAIL_RUN.pattern.startswith(lookbehind)
+    assert placeholders._SAMPLES[0].pattern.startswith(leading)
+    assert lookbehind[len("(?<!"):-1] == leading[:-1]                  # the two classes are the same text
+    assert placeholders._EMAIL_RUN.pattern == lookbehind + placeholders._SAMPLES[0].pattern
+
+
+def test_email_samples_search_once_and_never_continue_on_long_runs_without_an_at_sign(monkeypatch: pytest.MonkeyPatch) -> None:
     src = "a" * 40000 + " " + ".+-" * 14000 + " " + "ab " * 50000
-    start = time.perf_counter()
+    run = _CountingSearch(placeholders._EMAIL_RUN)
+    first = _CountingMatch(placeholders._SAMPLES[0])
+    monkeypatch.setattr(placeholders, "_EMAIL_RUN", run)
+    monkeypatch.setattr(placeholders, "_SAMPLES", (first, *placeholders._SAMPLES[1:]))
 
-    out = placeholders.placeholders_in(src)
+    assert placeholders._email_samples(src) == []
+    assert run.calls == 1          # one search over the whole text; no hit, so no restart
+    assert first.calls == 0        # the continuation is only tried after a hit
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.01 s; the old scan took ~15 s on these runs
-    assert out == set()
+    # control: with hits, each one is followed by a continuation try and a fresh search
+    hits = placeholders._email_samples("a@example.com.b@example.org")
+    assert len(hits) == 2
+    assert first.calls == 2
 
 
 _PLACEHOLDER_FILES = frozenset({placeholders.check_placeholders.__code__.co_filename,
@@ -84,22 +125,24 @@ class _CountingSquash:
 
     def __init__(self) -> None:
         self.calls = 0
+        self.chars = 0
         self._real = placeholders._squash
 
     def __call__(self, s: str) -> str:
         self.calls += 1
+        self.chars += len(s)
         return self._real(s)
 
 
-def _gate_work(monkeypatch: pytest.MonkeyPatch, check: Callable[[VerifyContext], list[Finding]], spans: int) -> tuple[int, int]:
-    """(Python line events, `_squash` calls) of the gate on a text of `spans` bracketed spans that match no placeholder."""
+def _gate_work(monkeypatch: pytest.MonkeyPatch, check: Callable[[VerifyContext], list[Finding]], spans: int) -> tuple[int, int, int]:
+    """(Python line events, `_squash` calls, characters squashed) of the gate on a text of `spans` bracketed spans that match no placeholder."""
     squash = _CountingSquash()
     monkeypatch.setattr(placeholders, "_squash", squash)
     monkeypatch.setattr(_placeholders_ref, "_squash", squash)
     ctx = _ctx(_KNOWN + " " + "[abc def] " * spans)
     events, out = line_events(_PLACEHOLDER_FILES, lambda: check(ctx))
     assert [lvl.name for lvl, _ in out] == ["FAIL", "WARN"]
-    return events, squash.calls
+    return events, squash.calls, squash.chars
 
 
 def test_check_placeholders_work_grows_linearly_with_the_bracketed_spans(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -109,9 +152,16 @@ def test_check_placeholders_work_grows_linearly_with_the_bracketed_spans(monkeyp
 
 def test_check_placeholders_squashes_each_span_once_not_once_per_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:
     spans = 500
-    _, calls = _gate_work(monkeypatch, placeholders.check_placeholders, spans)
+    _, calls, chars = _gate_work(monkeypatch, placeholders.check_placeholders, spans)
     # control: the old gate squashed every span once per placeholder found (~65 each): linear too, a dozen times the work
-    _, old_calls = _gate_work(monkeypatch, check_placeholders_squashing, spans)
+    _, old_calls, old_chars = _gate_work(monkeypatch, check_placeholders_squashing, spans)
 
     assert 0 < calls <= 2 * spans + 200            # one per span plus a squash per known placeholder and hit key
     assert old_calls > 20 * spans
+    # the spans' own characters are squashed once each: what the spans add to the characters handed over is about what
+    # they add to the text (the known placeholders' fixed share cancels out), not the whole text once per span
+    _, _, base_chars = _gate_work(monkeypatch, placeholders.check_placeholders, 0)
+    _, _, old_base_chars = _gate_work(monkeypatch, check_placeholders_squashing, 0)
+    span_text = len("[abc def] " * spans)
+    assert chars - base_chars <= span_text + 100
+    assert old_chars - old_base_chars > 20 * span_text

@@ -44,9 +44,10 @@ def test_strippers_work_grows_linearly_on_adversarial_runs(strip: Callable[[str]
     assert_linear(lambda n: _work(strip, unit * (n // len(unit))), 4000)
 
 
-@pytest.mark.parametrize("strip", [strip_block_comments, strip_comments_keep_urls], ids=lambda f: f.__name__)
+@pytest.mark.parametrize("strip", [strip_block_comments, strip_comments_keep_urls, strip_typst_comments],
+                         ids=lambda f: f.__name__)
 def test_find_based_strippers_scan_through_the_counted_find(strip: Callable[[str], str]) -> None:
     # the scan of an unclosed `/*` is a C-level `find`: if it stopped going through `find`, the count above is blind
-    _work(strip, "/*" * 100)
+    _work(strip, "/*" * 100 if strip is not strip_typst_comments else "// x\n" * 100)
     assert ScanStr.calls > 0
     assert ScanStr.scanned > 0

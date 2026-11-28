@@ -3,7 +3,6 @@ cases and Hypothesis-generated inputs) and keep their work linear on a worst-cas
 work (Python line events, characters scanned by `find`, ways a regex can split) grows at most 2.2 x per doubling of
 the input, where a return to O(P^2) quadruples it. No wall-clock measurement, so a loaded runner cannot flip it."""
 import itertools
-import operator
 import random
 import re
 from collections.abc import Callable
@@ -13,6 +12,7 @@ import pytest
 from _comments_ref import strip_block_comments_regex, strip_comments_regex
 from _complexity import assert_linear, line_events
 from _reading_order_ref import reading_order_quadratic
+from _scan_str import ScanStr
 from _stuffed_ref import stuffed_counting
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -209,12 +209,8 @@ def _stuffed_line_events(n: int) -> int:
 
 
 def test_stuffed_work_grows_linearly_on_a_long_distinct_list() -> None:
-    base = 1000
-    e1, e2, e4 = (_stuffed_line_events(base * k) for k in (1, 2, 4))
-
     # linear: doubling the input roughly doubles the events (a per-term count over the list would quadruple them)
-    assert e2 / e1 <= 2.2
-    assert e4 / e2 <= 2.2
+    assert_linear(_stuffed_line_events, 1000)
 
 
 class _CountingStr(str):
@@ -390,33 +386,19 @@ def test_strip_comments_equivalence_is_not_vacuous() -> None:
     assert sum(typst_source.strip_comments_keep_urls(s) != s for s in srcs) > 100
 
 
-class _ScanStr(str):
-    """A `str` that counts the characters its `find` scans (up to the hit, or to the end when it fails): the C-level
-    work of a search that restarts from every unclosed `/*`, which the line-event count cannot see."""
-    scanned = 0
-    calls = 0
-
-    def find(self, sub: str, start: SupportsIndex | None = None, end: SupportsIndex | None = None, /) -> int:
-        _ScanStr.calls += 1
-        begin = 0 if start is None else operator.index(start)
-        found = str.find(self, sub, start, end)
-        _ScanStr.scanned += (len(self) if found < 0 else found) - begin
-        return found
-
-
 _COMMENT_FILES = frozenset({typst_source.strip_comments_keep_urls.__code__.co_filename, fonts.requested_families.__code__.co_filename})
 
 
 def _scan_work(strip: Callable[[str], object], src: str) -> int:
     """Python line events in `typst_source` and `fonts` plus characters scanned by `find` on the source text."""
-    _ScanStr.scanned = _ScanStr.calls = 0
-    events, out = line_events(_COMMENT_FILES, lambda: strip(_ScanStr(src)))
+    ScanStr.reset()
+    events, out = line_events(_COMMENT_FILES, lambda: strip(ScanStr(src)))
     assert out
     # the scan went through the counted `find`: a regex (`re.sub(r"/\*.*?\*/")`) scans in C without calling it, and
     # its quadratic rescan would go unseen
-    assert _ScanStr.calls > 0
-    assert _ScanStr.scanned > 0
-    return events + _ScanStr.scanned
+    assert ScanStr.calls > 0
+    assert ScanStr.scanned > 0
+    return events + ScanStr.scanned
 
 
 @pytest.mark.parametrize("unit", ["/* ", "/*", "/* // ", "/*\n// x\n"])
