@@ -125,7 +125,7 @@ def runs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Run]:
 # that quietly stops running a check; the upper one a spawn added).
 _COMMON = {
     "typst compile": (2, 2),        # the PDF, and the PNG raster of the layout check: once per deliverable and format
-    "typst query": (1, 3),          # the lib's marks, the sections and one more selector: each once per gate run
+    "typst query": (1, 1),          # the lib's marks, the heads and the sections in ONE query (VerifyContext), once per gate run
     "pdftotext": (1, 1),            # the reading text, once
     "pdftotext -bbox": (1, 1),      # the word boxes of one PDF, read once and shared by every gate (pdf.run_memo)
     "pdfinfo": (1, 1),              # the page count and the metadata read the same output

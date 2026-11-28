@@ -21,7 +21,6 @@ from vitae.verify.groups import (
     check_duplicate_names,
     check_group_proximity,
     typst_marks_and_contact,
-    typst_query_checked,
 )
 from vitae.verify.layout import check_font_fallback
 from vitae.verify.pdf import bbox_pages
@@ -33,7 +32,8 @@ from vitae.verify.source import check_forced_linebreak, check_literal_tilde, che
 from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
 
 # ONE `typst query` for every label the gates read from the lib: the entry/bullet marks and the contact labels.
-CONTEXT_MARKS = ENTRY_MARKS + ".or(<vitae-contact>).or(<vitae-contact-rows>)"
+# The section titles (<vitae-sec>) ride the same query: they are the only marks without a `kind`.
+CONTEXT_MARKS = ENTRY_MARKS + ".or(<vitae-sec>).or(<vitae-contact>).or(<vitae-contact-rows>)"
 
 
 def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *, root: str | None = None,
@@ -41,11 +41,13 @@ def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *,
                  detail: list[DetailRow] | None = None) -> VerifyContext:
     """Build the gates' inputs; the lib markers are queried here, once, when `typst query` is usable, and the
     bullets they mark are located once (the runts and rhythm gates read the same ones)."""
-    marks, note, contact = typst_marks_and_contact(typ, CONTEXT_MARKS, root) if can_query else (None, None, None)
+    queried, note, contact = typst_marks_and_contact(typ, CONTEXT_MARKS, root) if can_query else (None, None, None)
+    marks = None if queried is None else [m for m in queried if "kind" in m]
+    secs = None if queried is None else [m for m in queried if "kind" not in m]
     heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
     sized = bbox_pages(pdf) if marks and any(m.get("kind") == "bullet" for m in marks) else None
     return VerifyContext(typ=typ, pdf=pdf, txt=txt, src=src, backend=backend, root=root, facts=facts,
-                         can_query=can_query, marks=marks, heads=heads, detail=detail,
+                         can_query=can_query, marks=marks, heads=heads, secs=secs, detail=detail,
                          bullets=None if marks is None or sized is None else bullet_layout(marks, sized),
                          contact_items=None if contact is None else contact.items,
                          contact_rows=None if contact is None else contact.rows,
@@ -140,7 +142,7 @@ def _font_fallback(ctx: VerifyContext) -> list[Finding]:
 
 
 def _group_proximity(ctx: VerifyContext) -> list[Finding]:
-    return check_group_proximity(ctx.typ, ctx.pdf, root=ctx.root, detail=ctx.detail)
+    return check_group_proximity(ctx.typ, ctx.pdf, root=ctx.root, heads=ctx.heads, secs=ctx.secs, detail=ctx.detail)
 
 
 def _date_adjacency(ctx: VerifyContext) -> list[Finding]:
@@ -186,14 +188,10 @@ def _mark_notes(ctx: VerifyContext) -> list[Finding]:
 
 
 def _duplicate_names(ctx: VerifyContext) -> list[Finding]:
-    findings: list[Finding] = []
-    queried, note = typst_query_checked(ctx.typ, "<vitae-sec>", ctx.root)
-    secs: list[Mark] | None = queried
-    if note:
-        findings.append((Level.WARN, "duplicate names: " + note))
+    secs: list[Mark] | None = ctx.secs
     if not secs:   # no <vitae-sec> marks (a CV that never wrapped `section` in wd-section(), or no query): read the #section("...") calls instead
         secs = [{"text": t} for t in re.findall(r'#section\(\s*"((?:[^"\\]|\\.)*)"', ctx.src)]
-    return findings + [(Level.FAIL, "duplicate name: " + msg) for msg in check_duplicate_names(secs, ctx.heads)]
+    return [(Level.FAIL, "duplicate name: " + msg) for msg in check_duplicate_names(secs, ctx.heads)]
 
 
 def _can_query(ctx: VerifyContext) -> bool:

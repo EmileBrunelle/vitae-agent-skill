@@ -188,9 +188,12 @@ class TestMalformedMarksAreReported:
         monkeypatch.setattr(gates, "typst_marks_and_contact", lambda *a, **k: ([self.GOOD], None, None))
         assert gates._mark_notes(gates.make_context("cv.typ", "cv.pdf", "", "", "poppler")) == []
 
-    def test_duplicate_names_gate_warns_on_dropped_sections(self, monkeypatch):
+    def test_dropped_sections_are_reported_once_by_the_marks_note(self, monkeypatch):
+        """The sections ride the context query: what it drops is the one `lib marks:` WARN, not a second query's note."""
         from vitae.core.level import Level
         from vitae.verify import gates
-        monkeypatch.setattr(gates, "typst_query_checked", lambda *a, **k: ([{"text": "A"}], self.NOTE))
-        ctx = gates.make_context("cv.typ", "cv.pdf", "", "", "poppler", can_query=False)
-        assert (Level.WARN, "duplicate names: " + self.NOTE) in gates._duplicate_names(ctx)
+        monkeypatch.setattr(gates, "typst_marks_and_contact", lambda *a, **k: ([{"text": "A"}], self.NOTE, None))
+        ctx = gates.make_context("cv.typ", "cv.pdf", "", "", "poppler")
+        assert ctx.secs == [{"text": "A"}]
+        assert gates._mark_notes(ctx) == [(Level.WARN, "lib marks: " + self.NOTE)]
+        assert not any("duplicate names:" in msg for _, msg in gates._duplicate_names(ctx))
