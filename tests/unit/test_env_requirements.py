@@ -2,6 +2,7 @@
 import pathlib
 import re
 
+import pytest
 from vitae.core import env
 
 SAMPLE = '''#!/usr/bin/env python3
@@ -75,7 +76,7 @@ def _typst_pip_specs() -> list[tuple[str, str, str]]:
 def test_documented_pip_commands_use_the_header_typst_range():
     lower, upper = _typst_range()
     specs = _typst_pip_specs()
-    assert specs, "no `pip install typst` command found in the docs: the regex is stale"
+    assert len(specs) >= 10, f"only {len(specs)} typst pip commands found in the docs (10 when written): the regex is stale"
     bad = []
     for name, verb, spec in specs:
         if verb == "download":
@@ -85,6 +86,31 @@ def test_documented_pip_commands_use_the_header_typst_range():
         if not ok:
             bad.append(f"{name}: pip {verb} {spec}")
     assert not bad, "docs disagree with the verify.py header range:\n" + "\n".join(bad)
+
+
+def test_documented_fallback_install_matches_the_header_specifiers():
+    header = {re.split(r"[=<>!~;\s\[]", r, maxsplit=1)[0].lower(): r for r in env.script_requirements("verify.py")}
+    seen, bad = 0, []
+    for path in _DOC_FILES:
+        for m in _PIP_TYPST.finditer(path.read_text(encoding="utf-8")):
+            for tok in re.findall(r"\"((?:pypdfium2|Pillow|pypdf)[^\"]*)\"", m.group(2)):
+                seen += 1
+                if tok != header[re.split(r"[=<>!~;\s]", tok, maxsplit=1)[0].lower()]:
+                    bad.append(f"{path.name}: {tok}")
+    assert seen >= 9, f"only {seen} pypdfium2/Pillow/pypdf specifiers found in the docs (9 when written)"
+    assert not bad, "docs disagree with the header:\n" + "\n".join(bad)
+
+
+@pytest.mark.usefixtures("fresh_typst_probes")
+def test_offline_download_hint_pins_the_range_lower_bound_without_shell_characters(monkeypatch, capsys):
+    monkeypatch.setattr(env, "_running_script", lambda: "verify.py")
+    monkeypatch.setattr(env.shutil, "which", lambda name: None)
+    monkeypatch.setattr(env, "_typst_py_probe", lambda: env.TypstPyProbe(None, "", "", False))
+    assert env.check_typst() is False
+    (line,) = [ln for ln in capsys.readouterr().out.splitlines() if "pip download" in ln]
+    word = line.split("pip download ", 1)[1].split()[0]
+    assert word == f"typst=={_typst_range()[0]}"
+    assert not any(c in word for c in "<>'\"")
 
 
 def _in_range(version: str, lower: str, upper: str) -> bool:

@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Versions are the `version:` in `SKILL.md`; hashes point to the release commit.
 
-## main (unreleased)
+## Unreleased
 
 - Dependencies: `typst` is a compatible range `typst>=0.15.2,<0.16` in every PEP 723 header instead of the exact `typst==0.15.2` (the gates measure the real PDF on each run; a Typst minor is the breaking boundary); the doctor and the docs print the quoted range, and a unit test checks that every documented `pip install typst` uses the header's specifier.
 

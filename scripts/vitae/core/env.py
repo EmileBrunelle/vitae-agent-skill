@@ -75,6 +75,14 @@ def requirement(name: str) -> str:
     return name
 
 
+def pinned_requirement(name: str) -> str:
+    """`name==<version>` for one concrete wheel: the header's `==` pin, or the lower bound of its `>=` range (no shell
+    metacharacter, so it prints the same on every shell); the bare name when the header gives neither."""
+    req = requirement(name)
+    m = re.search(r"(?:==|>=)\s*([0-9][^\s,;<>=!~]*)", req)
+    return f"{name}=={m.group(1)}" if m else name
+
+
 def _pip(name: str, flags: str = "") -> str:
     """`pip install [flags] '<requirement>'` for dependency `name`, the requirement read from the script header."""
     return f"pip install {flags}{_quote_requirement(requirement(name))}"
@@ -254,7 +262,7 @@ def _check_typst_without_cli() -> bool:
     print("  (a `typst` CLI already on PATH is used when present; there is nothing else to install for it)")
     print("  OFFLINE sandbox (no DNS / pip index)? On the user's own machine run:")
     plat, pyver = _wheel_platform_tag(), f"{sys.version_info.major}.{sys.version_info.minor}"
-    print(f"    pip download {shlex.quote(requirement('typst'))} --no-deps --only-binary=:all: --platform {plat} --python-version {pyver}")
+    print(f"    pip download {pinned_requirement('typst')} --no-deps --only-binary=:all: --platform {plat} --python-version {pyver}")
     print("    (if that platform has no wheel, `python3 -m pip debug --verbose` lists every compatible tag; never install a wheel built for another platform)")
     print("    (or pick the matching wheel from https://pypi.org/project/typst/#files), upload the .whl, then:")
     print("    pip install --no-index <path-to-wheel>")
