@@ -127,8 +127,6 @@ def _grid(n: int, per_row: int = 20) -> list[WordBox]:
               20.0 + (i // per_row) * 12), f"w{i}") for i in range(n)]
 
 
-
-
 _PDF_FILE = frozenset({pdf._reading_order.__code__.co_filename})
 
 
@@ -202,7 +200,7 @@ def test_stuffed_signals(t: str, want: bool) -> None:
     assert (text._stuffed(t) is not None) is want
 
 
-def _stuffedline_events(n: int) -> int:
+def _stuffed_line_events(n: int) -> int:
     """Python line events inside `text._stuffed` on `n` distinct terms."""
     t = ", ".join(f"t{i}" for i in range(n))
     events, out = line_events(frozenset({text._stuffed.__code__.co_filename}), lambda: text._stuffed(t, max_terms=0))
@@ -212,7 +210,7 @@ def _stuffedline_events(n: int) -> int:
 
 def test_stuffed_work_grows_linearly_on_a_long_distinct_list() -> None:
     base = 1000
-    e1, e2, e4 = (_stuffedline_events(base * k) for k in (1, 2, 4))
+    e1, e2, e4 = (_stuffed_line_events(base * k) for k in (1, 2, 4))
 
     # linear: doubling the input roughly doubles the events (a per-term count over the list would quadruple them)
     assert e2 / e1 <= 2.2

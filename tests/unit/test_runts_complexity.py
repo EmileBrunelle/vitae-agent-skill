@@ -2,12 +2,13 @@
 page for every bullet returned (the old code is kept verbatim in _runts_ref.py; Hypothesis builds one- and two-page
 documents on a grid, with lines that share baselines, a sidebar and a left-hand marker (right-to-left), heads between
 bullets, bullets that run on to the next page, and pages that do not exist), the layout is built once and shared by the
-runts and rhythm gates, and a page of hundreds of bullets stays fast (`slow`)."""
-import time
+runts and rhythm gates, and the work (counted in line events, no wall clock) of a page of bullets stays far below the rebuilding version's."""
 from collections.abc import Callable
 
 import pytest
+from _complexity import line_events
 from _pages import bullet, cv_page, head_mark
+from _proximity_ref import lines_rebuilt
 from _runts_ref import located_bullets_rebuilding
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -15,6 +16,7 @@ from vitae.core.base import BulletLayout, Mark, WordBox
 from vitae.core.level import Finding, Level
 from vitae.verify import rhythm, runts
 from vitae.verify.bounds import MAX_PAGE_WORK
+from vitae.verify.groups.query import cluster
 
 _TOKENS = ["a", "bb", "ccc", "ms.", "x"]
 _BOTTOM = 130.0
@@ -191,7 +193,7 @@ def test_gates_warn_when_the_word_positions_are_unavailable(check: Callable[...,
     assert [lvl for lvl, _ in out] == [Level.WARN] and "word positions unavailable" in out[0][1]
 
 
-# ------------------------------------------------------------------ the declared size and the time
+# ------------------------------------------------------------------ the declared size and the work
 
 
 def _fail(msg: str) -> Finding:
@@ -227,28 +229,35 @@ def test_check_rhythm_fails_a_page_beyond_the_declared_size_without_measuring_it
     assert [lvl for lvl, _ in out] == [Level.FAIL] and "spacing rhythm not measured: page 1" in out[0][1]
 
 
-@pytest.mark.slow
-def test_located_bullets_bound_time_on_a_page_of_hundreds_of_bullets() -> None:
-    heads, bullet_marks, words = cv_page(160)       # 7 200 words, 480 bullets, 160 heads
-    start = time.perf_counter()
-
-    out = runts.located_bullets(heads + bullet_marks, [words], [10000.0])
-
-    assert time.perf_counter() - start < 3.0     # idle ~0.13 s (10x margin); rebuilding the page for every bullet took ~1.5 s
-    assert len(out) == 480
+_RUNTS_FILES = frozenset({runts.located_bullets.__code__.co_filename, cluster.__code__.co_filename,
+                          located_bullets_rebuilding.__code__.co_filename, lines_rebuilt.__code__.co_filename})
 
 
-@pytest.mark.slow
-def test_located_bullets_bound_time_at_the_declared_size_with_a_new_column_per_bullet() -> None:
+def test_located_bullets_do_far_less_work_than_rebuilding_on_a_page_of_dozens_of_bullets() -> None:
+    heads, bullet_marks, words = cv_page(40)       # 120 bullets, 40 heads on one page
+    marks = heads + bullet_marks
+
+    # events counted in Python line events (no wall clock): rebuilding the page for every bullet is ~7x the work of the
+    # prepared page here (and the gap widens with the page), a measured ratio of 7.2 against the bound of 4
+    shared, out = line_events(_RUNTS_FILES, lambda: runts.located_bullets(marks, [words], [10000.0]))
+    rebuilding, old = line_events(_RUNTS_FILES, lambda: located_bullets_rebuilding(marks, [words], [10000.0]))
+
+    assert len(out) == 120 and out == old          # the prepared-page path ran and located every bullet
+    assert shared > 0
+    assert rebuilding > 4 * shared
+
+
+def test_located_bullets_work_at_the_declared_size_with_a_new_column_per_bullet() -> None:
     # no growth-ratio test for the runts: reading a bullet's column walks the words below its marker, so a page of
-    # bullets is O(bullets x words) by design, as the rebuilding version was; the declared size (bounds.py) bounds it,
-    # and the count of clusterings (test above) is what separates the two versions
+    # bullets is O(bullets x words) by design (per doubling: 3.3 x, 3.6 x), as the rebuilding version was; the declared
+    # size (bounds.py) bounds it, and the count of clusterings (test above) is what separates the two versions. The work
+    # at the declared size is bounded in line events: 5.9 per unit of MAX_PAGE_WORK measured, 10 allowed
     n_words = 2000
     page: list[WordBox] = [((10.0 + 0.5 * i, 12.0 * (i % 100), 14.0 + 0.5 * i, 12.0 * (i % 100) + 9.0), "w")
                            for i in range(n_words)]
     marks = [bullet(12.0 * (i % 100), x=9.0 + 0.5 * i) for i in range(MAX_PAGE_WORK // n_words)]
-    start = time.perf_counter()
 
-    runts.located_bullets(marks, [page], None)
+    events, out = line_events(_RUNTS_FILES, lambda: runts.located_bullets(marks, [page], None))
 
-    assert time.perf_counter() - start < 5.0     # idle ~0.4 s: 12x margin, a loaded runner does not trip it
+    assert len(out) == len(marks) > 0              # every bullet was located: the column reading ran for each
+    assert 0 < events <= 10 * MAX_PAGE_WORK

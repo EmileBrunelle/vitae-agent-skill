@@ -1,17 +1,17 @@
 """Raster hot spots moved from Python pixel loops to Pillow: `layout.check_text_clip` (flat-box test of every word box)
 and `fill.bands` (dark rows and rule-wide rows of a page). Each keeps its behaviour (equivalence with the replaced code,
-kept in `_raster_ref`, on Hypothesis-generated rasters and on a real rendered page) and stays fast on a full page (`slow`: wall
-time bounded far above the measured time and far below the old one, so a noisy runner does not flip it but a return to
-a per-pixel loop does)."""
+kept in `_raster_ref`, on Hypothesis-generated rasters and on a real rendered page) and stays fast on a full page (work
+counted in Python line events and at the Python/C boundary, no wall clock, so a loaded runner cannot flip it but a return
+to a per-pixel loop does)."""
 import math
 import random
 import tempfile
-import time
 from collections.abc import Callable
 from pathlib import Path
 
+import _raster_ref
 import pytest
-from _growth import GROWTH_BOUND, best_time, growth_ratio
+from _complexity import assert_linear, line_events
 from _paths import ROOT
 from _raster_ref import bands_per_row, check_text_clip_per_pixel
 from hypothesis import given, settings
@@ -19,6 +19,8 @@ from hypothesis import strategies as st
 from PIL import Image
 from vitae import fill
 from vitae.core.base import WordBox
+from vitae.core.pixels import colour_counts
+from vitae.verify import layout
 from vitae.verify.layout import check_text_clip
 from vitae.verify.page import FURNITURE_SCALE
 from vitae.verify.pdf import pdfium_render, typst_compile, word_boxes
@@ -190,7 +192,11 @@ def test_bands_rule_width_is_inclusive_at_the_threshold(tmp_path: Path) -> None:
         assert got == bool(bands_per_row(str(png))[2])
 
 
-# ------------------------------------------------------------------ time bounds
+# ------------------------------------------------------------------ work bounds (line events, no wall clock)
+
+_LAYOUT = frozenset({layout.__file__})
+_FILL = frozenset({fill.__file__})
+_PIXEL_REF = frozenset({_raster_ref.__file__})
 
 
 def _wide_words_page(width: int, n_words: int = 20) -> tuple[Image.Image, list[WordBox]]:
@@ -208,55 +214,88 @@ def _wide_words_page(width: int, n_words: int = 20) -> tuple[Image.Image, list[W
     return im, boxes
 
 
-@pytest.mark.slow
-def test_text_clip_time_grows_linearly_with_the_word_box_area(tmp_path: Path) -> None:
-    def prepare(width: int) -> Callable[[], object]:
-        im, boxes = _wide_words_page(width)
-        png = tmp_path / f"w{width}.png"
-        im.save(png)
-        return lambda: check_text_clip(str(png), boxes)
-
-    assert growth_ratio(prepare, 100) < GROWTH_BOUND
-    assert best_time(prepare(100)) < 0.1         # measured ~0.007 s idle; the per-pixel loop takes ~0.54 s: linear, but 80x slower
+def _text_clip_events(tmp_path: Path, width: int, check: Callable[[str, list[WordBox]], object], files: frozenset[str]) -> int:
+    im, boxes = _wide_words_page(width)
+    png = tmp_path / f"w{width}.png"
+    im.save(png)
+    events, _ = line_events(files, lambda: check(str(png), boxes))
+    return events
 
 
-@pytest.mark.slow
-def test_bands_time_grows_linearly_with_the_page_height(tmp_path: Path) -> None:
+def test_text_clip_work_does_not_grow_with_the_word_box_area(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # the pixels are counted by Pillow (C), so the Python work is a constant per box whatever its area; the area
+    # handed to Pillow is counted at the boundary and must be one pass over each box, never a pass per colour
+    handed = [0, 0]                                   # calls to colour_counts, pixels handed to it
+
+    def counting(box: Image.Image, maxcolors: int) -> list[tuple[int, tuple[int, ...]]]:
+        handed[0] += 1
+        handed[1] += box.width * box.height
+        return colour_counts(box, maxcolors)
+
+    monkeypatch.setattr(layout, "colour_counts", counting)
+
+    assert_linear(lambda width: _text_clip_events(tmp_path, width, check_text_clip, _LAYOUT), 100, bound=1.2)
+    assert handed[0] == 20 * 3                        # one modal-colour pass per word box and per page size
+    area = 20 * 14 * (100 + 200 + 400)
+    assert area <= handed[1] <= 1.25 * area           # linear in the box area: each pixel handed to Pillow once (+ the crop's edge row and column)
+
+
+def test_text_clip_does_far_less_python_work_than_the_per_pixel_loop(tmp_path: Path) -> None:
+    new = _text_clip_events(tmp_path, 100, check_text_clip, _LAYOUT)
+    old = _text_clip_events(tmp_path, 100, check_text_clip_per_pixel, _PIXEL_REF)
+
+    assert new > 0
+    assert old >= 20 * new                            # measured ~48x: the per-pixel loop is linear too, but with a big constant
+
+
+def _bands_events(png: Path, files: frozenset[str] = _FILL) -> tuple[int, tuple[int, list[tuple[int, int]], list[tuple[int, int]]]]:
+    return line_events(files, lambda: fill.bands(str(png)))
+
+
+def test_bands_work_grows_linearly_with_the_page_height(tmp_path: Path) -> None:
     # worst case: every row of a 4000-wide page is chopped into 667 short dark runs (text-dense), none long enough
     # to be a rule, so each row is scanned whole for a run
     row = Image.new("L", (4000, 1), 255)
     for x in range(0, 4000, 6):
         row.paste(0, (x, 0, x + 3, 1))
+    results: list[tuple[int, list[tuple[int, int]], list[tuple[int, int]]]] = []
 
-    def prepare(height: int) -> Callable[[], object]:
+    def measure(height: int) -> int:
         png = tmp_path / f"h{height}.png"
         row.resize((4000, height), Image.Resampling.NEAREST).save(png)
-        return lambda: fill.bands(str(png))
+        events, result = _bands_events(png)
+        results.append(result)
+        return events
 
-    assert growth_ratio(prepare, 3000) < GROWTH_BOUND
-    assert fill.bands(str(tmp_path / "h6000.png"))[2] == []
+    assert_linear(measure, 750)
+    assert [r[2] for r in results] == [[], [], []]    # no rule on any page
+    assert all(r[1] == [] for r in results)           # every row holds ink: no white run either
 
 
-def _dark_runs_page(tmp_path: Path, width: int, run: int, rows: int) -> str:
+def _dark_runs_page(tmp_path: Path, width: int, run: int, rows: int) -> Path:
     """Every row is dark runs of `run` pixels, each followed by one light pixel."""
     row = Image.new("L", (width, 1), 255)
     for x in range(0, width, run + 1):
         row.paste(0, (x, 0, min(x + run, width), 1))
-    png = tmp_path / f"runs{run}.png"
+    png = tmp_path / f"runs{width}.png"
     row.resize((width, rows), Image.Resampling.NEAREST).save(png)
-    return str(png)
+    return png
 
 
-@pytest.mark.slow
-def test_bands_bound_time_on_rows_of_runs_just_short_of_a_rule(tmp_path: Path) -> None:
-    # worst case for the run search: runs of need-1 dark pixels split by one light pixel, so no start fails early
-    width = 16000
-    need = math.ceil(fill.RULE_FLOOR * width)
-    png = _dark_runs_page(tmp_path, width, need - 1, 500)
-    start = time.perf_counter()
+def test_bands_python_work_does_not_depend_on_the_width_of_rows_of_runs_just_short_of_a_rule(tmp_path: Path) -> None:
+    # worst case for the run search: runs of need-1 dark pixels split by one light pixel, so no start fails early.
+    # The search is `bytes.find` (C), so the Python work is a constant per row whatever the width; a per-pixel scan
+    # in Python would grow with it. The C scan's own linearity is bytes.find's, not measurable here.
+    rows = 200
+    bands_seen: list[list[tuple[int, int]]] = []
 
-    got = fill.bands(png)
+    def measure(width: int) -> int:
+        need = math.ceil(fill.RULE_FLOOR * width)
+        events, result = _bands_events(_dark_runs_page(tmp_path, width, need - 1, rows))
+        bands_seen.append(result[2])
+        return events
 
-    assert time.perf_counter() - start < 0.5     # measured ~0.05 s; the kept per-row version takes ~0.34 s, the per-pixel Python scan before it tens of seconds
-    assert got[2] == []                          # need-1 is not a rule
-
+    assert_linear(measure, 4000, bound=1.2)
+    assert bands_seen == [[], [], []]                 # need-1 is not a rule
+    events_16k = measure(16000)
+    assert events_16k <= 10 * rows                    # a few line events per row; a per-pixel Python scan is ~16000 x 0.88 per row

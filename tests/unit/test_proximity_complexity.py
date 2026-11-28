@@ -3,7 +3,7 @@
 pages from a tiny vocabulary so words repeat, lines share baselines and overlap, heads sit in several columns, rails and
 missing pages come up), and its work, counted in line events (no wall clock), stays linear."""
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import _proximity_ref
 import pytest
@@ -122,11 +122,19 @@ def test_measure_groups_equivalence_is_not_vacuous() -> None:
 _PROXIMITY_FILES = frozenset({proximity.__file__, sys.modules[PageIndex.__module__].__file__ or "", _proximity_ref.__file__ or ""})
 
 
-def _grouping_events(measure: Callable[[list[Mark], list[Mark], list[list[Word]]], object], entries: int) -> int:
+def _grouping_events(measure: Callable[[list[Mark], list[Mark], list[list[Word]]], tuple[Sequence[object], int]], entries: int) -> int:
     heads, pages = _cv_words(entries)
     events, rows = line_events(_PROXIMITY_FILES, lambda: measure(heads, [], pages))
-    assert rows                                          # the code path ran: a swap for another algorithm cannot blind the counter
+    assert rows[0]                                       # the code path ran: a swap for another algorithm cannot blind the counter
     return events
+
+
+def test_measure_groups_finds_every_head_but_the_first_on_a_page_of_hundreds_of_heads() -> None:
+    heads, pages = _cv_words(240)       # 10 800 words, 240 heads
+
+    rows, skipped = proximity.measure_groups(heads, [], pages)
+
+    assert len(rows) == 239 and skipped == 0
 
 
 def test_measure_groups_work_grows_linearly_with_the_heads_of_a_page() -> None:

@@ -2,20 +2,23 @@
 per colour), `_classify_runs` (a segment tree instead of a neighbour walk per
 tiny run) and `_merged_runs` (one join per run instead of a growing string). Each keeps its behaviour (equivalence with
 the replaced code, kept in `_hidden_ref`, on realistic and worst-case inputs) and stays fast on a worst-case input
-(`slow`: wall time bounded far above the measured time and far below the old one)."""
+(work counted in Python line events, calls and concatenated characters, no wall clock: a loaded runner cannot flip it)."""
 from __future__ import annotations
 
 import math
 import random
 import tempfile
-import time
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 
+import _hidden_ref
 import pytest
+from _complexity import assert_linear, line_events
 from _hidden_ref import classify_runs_quadratic, hidden_word_stats_per_colour, merged_runs_concat
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from PIL import Image
+from vitae.core import colour
 from vitae.core.base import HIDDEN_PPI, HiddenStat, WordBox
 from vitae.core.colour import counted_luminances, rel_luminance
 from vitae.verify import text
@@ -131,19 +134,71 @@ def test_counted_luminances_are_bit_identical_to_rel_luminance() -> None:
     assert got == [rel_luminance(c) for c in sample]   # == on floats: same bits, not approximately equal
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize(("kind", "bound"), [("gray", 1.5), ("colour", 1.5), ("noise", 6.0)])
-def test_word_stats_bound_time_on_a_full_page(kind: str, bound: float) -> None:
-    im, page = _text_like_page(1275, 1650, 3000, kind)
-    with tempfile.TemporaryDirectory() as tmp:
-        png = str(Path(tmp) / "p.png")
-        im.save(png)
-        start = time.perf_counter()
+_TEXT_WORK = frozenset({text.__file__, colour.__file__})
 
-        out = text.hidden_word_stats("x.pdf", pages=[page], pngs=[png])
 
-        assert time.perf_counter() - start < bound   # measured ~0.05 s (gray, colour) and ~0.65 s (noise: 1000+ colours per box; bound 6.0 s = 9x margin); a coarse bound, the constant factor is tested by call count
-    assert len(out) == 3000
+def _stats_events(tmp_path: Path, kind: str, words: int, monkeypatch: pytest.MonkeyPatch) -> tuple[int, int, int]:
+    """(line events of `hidden_word_stats` on a full-size page of `words` word boxes, luminances computed one by one,
+    colours handed to `counted_luminances`): the C-level work of `getcolors` is one pass per box either way."""
+    im, page = _text_like_page(1275, 1650, words, kind)
+    png = str(tmp_path / f"p{kind}{words}.png")
+    im.save(png)
+    singles = [0]
+    handed = [0]
+
+    def counting_lum(rgb: tuple[int, int, int] | tuple[int, ...]) -> float:
+        singles[0] += 1
+        return rel_luminance(rgb)
+
+    def counting_many(counted: Iterable[tuple[int, Sequence[int]]]) -> list[float]:
+        pairs = list(counted)
+        handed[0] += len(pairs)
+        return counted_luminances(pairs)
+
+    monkeypatch.setattr(text, "rel_luminance", counting_lum)
+    monkeypatch.setattr(text, "counted_luminances", counting_many)
+    events, out = line_events(_TEXT_WORK, lambda: text.hidden_word_stats("x.pdf", pages=[page], pngs=[png]))
+    assert len(out) == words
+    return events, singles[0], handed[0]
+
+
+@pytest.mark.parametrize("kind", ["gray", "colour", "noise"])
+def test_word_stats_work_grows_linearly_with_the_words_of_a_full_page(kind: str, tmp_path: Path,
+                                                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[tuple[int, int]] = []
+
+    def measure(words: int) -> int:
+        events, singles, handed = _stats_events(tmp_path, kind, words, monkeypatch)
+        seen.append((singles, handed))
+        return events
+
+    assert_linear(measure, 100)
+    for (singles, handed), words in zip(seen, (100, 200, 400), strict=True):
+        assert singles == words                  # one luminance for the box's background; the rest come from the tables
+        assert handed >= words                   # the table path ran: at least one colour per box
+
+
+@pytest.mark.parametrize(("kind", "least"), [("gray", 3), ("colour", 3), ("noise", 1000)])
+def test_word_stats_computes_far_fewer_luminances_than_one_per_colour(kind: str, least: int, tmp_path: Path,
+                                                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    # control: the per-colour reference calls `_lum` once per distinct colour of every box
+    words = 100
+    _, singles, _ = _stats_events(tmp_path, kind, words, monkeypatch)
+    im, page = _text_like_page(1275, 1650, words, kind)
+    png = str(tmp_path / f"ref{kind}.png")
+    im.save(png)
+    ref_calls = [0]
+
+    def counting_ref_lum(rgb: tuple[int, int, int] | tuple[int, ...]) -> float:
+        ref_calls[0] += 1
+        return rel_luminance(rgb)
+
+    monkeypatch.setattr(_hidden_ref, "_lum", counting_ref_lum)
+    expected = hidden_word_stats_per_colour("x.pdf", pages=[page], pngs=[png])
+
+    assert singles == words
+    assert ref_calls[0] >= least * singles       # measured 3.2x (gray, colour: ~3 colours a box) and ~1300x (noise)
+    assert len(expected) == words
 
 # ------------------------------------------------------------------ _classify_runs
 
@@ -184,15 +239,57 @@ def test_classify_runs_a_superscript_between_equal_sizes_is_still_found() -> Non
     assert text._classify_runs(runs, BOX) == classify_runs_quadratic(runs, BOX) == ([], [])
 
 
-@pytest.mark.slow
-def test_classify_runs_bounds_time_on_one_baseline() -> None:
-    runs: list[Run] = [(f"w{i}", 10.0 + i * 0.01, 300.0, 3.0) for i in range(8000)]
-    start = time.perf_counter()
+class _AddStr(str):
+    """A `str` that counts the characters copied by each `+` (C-level work the line-event count cannot see) and
+    survives it: a run text grown by `+` copies its whole length each time (quadratic), one `join` copies none here."""
+    copied = 0
 
-    off, tiny = text._classify_runs(runs, BOX)
+    def __add__(self, other: str) -> _AddStr:
+        _AddStr.copied += len(self) + len(other)
+        return _AddStr(str.__add__(self, other))
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.05 s; the neighbour walk and the string `+` took ~5 s
-    assert off == [] and len(tiny) == 1 and tiny[0][1] == 3.0 and tiny[0][0].count(" ") == 7999
+    def __radd__(self, other: str) -> _AddStr:
+        _AddStr.copied += len(self) + len(other)
+        return _AddStr(str.__add__(other, self))
+
+
+_ONE_BASELINE = 3.0
+
+
+def _one_baseline(n: int) -> list[Run]:
+    return [(_AddStr(f"w{i}"), 10.0 + i * 0.01, 300.0, _ONE_BASELINE) for i in range(n)]
+
+
+def test_classify_runs_work_grows_linearly_on_one_baseline() -> None:
+    results: list[tuple[list[str], list[tuple[str, float]]]] = []
+
+    def measure(n: int) -> int:
+        _AddStr.copied = 0
+        events, result = line_events(frozenset({text.__file__}), lambda: text._classify_runs(_one_baseline(n), BOX))
+        results.append(result)
+        return events
+
+    assert_linear(measure, 2000)
+    assert _AddStr.copied == 0                   # the block text is joined once, never grown by `+`
+    for (off, tiny), n in zip(results, (2000, 4000, 8000), strict=True):
+        assert off == [] and len(tiny) == 1      # one block of tiny runs, none taken for a script
+        assert tiny[0][1] == _ONE_BASELINE and tiny[0][0].count(" ") == n - 1
+
+
+def test_the_work_counts_tell_the_neighbour_walk_and_the_concatenation_from_the_linear_version() -> None:
+    # control: on the same input the reference's line events and `+` copies grow ~4x per doubling
+    ref_files = frozenset({_hidden_ref.__file__})
+
+    def ref_events(n: int) -> int:
+        _AddStr.copied = 0
+        events, _ = line_events(ref_files, lambda: classify_runs_quadratic(_one_baseline(n), BOX))
+        return events
+
+    e1, e2 = ref_events(250), ref_events(500)
+    c1 = _AddStr.copied
+    assert e2 / e1 > 3.0                         # the neighbour walk is quadratic in the tiny runs of a baseline
+    assert c1 > 0                                # and the concatenation copies the growing text
+
 
 # ------------------------------------------------------------------ _merged_runs
 
@@ -219,12 +316,34 @@ def test_merged_runs_equivalence_is_not_vacuous() -> None:
     assert text._merged_runs(stats, lambda s: s[4] is not None and s[4] < 2.0) == [(1, "w0 w1"), (1, "w3"), (2, "w4 w5")]
 
 
-@pytest.mark.slow
-def test_merged_runs_bound_time_on_one_long_run() -> None:
-    stats = _stats([(1, True)] * 150000)
-    start = time.perf_counter()
+def _long_run(n: int) -> list[HiddenStat]:
+    return [(1, _AddStr(f"w{i}"), (0.0, 0.0, 1.0, 1.0), 1.0, 1.0, False) for i in range(n)]
 
-    out = text._merged_runs(stats, lambda s: True)
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.02 s; growing the string took ~3 s at 150000 words
-    assert len(out) == 1 and out[0][1].count(" ") == 149999
+def test_merged_runs_work_grows_linearly_on_one_long_run() -> None:
+    outs: list[list[tuple[int, str]]] = []
+
+    def measure(n: int) -> int:
+        _AddStr.copied = 0
+        events, out = line_events(frozenset({text.__file__}), lambda: text._merged_runs(_long_run(n), lambda s: True))
+        outs.append(out)
+        return events
+
+    assert_linear(measure, 20000)
+    assert _AddStr.copied == 0                   # one join per run, never `+` on a growing string
+    for out, n in zip(outs, (20000, 40000, 80000), strict=True):
+        assert len(out) == 1 and out[0][1].count(" ") == n - 1
+
+
+def test_the_copy_count_tells_the_concatenation_from_the_join() -> None:
+    # control: the `+` reference copies the growing text at every word: ~4x the characters per doubling
+    def ref_copies(n: int) -> int:
+        _AddStr.copied = 0
+        out = merged_runs_concat(_long_run(n), lambda s: True)
+        assert len(out) == 1 and out[0][1].count(" ") == n - 1
+        return _AddStr.copied
+
+    c1, c2 = ref_copies(500), ref_copies(1000)
+
+    assert c1 > 0
+    assert c2 / c1 > 3.0

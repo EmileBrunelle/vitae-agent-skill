@@ -1,16 +1,19 @@
 """LOG320 worst-case sweep of placeholders.py: the linear e-mail sample scan and the once-per-span squash give exactly
 what the replaced code gave (the old code is kept verbatim in _placeholders_ref.py; Hypothesis builds texts from the
 fragments the scans react to: address characters, `@example.`, backslashes, brackets and the templates' own
-placeholders), and stay fast on the worst case (`slow`)."""
+placeholders), and keep their work linear on the worst case (the bracketed spans are counted; the long unmatched
+run is regex work in C, so it is still timed, `slow`)."""
 import time
 from collections.abc import Callable
 
+import _placeholders_ref
 import pytest
-from _growth import GROWTH_BOUND, best_time, growth_ratio
+from _complexity import assert_linear, line_events
 from _placeholders_ref import check_placeholders_squashing, placeholders_in_scanning
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from vitae.core.context import VerifyContext
+from vitae.core.level import Finding
 from vitae.verify import placeholders
 
 _FRAGMENTS = ["a", "b1", "_", ".", "+", "-", "@", "\\", "\\@", "@example.", "@example.com", "@example.org", "example",
@@ -71,14 +74,44 @@ def test_email_samples_bound_time_on_long_runs_without_an_at_sign() -> None:
     assert out == set()
 
 
-@pytest.mark.slow
-def test_check_placeholders_time_grows_linearly_with_the_bracketed_spans() -> None:
-    known = " ".join(placeholders.placeholders_from(placeholders.TEMPLATES))   # ~65 hits whatever the size
+_PLACEHOLDER_FILES = frozenset({placeholders.check_placeholders.__code__.co_filename,
+                                check_placeholders_squashing.__code__.co_filename})
+_KNOWN = " ".join(placeholders.placeholders_from(placeholders.TEMPLATES))   # ~65 hits whatever the size
 
-    def prepare(spans: int) -> Callable[[], object]:
-        ctx = _ctx(known + " " + "[abc def] " * spans)
-        return lambda: placeholders.check_placeholders(ctx)
 
-    assert growth_ratio(prepare, 15000) < GROWTH_BOUND
-    assert best_time(prepare(30000)) < 2.0       # measured ~0.19 s idle; the squash per placeholder takes ~2.3 s: linear too, 12x slower
-    assert [lvl.name for lvl, _ in placeholders.check_placeholders(_ctx(known + " [abc def]"))] == ["FAIL", "WARN"]
+class _CountingSquash:
+    """`_squash` seen at the Python boundary: its `re.sub` is C, which a line-event count cannot see."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self._real = placeholders._squash
+
+    def __call__(self, s: str) -> str:
+        self.calls += 1
+        return self._real(s)
+
+
+def _gate_work(monkeypatch: pytest.MonkeyPatch, check: Callable[[VerifyContext], list[Finding]], spans: int) -> tuple[int, int]:
+    """(Python line events, `_squash` calls) of the gate on a text of `spans` bracketed spans that match no placeholder."""
+    squash = _CountingSquash()
+    monkeypatch.setattr(placeholders, "_squash", squash)
+    monkeypatch.setattr(_placeholders_ref, "_squash", squash)
+    ctx = _ctx(_KNOWN + " " + "[abc def] " * spans)
+    events, out = line_events(_PLACEHOLDER_FILES, lambda: check(ctx))
+    assert [lvl.name for lvl, _ in out] == ["FAIL", "WARN"]
+    return events, squash.calls
+
+
+def test_check_placeholders_work_grows_linearly_with_the_bracketed_spans(monkeypatch: pytest.MonkeyPatch) -> None:
+    # measured 1.6 x then 1.8 x per doubling (a fixed cost of the ~65 hits shows at the small size)
+    assert_linear(lambda n: _gate_work(monkeypatch, placeholders.check_placeholders, n)[0], 250)
+
+
+def test_check_placeholders_squashes_each_span_once_not_once_per_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:
+    spans = 500
+    _, calls = _gate_work(monkeypatch, placeholders.check_placeholders, spans)
+    # control: the old gate squashed every span once per placeholder found (~65 each): linear too, a dozen times the work
+    _, old_calls = _gate_work(monkeypatch, check_placeholders_squashing, spans)
+
+    assert 0 < calls <= 2 * spans + 200            # one per span plus a squash per known placeholder and hit key
+    assert old_calls > 20 * spans

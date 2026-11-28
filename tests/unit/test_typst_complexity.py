@@ -1,11 +1,14 @@
 """LOG320 worst-case sweep of typst.py: the rewritten scanners return exactly what the code they replaced returned
 (the old code is kept verbatim in _typst_ref.py; Hypothesis builds texts from the fragments the parsers react to,
-so rules that never close, nest, overlap, end on a word character or repeat `leading:` all come up), and stay fast
-on the worst case (`slow`: bounded wall time far above the measured one and far below the old one)."""
+so rules that never close, nest, overlap, end on a word character or repeat `leading:` all come up), and stay
+linear on the worst case (deterministic work counts, no wall clock: Python line events plus the characters the regex
+and `find` calls consume; the number patterns' backtracking is C-level, so it is pinned structurally)."""
 import re
-import time
+from collections.abc import Callable
 
 import pytest
+from _complexity import assert_linear, line_events
+from _scan_str import ScanStr
 from _typst_ref import _LEAD_ARG as LEAD_OLD
 from _typst_ref import _RHYTHM_RE as RHYTHM_OLD
 from _typst_ref import _SIZE_ARG as SIZE_OLD
@@ -105,35 +108,92 @@ def test_mask_non_markup_matches_the_old_one(s: str) -> None:
     assert typst.mask_non_markup(s) == mask_non_markup_quadratic(s)
 
 
-@pytest.mark.slow
-def test_par_rule_spans_bounds_time_on_unclosed_and_nested_rules() -> None:
-    for text in ("#set par(\n" * 8000, "#set par(\n" * 8000 + ")" * 8000, "#set par(leading: 1em\n" * 8000):
-        start = time.perf_counter()
-
-        typst._par_rule_spans(text)
-        typst._tuned_par(text)
-
-        assert time.perf_counter() - start < 1.0     # measured ~0.01 s; the old scan took ~24 s at this size
+_FILES = frozenset({typst.mask_non_markup.__code__.co_filename})
 
 
-@pytest.mark.slow
-def test_number_patterns_bound_time_on_long_digit_runs() -> None:
-    digits = "1" * 40000
-    start = time.perf_counter()
+class _CountedPattern:
+    """A compiled pattern that charges the characters each call consumes (a full pass for `finditer`, up to the match end
+    or the search limit for `match` and `search`): the C-level work of a rescan per rule, invisible to line events."""
+    scanned = 0
+    calls = 0
 
-    typst._LEAD_ARG.search(" leading: " + digits + "x")
-    typst._SIZE_ARG.search(" size: " + digits + "x")
-    typst._SPACING_VAL.match(digits + "x")
-    typst._RHYTHM_RE.search("#let rhythm = " + digits + "x")
-    typst.PAR_RE.match("#set par(" + "leading: 1em, " * 8000, 0)
+    def __init__(self, pattern: re.Pattern[str]) -> None:
+        self._p = pattern
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.01 s; the old patterns took ~15 s on the digit runs
+    def finditer(self, string: str) -> list[re.Match[str]]:
+        _CountedPattern.calls += 1
+        _CountedPattern.scanned += len(string)
+        return list(self._p.finditer(string))
+
+    def match(self, string: str, pos: int = 0) -> re.Match[str] | None:
+        _CountedPattern.calls += 1
+        m = self._p.match(string, pos)
+        _CountedPattern.scanned += (m.end() if m else pos) - pos
+        return m
+
+    def search(self, string: str, pos: int = 0, endpos: int | None = None) -> re.Match[str] | None:
+        _CountedPattern.calls += 1
+        m = self._p.search(string, pos) if endpos is None else self._p.search(string, pos, endpos)
+        _CountedPattern.scanned += (m.end() if m else (len(string) if endpos is None else endpos)) - pos
+        return m
 
 
-@pytest.mark.slow
-def test_mask_non_markup_bounds_time_on_many_backticks() -> None:
-    start = time.perf_counter()
+def _count_patterns(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("_PAR_OPEN", "_PARENS", "_LEAD_ARG", "PAR_RE"):
+        monkeypatch.setattr(typst, name, _CountedPattern(getattr(typst, name)))
+    _CountedPattern.scanned = _CountedPattern.calls = 0
 
-    typst.mask_non_markup("`a" * 200000)
 
-    assert time.perf_counter() - start < 1.0     # measured ~0.07 s; copying the rest of the text per backtick took ~1 s
+@pytest.mark.parametrize("make", [lambda n: "#set par(\n" * n, lambda n: "#set par(\n" * n + ")" * n,
+                                  lambda n: "#set par(leading: 1em\n" * n],
+                         ids=["unclosed", "nested", "unclosed-with-leading"])
+def test_par_rule_work_grows_linearly_on_unclosed_and_nested_rules(monkeypatch: pytest.MonkeyPatch,
+                                                                   make: Callable[[int], str]) -> None:
+    # the old scan rescanned the rest of the text per rule (~24 s on 8000 of them)
+    _count_patterns(monkeypatch)
+
+    def work(n: int) -> int:
+        _CountedPattern.scanned = _CountedPattern.calls = 0
+        text = make(n)
+        events, _ = line_events(_FILES, lambda: (typst._par_rule_spans(text), typst._tuned_par(text)))
+        assert _CountedPattern.calls > 0                  # the patterns ran: the count sees the scans
+        return events + _CountedPattern.scanned
+
+    assert_linear(work, 500)
+
+
+# The one number form every pattern uses. Its alternatives start with a digit run then an optional `.digits`, or with `.`:
+# no digit can be read two ways, and the token after it (`\s*`, a unit, `;`, `)`) is never a digit or a dot, so a failing
+# match on a long digit run costs one pass. The old `[0-9]*\.?[0-9]+` splits a run of n digits n ways (~15 s on 40 000).
+_NUMBER = r"([0-9]+(?:\.[0-9]+)?|\.[0-9]+)"
+
+
+@pytest.mark.parametrize("name", ["_LEAD_ARG", "_SIZE_ARG", "_SPACING_VAL", "_RHYTHM_RE"])
+def test_number_patterns_read_a_number_in_the_one_unambiguous_form(name: str) -> None:
+    pattern = getattr(typst, name).pattern
+    assert pattern.count(_NUMBER) == 1
+    assert r"[0-9]*\.?[0-9]+" not in pattern            # the old nested form
+
+
+def test_number_patterns_decide_long_digit_runs_without_backtracking_in_the_pattern() -> None:
+    # PAR_RE commits to the first `leading: Xem` (atomic group); without it a later one is retried once per `leading:`
+    assert typst.PAR_RE.pattern.startswith("(?>")
+    digits = "1" * 4000
+    assert typst._LEAD_ARG.search(" leading: " + digits + "x") is None
+    assert typst._SIZE_ARG.search(" size: " + digits + "x") is None
+    assert typst._SPACING_VAL.match(digits + "x") is None
+    assert typst._RHYTHM_RE.search("#let rhythm = " + digits + "x") is not None     # the rhythm form ends at the digits
+    assert typst.PAR_RE.match("#set par(" + "leading: 1em, " * 200, 0) is None
+
+
+@pytest.mark.parametrize("unit", ["`a", "``a", "`"])
+def test_mask_non_markup_work_grows_linearly_on_many_backticks(unit: str) -> None:
+    # copying the rest of the text per backtick took ~1 s on 200 000 pairs: slices and `find` scans are counted
+    def work(n: int) -> int:
+        ScanStr.reset()
+        events, out = line_events(_FILES, lambda: typst.mask_non_markup(ScanStr(unit * n)))
+        assert out
+        assert ScanStr.calls > 0                          # the raw-span search went through the counted `find`
+        return events + ScanStr.scanned
+
+    assert_linear(work, 2000)
