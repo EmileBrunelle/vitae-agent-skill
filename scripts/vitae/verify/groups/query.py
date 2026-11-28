@@ -48,6 +48,7 @@ _MARK_FIELDS: tuple[tuple[str, Callable[[object], bool]], ...] = (
     ("x", is_num), ("y", is_num), ("w", is_num), ("h", is_num),
     ("dated", lambda v: isinstance(v, bool)), ("anchor", lambda v: isinstance(v, bool)),
     ("inline", lambda v: isinstance(v, bool)),
+    ("level", lambda v: isinstance(v, int) and not isinstance(v, bool)),
 )
 
 
@@ -56,6 +57,25 @@ def _is_mark(v: object) -> TypeIs[Mark]:
     if not is_object_dict(v) or not isinstance(v.get("text"), str):
         return False
     return all(key not in v or ok(v[key]) for key, ok in _MARK_FIELDS)
+
+
+# Native headings (`= Title`) are not lib marks: `--field value` drops them silently (a heading has no `value`).
+# A selector that names `heading` is therefore read through `eval`, which turns each heading into the same
+# kind of record as a mark (kind, text, level, page) in the SAME single query; the other elements give `.value`.
+HEADING_SELECTOR = "heading"
+_PLAIN = ('let plain(c) = if type(c) == str { c } else if c == [ ] { " " } else if c.func() == linebreak '
+          '{ " " } else if c.func() == smartquote { " " } else if c.has("text") { c.text } else if c.has("body") '
+          '{ plain(c.body) } else if c.has("children") { c.children.map(plain).join("") } else { "" }')
+_HEADING_RECORD = ('(kind: "heading", text: plain(it.body), level: it.level, '
+                   'page: it.location().position().page, '
+                   'y: it.location().position().y.pt())')
+
+
+def _eval_expr(selector: str) -> str:
+    """The Typst expression whose JSON is the values of the elements `selector` selects."""
+    if HEADING_SELECTOR not in selector:
+        return f"query({selector}).map(it => it.value)"
+    return f"{{ {_PLAIN}\nquery({selector}).map(it => if it.func() == heading {{ {_HEADING_RECORD} }} else {{ it.value }}) }}"
 
 
 def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None:
@@ -68,10 +88,10 @@ def _values_py(typ: str, selector: str, root: str | None) -> list[object] | None
     try:
         comp = mod.Compiler(typ, root=root, **typst_font_kw()) if root else mod.Compiler(typ, **typst_font_kw())
         calls: list[Callable[[], object]] = []
-        if caps.query_field:
+        if caps.query_field and HEADING_SELECTOR not in selector:
             calls.append(lambda: comp.query(selector, field="value", one=False))
         if caps.eval_format:
-            calls.append(lambda: comp.eval(f"query({selector}).map(it => it.value)", format="json"))
+            calls.append(lambda: comp.eval(_eval_expr(selector), format="json"))
         for fn in calls:
             try:
                 out = fn()
@@ -103,8 +123,10 @@ def _typst_values(typ: str, selector: str, root: str | None) -> list[object] | N
     if typst_route().query != "cli":
         return _values_py(typ, selector, root)
     rootargs = ["--root", root] if root else []
-    for cmd in (["typst", "query", typ, selector, "--field", "value", *rootargs],
-                ["typst", "eval", f"query({selector}).map(it => it.value)", "--in", typ, "--target", "paged", *rootargs]):
+    cmds = [["typst", "eval", _eval_expr(selector), "--in", typ, "--target", "paged", *rootargs]]
+    if HEADING_SELECTOR not in selector:
+        cmds.insert(0, ["typst", "query", typ, selector, "--field", "value", *rootargs])
+    for cmd in cmds:
         try:
             r = proc.run(cmd, proc.TYPST_S, name=f"typst {cmd[1]}")
         except OSError:   # typst missing; a timeout propagates to `proc.guarded`, and is never cached

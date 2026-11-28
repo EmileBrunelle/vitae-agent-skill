@@ -74,8 +74,8 @@ def test_no_split_page_texts(pages, fails):
 
 
 @pytest.mark.parametrize("pages", [[P1, "kept the API under 200 ms"], [P1, "x", "y"]], ids=["two-pages", "three-pages"])
-def test_no_section_call_means_nothing_to_split_even_over_several_pages(pages):
-    assert not _fails(pages, src="#let x = 1\nplain body\n")
+def test_no_section_call_is_unmeasurable_so_it_fails_over_several_pages(pages):
+    assert _fails(pages, src="#let x = 1\nplain body\n")
 
 
 def test_hidden_word_starting_above_the_page_top_is_still_detected(tmp_path):

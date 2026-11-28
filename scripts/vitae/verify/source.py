@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Sequence
 
+from vitae.core.base import Mark
 from vitae.verify.lang import is_latin, strip_latin_marks
 from vitae.verify.pdf import family_from_path
 from vitae.verify.typst import mask_non_markup
@@ -49,7 +51,77 @@ def _heading_words(s: str) -> frozenset[str]:
     return frozenset(bare.split())
 
 
-def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
+RUNNING_TOL_PT = 1.0   # a header or footer heading sits at the same y on every page
+
+
+def _running(native: Sequence[Mark]) -> list[Mark]:
+    """The headings left after dropping the running ones: a header or footer heading is the same (level, title)
+    on more than one page at the same y (within RUNNING_TOL_PT). A repeated title at different heights is a real
+    section; a record without a y or a page cannot be told, so it is kept."""
+    def same(a: Mark, b: Mark) -> bool:
+        return (a.get("level", 1) == b.get("level", 1) and _norm_heading(a["text"]) == _norm_heading(b["text"])
+                and "page" in a and "page" in b and a["page"] != b["page"] and "y" in a and "y" in b
+                and abs(a["y"] - b["y"]) <= RUNNING_TOL_PT)
+    return [h for h in native if not any(same(h, o) for o in native)]
+
+
+def boundary_headings(native: Sequence[Mark]) -> list[str]:
+    """Titles of the native headings that START a section: those of the shallowest level, since a page that
+    opens on a deeper heading is inside its section. A lone shallowest heading while deeper ones exist is
+    the document title, not a section, so the next level down is used. A running heading (same title on
+    several pages) is no boundary. Limit: a single `=` name over `==` entries reads as title over sections.
+    Pure structure: levels and pages, never words."""
+    native = _running(native)
+    levels = sorted({h.get("level", 1) for h in native})
+    if not levels:
+        return []
+    top = levels[0]
+    if len(levels) > 1 and sum(h.get("level", 1) == top for h in native) == 1:
+        top = levels[1]
+    return [h["text"] for h in native if h.get("level", 1) == top]
+
+
+def _before(h: Mark, secs: Sequence[Mark]) -> bool:
+    """`h` sits above the first section mark (page, then y); False when a position is missing."""
+    if "page" not in h or "y" not in h:
+        return False
+    first = min(((m["page"], m["y"]) for m in secs if "page" in m and "y" in m), default=None)
+    return first is not None and (h["page"], h["y"]) < first
+
+
+def check_native_headings(secs: Sequence[Mark], native: Sequence[Mark]) -> list[str]:
+    """WARN lines for a CV that has <vitae-sec> marks AND native headings: lib section() draws no heading
+    element (a block with a styled text), so a native heading is a section built by hand, which the
+    grouping / date / runt / rhythm gates do not see. Named by position and page, never by its words.
+    Not counted: a running heading, and the document title (the lone shallowest heading above the first mark)."""
+    native = _running(native)
+    if native:
+        top = min(h.get("level", 1) for h in native)
+        tops = [h for h in native if h.get("level", 1) == top]
+        if len(tops) == 1 and tops[0] is native[0] and _before(tops[0], secs):
+            native = native[1:]
+    if not secs or not native:
+        return []
+    where = ", ".join(f"#{i} (page {h.get('page', '?')})" for i, h in enumerate(native, 1))
+    return [f"{len(native)} native heading(s) of {len(native) + len(secs)} sections are not built with the family's "
+            f"section(): heading {where}. Group proximity, date adjacency, runts and rhythm are NOT measured "
+            "for them; build every section with section()"]
+
+
+NO_BOUNDARY_MSG = ("no-split: the CV has no <vitae-sec> mark, no native heading and no #section(\"...\") call, "
+                   "so no section boundary can be measured -- build every section with the family's section() "
+                   "(templates/lib.typ wd-section) so the rule can be checked")
+
+
+def section_titles(source: str, secs: Sequence[Mark] | None, native: Sequence[Mark] | None) -> list[str]:
+    """The section boundaries check_no_split measures: the <vitae-sec> titles and the native boundary headings;
+    the `#section("...")` calls of the source only when neither is there (query unavailable)."""
+    titles = [m["text"] for m in secs or ()] + boundary_headings(native or ())
+    return titles or SECTION_CALL_RE.findall(source)
+
+
+def check_no_split(source: str, pages: list[str], *, secs: Sequence[Mark] | None = None,
+                   native: Sequence[Mark] | None = None) -> list[tuple[bool, str]]:
     """SKILL.md rule 5 -- "no section may split across a page break".
 
     Reduced to one measurable statement: a section that starts on page P and
@@ -58,7 +130,12 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
     not an approximation of it -- if every break lands exactly on a boundary,
     nothing straddles; if one does not, whatever section preceded it is split.
 
-    Returns (is_fail, message) pairs; "no #section call" and "single page" come back as non-failures, which the
+    The boundaries are, in order of preference, the <vitae-sec> marks (`secs`) together with the native
+    headings (`native`: a hand-written `= Title` starts a section too), else the `#section("...")` calls of
+    the source when the query was unavailable. A CV with none of them FAILs: its sections cannot be
+    told apart, so the rule is unmeasurable, and an unmeasured rule is never a pass.
+
+    Returns (is_fail, message) pairs; "single page" comes back as a non-failure, which the
     caller prints. The caller turns a FAIL into a WARN on the pypdf fallback, whose extraction is indicative only.
 
     Pure function of (source text, extracted pages) so the tests can feed it
@@ -66,12 +143,12 @@ def check_no_split(source: str, pages: list[str]) -> list[tuple[bool, str]]:
     property one level down (verify_academic.check_no_straddle: the atom is the
     ENTRY there, and its heading list comes from the declared JSON spec).
     """
-    headings = {_norm_heading(t) for t in SECTION_CALL_RE.findall(source)}
+    titles = section_titles(source, secs, native)
+    headings = {_norm_heading(t) for t in titles}
     headings.discard("")
-    loose = [hw for hw in (_heading_words(t) for t in SECTION_CALL_RE.findall(source)) if hw]
+    loose = [hw for hw in (_heading_words(t) for t in titles) if hw]
     if not headings:
-        return [(False, 'no-split: no #section("...") call in the source '
-                        "-- not checked")]
+        return [(True, NO_BOUNDARY_MSG)]
     # pdftotext TERMINATES the last page with \f rather than separating pages
     # with it, so a naive split leaves a trailing empty chunk — which read as
     # "page N+1 opens on nothing" and failed all 30 one-page deliverables.

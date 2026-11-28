@@ -4,6 +4,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Verify: no-split also covers native `= Heading` sections (read by the same single query) and FAILs a CV that has neither `<vitae-sec>` marks nor headings instead of printing "not checked"; a WARN names native headings left beside `section()` marks.
+- Upgrade: a CV started on an older skill must re-copy `templates/lib.typ` (the gate FAILs "lib.typ differs"; the lib changed in this release for `summary:` / `expected:`).
 - Docs: both READMEs match the current repo (uv-first requirements pointing to the PEP 723 headers, review-record gate, PDF/UA + PDF/A, declared WARNs, upstream fonts, models and extractors links).
 - Docs: the fact sheet is `facts.md` everywhere (README, academic mode, letter template, reviews); the academic example data is `templates/academic/academic.example.toml` and cites `facts.md#…`.
 - Verify: two WARN checks driven by explicit declarations. `section(.., summary: true)` marks the Summary; a figure it states (with its unit; ranges as one figure; years and month/year dates excluded) that a bullet outside it repeats is a WARN. `entry`/`job(.., expected: true)` marks an anticipated date; a latest year before the current year is a WARN. Every template passes `summary: true` on its Summary/Profile section. No word of any language is read: an undeclared or unbounded Summary gives no finding.

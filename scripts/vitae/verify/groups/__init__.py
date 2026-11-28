@@ -16,6 +16,7 @@ from vitae.verify.groups.proximity import (
     org_on_one_line,
 )
 from vitae.verify.groups.query import (
+    HEADING_SELECTOR,
     ContactValues,
     gnorm,
     typst_marks_and_contact,
@@ -26,6 +27,7 @@ from vitae.verify.groups.query import (
 
 __all__ = [
     "ENTRY_MARKS",
+    "HEADING_SELECTOR",
     "PROX_FAIL",
     "PROX_HIER",
     "PROX_WARN",

@@ -25,6 +25,7 @@ class VerifyContext:
     marks: list[Mark] | None = None
     heads: list[Mark] | None = None
     secs: list[Mark] | None = None   # the <vitae-sec> section titles, same query (the lib gives them no kind)
+    native: list[Mark] | None = None   # native `= Heading` elements (kind "heading", page, level), same query
     detail: list[DetailRow] | None = None
     contact_items: list[object] | None = None   # <vitae-contact> values, read with the marks (None: query unavailable)
     contact_rows: list[object] | None = None    # <vitae-contact-rows> values, same query

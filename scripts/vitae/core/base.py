@@ -38,6 +38,7 @@ class _MarkExtras(TypedDict, total=False):
     expected: ReadOnly[bool]      # entry heads declared `expected: true`: the date is a planned one
     dates: ReadOnly[str]          # ... and then its date text
     summary: ReadOnly[bool]       # section titles declared `summary: true`: the summary / profile section
+    level: ReadOnly[int]          # native headings (kind "heading"): the `= ` depth
 
 
 class Mark(_MarkExtras):

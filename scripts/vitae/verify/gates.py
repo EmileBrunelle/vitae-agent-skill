@@ -19,6 +19,7 @@ from vitae.verify.contact import check_contact_line
 from vitae.verify.declared import bullets_outside, check_expected_past, check_summary_figures, section_text
 from vitae.verify.groups import (
     ENTRY_MARKS,
+    HEADING_SELECTOR,
     check_date_adjacency,
     check_duplicate_names,
     check_group_proximity,
@@ -30,12 +31,22 @@ from vitae.verify.placeholders import check_placeholders
 from vitae.verify.registry import FnGate
 from vitae.verify.rhythm import check_rhythm
 from vitae.verify.runts import bullet_layout, check_runts
-from vitae.verify.source import check_forced_linebreak, check_literal_tilde, check_no_split
+from vitae.verify.source import (
+    NO_BOUNDARY_MSG,
+    check_forced_linebreak,
+    check_literal_tilde,
+    check_native_headings,
+    check_no_split,
+    section_titles,
+)
 from vitae.verify.text import check_bullet_chars, check_facts_coverage, check_hidden_text
 
 # ONE `typst query` for every label the gates read from the lib: the entry/bullet marks and the contact labels.
 # The section titles (<vitae-sec>) ride the same query: they are the only marks without a `kind`.
 CONTEXT_MARKS = ENTRY_MARKS + ".or(<vitae-sec>).or(<vitae-contact>).or(<vitae-contact-rows>)"
+# Native `= Heading` elements ride the same query (query.HEADING_SELECTOR, read through eval); a typst that cannot
+# eval them gives None for the whole read, and then the marks are asked again without them (a second call, only then).
+CONTEXT_MARKS_HEADINGS = CONTEXT_MARKS + ".or(" + HEADING_SELECTOR + ")"
 
 
 def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *, root: str | None = None,
@@ -43,17 +54,24 @@ def make_context(typ: str, pdf: str, txt: str, src: str, backend: str | None, *,
                  detail: list[DetailRow] | None = None) -> VerifyContext:
     """Build the gates' inputs; the lib markers are queried here, once, when `typst query` is usable, and the
     bullets they mark are located once (the runts and rhythm gates read the same ones)."""
-    queried, note, contact = typst_marks_and_contact(typ, CONTEXT_MARKS, root) if can_query else (None, None, None)
-    marks = None if queried is None else [m for m in queried if "kind" in m]
+    queried, note, contact = typst_marks_and_contact(typ, CONTEXT_MARKS_HEADINGS, root) if can_query else (None, None, None)
+    heading_note: tuple[str, ...] = ()
+    if can_query and queried is None:
+        queried, note, contact = typst_marks_and_contact(typ, CONTEXT_MARKS, root)
+        if queried is not None:
+            heading_note = ("native headings could not be read (typst eval failed): no-split uses the section marks "
+                            "only, and native headings beside section() are not reported",)
+    marks = None if queried is None else [m for m in queried if "kind" in m and m["kind"] != "heading"]
+    native = None if queried is None or heading_note else [m for m in queried if m.get("kind") == "heading"]
     secs = None if queried is None else [m for m in queried if "kind" not in m]
     heads = None if marks is None else [m for m in marks if m.get("kind") in ("entry", "skill")]
     sized = bbox_pages(pdf) if marks and any(m.get("kind") == "bullet" for m in marks) else None
     return VerifyContext(typ=typ, pdf=pdf, txt=txt, src=src, backend=backend, root=root, facts=facts,
-                         can_query=can_query, marks=marks, heads=heads, secs=secs, detail=detail,
+                         can_query=can_query, marks=marks, heads=heads, secs=secs, native=native, detail=detail,
                          bullets=None if marks is None or sized is None else bullet_layout(marks, sized),
                          contact_items=None if contact is None else contact.items,
                          contact_rows=None if contact is None else contact.rows,
-                         mark_notes=(note,) if note else ())
+                         mark_notes=((note,) if note else ()) + heading_note)
 
 
 def _bad(ctx: VerifyContext, msg: str) -> Finding:
@@ -105,9 +123,15 @@ def _orphaned_dates(ctx: VerifyContext) -> list[Finding]:
 
 def _no_split(ctx: VerifyContext) -> list[Finding]:
     out: list[Finding] = []
-    for is_fail, msg in check_no_split(ctx.src, ctx.txt.split("\f")):
+    if not section_titles(ctx.src, ctx.secs, ctx.native):
+        return [(Level.FAIL, NO_BOUNDARY_MSG)]   # a fact about the source, not the extraction: FAIL on every backend
+    for is_fail, msg in check_no_split(ctx.src, ctx.txt.split("\f"), secs=ctx.secs, native=ctx.native):
         out.append(_bad(ctx, msg) if is_fail else (Level.OK, msg))
     return out
+
+
+def _native_headings(ctx: VerifyContext) -> list[Finding]:
+    return [(Level.WARN, m) for m in check_native_headings(ctx.secs or [], ctx.native or [])]
 
 
 def _facts_coverage(ctx: VerifyContext) -> list[Finding]:
@@ -237,6 +261,7 @@ EXTRACTION_GATES: tuple[FnGate, ...] = (
     FnGate("letterspacing", _letterspaced),
     FnGate("orphaned-date", _orphaned_dates),
     FnGate("no-split", _no_split),
+    FnGate("native-headings", _native_headings),
     FnGate("facts-coverage", _facts_coverage, _has_facts),
     FnGate("summary-figures", _summary_figures, _has_summary),
     FnGate("expected-past", _expected_past, _has_expected),

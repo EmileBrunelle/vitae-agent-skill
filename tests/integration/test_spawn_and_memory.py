@@ -125,7 +125,8 @@ def runs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Run]:
 # that quietly stops running a check; the upper one a spawn added).
 _COMMON = {
     "typst compile": (2, 2),        # the PDF, and the PNG raster of the layout check: once per deliverable and format
-    "typst query": (1, 1),          # the lib's marks, the heads and the sections in ONE query (VerifyContext), once per gate run
+    "typst eval": (1, 1),           # the lib's marks, the heads, the sections and the native headings in ONE eval (VerifyContext; a
+                                    # selector naming `heading` cannot go through `typst query --field value`), once per gate run
     "pdftotext": (1, 1),            # the reading text, once
     "pdftotext -bbox": (1, 1),      # the word boxes of one PDF, read once and shared by every gate (pdf.run_memo)
     "pdfinfo": (1, 1),              # the page count and the metadata read the same output
@@ -135,7 +136,7 @@ BUDGET = {
     "resume-1page": {**_COMMON, "pdftoppm": (2, 2)},           # one 150-ppi render, one 300-ppi ink page
     "resume-2page": {**_COMMON, "pdftoppm": (3, 3)},           # the ink page once per page
     # verify_academic.run_gate: no lib/section queries (the TOML declares the structure); pdfinfo is read once (run_memo)
-    "academic": {**_COMMON, "typst query": (0, 0), "pdfinfo": (1, 1), "pdftoppm": (1, 1)},
+    "academic": {**_COMMON, "typst eval": (0, 0), "pdfinfo": (1, 1), "pdftoppm": (1, 1)},
 }
 # Peak of Python-side allocations in KiB, measured on the gate after a warm-up (stable on Python 3.11 and 3.15, with or
 # without pikepdf): 1559 KiB 1 page, 1729 KiB 2 pages, 953 KiB academic (verify_academic.run_gate). Bound = 1.5 x measured.
