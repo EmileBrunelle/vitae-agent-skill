@@ -1,12 +1,13 @@
 """LOG320 worst-case sweep of the proximity gate: the page index answers `find_run`, `lines` (with its `line_index`) and the whole
 `measure_groups` exactly as the code it replaced did (the old code is kept verbatim in _proximity_ref.py; Hypothesis builds
 pages from a tiny vocabulary so words repeat, lines share baselines and overlap, heads sit in several columns, rails and
-missing pages come up), and a page of thousands of heads stays fast (`slow`)."""
-import time
+missing pages come up), and its work, counted in line events (no wall clock), stays linear."""
+import sys
 from collections.abc import Callable
 
+import _proximity_ref
 import pytest
-from _growth import GROWTH_BOUND, growth_ratio
+from _complexity import assert_linear, line_events
 from _pages import cv_page, head_mark
 from _proximity_ref import (
     find_run_scanning,
@@ -118,47 +119,57 @@ def test_measure_groups_equivalence_is_not_vacuous() -> None:
     assert proximity.measure_groups(ghost, [], pages)[1] == 1
 
 
-def _measured(entries: int) -> Callable[[], object]:
+_PROXIMITY_FILES = frozenset({proximity.__file__, sys.modules[PageIndex.__module__].__file__ or "", _proximity_ref.__file__ or ""})
+
+
+def _grouping_events(measure: Callable[[list[Mark], list[Mark], list[list[Word]]], object], entries: int) -> int:
     heads, pages = _cv_words(entries)
-    return lambda: proximity.measure_groups(heads, [], pages)
+    events, rows = line_events(_PROXIMITY_FILES, lambda: measure(heads, [], pages))
+    assert rows                                          # the code path ran: a swap for another algorithm cannot blind the counter
+    return events
 
 
-def _measured_rebuilding(entries: int) -> Callable[[], object]:
-    heads, pages = _cv_words(entries)
-    return lambda: measure_groups_rebuilding(heads, [], pages)
+def test_measure_groups_work_grows_linearly_with_the_heads_of_a_page() -> None:
+    # bound 3: a small superlinear term shows (2.1 x per doubling at 30 heads, 2.7 x at 480), where the quadratic code makes 4 x
+    assert_linear(lambda n: _grouping_events(proximity.measure_groups, n), 30, bound=3.0)
 
 
-@pytest.mark.slow
-def test_measure_groups_time_grows_linearly_with_the_heads_of_a_page() -> None:
-    assert growth_ratio(_measured, 60) < GROWTH_BOUND
+def test_the_work_count_tells_the_rebuilding_version_from_the_indexed_one() -> None:
+    # control: the same counter shows the old code superlinear (a quadruple per doubling is a quadratic)
+    w1, w2, w4 = (_grouping_events(measure_groups_rebuilding, 15 * k) for k in (1, 2, 4))
+
+    assert w1 > 0 and w2 / w1 > 3.0 and w4 / w2 > 3.0
 
 
-@pytest.mark.slow
-def test_the_growth_ratio_tells_the_rebuilding_version_from_the_indexed_one() -> None:
-    assert growth_ratio(_measured_rebuilding, 60, repeats=2) > GROWTH_BOUND     # control: the old code is quadratic
+def test_measure_groups_does_far_less_work_than_rebuilding_on_a_page_of_dozens_of_heads() -> None:
+    indexed = _grouping_events(proximity.measure_groups, 60)        # 2 700 words, 60 heads
+    rebuilding = _grouping_events(measure_groups_rebuilding, 60)
+
+    assert indexed * 20 < rebuilding
 
 
-@pytest.mark.slow
-def test_measure_groups_bounds_time_on_a_page_of_hundreds_of_heads() -> None:
-    heads, pages = _cv_words(240)       # 10 800 words, 240 heads
-    start = time.perf_counter()
-
-    rows, _ = proximity.measure_groups(heads, [], pages)
-
-    assert time.perf_counter() - start < 1.0     # measured ~0.05 s; rebuilding the page for every head took ~3 s
-    assert len(rows) == 239
+def _find_run_events(n_words: int, queries: int = 250) -> int:
+    words: list[Word] = [(10.0, 12.0 * i, 40.0, 12.0 * i + 9.0, "same") for i in range(n_words)]
+    idx = PageIndex(words)
+    events, runs = line_events(_PROXIMITY_FILES, lambda: [idx.find_run("same", 12.0 * i) for i in range(0, 4 * queries, 4)])
+    assert all(r is not None for r in runs)
+    return events
 
 
-@pytest.mark.slow
-def test_find_run_bounds_time_on_a_word_repeated_across_the_page() -> None:
+def test_find_run_work_grows_linearly_with_a_word_repeated_across_the_page() -> None:
+    # a fixed number of queries on a page of n identical words: each start is tried, none is checked beyond its token
+    assert_linear(_find_run_events, 1000)
+
+
+def test_find_run_does_less_work_than_the_scanning_version_on_a_repeated_word() -> None:
     words: list[Word] = [(10.0, 12.0 * i, 40.0, 12.0 * i + 9.0, "same") for i in range(4000)]
     idx = PageIndex(words)
-    start = time.perf_counter()
+    ys = [12.0 * i for i in range(0, 1000, 4)]
+    indexed, _ = line_events(_PROXIMITY_FILES, lambda: [idx.find_run("same", y) for y in ys])
+    scanning, runs = line_events(_PROXIMITY_FILES, lambda: [find_run_scanning(words, "same", y) for y in ys])
 
-    runs = [idx.find_run("same", 12.0 * i) for i in range(0, 4000, 4)]
-
-    assert time.perf_counter() - start < 1.0     # measured ~0.1 s (every start is tried, none is checked beyond its token)
     assert all(r is not None for r in runs)
+    assert indexed > 0 and indexed * 2 < scanning
 
 
 def test_check_group_proximity_fails_a_page_beyond_the_declared_size() -> None:

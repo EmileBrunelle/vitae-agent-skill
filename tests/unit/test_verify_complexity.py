@@ -6,13 +6,12 @@ import itertools
 import operator
 import random
 import re
-import sys
 from collections.abc import Callable
-from types import FrameType
-from typing import Protocol, SupportsIndex, TypeVar
+from typing import SupportsIndex
 
 import pytest
 from _comments_ref import strip_block_comments_regex, strip_comments_regex
+from _complexity import assert_linear, line_events
 from _reading_order_ref import reading_order_quadratic
 from _stuffed_ref import stuffed_counting
 from hypothesis import given, settings
@@ -128,57 +127,20 @@ def _grid(n: int, per_row: int = 20) -> list[WordBox]:
               20.0 + (i // per_row) * 12), f"w{i}") for i in range(n)]
 
 
-class TraceFunction(Protocol):
-    def __call__(self, frame: FrameType, event: str, arg: object, /) -> "TraceFunction | None": ...
-
-
-_T = TypeVar("_T")
-
-
-def _line_events(files: frozenset[str], call: Callable[[], _T]) -> tuple[int, _T]:
-    """Run `call` and count the Python line events executed in the source `files` (all their frames, comprehensions and
-    lambdas included): a deterministic measure of the Python-level work, immune to runner load. It does not see C-level
-    work (`str.find`, `list.count`, a regex): see `_ScanStr` and `_CountingStr` for those."""
-    events = 0
-
-    def local(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
-        nonlocal events
-        if event == "line":
-            events += 1
-        return local
-
-    def tracer(frame: FrameType, event: str, arg: object) -> TraceFunction | None:
-        return local if event == "call" and frame.f_code.co_filename in files else None
-
-    previous = sys.gettrace()
-    sys.settrace(tracer)
-    try:
-        result = call()
-    finally:
-        sys.settrace(previous)
-    return events, result
-
-
-def _assert_linear(measure: Callable[[int], int], base: int) -> None:
-    """The work at `base`, 2 x `base` and 4 x `base` grows at most 2.2 x per doubling (a quadratic one: 4 x)."""
-    w1, w2, w4 = (measure(base * k) for k in (1, 2, 4))
-    assert w1 > 0                    # the measure saw some work: the ratios are not vacuous
-    assert w2 / w1 <= 2.2
-    assert w4 / w2 <= 2.2
 
 
 _PDF_FILE = frozenset({pdf._reading_order.__code__.co_filename})
 
 
 def _reading_order_events(words: list[WordBox]) -> int:
-    events, out = _line_events(_PDF_FILE, lambda: pdf._reading_order(words))
+    events, out = line_events(_PDF_FILE, lambda: pdf._reading_order(words))
     assert len(out) == len(words)
     return events
 
 
 def test_reading_order_work_grows_linearly_on_a_large_table() -> None:
     # the quadratic version compared every piece with every piece above it (6 s on 8000 words)
-    _assert_linear(lambda n: _reading_order_events(_grid(n)), 1000)
+    assert_linear(lambda n: _reading_order_events(_grid(n)), 1000)
 
 
 def _one_baseline(n: int) -> list[WordBox]:
@@ -197,14 +159,14 @@ def _side_then_rows(n: int) -> list[WordBox]:
 
 def test_reading_order_work_grows_linearly_on_a_single_baseline() -> None:
     # recomputing the row's mean per word was quadratic (4 s on 8000 words)
-    _assert_linear(lambda n: _reading_order_events(_one_baseline(n)), 1000)
+    assert_linear(lambda n: _reading_order_events(_one_baseline(n)), 1000)
     words = _one_baseline(1000)
     assert pdf._reading_order(words) == words
 
 
 def test_reading_order_work_grows_linearly_on_many_side_pieces_then_many_rows() -> None:
     # rescanning the rows per side piece was quadratic (1.8 s on 3000 + 3000)
-    _assert_linear(lambda n: _reading_order_events(_side_then_rows(n)), 400)
+    assert_linear(lambda n: _reading_order_events(_side_then_rows(n)), 400)
 
 
 def test_reading_order_matches_the_oracle_on_the_side_piece_worst_cases() -> None:
@@ -240,17 +202,17 @@ def test_stuffed_signals(t: str, want: bool) -> None:
     assert (text._stuffed(t) is not None) is want
 
 
-def _stuffed_line_events(n: int) -> int:
+def _stuffedline_events(n: int) -> int:
     """Python line events inside `text._stuffed` on `n` distinct terms."""
     t = ", ".join(f"t{i}" for i in range(n))
-    events, out = _line_events(frozenset({text._stuffed.__code__.co_filename}), lambda: text._stuffed(t, max_terms=0))
+    events, out = line_events(frozenset({text._stuffed.__code__.co_filename}), lambda: text._stuffed(t, max_terms=0))
     assert out is None
     return events
 
 
 def test_stuffed_work_grows_linearly_on_a_long_distinct_list() -> None:
     base = 1000
-    e1, e2, e4 = (_stuffed_line_events(base * k) for k in (1, 2, 4))
+    e1, e2, e4 = (_stuffedline_events(base * k) for k in (1, 2, 4))
 
     # linear: doubling the input roughly doubles the events (a per-term count over the list would quadruple them)
     assert e2 / e1 <= 2.2
@@ -450,7 +412,7 @@ _COMMENT_FILES = frozenset({typst_source.strip_comments_keep_urls.__code__.co_fi
 def _scan_work(strip: Callable[[str], object], src: str) -> int:
     """Python line events in `typst_source` and `fonts` plus characters scanned by `find` on the source text."""
     _ScanStr.scanned = _ScanStr.calls = 0
-    events, out = _line_events(_COMMENT_FILES, lambda: strip(_ScanStr(src)))
+    events, out = line_events(_COMMENT_FILES, lambda: strip(_ScanStr(src)))
     assert out
     # the scan went through the counted `find`: a regex (`re.sub(r"/\*.*?\*/")`) scans in C without calling it, and
     # its quadratic rescan would go unseen
@@ -462,7 +424,7 @@ def _scan_work(strip: Callable[[str], object], src: str) -> int:
 @pytest.mark.parametrize("unit", ["/* ", "/*", "/* // ", "/*\n// x\n"])
 def test_strip_comments_work_grows_linearly_on_unclosed_block_comments(unit: str) -> None:
     # the regex it replaced rescanned to the end of the text from every unclosed `/*` (13.9 s on 100 000 characters)
-    _assert_linear(lambda n: _scan_work(typst_source.strip_comments_keep_urls, unit * (n // len(unit))), 4000)
+    assert_linear(lambda n: _scan_work(typst_source.strip_comments_keep_urls, unit * (n // len(unit))), 4000)
 
 
 # ------------------------------------------------------------------ typst_source.strip_block_comments
@@ -491,4 +453,4 @@ def test_strip_block_comments_cases(src: str, want: str) -> None:
 @pytest.mark.parametrize("unit", ["/* ", "/*", "/*\n"])
 def test_requested_families_work_grows_linearly_on_unclosed_block_comments(unit: str) -> None:
     # the regex rescanned to the end of the text from every unclosed `/*` (11 s on 100 000 characters)
-    _assert_linear(lambda n: _scan_work(fonts.requested_families, unit * (n // len(unit))), 4000)
+    assert_linear(lambda n: _scan_work(fonts.requested_families, unit * (n // len(unit))), 4000)
