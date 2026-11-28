@@ -9,8 +9,8 @@ from vitae.design.tables import FONTS, Font, Page
 def font_chain(pool: list[Font], drawn: Font, role: str,
            have: set[str] | None = None) -> str:
     """Typst font fallback chain: the drawn face first, then the rest of the
-    family's own pool, and always ENDING on a face a standard Linux font set
-    has — otherwise Typst silently substitutes something arbitrary."""
+    family's own pool, and always ENDING on a widely installed face —
+    otherwise Typst silently substitutes something arbitrary."""
     names = [drawn[0]] + [n for n, _ in pool if n != drawn[0]]
     if have is not None:                # font check on: emit installed names only
         inst = [drawn[0]]               # the chosen face is always kept
@@ -20,11 +20,10 @@ def font_chain(pool: list[Font], drawn: Font, role: str,
                 inst.append(got)
         names = inst
     tail = "DejaVu Sans Mono" if role == "mono" else "Noto Sans"
-    if not any(("local" in prov or "Linux:" in prov) for n, prov in pool
-               if n in names or installed_face(n, have or set()) in names):
+    if tail not in names:
         if have is None:
             names.append(tail)
-        elif (inst_tail := installed_face(tail, have)):
+        elif (inst_tail := installed_face(tail, have)) and inst_tail not in names:
             names.append(inst_tail)
     return "(" + ", ".join(f'"{n}"' for n in names) + ")"
 

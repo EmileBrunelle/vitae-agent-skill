@@ -37,31 +37,25 @@ def report(p: Pick, market: str) -> str:
     ]
     if p.mono:
         lines.append(f"mono font       : {p.mono[0]}   [{p.mono[1]}]  — {p.mono_note}   (ALL metadata)")
-    # A GF-only face is in no distro and has to be fetched; a "GF · Linux:
-    # <pkg>" face has two routes. Say so once, and only when this draw needs it.
+    # A face not found locally has to be fetched from its source (Google
+    # Fonts or the `upstream:` publisher). Say so once, and only when this
+    # draw needs it.
     roles = [p.display, p.body] + ([p.mono] if p.mono else [])
     notes = [p.display_note, p.body_note] + (
         [p.mono_note] if p.mono else [])
     need = [r[1] or "" for r, nt in zip(roles, notes)
-            if "GF" in (r[1] or "") and not (
-                "Linux:" in r[1] and (nt or "").startswith("available"))]
-    if any("Linux:" not in x for x in need):
-        lines.append(
-            "                  faces marked [GF] are Google Fonts (OFL) and "
-            "ship in no distro package:")
-    elif need:
-        lines.append(
-            "                  faces marked [GF · Linux: pkg] are Google Fonts "
-            "(OFL) AND packaged on some distros:")
+            if (r[1] or "").startswith(("GF", "upstream:"))
+            and not (nt or "").startswith("available")]
     if need:
         lines.append(
-            "                  install them (Google Fonts download%s), then "
-            "confirm with `typst fonts` — references/fonts.md has the URL,"
-            % (", or the named Linux package"
-               if any("Linux:" in x for x in need) else ""))
+            "                  faces marked [GF] are Google Fonts (OFL), "
+            "[upstream: ...] come from the named publisher;")
+        lines.append(
+            "                  check `typst fonts` first, else download and "
+            "install them, then confirm with `typst fonts` — references/fonts.md has")
         lines.append(
             "                  the licence and both installation routes "
-            "(~/.local/share/fonts + fc-cache, or --font-path).")
+            "(per-OS user font folder, or --font-path).")
     if any((nt or "").startswith("NO pool member") for nt in notes) \
             and p.have is not None and not p.offline:
         lines.append(

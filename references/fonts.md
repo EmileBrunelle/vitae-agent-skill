@@ -2,13 +2,14 @@
 
 `scripts/pick_design.py` is the single source of truth for **which** faces each design family may draw (its `FONTS` table). This file answers the other question: when the script prints a face with provenance **`GF`**, where does it come from, what is its licence, and how do you install it.
 
-Provenance in `pick_design.py` takes exactly three forms:
+Provenance in `pick_design.py` takes exactly two forms:
 
 | Provenance | Meaning |
 |---|---|
-| `local: <package>` | present in a standard Linux font set; install the named distro package and `typst fonts` sees it |
-| `GF · Linux: <package>` | on Google Fonts AND packaged on some Linux distros: either download it (routes below) or install the named package |
-| `GF (...)` | Google Fonts only. Not installed anywhere by default — one of the two routes below |
+| `upstream: <source>` | from the named publisher or repository (see *Upstream sources* below), not from Google Fonts: download it and install it with Route 1 |
+| `GF (...)` | on Google Fonts: download it (routes below) and install it with Route 1 |
+
+A face already installed on the system (any OS) is seen by `typst fonts` and needs no download: run `typst fonts` first, and download only what it does not list.
 
 Every face in every pool is under the **SIL Open Font License 1.1 (OFL)** except where the table says otherwise. OFL permits redistribution and embedding in a PDF without attribution in the document, which is why the pools are restricted to it: a CV is a file you hand to strangers, and a font you cannot legally embed is a font that will be substituted on their machine.
 
@@ -78,23 +79,24 @@ Sandboxed web agents sometimes cannot reach `fonts.google.com` or `fonts.gstatic
 
 ## The faces
 
+### Upstream sources
+
+These faces are not taken from Google Fonts. Each comes from its publisher; the CI font set (`tests/fetch_fonts.sh`) fetches exactly these:
+
+| Family | Source |
+|---|---|
+| Nimbus Sans, URW Gothic, P052, C059, URW Bookman | URW base35 fonts, ArtifexSoftware `urw-base35-fonts` repository |
+| Liberation Sans | Liberation Fonts, official 2.1.5 release (TrueType archive) |
+| Adwaita Sans, Adwaita Mono | GNOME `adwaita-fonts` repository |
+| Cantarell | GNOME Cantarell 0.303.1 (the GNOME version, not the older, taller Google Fonts build) |
+| STIX Two Text | STIX Fonts, STIPub `stixfonts` repository |
+| DejaVu Sans Mono, Libertinus Serif | embedded in Typst: nothing to download |
+
 Family names below are written **exactly as `typst fonts` reports them** — that string is what goes in a recipe. All OFL 1.1 unless noted.
 
-### Faces with a distro package as well as a Google Fonts entry
+### Google Fonts faces
 
-Prefer the distro package: it is one command and it updates with the system.
-
-| Family | Specimen | Distro package |
-|---|---|---|
-| Fira Sans | `fonts.google.com/specimen/Fira+Sans` | `fonts-fira-sans` (Debian/Ubuntu), `mozilla-fira-fonts` (Fedora) |
-| Fira Sans Condensed | shipped with Fira Sans | same package as Fira Sans |
-| Fira Mono | `fonts.google.com/specimen/Fira+Mono` | `fonts-fira-mono`, `mozilla-fira-mono` |
-| IBM Plex Sans | `fonts.google.com/specimen/IBM+Plex+Sans` | `fonts-ibm-plex` |
-| IBM Plex Mono | `fonts.google.com/specimen/IBM+Plex+Mono` | `fonts-ibm-plex` |
-
-### Google Fonts only — no distro package
-
-These are the faces that genuinely require one of the two routes above.
+These faces come from Google Fonts: download one with the routes above, then install it with Route 1 or Route 2.
 
 | Family | Specimen (`fonts.google.com/specimen/…`) | Foundry / note |
 |---|---|---|
@@ -105,6 +107,10 @@ These are the faces that genuinely require one of the two routes above.
 | Chivo | `Chivo` | Omnibus-Type; variable, with italic |
 | Crimson Pro | `Crimson+Pro` | book serif |
 | DM Sans | `DM+Sans` | Colophon / Deep Mind commission |
+| Fira Sans | `Fira+Sans` | Mozilla / Carrois; Fira Sans Condensed ships in the same family |
+| Fira Mono | `Fira+Mono` | Mozilla / Carrois |
+| IBM Plex Sans | `IBM+Plex+Sans` | IBM |
+| IBM Plex Mono | `IBM+Plex+Mono` | IBM |
 | Familjen Grotesk | `Familjen+Grotesk` | variable, with italic |
 | Geist | `Geist` | Vercel |
 | Geist Mono | `Geist+Mono` | Vercel |
@@ -130,11 +136,11 @@ These are the faces that genuinely require one of the two routes above.
 | Unbounded | `Unbounded` | heavy display |
 | Work Sans | `Work+Sans` | |
 
-Note that `Red Hat Display` and `Red Hat Text` (used by `color-band`) ship in the same Google Fonts family group as Red Hat Mono and are packaged as `fonts-redhat-text` / `redhat-text-fonts` on some distros.
+`Red Hat Display` and `Red Hat Text` (used by `color-band`) belong to the same Google Fonts family group as Red Hat Mono. `Caladea`, `Noto Sans`, `Noto Sans Mono`, `Noto Serif`, `Open Sans`, `PT Sans` and `Vazirmatn` are Google Fonts families too (their `GF` provenance in `pick_design.py`).
 
-## The three families with no local display face
+## The three families with no system display face
 
-Documented exemption to the pools' "at least one local member per role" rule: **avant-poster**, **gutter-rail** and **hard-edge** have no display-pool member in a standard Linux font set. Their registers — a wonky/heavy grotesque, a ruled technical grotesque, a condensed poster face — have no equivalent there, and substituting a neo-grotesque erases the family. Their *body* pools do carry a local member. If you draw one of these three, installing its display face is not optional; `pick_design.py` names the face and this file says where it comes from.
+Documented exemption to the pools' "at least one system-set member per role" rule: **avant-poster**, **gutter-rail** and **hard-edge** have no display-pool member among the faces a standard OS font set provides. Their registers — a wonky/heavy grotesque, a ruled technical grotesque, a condensed poster face — have no equivalent there, and substituting a neo-grotesque erases the family. Their *body* pools do carry such a member. If you draw one of these three, installing its display face is not optional; `pick_design.py` names the face and this file says where it comes from.
 
 ## Adding a face to a pool
 

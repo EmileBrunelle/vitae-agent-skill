@@ -129,12 +129,12 @@ def test_installed_resolves_the_size_variant(name, have, want):
 
 
 def test_chain_emits_only_installed_names_and_keeps_the_tail():
-    pool = [("DM Sans", "GF"), ("Sora", "GF"), ("Red Hat Display", "GF · Linux: redhat-display-fonts")]
+    pool = [("DM Sans", "GF"), ("Sora", "GF"), ("Red Hat Display", "GF (OFL)")]
     have = {"DM Sans 9pt", "Red Hat Display", "Noto Sans"}
     names = re.findall(r'"([^"]+)"', font_chain(pool, ("DM Sans 9pt", "x"), "display", have))
     assert names[0] == "DM Sans 9pt" and "Sora" not in names and set(names) <= have
     full = lambda pl, pk: re.findall(r'"([^"]+)"', font_chain(pl, pk, "display", None))
-    assert full(pool, ("DM Sans", "x")) == ["DM Sans", "Sora", "Red Hat Display"]
+    assert full(pool, ("DM Sans", "x")) == ["DM Sans", "Sora", "Red Hat Display", "Noto Sans"]
     assert full([("Sora", "GF")], ("Sora", "GF")) == ["Sora", "Noto Sans"]
 
 

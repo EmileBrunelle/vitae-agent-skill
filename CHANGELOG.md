@@ -4,6 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Newest first. Ve
 
 ## Unreleased
 
+- Fonts: installation advice is OS-portable. Provenance is `upstream: <source>` or `GF (...)`; the distro package names (`local:`, `GF · Linux: <package>`, the Debian/Fedora table) are gone, `references/fonts.md` lists each upstream source and points to Route 1 (per-OS user font folder), and the pick report says to check `typst fonts` first.
 - Dependencies: `typst` is a compatible range `typst>=0.15.2,<0.16` in every PEP 723 header instead of the exact `typst==0.15.2` (the gates measure the real PDF on each run; a Typst minor is the breaking boundary); the doctor and the docs print the quoted range, and a unit test checks that every documented `pip install typst` uses the header's specifier.
 
 ## 0.12.1 - 2026-11-28

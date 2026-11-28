@@ -319,90 +319,90 @@ FAMILIES: dict[str, Family] = {
 # is half of a family's identity. Body faces may overlap.
 # A family may declare an OPTIONAL third role, `mono`, when its recipe sets all
 # metadata in a monospace (hard-edge and gutter-rail).
-# "local:" = present in a standard Linux font set here (verified with
-# `typst fonts`); "GF (...)" = Google Fonts only, OFL, download; "GF · Linux:
-# <pkg>" = on Google Fonts AND packaged on some Linux distros (either route).
+# "upstream: <source>" = fetched from the face's own publisher (references/fonts.md,
+# Route 1 installs it on any OS); "GF (...)" = Google Fonts, OFL, download. A face
+# already installed on the system is seen by `typst fonts` and needs no download.
 # Documented EXEMPTION to the "at least one local member per role" rule: the
 # three CREATIVE families (avant-poster, gutter-rail, hard-edge) have NO
-# display-pool member in a standard Linux font set — their registers (a
+# display-pool member in a standard system font set — their registers (a
 # wonky/heavy grotesque, a ruled technical grotesque, a
 # condensed poster face) have no equivalent there, and substituting a
 # neo-grotesque would erase the family. The exemption is creative-register
 # only, their BODY pools do carry a local member, and the hand-off names the
-# package to install. Every other family keeps the rule.
+# source to install from. Every other family keeps the rule.
 # Extending a pool: run draw-rules.md's vetting checklist first, then add here.
 FONTS: dict[str, FontPool] = {
     "swiss-grid": FontPool(
         register="neo-grotesque, one family for display and body",
-        display=[("Nimbus Sans", "local: urw-base35-fonts / fonts-urw-base35"),
-                 ("Liberation Sans", "local: liberation-fonts"),
+        display=[("Nimbus Sans", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts)"),
+                 ("Liberation Sans", "upstream: Liberation Fonts 2.1.5 (official release)"),
                  ("Archivo", "GF (OFL)"),
                  ("Work Sans", "GF (OFL)")],
-        body=[("Nimbus Sans", "local: urw-base35-fonts / fonts-urw-base35"),
-              ("Liberation Sans", "local: liberation-fonts"),
+        body=[("Nimbus Sans", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts)"),
+              ("Liberation Sans", "upstream: Liberation Fonts 2.1.5 (official release)"),
               ("Source Sans 3", "GF (OFL, Adobe)"),
               ("Public Sans", "GF (OFL, USWDS)")]),
     "editorial-serif": FontPool(
         register="serif display over a humanist sans body",
-        display=[("Caladea", "GF · Linux: fonts-crosextra-caladea (OFL)"),
-                 ("Noto Serif", "GF · Linux: google-noto-serif-fonts / fonts-noto"),
+        display=[("Caladea", "GF (OFL)"),
+                 ("Noto Serif", "GF"),
                  ("Newsreader", "GF (OFL, Production Type)"),
                  ("Spectral", "GF (OFL, Production Type)")],
-        body=[("Open Sans", "GF · Linux: open-sans-fonts / fonts-open-sans"),
+        body=[("Open Sans", "GF"),
               ("Source Sans 3", "GF (OFL, Adobe)"),
-              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
+              ("IBM Plex Sans", "GF (OFL, IBM)"),
               ("Karla", "GF (OFL)")]),
     "color-band": FontPool(
         register="contemporary brand sans, display + text cuts of one system",
-        display=[("Red Hat Display", "GF · Linux: redhat-display-fonts (OFL)"),
+        display=[("Red Hat Display", "GF (OFL)"),
                  ("DM Sans", "GF (OFL)"),
                  ("Sora", "GF (OFL)")],
-        body=[("Red Hat Text", "GF · Linux: redhat-text-fonts (OFL)"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+        body=[("Red Hat Text", "GF (OFL)"),
+              ("Noto Sans", "GF"),
               ("Public Sans", "GF (OFL, USWDS)")]),
     "humanist-quiet": FontPool(
         register="one humanist sans, display and body, nothing else",
-        display=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
+        display=[("Cantarell", "upstream: GNOME Cantarell (OFL)"),
                  ("Karla", "GF (OFL)"),
                  ("Source Sans 3", "GF (OFL, Adobe)")],
-        body=[("Cantarell", "GF · Linux: abattis-cantarell-fonts (OFL)"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+        body=[("Cantarell", "upstream: GNOME Cantarell (OFL)"),
+              ("Noto Sans", "GF"),
               ("Karla", "GF (OFL)")]),
     "keyline-corporate": FontPool(
         register="clean grotesque, weight and size carry the hierarchy",
-        display=[("Vazirmatn", "GF · Linux: vazirmatn-fonts (OFL)"),
-                 ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
+        display=[("Vazirmatn", "GF (OFL)"),
+                 ("IBM Plex Sans", "GF (OFL, IBM)"),
                  ("Libre Franklin", "GF (OFL)")],
-        body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
-              ("Liberation Sans", "local: liberation-fonts"),
+        body=[("Noto Sans", "GF"),
+              ("Liberation Sans", "upstream: Liberation Fonts 2.1.5 (official release)"),
               ("Source Sans 3", "GF (OFL, Adobe)")]),
     "margin-index": FontPool(
         register="text serif with real italics and old-style figures, "
                  "one family throughout",
-        display=[("STIX Two Text", "GF · Linux: stix-fonts (OFL)"),
-                 ("Libertinus Serif", "GF · Linux: libertinus-fonts (OFL)"),
+        display=[("STIX Two Text", "upstream: STIX Fonts, STIPub stixfonts (OFL)"),
+                 ("Libertinus Serif", "upstream: Libertinus (embedded in Typst) (OFL)"),
                  ("Source Serif 4", "GF (OFL, Adobe)"),
                  ("Piazzolla", "GF (OFL)")],
-        body=[("STIX Two Text", "GF · Linux: stix-fonts (OFL)"),
-              ("Libertinus Serif", "GF · Linux: libertinus-fonts (OFL)"),
+        body=[("STIX Two Text", "upstream: STIX Fonts, STIPub stixfonts (OFL)"),
+              ("Libertinus Serif", "upstream: Libertinus (embedded in Typst) (OFL)"),
               ("PT Serif", "GF (OFL, ParaType)"),
               ("Source Serif 4", "GF (OFL, Adobe)")]),
     "mono-technical": FontPool(
         register="document-grade monospace for the devices + a neutral sans body",
-        display=[("Source Code Pro", "GF · Linux: adobe-source-code-pro-fonts (OFL)"),
-                 ("Adwaita Mono", "local: adwaita-mono-fonts (OFL)"),
-                 ("IBM Plex Mono", "GF (OFL, IBM) / fonts-ibm-plex"),
+        display=[("Source Code Pro", "GF (OFL)"),
+                 ("Adwaita Mono", "upstream: GNOME adwaita-fonts (OFL)"),
+                 ("IBM Plex Mono", "GF (OFL, IBM)"),
                  ("JetBrains Mono", "GF (OFL) — disable ligatures")],
-        body=[("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
-              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex"),
+        body=[("Noto Sans", "GF"),
+              ("IBM Plex Sans", "GF (OFL, IBM)"),
               ("Public Sans", "GF (OFL, USWDS)")]),
     "quiet-luxury": FontPool(
         register="one warm humanist sans, generous but unshowy",
-        display=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
+        display=[("Adwaita Sans", "upstream: GNOME adwaita-fonts (OFL)"),
                  ("Manrope", "GF (OFL)"),
                  ("Outfit", "GF (OFL)")],
-        body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+        body=[("Adwaita Sans", "upstream: GNOME adwaita-fonts (OFL)"),
+              ("Noto Sans", "GF"),
               ("Manrope", "GF (OFL)")]),
     "bold-display": FontPool(
         register="geometric display for the name + a neutral sans body",
@@ -410,35 +410,34 @@ FONTS: dict[str, FontPool] = {
         # the over-used defaults (Inter, Roboto, Montserrat, Lato, Open Sans)
         # as DISPLAY faces, and leaving it in the pool meant drawing a banned
         # face on ~6% of the draws. Three members left = the documented minimum.
-        display=[("URW Gothic", "local: urw-base35-fonts / fonts-urw-base35"),
+        display=[("URW Gothic", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts)"),
                  ("Space Grotesk", "GF (OFL)"),
                  ("Unbounded", "GF (OFL)")],
-        body=[("Adwaita Sans", "local: adwaita-sans-fonts (OFL)"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+        body=[("Adwaita Sans", "upstream: GNOME adwaita-fonts (OFL)"),
+              ("Noto Sans", "GF"),
               ("Work Sans", "GF (OFL)")]),
     "engraved-card": FontPool(
         register="one quiet serif for display and body, "
                  "engraved-letterform lineage",
-        display=[("P052", "local: urw-base35-fonts / fonts-urw-base35 "
+        display=[("P052", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts) "
                           "(URW Palladio, Palatino-lineage)"),
-                 ("C059", "local: urw-base35-fonts / fonts-urw-base35 "
+                 ("C059", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts) "
                           "(URW Century Schoolbook)"),
-                 ("URW Bookman", "local: urw-base35-fonts / fonts-urw-base35"),
+                 ("URW Bookman", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts)"),
                  ("Alegreya", "GF (OFL, Huerta Tipográfica) — old-style AND "
                               "tabular figures")],
-        body=[("P052", "local: urw-base35-fonts / fonts-urw-base35"),
-              ("C059", "local: urw-base35-fonts / fonts-urw-base35"),
+        body=[("P052", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts)"),
+              ("C059", "upstream: URW base35 fonts (ArtifexSoftware urw-base35-fonts)"),
               ("Crimson Pro", "GF (OFL)"),
               ("Alegreya", "GF (OFL, Huerta Tipográfica)")]),
     "clause-index": FontPool(
         register="institutional grotesque with tabular figures",
-        display=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype "
-                             "(OFL/ParaType FFL)"),
+        display=[("PT Sans", "GF (OFL/ParaType FFL)"),
                  ("Schibsted Grotesk", "GF (OFL, Bakken & Bæck)"),
-                 ("Fira Sans", "GF (OFL) / fonts-fira-sans")],
-        body=[("PT Sans", "GF · Linux: pt-sans-fonts / fonts-paratype"),
+                 ("Fira Sans", "GF (OFL)")],
+        body=[("PT Sans", "GF"),
               ("Public Sans", "GF (OFL, USWDS)"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto")]),
+              ("Noto Sans", "GF")]),
     "hard-edge": FontPool(
         register="heavy grotesque display + a neutral sans body + a document "
                  "mono for ALL metadata",
@@ -447,12 +446,12 @@ FONTS: dict[str, FontPool] = {
                  ("Bricolage Grotesque", "GF (OFL, Atelier Triay) — the "
                   "variable build reports as \"Bricolage Grotesque 96pt\"; "
                   "no italic")],
-        mono=[("Fira Mono", "GF (OFL) / fonts-fira-mono"),
-              ("DejaVu Sans Mono", "local: dejavu-sans-mono-fonts / fonts-dejavu"),
-              ("Noto Sans Mono", "GF · Linux: google-noto-sans-mono-fonts / fonts-noto")],
+        mono=[("Fira Mono", "GF (OFL)"),
+              ("DejaVu Sans Mono", "upstream: DejaVu Fonts (embedded in Typst)"),
+              ("Noto Sans Mono", "GF")],
         body=[("Public Sans", "GF (OFL, USWDS)"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
-              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
+              ("Noto Sans", "GF"),
+              ("IBM Plex Sans", "GF (OFL, IBM)")]),
     "gutter-rail": FontPool(
         register="UI grotesque for the chrome + a document mono for the BUFFER "
                  "(all metadata) + a neutral sans body",
@@ -469,17 +468,17 @@ FONTS: dict[str, FontPool] = {
         # Mono and Noto Sans Mono all hold both lines (verified by bbox).
         mono=[("Geist Mono", "GF (OFL, Vercel)"),
               ("Red Hat Mono", "GF (OFL, Red Hat)"),
-              ("Noto Sans Mono", "GF · Linux: google-noto-sans-mono-fonts / fonts-noto")],
+              ("Noto Sans Mono", "GF")],
         body=[("Public Sans", "GF (OFL, USWDS)"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
-              ("IBM Plex Sans", "GF (OFL, IBM) / fonts-ibm-plex")]),
+              ("Noto Sans", "GF"),
+              ("IBM Plex Sans", "GF (OFL, IBM)")]),
     "avant-poster": FontPool(
         register="condensed grotesque display + a humanist sans body",
         display=[("Chivo", "GF (OFL, Omnibus-Type)"),
                  ("Big Shoulders Display", "GF (OFL)"),
-                 ("Fira Sans Condensed", "GF (OFL) / fonts-fira-sans")],
-        body=[("Fira Sans", "GF (OFL) / fonts-fira-sans"),
-              ("Noto Sans", "GF · Linux: google-noto-sans-fonts / fonts-noto"),
+                 ("Fira Sans Condensed", "GF (OFL)")],
+        body=[("Fira Sans", "GF (OFL)"),
+              ("Noto Sans", "GF"),
               ("Public Sans", "GF (OFL, USWDS)")]),
 }
 
